@@ -616,10 +616,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_holder(self, obj):
-        submitter = ''
-        if obj.submitter:
-            submitter = obj.submitter_obj.get_full_name()
-        return submitter
+        # submitter = ''
+        # if obj.submitter:
+        #     submitter = obj.submitter_obj.get_full_name()
+        # return submitter
+        return obj.applicant
 
     def get_issue_date_str(self, obj):
         issue_date = ''
@@ -1059,17 +1060,15 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         if obj.submitter:
             items = []
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            # items.append(obj.submitter.get_full_name())
-            # submitter = retrieve_email_userro(obj.submitter)
-            items.append(obj.submitter_obj.get_full_name())
-            # if obj.submitter.mobile_number:
+            # items.append(obj.submitter_obj.get_full_name())
+            # items.append(obj.applicant)
+            items.append(f'{obj.current_proposal.proposal_applicant.first_name} {obj.current_proposal.proposal_applicant.last_name}')
             if obj.submitter_obj.mobile_number:
                 items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.submitter_obj.mobile_number)
-            # if obj.submitter.phone_number:
             if obj.submitter_obj.phone_number:
                 items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.submitter_obj.phone_number)
-            # items.append(obj.submitter.email)
-            items.append(obj.submitter_obj.email)
+            # items.append(obj.submitter_obj.email)
+            items.append(obj.current_proposal.proposal_applicant.email)
 
             items = '</br>'.join(items)
             holder_str = '<span>' + items + '</span>'

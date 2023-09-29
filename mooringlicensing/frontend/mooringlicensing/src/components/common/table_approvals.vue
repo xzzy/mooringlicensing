@@ -564,12 +564,12 @@ export default {
             return {
                         data: "id",
                         orderable: false,
-                        searchable: false,
+                        searchable: true,
                         visible: true,
                         'render': function(row, type, full){
                             return full.holder;
                         },
-                        name: 'submitter__first_name, submitter__last_name',
+                        name: 'current_proposal__proposalapplicant__first_name, current_proposal__proposalapplicant__last_name, current_proposal__proposalapplicant__email'
                     }
         },
         columnPreferredMooringBay: function() {
