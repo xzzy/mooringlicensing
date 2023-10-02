@@ -520,5 +520,6 @@ def reorder_wla(target_bay):
     ).order_by('wla_queue_date'):
         w.wla_order = place
         w.save()
+        logger.info(f'Allocation order: [{w.wla_order}] has been set to the WaitingListAllocation: [{w}].')
         place += 1
 
