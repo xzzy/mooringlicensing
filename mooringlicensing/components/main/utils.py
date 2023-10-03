@@ -67,20 +67,24 @@ def get_bookings(booking_date, rego_no=None, mooring_id=None):
         myobj.update({'rego_no': rego_no})
     if mooring_id:
         myobj.update({'mooring_id': mooring_id})
-    res = requests.post(url, data=myobj)
-    res.raise_for_status()
-    data = res.json().get('data')
-    updated_data = []
-    # phone number
-    for booking in data:
-        customer_phone_number = ''
-        if booking.get("booking_phone_number"):
-            customer_phone_number = booking.get("booking_phone_number")
-        elif booking.get("customer_account_phone_number"):
-            customer_phone_number = booking.get("customer_account_phone_number")
-        booking.update({"customer_phone_number": customer_phone_number})
-        updated_data.append(booking)
-    return updated_data
+    try:
+        res = requests.post(url, data=myobj)
+        res.raise_for_status()
+        data = res.json().get('data')
+        updated_data = []
+        # phone number
+        for booking in data:
+            customer_phone_number = ''
+            if booking.get("booking_phone_number"):
+                customer_phone_number = booking.get("booking_phone_number")
+            elif booking.get("customer_account_phone_number"):
+                customer_phone_number = booking.get("customer_account_phone_number")
+            booking.update({"customer_phone_number": customer_phone_number})
+            updated_data.append(booking)
+        return updated_data
+    except Exception as e:
+        logger.error(f'Error raised while getting bookings. Error: [{e}]')
+        return []
 
 def import_mooring_bookings_data():
     errors = []
