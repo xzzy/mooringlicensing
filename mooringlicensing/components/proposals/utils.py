@@ -975,8 +975,8 @@ def store_vessel_ownership(request, vessel, instance=None):
 
     # Vessel docs
     # if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
-    if vessel_ownership.company_ownerships.count() and not vessel_ownership.vessel_registration_documents.all():
-        raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
+    # if vessel_ownership.company_ownerships.count() and not vessel_ownership.vessel_registration_documents.all():
+    #     raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 
 def handle_vessel_registrarion_documents_in_limbo(proposal_id, vessel_ownership):

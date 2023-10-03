@@ -232,6 +232,7 @@ class Approval(RevisionedMixin):
         (INTERNAL_STATUS_WAITING, 'Waiting for offer'),
         (INTERNAL_STATUS_OFFERED, 'Mooring Site Licence offered'),
         (INTERNAL_STATUS_SUBMITTED, 'Mooring Site Licence application submitted'),
+        (INTERNAL_STATUS_APPROVED, 'Mooring Site Licence application approved'),
     )
     lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
@@ -596,7 +597,7 @@ class Approval(RevisionedMixin):
             self.child_obj.update_auth_user_permits()
 
     def __str__(self):
-        return self.lodgement_number
+        return f'{self.lodgement_number} {self.status}'
 
     @property
     def reference(self):

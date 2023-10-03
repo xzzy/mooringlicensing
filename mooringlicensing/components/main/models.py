@@ -151,6 +151,7 @@ class GlobalSettings(models.Model):
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
     KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
     KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST = 'external_dashboard_sections_list'
+    KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP = 'number_of_moorings_to_return_for_lookup'
 
     keys_for_file = (
         KEY_DCV_PERMIT_TEMPLATE_FILE,
@@ -173,6 +174,7 @@ class GlobalSettings(models.Model):
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
         (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit'),
         (KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST, 'External dashboard sections list'),
+        (KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP, 'Number of moorings to return for lookup')
     )
     template_folder = 'mooringlicensing/management/templates'
     default_values = {
@@ -187,6 +189,7 @@ class GlobalSettings(models.Model):
         KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.40,
         KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
         KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST: 'LicencesAndPermitsTable, ApplicationsTable, CompliancesTable, WaitingListTable, AuthorisedUserApplicationsTable',
+        KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP: 10,
     }
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
