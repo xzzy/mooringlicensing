@@ -21,6 +21,7 @@ from ledger_api_client.settings_base import TIME_ZONE, LOGGING
 # from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing import settings
+from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
     save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
@@ -210,6 +211,8 @@ class GetMooringPerBay(views.APIView):
         wla_id = request.GET.get('wla_id')
         aup_id = request.GET.get('aup_id')
         search_term = request.GET.get('term', '')
+        num_of_moorings_to_return = int(GlobalSettings.objects.get(key=GlobalSettings.KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP).value)
+
         if search_term:
             if available_moorings:
                 if mooring_bay_id:
@@ -229,11 +232,11 @@ class GetMooringPerBay(views.APIView):
                             Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
                             Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
                         )
-                        data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence')[:10]
+                        data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
                     else:
-                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:10]
+                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
                 else:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:10]
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
             else:
                 # aup
                 if mooring_bay_id:
@@ -250,11 +253,11 @@ class GetMooringPerBay(views.APIView):
                             Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
                             ~Q(id__in=aup_mooring_ids)
                         )
-                        data = Mooring.authorised_user_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence')[:10]
+                        data = Mooring.authorised_user_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
                     else:
                         data = []
                 else:
-                    data = Mooring.private_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:10]
+                    data = Mooring.private_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
             # data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             data_transform = []
             for mooring in data:

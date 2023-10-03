@@ -1059,16 +1059,16 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         holder_str = ''
         if obj.submitter:
             items = []
-            from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            # items.append(obj.submitter_obj.get_full_name())
-            # items.append(obj.applicant)
-            items.append(f'{obj.current_proposal.proposal_applicant.first_name} {obj.current_proposal.proposal_applicant.last_name}')
-            if obj.submitter_obj.mobile_number:
-                items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.submitter_obj.mobile_number)
-            if obj.submitter_obj.phone_number:
-                items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.submitter_obj.phone_number)
-            # items.append(obj.submitter_obj.email)
-            items.append(obj.current_proposal.proposal_applicant.email)
+            try:
+                from mooringlicensing.ledger_api_utils import retrieve_email_userro
+                items.append(f'{obj.current_proposal.proposal_applicant.first_name} {obj.current_proposal.proposal_applicant.last_name}')
+                if obj.submitter_obj.mobile_number:
+                    items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.submitter_obj.mobile_number)
+                if obj.submitter_obj.phone_number:
+                    items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.submitter_obj.phone_number)
+                items.append(obj.current_proposal.proposal_applicant.email)
+            except Exception as e:
+                logger.error(e)
 
             items = '</br>'.join(items)
             holder_str = '<span>' + items + '</span>'

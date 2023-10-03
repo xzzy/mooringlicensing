@@ -1427,6 +1427,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise
 
     def final_decline(self, request, details):
+        from mooringlicensing.components.approvals.models import WaitingListAllocation
+
         with transaction.atomic():
             try:
                 if not self.can_assess(request.user):
@@ -1458,14 +1460,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 applicant_field=getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
+
                 ## ML
                 if type(self.child_obj) == MooringLicenceApplication and self.waiting_list_allocation:
-                    pass
-                    # self.waiting_list_allocation.internal_status = 'waiting'
-                    # current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                    # self.waiting_list_allocation.wla_queue_date = current_datetime
-                    # self.waiting_list_allocation.save()
-                    # self.waiting_list_allocation.set_wla_order()
+                    # Originated WLAllocation should gets the status 'waiting' again.
+                    self.waiting_list_allocation.internal_status = WaitingListAllocation.INTERNAL_STATUS_WAITING
+                    self.waiting_list_allocation.save()
+                    logger.info(f'Internal status: [{WaitingListAllocation.INTERNAL_STATUS_WAITING}] has been set to the WLAllocation: [{self.waiting_list_allocation}.]')
+                    self.waiting_list_allocation.set_wla_order()
                 send_application_approved_or_declined_email(self, 'declined', request)
             except:
                 raise
@@ -3428,10 +3430,11 @@ class MooringLicenceApplication(Proposal):
         self.proposal.refresh_from_db()
 
     def process_after_submit_other_documents(self, request):
+        from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
         # Somehow in this function, followings update parent too as we expected as polymorphism
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         if self.waiting_list_allocation:
-            self.waiting_list_allocation.internal_status = 'submitted'
+            self.waiting_list_allocation.internal_status = WaitingListAllocation.INTERNAL_STATUS_SUBMITTED
             self.waiting_list_allocation.save()
         self.save()
 
