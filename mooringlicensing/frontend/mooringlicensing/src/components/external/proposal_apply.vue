@@ -293,10 +293,11 @@ export default {
             if (this.selectedApplication && this.selectedApplication.description) {
                 text = this.selectedApplication.description;
             }
-            if (this.selectedApplication.code == 'wla') {
+            if (this.selectedApplication.code == 'wla' || this.selectedApplication.code == 'dcvp') {
                 text = "a " + text;
-            } else {
-                //return "a Filming";
+            } else if (this.selectedApplication.code == 'ml') {
+                text = "your " + text
+            } else if (this.selectedApplication.code == 'aaa' || this.selectedApplication.code == 'aua'){
                 text = "an " + text;
             }
             return text
