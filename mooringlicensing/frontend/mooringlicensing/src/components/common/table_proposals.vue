@@ -303,7 +303,7 @@ export default {
             return {
                 data: "id",
                 orderable: false,
-                searchable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.submitter){
@@ -311,7 +311,8 @@ export default {
                     }
                     return ''
                 },
-                name: 'submitter__first_name, submitter__last_name',
+                // name: 'submitter__first_name, submitter__last_name',
+                name: 'proposalapplicant__first_name, proposalapplicant__last_name, proposalapplicant__email'
             }
         },
         column_assigned_to: function(){
