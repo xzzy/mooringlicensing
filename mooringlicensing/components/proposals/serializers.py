@@ -1638,7 +1638,6 @@ class ListMooringSerializer(serializers.ModelSerializer):
     def get_authorised_user_permits(self, obj):
         target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-
         query = Q()
         query &= Q(mooring=obj)
         query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])

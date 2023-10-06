@@ -311,7 +311,6 @@ export default {
                     }
                     return ''
                 },
-                // name: 'submitter__first_name, submitter__last_name',
                 name: 'proposalapplicant__first_name, proposalapplicant__last_name, proposalapplicant__email'
             }
         },

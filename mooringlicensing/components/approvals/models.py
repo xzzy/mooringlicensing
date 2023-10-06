@@ -485,17 +485,22 @@ class Approval(RevisionedMixin):
 
     def add_mooring(self, mooring, site_licensee):
         # do not add if this mooring already exists for the approval
-        mooring_on_approval = None
+        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
+        query = Q()
+        query &= Q(mooring=mooring)
+        query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))  # Not ended yet
+
         created = None
-        if not self.mooringonapproval_set.filter(mooring=mooring):
+        if not self.mooringonapproval_set.filter(query):
             mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
-                    mooring=mooring,
-                    approval=self,
-                    site_licensee=site_licensee
-                    )
+                mooring=mooring,
+                approval=self,
+                site_licensee=site_licensee
+            )
             if created:
                 logger.info('New Mooring {} has been added to the approval {}'.format(mooring.name, self.lodgement_number))
-        return mooring_on_approval, created
+        else:
+            logger.warning(f'There is already a current MooringOnApproval object whose approval: [{self}], mooring: [{mooring}] and site_licensee: [{site_licensee}].')
 
     @property
     def bpay_allowed(self):
