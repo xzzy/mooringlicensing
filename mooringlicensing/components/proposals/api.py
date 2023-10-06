@@ -1390,12 +1390,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        # instance.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        # instance.previous_application = None
-        # instance.save()
-        logger.info(f'Proposal: [{instance}] is being deleted by the user: [{request.user}].')
+        logger.info(f'Proposal: [{instance}] is being destroyed by the user: [{request.user}].')
 
-        instance.destroy(request, *args, **kwargs)
+        if instance.child_obj.application_type_code == MooringLicenceApplication.code and request.query_params.get('action', '') in ['withdraw',]:
+            instance.withdraw(request, *args, **kwargs)
+        else:
+            instance.destroy(request, *args, **kwargs)
 
         ## ML
         # if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:

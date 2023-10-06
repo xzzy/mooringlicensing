@@ -1027,7 +1027,7 @@ class WaitingListAllocation(Approval):
 
     def get_grace_period_end_date(self):
         end_date = None
-        if self.current_proposal.vessel_ownership.end_date:
+        if self.current_proposal and self.current_proposal.vessel_ownership and self.current_proposal.vessel_ownership.end_date:
             end_date = self.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
         return end_date
 
@@ -1114,6 +1114,13 @@ class WaitingListAllocation(Approval):
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=approved, status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
+    
+    def process_after_withdrawn(self):
+        self.wla_order = None
+        self.internal_status = Approval.INTERNAL_STATUS_WAITING
+        self.save()
+        logger.info(f'Set attributes as follows: [internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
+        self.set_wla_order()
 
     def process_after_discarded(self):
         self.wla_order = None
@@ -1141,6 +1148,9 @@ class AnnualAdmissionPermit(Approval):
         return end_date
 
     def process_after_discarded(self):
+        logger.debug(f'in AAP called.')
+
+    def process_after_withdrawn(self):
         logger.debug(f'in AAP called.')
 
     @property
@@ -1388,6 +1398,9 @@ class AuthorisedUserPermit(Approval):
         return end_date
 
     def process_after_discarded(self):
+        logger.debug(f'in AUP called.')
+
+    def process_after_withdrawn(self):
         logger.debug(f'in AUP called.')
 
     def get_authorised_by(self):
@@ -1751,6 +1764,9 @@ class MooringLicence(Approval):
         # TODO: Calculate end_date from possibly multiple vessels sold
 
         return end_date
+
+    def process_after_withdrawn(self):
+        logger.debug(f'in ML called.')
 
     def process_after_discarded(self):
         logger.debug(f'in ML called.')

@@ -439,6 +439,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def withdraw(self, request, *args, **kwargs):
+        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+        self.save()
+        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+        self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number, request))
+
+        # Perform post-processing for each application type after discarding.
+        self.child_obj.process_after_withdrawn()
+
     def destroy(self, request, *args, **kwargs):
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
@@ -2484,6 +2493,9 @@ class WaitingListApplication(Proposal):
     def process_after_discarded(self):
         logger.debug(f'called in [{self}]')
 
+    def process_after_withdrawn(self):
+        logger.debug(f'called in [{self}]')
+
     @property
     def child_obj(self):
         raise NotImplementedError('This method cannot be called on a child_obj')
@@ -2671,6 +2683,9 @@ class AnnualAdmissionApplication(Proposal):
     def process_after_discarded(self):
         logger.debug(f'called in [{self}]')
 
+    def process_after_withdrawn(self):
+        logger.debug(f'called in [{self}]')
+
     class Meta:
         app_label = 'mooringlicensing'
 
@@ -2848,6 +2863,9 @@ class AuthorisedUserApplication(Proposal):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def process_after_discarded(self):
+        logger.debug(f'called in [{self}]')
+
+    def process_after_withdrawn(self):
         logger.debug(f'called in [{self}]')
 
     class Meta:
@@ -3269,6 +3287,10 @@ class MooringLicenceApplication(Proposal):
     def process_after_discarded(self):
         if self.waiting_list_allocation:
             self.waiting_list_allocation.process_after_discarded()
+
+    def process_after_withdrawn(self):
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.process_after_withdrawn()
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -4523,6 +4545,7 @@ class ProposalUserAction(UserAction):
     ACTION_AUTO_APPROVED = "Grant application {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
+    ACTION_WITHDRAW_PROPOSAL = "Withdraw application {}"
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
     ACTION_SUBMIT_OTHER_DOCUMENTS = 'Submit other documents'
     # Assessors
