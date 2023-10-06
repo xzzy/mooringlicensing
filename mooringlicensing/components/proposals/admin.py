@@ -38,8 +38,12 @@ class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
 
 @admin.register(models.VesselOwnership)
 class VesselOwnershipAdmin(admin.ModelAdmin):
-    # list_display = ['id', 'owner', 'vessel', 'company_ownership', 'percentage', 'start_date', 'end_date', 'dot_name',]
     list_display = ['id', 'owner', 'vessel', 'percentage', 'start_date', 'end_date', 'dot_name',]
+
+
+@admin.register(models.VesselDetails)
+class VesselDetailsAdmin(admin.ModelAdmin):
+    list_display = ['id', 'vessel', 'vessel_type', 'vessel_name', 'vessel_length', 'vessel_draft',]
 
 
 @admin.register(models.CompanyOwnership)

@@ -1202,6 +1202,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_created = serializers.DateTimeField(read_only=True)
     date_updated = serializers.DateTimeField(read_only=True)
     user_detail = serializers.SerializerMethodField()
+    waive_the_fee = serializers.BooleanField()
 
     class Meta:
         model = StickerActionDetail
@@ -1216,6 +1217,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'action',
             'user',  # For saving the user data
             'user_detail',  # For reading the user data
+            'waive_the_fee',
         )
 
     def get_user_detail(self, obj):

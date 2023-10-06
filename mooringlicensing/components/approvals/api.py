@@ -504,6 +504,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 data['user'] = request.user.id
                 data['reason'] = details['reason']
                 data['date_of_lost_sticker'] = today.strftime('%d/%m/%Y')
+                data['waive_the_fee'] = request.data.get('waive_the_fee', False)
                 serializer = StickerActionDetailSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 new_sticker_action_detail = serializer.save()

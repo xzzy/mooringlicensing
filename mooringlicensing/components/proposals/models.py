@@ -4122,7 +4122,7 @@ class VesselOwnership(RevisionedMixin):
     company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
 
     class Meta:
-        verbose_name_plural = "Vessel Details Ownership"
+        verbose_name_plural = "Vessel Ownership"
         app_label = 'mooringlicensing'
 
     def get_latest_company_ownership(self, status_list=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,]):
