@@ -485,7 +485,7 @@ class Approval(RevisionedMixin):
 
     def add_mooring(self, mooring, site_licensee):
         # do not add if this mooring already exists for the approval
-        target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
+        target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
         query = Q()
         query &= Q(mooring=mooring)
         query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))  # Not ended yet
@@ -3033,6 +3033,7 @@ class StickerActionDetail(models.Model):
     # user = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
     user = models.IntegerField(null=True, blank=True)
     sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
+    waive_the_fee = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'
