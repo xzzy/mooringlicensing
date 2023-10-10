@@ -1,6 +1,9 @@
+from datetime import datetime
 from io import BytesIO
 
+from ledger_api_client import api
 from ledger_api_client.settings_base import TIME_ZONE
+from ledger_api_client.ledger_models import EmailUserRO
 from django.utils import timezone
 from confy import env
 
@@ -18,6 +21,8 @@ from mooringlicensing.components.proposals.email import send_sticker_printing_ba
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
+    Proposal,
+    ProposalApplicant,
     StickerPrintingBatch
 )
 from mooringlicensing.components.main.decorators import query_debugger
@@ -25,6 +30,8 @@ from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
+
+from mooringlicensing.components.users.serializers import ProposalApplicantSerializer
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -527,3 +534,39 @@ def reorder_wla(target_bay):
         logger.info(f'Allocation order: [{w.wla_order}] has been set to the WaitingListAllocation: [{w}].')
         place += 1
 
+def update_personal_details(request, user_id):
+    """
+    Update the ledger and the proposal_applicant(s) of all the applications of this user with 'draft' status
+    """
+    data = json.loads(request.body.decode())
+    payload = data.get('payload', None)
+    
+    # Format data to use ProposalApplicantSerializer to save
+    dob = payload.get('dob', None)
+    if dob:
+        dob = datetime.strptime(dob, '%d/%m/%Y')
+        payload['dob'] = dob.strftime('%Y-%m-%d')
+
+    residential_address = payload.get('residential_address', None)
+    if residential_address:
+        payload.update(residential_address)
+
+    postal_address = payload.get('postal_address', None)
+    if postal_address:
+        payload.update(postal_address)
+
+    # Update the ledger
+    ret = api.update_account_details(request, user_id)
+
+    ret_content = json.loads(ret.content.decode())
+    if ret_content.get('status', None) == 200 and payload:
+        # Personal details have successfully updated the ledger.
+        # Now we want to update the proposal_applicant of all of this user's proposals with 'draft' status
+        proposals = Proposal.objects.filter(submitter=user_id, processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+        for proposal in proposals:
+            proposal_applicant = ProposalApplicant.objects.filter(proposal=proposal).order_by('updated_at').last()
+            serializer = ProposalApplicantSerializer(proposal_applicant, data=payload)
+            serializer.is_valid(raise_exception=True)
+            proposal_applicant = serializer.save()
+
+    return ret

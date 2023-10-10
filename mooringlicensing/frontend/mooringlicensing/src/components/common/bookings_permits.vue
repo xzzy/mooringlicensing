@@ -24,20 +24,16 @@
                             <tr>
                                 <th>Entity type</th>
                                 <th>Number</th>
-                                <th>Action</th>
+                                <th>Allocated by</th>
                                 <th>Contact number</th>
-                                <th>View</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="approval in approvals">
                                 <td>{{ approval.approval_type_dict.description }}</td>
-                                <td>{{ approval.lodgement_number }}</td>
-                                <!--td>View</td-->
-                                <td></td>
+                                <td><a :href=approval.url>{{ approval.lodgement_number }}</a></td>
+                                <td>{{ approval.allocated_by }}</td>
                                 <td>{{ approval.submitter_phone_number }}</td>
-                                <td><a :href=approval.url>View</a></td>
-                                <!--td>{{approval.url}}</td-->
                                 <td>
                                     <table class="table">
                                         <thead>

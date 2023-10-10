@@ -9,6 +9,7 @@ import mooringlicensing
 # import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.components.approvals.views import DcvAdmissionFormView
+from mooringlicensing.components.main.utils import update_personal_details
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
@@ -199,7 +200,12 @@ urlpatterns = [
 
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
 
+    # Intercept the request to update the account details before reaching the ledger_api_client
+    url(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),
+
 ] + ledger_patterns + media_serv_patterns
+
+
 
 if settings.DEBUG:  # Serve media locally in development.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

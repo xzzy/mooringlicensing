@@ -277,11 +277,15 @@ export default {
                                 links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
                             }
                         }
+                        if (full.application_type_dict.code === 'mla' && full.processing_status === 'Draft'){
+                            // Only mooring licensing draft application can be withdrawn
+                            links +=  `<a href='#${full.id}' data-withdraw-proposal='${full.id}'>Withdraw</a><br/>`
+                        }
                     }
                     if (vm.is_external){
                         if (full.can_user_edit) {
                             links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
+                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}' data-application-type-code='${full.application_type_dict.code}'>Discard</a><br/>`;
                         }
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
@@ -311,7 +315,6 @@ export default {
                     }
                     return ''
                 },
-                // name: 'submitter__first_name, submitter__last_name',
                 name: 'proposalapplicant__first_name, proposalapplicant__last_name, proposalapplicant__email'
             }
         },
@@ -443,7 +446,31 @@ export default {
                 name: 'apply_proposal'
             })
         },
-        discardProposal: function(proposal_id) {
+        withdrawProposal: function(proposal_id){
+            let vm = this;
+            swal({
+                title: "Withdraw Application",
+                text: "Are you sure you want to withdraw this application?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Withdraw Application',
+                confirmButtonColor:'#dc3545'
+            }).then(() => {
+                vm.$http.delete(api_endpoints.discard_proposal(proposal_id), {params: {'action': 'withdraw'}})
+                .then((response) => {
+                    swal(
+                        'Withdrawn',
+                        'Application has been discarded',
+                        'success'
+                    )
+                    vm.$refs.application_datatable.vmDataTable.draw();
+                }, (error) => {
+                });
+            },(error) => {
+
+            });
+        },
+        discardProposal: function(proposal_id, application_type_code) {
             let vm = this;
             swal({
                 title: "Discard Application",
@@ -453,19 +480,44 @@ export default {
                 confirmButtonText: 'Discard Application',
                 confirmButtonColor:'#dc3545'
             }).then(() => {
-                vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-                .then((response) => {
-                    swal(
-                        'Discarded',
-                        'Your application has been discarded',
-                        'success'
-                    )
-                    //vm.$refs.application_datatable.vmDataTable.ajax.reload();
-                    vm.$refs.application_datatable.vmDataTable.draw();
-                }, (error) => {
-                });
-            },(error) => {
+                if (application_type_code === 'mla'){
+                    swal({
+                        title: "Are you sure you want to discard this offer?",
+                        text: "Please note this will withdraw your offer and you will lose your current position on the waiting list.",
+                        type: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: 'Discard Application',
+                        confirmButtonColor:'#dc3545'
+                    }).then(()=>{
+                        vm.$http.delete(api_endpoints.discard_proposal(proposal_id), {params: {'action': 'discard'}})
+                        .then((response) => {
+                            swal(
+                                'Discarded',
+                                'Your application has been discarded',
+                                'success'
+                            )
+                            vm.$refs.application_datatable.vmDataTable.draw();
+                        }, (error) => {
 
+                        });
+                    }), (error) => {
+                        // Cancelled at the 2nd warning
+                    }
+                } else {
+                    vm.$http.delete(api_endpoints.discard_proposal(proposal_id), {params: {'action': 'discard'}})
+                    .then((response) => {
+                        swal(
+                            'Discarded',
+                            'Your application has been discarded',
+                            'success'
+                        )
+                        vm.$refs.application_datatable.vmDataTable.draw();
+                    }, (error) => {
+
+                    });
+                }
+            },(error) => {
+                // Cancelled at the 1st warning
             });
         },
         fetchFilterLists: function(){
@@ -507,8 +559,14 @@ export default {
             vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
                 e.preventDefault();
                 let id = $(this).attr('data-discard-proposal');
-                vm.discardProposal(id)
-            });
+                let application_type_code = $(this).attr('data-application-type-code');
+                vm.discardProposal(id, application_type_code)
+            })
+            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-withdraw-proposal]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-withdraw-proposal');
+                vm.withdrawProposal(id)
+            })
         },
     },
     created: function(){

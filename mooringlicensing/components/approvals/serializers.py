@@ -934,7 +934,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         link = ''
         if (
                 type(obj.child_obj) == WaitingListAllocation and 
-                obj.status == 'current' and
+                obj.status == Approval.APPROVAL_STATUS_CURRENT and
                 obj.current_proposal.preferred_bay and
                 obj.internal_status == Approval.INTERNAL_STATUS_WAITING
                 ):
@@ -1099,6 +1099,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     submitter_phone_number = serializers.SerializerMethodField()
     vessel_data = serializers.SerializerMethodField()
     url = serializers.SerializerMethodField()
+    allocated_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Approval
@@ -1111,7 +1112,27 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             'submitter_phone_number',
             'vessel_data',
             'url',
+            'allocated_by',
         )
+
+    def get_allocated_by(self, obj):
+        allocated_by = ''
+        mooring = self.context.get('mooring', None)
+
+        if mooring and obj.code == AuthorisedUserPermit.code:
+            query = Q()
+            query &= Q(mooring=mooring)
+            query &= Q(approval=obj)
+            # query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))
+
+            try:
+                moa = MooringOnApproval.objects.get(query)
+                allocated_by = 'LIC' if moa.site_licensee else 'RIA'
+            except Exception as e:
+                logger.error(f'{e}')
+            pass
+
+        return allocated_by
 
     def get_url(self, obj):
         return '/internal/approval/{}'.format(obj.id)
@@ -1181,6 +1202,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_created = serializers.DateTimeField(read_only=True)
     date_updated = serializers.DateTimeField(read_only=True)
     user_detail = serializers.SerializerMethodField()
+    waive_the_fee = serializers.BooleanField()
 
     class Meta:
         model = StickerActionDetail
@@ -1195,6 +1217,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'action',
             'user',  # For saving the user data
             'user_detail',  # For reading the user data
+            'waive_the_fee',
         )
 
     def get_user_detail(self, obj):

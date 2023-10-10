@@ -457,34 +457,6 @@ export default {
             let details = '<table class="table table-striped table-bordered table-sm table-sticker-details" id="table-sticker-details-' + sticker.id + '">' + thead + tbody + '</table>'
             return details
         },
-        //discardProposal: function(proposal_id) {
-        //    let vm = this;
-        //    swal({
-        //        title: "Discard Application",
-        //        text: "Are you sure you want to discard this proposal?",
-        //        type: "warning",
-        //        showCancelButton: true,
-        //        confirmButtonText: 'Discard Application',
-        //        confirmButtonColor:'#dc3545'
-        //    }).then(() => {
-        //        vm.$http.delete(api_endpoints.discard_proposal(proposal_id))
-        //        .then((response) => {
-        //            console.log('response: ')
-        //            console.log(response)
-        //            swal(
-        //                'Discarded',
-        //                'Your proposal has been discarded',
-        //                'success'
-        //            )
-        //            //vm.$refs.stickers_datatable.vmDataTable.ajax.reload();
-        //            vm.$refs.stickers_datatable.vmDataTable.draw();
-        //        }, (error) => {
-        //            console.log(error);
-        //        });
-        //    },(error) => {
-
-        //    });
-        //},
         fetchFilterLists: function(){
             let vm = this;
 
