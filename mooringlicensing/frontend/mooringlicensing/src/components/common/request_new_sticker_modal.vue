@@ -35,10 +35,17 @@
                 </div>
             </div>
             <div slot="footer">
-                <span><strong>Sticker replacement cost ${{ total_fee }}</strong></span>
-                <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
-                <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                <div class="row">
+                    <div class="col-md-7">
+                        <span v-if="is_internal"><strong><input type="checkbox" v-model="waive_the_fee" /> Waive the fee</strong></span>
+                    </div>
+                    <div class="col-md-5">
+                        <span><strong>Sticker replacement cost ${{ total_fee }}</strong></span>
+                        <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
+                        <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
+                        <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                    </div>
+                </div>
             </div>
         </modal>
     </div>
@@ -56,7 +63,10 @@ export default {
         alert,
     },
     props:{
-
+        is_internal: {
+            type: Boolean,
+            default: false,
+        }
     },
     data:function () {
         let vm = this;
@@ -71,6 +81,7 @@ export default {
 
             errors: false,
             errorString: '',
+            waive_the_fee: false,
         }
     },
     watch: {
@@ -113,11 +124,16 @@ export default {
             let vm = this
             let amount = 0
 
-            for (let sticker of this.stickers){
-                if (sticker.checked){
-                    amount += vm.fee_item.amount
+            if (vm.waive_the_fee){
+
+            } else {
+                for (let sticker of this.stickers){
+                    if (sticker.checked){
+                        amount += vm.fee_item.amount
+                    }
                 }
             }
+
             return amount
         }
     },
@@ -137,6 +153,7 @@ export default {
                 "details": vm.details,
                 "approval_id": vm.approval_id,
                 "stickers": vm.stickers,
+                "waive_the_fee": vm.waive_the_fee,
             })
         },
         cancel:function () {

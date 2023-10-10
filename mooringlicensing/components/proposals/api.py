@@ -903,7 +903,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return Response({'filedata': returned_file_data})
 
-
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
@@ -947,107 +946,62 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return Response(urls)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.action_logs.all()
-            serializer = ProposalUserActionSerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.action_logs.all()
+        serializer = ProposalUserActionSerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.comms_logs.all()
-            serializer = ProposalLogEntrySerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = ProposalLogEntrySerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                mutable=request.data._mutable
-                request.data._mutable=True
-                request.data['proposal'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data._mutable=mutable
-                serializer = ProposalLogEntrySerializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                comms = serializer.save()
-                # Save the files
-                for f in request.FILES:
-                    document = comms.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
-                # End Save Documents
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            request.data['proposal'] = u'{}'.format(instance.id)
+            request.data['staff'] = u'{}'.format(request.user.id)
+            request.data._mutable=mutable
+            serializer = ProposalLogEntrySerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
 
-                return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def requirements(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.requirements.all().exclude(is_deleted=True)
-            qs=qs.order_by('order')
-            serializer = ProposalRequirementSerializer(qs,many=True, context={'request':request})
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.requirements.all().exclude(is_deleted=True)
+        qs=qs.order_by('order')
+        serializer = ProposalRequirementSerializer(qs,many=True, context={'request':request})
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def amendment_request(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.amendment_requests
-            qs = qs.filter(status = 'requested')
-            serializer = AmendmentRequestDisplaySerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.amendment_requests
+        qs = qs.filter(status = 'requested')
+        serializer = AmendmentRequestDisplaySerializer(qs,many=True)
+        return Response(serializer.data)
 
     @list_route(methods=['GET',], detail=False)
     def user_list(self, request, *args, **kwargs):
@@ -1390,12 +1344,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        # instance.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        # instance.previous_application = None
-        # instance.save()
-        logger.info(f'Proposal: [{instance}] is being deleted by the user: [{request.user}].')
+        logger.info(f'Proposal: [{instance}] is being destroyed by the user: [{request.user}].')
 
-        instance.destroy(request, *args, **kwargs)
+        if instance.child_obj.application_type_code == MooringLicenceApplication.code and request.query_params.get('action', '') in ['withdraw',]:
+            instance.withdraw(request, *args, **kwargs)
+        else:
+            instance.destroy(request, *args, **kwargs)
 
         ## ML
         # if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
@@ -2227,11 +2181,11 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         if selected_date:
             approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
         else:
-            approval_list = [approval for approval in mooring.approval_set.filter(status='current')]
-        if mooring.mooring_licence and mooring.mooring_licence.status == 'current':
+            approval_list = [approval for approval in mooring.approval_set.filter(status=Approval.APPROVAL_STATUS_CURRENT)]
+        if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
             approval_list.append(mooring.mooring_licence.approval)
 
-        serializer = LookupApprovalSerializer(approval_list, many=True)
+        serializer = LookupApprovalSerializer(approval_list, many=True, context={'mooring': mooring})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)

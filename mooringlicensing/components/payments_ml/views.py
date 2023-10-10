@@ -238,8 +238,6 @@ class StickerReplacementFeeView(TemplateView):
                 sticker_action_details = StickerActionDetail.objects.filter(id__in=ids)
                 sticker_action_details.update(sticker_action_fee=sticker_action_fee)
 
-                # set_session_sticker_action_invoice(request.session, sticker_action_fee)
-
                 target_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
                 application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_REPLACEMENT_STICKER['code'])
                 fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
@@ -249,8 +247,8 @@ class StickerReplacementFeeView(TemplateView):
                     line = {
                         'ledger_description': 'Sticker Replacement Fee, sticker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
                         'oracle_code': application_type.get_oracle_code_by_date(current_datetime.date()),
-                        'price_incl_tax': fee_item.amount,
-                        'price_excl_tax': ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
+                        'price_incl_tax': 0 if sticker_action_detail.waive_the_fee else fee_item.amount,
+                        'price_excl_tax': 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
                         'quantity': 1,
                     }
                     lines.append(line)

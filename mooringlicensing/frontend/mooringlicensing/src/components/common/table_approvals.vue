@@ -108,6 +108,7 @@
         <!--ApprovalHistory ref="approval_history" /-->
         <RequestNewStickerModal
             ref="request_new_sticker_modal"
+            :is_internal="is_internal"
             @sendData="sendData"
         />
     </div>
@@ -492,11 +493,6 @@ export default {
                                     }
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
                                 }
-
-                                if (full.approval_type_dict.code != 'wla') {
-                                    links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
-                                }
-
                             } else if (!vm.is_external){
                                 links +=  `<a href='/internal/approval/${full.id}'>View</a><br/>`;
                                 links +=  `<a href='#${full.id}' data-history-approval='${full.id}'>History</a><br/>`;
@@ -506,25 +502,24 @@ export default {
                                 if (vm.is_internal && vm.wlaDash) {
                                     links += full.offer_link;
                                 }
-                                //if(vm.check_assessor(full)){
-                                //if (full.allowed_assessors.includes(vm.profile.id)) {
                                 if (full.allowed_assessors_user) {
-                                //if (true) {
                                     if(full.can_reissue && full.can_action){
-                                        links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`;
-                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-cancel-approval='${full.id}'>Cancel</a><br/>`
+                                        links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`
                                     }
                                     if(full.status == 'Current' && full.can_action){
-                                        links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`;
+                                        links +=  `<a href='#${full.id}' data-suspend-approval='${full.id}'>Suspend</a><br/>`
                                     }
-                                    if(full.can_reinstate)
-                                    {
-                                        links +=  `<a href='#${full.id}' data-reinstate-approval='${full.id}'>Reinstate</a><br/>`;
+                                    if(full.can_reinstate){
+                                        links +=  `<a href='#${full.id}' data-reinstate-approval='${full.id}'>Reinstate</a><br/>`
                                     }
                                 }
                                 if(full.renewal_document && full.renewal_sent){
-                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`;
+                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
                                 }
+                            }
+                            if (full.approval_type_dict.code != 'wla') {
+                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
                             }
 
                             return links;

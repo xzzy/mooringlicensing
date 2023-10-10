@@ -485,17 +485,22 @@ class Approval(RevisionedMixin):
 
     def add_mooring(self, mooring, site_licensee):
         # do not add if this mooring already exists for the approval
-        mooring_on_approval = None
+        target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        query = Q()
+        query &= Q(mooring=mooring)
+        query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))  # Not ended yet
+
         created = None
-        if not self.mooringonapproval_set.filter(mooring=mooring):
+        if not self.mooringonapproval_set.filter(query):
             mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
-                    mooring=mooring,
-                    approval=self,
-                    site_licensee=site_licensee
-                    )
+                mooring=mooring,
+                approval=self,
+                site_licensee=site_licensee
+            )
             if created:
                 logger.info('New Mooring {} has been added to the approval {}'.format(mooring.name, self.lodgement_number))
-        return mooring_on_approval, created
+        else:
+            logger.warning(f'There is already a current MooringOnApproval object whose approval: [{self}], mooring: [{mooring}] and site_licensee: [{site_licensee}].')
 
     @property
     def bpay_allowed(self):
@@ -1022,7 +1027,7 @@ class WaitingListAllocation(Approval):
 
     def get_grace_period_end_date(self):
         end_date = None
-        if self.current_proposal.vessel_ownership.end_date:
+        if self.current_proposal and self.current_proposal.vessel_ownership and self.current_proposal.vessel_ownership.end_date:
             end_date = self.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
         return end_date
 
@@ -1109,12 +1114,30 @@ class WaitingListAllocation(Approval):
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=approved, status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
+    
+    def process_after_withdrawn(self):
+        self.wla_order = None
+        self.internal_status = Approval.INTERNAL_STATUS_WAITING
+        self.save()
+        logger.info(f'Set attributes as follows: [internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
+        self.set_wla_order()
 
     def process_after_discarded(self):
         self.wla_order = None
         self.status = Approval.APPROVAL_STATUS_FULFILLED  # ML application has been discarded, but in terms of WLAllocation perspective, it's regarded as 'fulfilled'.
         self.save()
         logger.info(f'Set attributes as follows: [status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
+        self.set_wla_order()
+
+    def reinstate_wla_order(self, request):
+        """
+        This function makes this WL allocation back to the 'waiting' status
+        """
+        self.wla_order = None
+        self.status = Approval.APPROVAL_STATUS_CURRENT
+        self.internal_status = Approval.INTERNAL_STATUS_WAITING
+        self.save()
+        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
 
@@ -1136,6 +1159,9 @@ class AnnualAdmissionPermit(Approval):
         return end_date
 
     def process_after_discarded(self):
+        logger.debug(f'in AAP called.')
+
+    def process_after_withdrawn(self):
         logger.debug(f'in AAP called.')
 
     @property
@@ -1383,6 +1409,9 @@ class AuthorisedUserPermit(Approval):
         return end_date
 
     def process_after_discarded(self):
+        logger.debug(f'in AUP called.')
+
+    def process_after_withdrawn(self):
         logger.debug(f'in AUP called.')
 
     def get_authorised_by(self):
@@ -1746,6 +1775,9 @@ class MooringLicence(Approval):
         # TODO: Calculate end_date from possibly multiple vessels sold
 
         return end_date
+
+    def process_after_withdrawn(self):
+        logger.debug(f'in ML called.')
 
     def process_after_discarded(self):
         logger.debug(f'in ML called.')
@@ -3028,6 +3060,7 @@ class StickerActionDetail(models.Model):
     # user = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
     user = models.IntegerField(null=True, blank=True)
     sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
+    waive_the_fee = models.BooleanField(default=False)
 
     class Meta:
         app_label = 'mooringlicensing'

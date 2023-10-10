@@ -439,6 +439,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def __str__(self):
         return str(self.lodgement_number)
 
+    def withdraw(self, request, *args, **kwargs):
+        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+        self.save()
+        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+        self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number, request))
+
+        # Perform post-processing for each application type after discarding.
+        self.child_obj.process_after_withdrawn()
+
     def destroy(self, request, *args, **kwargs):
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
@@ -2335,12 +2344,18 @@ class ProposalApplicant(RevisionedMixin):
     email = models.EmailField(null=True, blank=True,)
     phone_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="phone number", help_text='')
     mobile_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="mobile number", help_text='')
+    
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+    updated_at = models.DateTimeField(blank=True, null=True, auto_now=True)
 
     class Meta:
         app_label = 'mooringlicensing'
 
+    def __str__(self):
+        return f'{self.email}: {self.first_name} {self.last_name} (ID: {self.id})'
+
     def copy_self_to_proposal(self, target_proposal):
-        ProposalApplicant.objects.create(
+        proposal_applicant = ProposalApplicant.objects.create(
             proposal=target_proposal,
 
             first_name = self.first_name,
@@ -2368,6 +2383,7 @@ class ProposalApplicant(RevisionedMixin):
             phone_number = self.phone_number,
             mobile_number = self.mobile_number,
         )
+        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the Proposal: [{target_proposal}] by copying the ProposalApplicant: [{self}].')
 
 
 def update_sticker_doc_filename(instance, filename):
@@ -2482,6 +2498,9 @@ class WaitingListApplication(Proposal):
         app_label = 'mooringlicensing'
 
     def process_after_discarded(self):
+        logger.debug(f'called in [{self}]')
+
+    def process_after_withdrawn(self):
         logger.debug(f'called in [{self}]')
 
     @property
@@ -2671,6 +2690,9 @@ class AnnualAdmissionApplication(Proposal):
     def process_after_discarded(self):
         logger.debug(f'called in [{self}]')
 
+    def process_after_withdrawn(self):
+        logger.debug(f'called in [{self}]')
+
     class Meta:
         app_label = 'mooringlicensing'
 
@@ -2848,6 +2870,9 @@ class AuthorisedUserApplication(Proposal):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def process_after_discarded(self):
+        logger.debug(f'called in [{self}]')
+
+    def process_after_withdrawn(self):
         logger.debug(f'called in [{self}]')
 
     class Meta:
@@ -3099,10 +3124,10 @@ class AuthorisedUserApplication(Proposal):
                 ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
 
             if ria_selected_mooring:
-                moa, created = approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
+                approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
             else:
                 if approval.current_proposal.mooring:
-                    moa, created = approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+                    approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
             # updating checkboxes
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
                 for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
@@ -3269,6 +3294,10 @@ class MooringLicenceApplication(Proposal):
     def process_after_discarded(self):
         if self.waiting_list_allocation:
             self.waiting_list_allocation.process_after_discarded()
+
+    def process_after_withdrawn(self):
+        if self.waiting_list_allocation:
+            self.waiting_list_allocation.process_after_withdrawn()
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -4122,7 +4151,7 @@ class VesselOwnership(RevisionedMixin):
     company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
 
     class Meta:
-        verbose_name_plural = "Vessel Details Ownership"
+        verbose_name_plural = "Vessel Ownership"
         app_label = 'mooringlicensing'
 
     def get_latest_company_ownership(self, status_list=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED,]):
@@ -4523,6 +4552,7 @@ class ProposalUserAction(UserAction):
     ACTION_AUTO_APPROVED = "Grant application {}"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
+    ACTION_WITHDRAW_PROPOSAL = "Withdraw application {}"
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
     ACTION_SUBMIT_OTHER_DOCUMENTS = 'Submit other documents'
     # Assessors
