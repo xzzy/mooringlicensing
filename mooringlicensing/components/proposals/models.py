@@ -2344,12 +2344,18 @@ class ProposalApplicant(RevisionedMixin):
     email = models.EmailField(null=True, blank=True,)
     phone_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="phone number", help_text='')
     mobile_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="mobile number", help_text='')
+    
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+    updated_at = models.DateTimeField(blank=True, null=True, auto_now=True)
 
     class Meta:
         app_label = 'mooringlicensing'
 
+    def __str__(self):
+        return f'{self.email}: {self.first_name} {self.last_name} (ID: {self.id})'
+
     def copy_self_to_proposal(self, target_proposal):
-        ProposalApplicant.objects.create(
+        proposal_applicant = ProposalApplicant.objects.create(
             proposal=target_proposal,
 
             first_name = self.first_name,
@@ -2377,6 +2383,7 @@ class ProposalApplicant(RevisionedMixin):
             phone_number = self.phone_number,
             mobile_number = self.mobile_number,
         )
+        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the Proposal: [{target_proposal}] by copying the ProposalApplicant: [{self}].')
 
 
 def update_sticker_doc_filename(instance, filename):
