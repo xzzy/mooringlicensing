@@ -1172,6 +1172,7 @@ def make_proposal_applicant_ready(proposal, request):
         proposal_applicant.mobile_number = request.user.mobile_number
 
         proposal_applicant.save()
+        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created.')
 
 
 def make_ownership_ready(proposal, request):

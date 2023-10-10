@@ -535,45 +535,35 @@ export default {
         },
         updatePersonal: function() {
             let vm = this;
-            //console.log(vm.profile);
-            vm.missing_fields = [];
             var required_fields=[];
             vm.errorListPersonal=[];
             required_fields = $('#first_name, #surname')
             vm.missing_fields = [];
             required_fields.each(function() {
-            if (this.value == '') {
-                    //var text = $('#'+id).text()
-                    //console.log(this);
+                if (this.value == '') {
                     vm.errorListPersonal.push('Value not provided: ' + this.name)
                     vm.missing_fields.push({id: this.id});
                 }
             });
 
-            if (vm.missing_fields.length > 0)
-            {
-              vm.showPersonalError = true;
-              //console.log(vm.showPersonalError)
+            if (vm.missing_fields.length > 0) {
+                vm.showPersonalError = true;
+            } else {
+                vm.showPersonalError = false;
+                vm.updatingPersonal = true;
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_personal')), JSON.stringify(vm.profile),{
+                    emulateJSON:true
+                }).then((response) => {
+                    vm.updatingPersonal = false;
+                    vm.profile = response.body;
+                    if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+                    if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
+                    if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
+                }, (error) => {
+                    console.log(error);
+                    vm.updatingPersonal = false;
+                });
             }
-            else
-            {
-              vm.showPersonalError = false;
-            vm.updatingPersonal = true;
-            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')) + '?proposal_id=' + vm.proposalId, JSON.stringify(vm.profile),{
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposalId + '/update_personal')), JSON.stringify(vm.profile),{
-                emulateJSON:true
-            }).then((response) => {
-                //console.log(response);
-                vm.updatingPersonal = false;
-                vm.profile = response.body;
-                if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-                if (vm.profile.postal_address == null){ vm.profile.postal_address = {}; }
-                if (vm.profile.dob) { vm.profile.dob = moment(vm.profile.dob).format('DD/MM/YYYY'); }
-            }, (error) => {
-                console.log(error);
-                vm.updatingPersonal = false;
-            });
-          }
         },
 
         uploadID: function() {
