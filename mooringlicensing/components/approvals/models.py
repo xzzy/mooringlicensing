@@ -1129,6 +1129,17 @@ class WaitingListAllocation(Approval):
         logger.info(f'Set attributes as follows: [status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
+    def reinstate_wla_order(self, request):
+        """
+        This function makes this WL allocation back to the 'waiting' status
+        """
+        self.wla_order = None
+        self.status = Approval.APPROVAL_STATUS_CURRENT
+        self.internal_status = Approval.INTERNAL_STATUS_WAITING
+        self.save()
+        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
+        self.set_wla_order()
+
 
 class AnnualAdmissionPermit(Approval):
     approval = models.OneToOneField(Approval, parent_link=True, on_delete=models.CASCADE)
