@@ -546,11 +546,9 @@ def update_personal_details(request, user_id):
     if dob:
         dob = datetime.strptime(dob, '%d/%m/%Y')
         payload['dob'] = dob.strftime('%Y-%m-%d')
-
     residential_address = payload.get('residential_address', None)
     if residential_address:
         payload.update(residential_address)
-
     postal_address = payload.get('postal_address', None)
     if postal_address:
         payload.update(postal_address)
@@ -568,5 +566,6 @@ def update_personal_details(request, user_id):
             serializer = ProposalApplicantSerializer(proposal_applicant, data=payload)
             serializer.is_valid(raise_exception=True)
             proposal_applicant = serializer.save()
+            logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated with the data: [{payload}].')
 
     return ret

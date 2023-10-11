@@ -1,3 +1,4 @@
+import json
 import os
 import traceback
 import pathlib
@@ -20,6 +21,7 @@ from datetime import datetime
 from ledger_api_client.settings_base import TIME_ZONE, LOGGING
 # from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
@@ -1377,6 +1379,23 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            # Update the ledger
+            from io import StringIO
+            data['dob'] = dob.strftime('%d/%m/%Y')
+
+            class MyUserForLedger:
+                def __init__(self, id, is_authenticated, is_superuser, is_staff):
+                    self.id = id
+                    self.is_authenticated = is_authenticated
+                    self.is_superuser = is_superuser
+                    self.is_staff = is_staff
+
+            user = MyUserForLedger(request.user.id, request.user.is_authenticated, request.user.is_superuser,  request.user.is_staff)
+            test_data = json.dumps({'payload': data})  # dict --> json str
+            file_like_obj = StringIO(test_data)
+            file_like_obj.user = user
+            ret = api.update_account_details(file_like_obj, request.user.id)
 
             logger.info(f'Personal details of the proposal: {proposal} have been updated with the data: {data}')
             return Response(serializer.data)
