@@ -1407,7 +1407,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer.save()
             logger.info(f'Contact details of the proposal: {proposal} have been updated with the data: {data}')
 
-            # TODO: update ledger
+            ## Update the ledger
+            ret = update_account_details_in_ledger(request, data)
 
             return Response(serializer.data)
 
