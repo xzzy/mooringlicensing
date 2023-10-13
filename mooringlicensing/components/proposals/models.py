@@ -377,6 +377,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
     mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
     endorser_reminder_sent = models.BooleanField(default=False)
+    declined_by_endorser = models.BooleanField(default=False)
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
     waiting_list_allocation = models.ForeignKey('mooringlicensing.WaitingListAllocation',null=True,blank=True, related_name="ria_generated_proposal", on_delete=models.SET_NULL)
@@ -853,13 +854,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def endorse_approved(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-
         self.save()
+        logger.info(f'Endorsement approved for the Proposal: [{self}] by the endorser: [{request.user}].')
 
     def endorse_declined(self, request):
         self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
-
+        self.declined_by_endorser = True
         self.save()
+        logger.info(f'Endorsement declined for the Proposal: [{self}] by the endorser: [{request.user}].')
 
     def update_customer_status(self):
         matrix = {

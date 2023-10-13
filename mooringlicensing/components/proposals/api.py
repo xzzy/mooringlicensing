@@ -1,3 +1,4 @@
+import json
 import os
 import traceback
 import pathlib
@@ -20,6 +21,7 @@ from datetime import datetime
 from ledger_api_client.settings_base import TIME_ZONE, LOGGING
 # from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
@@ -111,6 +113,7 @@ from reversion.models import Version
 from copy import deepcopy
 
 import logging
+from mooringlicensing.ledger_api_utils import MyUserForLedgerAPI, update_account_details_in_ledger
 
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
     PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
@@ -1377,8 +1380,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
             logger.info(f'Personal details of the proposal: {proposal} have been updated with the data: {data}')
+
+            # format dob for ledger
+            data['dob'] = dob.strftime('%d/%m/%Y')
+
+            ## Update the ledger
+            ret = update_account_details_in_ledger(request, data)
+
             return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
@@ -1396,8 +1405,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
             logger.info(f'Contact details of the proposal: {proposal} have been updated with the data: {data}')
+
+            ## Update the ledger
+            ret = update_account_details_in_ledger(request, data)
+
             return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
@@ -1440,54 +1452,23 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
             logger.info(f'Address details of the proposal: {proposal} have been updated with the data: {data}')
+
+            # Construct data for ledger
+            data_for_ledger = {
+                'residential_address': {}, 
+                'postal_address': {}
+            }
+            for key, value in data.items():
+                if 'postal' in key:
+                    data_for_ledger['postal_address'][key] = value
+                elif 'residential' in key:
+                    data_for_ledger['residential_address'][key] = value
+
+            ## Update the ledger
+            ret = update_account_details_in_ledger(request, data_for_ledger)
+
             return Response(serializer.data)
-
-            # print(request.data)
-            # instance = self.get_object()
-            # # residential address
-            # residential_serializer = UserAddressSerializer(data=request.data.get('residential_address'))
-            # residential_serializer.is_valid(raise_exception=True)
-            # residential_address, created = Address.objects.get_or_create(
-            #     line1 = residential_serializer.validated_data['line1'],
-            #     locality = residential_serializer.validated_data['locality'],
-            #     state = residential_serializer.validated_data['state'],
-            #     country = residential_serializer.validated_data['country'],
-            #     postcode = residential_serializer.validated_data['postcode'],
-            #     user = instance
-            # )
-            # instance.residential_address = residential_address
-            # # postal address
-            # postal_address_data = request.data.get('postal_address')
-            # postal_address = None
-            # if request.data.get('postal_same_as_residential'):
-            #     instance.postal_same_as_residential = True
-            #     instance.postal_address = residential_address
-            # elif postal_address_data and postal_address_data.get('line1'):
-            #     postal_serializer = UserAddressSerializer(data=postal_address_data)
-            #     postal_serializer.is_valid(raise_exception=True)
-            #     postal_address, created = Address.objects.get_or_create(
-            #         line1 = postal_serializer.validated_data['line1'],
-            #         locality = postal_serializer.validated_data['locality'],
-            #         state = postal_serializer.validated_data['state'],
-            #         country = postal_serializer.validated_data['country'],
-            #         postcode = postal_serializer.validated_data['postcode'],
-            #         user = instance
-            #     )
-            #     instance.postal_address = postal_address
-            #     instance.postal_same_as_residential = False
-            # else:
-            #     instance.postal_same_as_residential = False
-            # instance.save()
-            #
-            # # Postal address form must be completed or checkbox ticked
-            # if not postal_address and not instance.postal_same_as_residential:
-            #     raise serializers.ValidationError("Postal address not provided")
-            #
-            # serializer = UserSerializer(instance)
-            # return Response(serializer.data)
-
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):
