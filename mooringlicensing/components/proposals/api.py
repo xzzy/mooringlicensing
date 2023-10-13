@@ -783,6 +783,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         if self.kwargs.get('id').isnumeric():
             obj = super(ProposalViewSet, self).get_object()
         else:
+            # When AUP holder accesses this proposal for endorsement 
             uuid = self.kwargs.get('id')
             obj = AuthorisedUserApplication.objects.get(uuid=uuid)
             obj = obj.proposal
@@ -814,15 +815,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
-
-    # def retrieve(self, request, *args, **kwargs):
-    #     try:
-    #         temp = super(ProposalViewSet, self).retrieve(request, *args)
-    #         return temp
-    #     except Exception as e:
-    #         uuid = kwargs.get('id')
-    #         proposal = AuthorisedUserApplication.objects.get(uuid=uuid)
-    #         return Response(self.serializer_class(proposal.proposal).data)
 
     def internal_serializer_class(self):
        try:

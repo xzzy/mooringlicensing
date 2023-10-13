@@ -231,11 +231,11 @@ export default {
         declineEndorsement: function(uuid){
             let vm = this
             swal({
-                title: "Decline endorsement",
-                text: "Are you sure you want to decline endorsement?",
+                title: "Decline approval",
+                text: "Are you sure you want to decline approval?",
                 type: "warning",
                 showCancelButton: true,
-                confirmButtonText: 'Decline Endorsement',
+                confirmButtonText: 'Decline Approval',
                 confirmButtonColor:'#dc3545'
             }).then(() => {
                 vm.$http.get('/aua_for_endorsement/' + uuid + '/decline/')
