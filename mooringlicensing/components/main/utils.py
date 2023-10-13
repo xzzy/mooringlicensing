@@ -281,6 +281,10 @@ def sticker_export():
                     mooring_names = [mooring.name for mooring in moorings]
                     mooring_names = ', '.join(mooring_names)
 
+                    if not sticker.postal_address_line1 or not sticker.postal_address_suburb or not sticker.postal_address_state or not sticker.postal_address_postcode:
+                        logger.warning(f'Postal address not found for the Sticker: [{sticker}].')
+                        continue
+
                     ws1.append([
                         today.strftime('%d/%m/%Y'),
                         sticker.first_name,

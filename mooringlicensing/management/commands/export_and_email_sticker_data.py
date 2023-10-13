@@ -11,15 +11,6 @@ class Command(BaseCommand):
     help = 'Export and email sticker data'
 
     def handle(self, *args, **options):
-        # from mooringlicensing.components.approvals.models import WaitingListAllocation
-        # wla = WaitingListAllocation.objects.all()
-        # wla.update(wla_order=None)
-
-        # from mooringlicensing.components.proposals.models import MooringBay
-        # bays = MooringBay.objects.all()
-        # for bay in bays:
-        #     reorder_wla(bay)
-
         # 1. Export sticker details as a spreadsheet file
         updates, errors = sticker_export()
 
