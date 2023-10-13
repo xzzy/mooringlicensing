@@ -156,8 +156,12 @@ export default {
                             // links +=  `<a href='/aua_for_endorsement/${full.uuid}/view/'>View</a><br/>`;
                             links +=  `<a href='/external/proposal/${full.uuid}/'>View</a><br/>`;
                             if(full.customer_status === constants.AWAITING_ENDORSEMENT){
-                                links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
-                                links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
+                                // links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
+                                // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
+                                // links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
+                                links +=  `<a href='#${full.id}' data-approve-endorsement='${full.uuid}'>Endorse</a><br/>`
+                                links +=  `<a href='#${full.id}' data-decline-endorsement='${full.uuid}'>Decline</a><br/>`
+                                // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
                             }
                             return links
                         }
@@ -186,13 +190,78 @@ export default {
         },
     },
     methods: {
+        addEventListeners: function(){
+            let vm = this
+            vm.$refs.to_be_endorsed_datatable.vmDataTable.on('click', 'a[data-approve-endorsement]', function(e) {
+                e.preventDefault();
+                var uuid = $(this).attr('data-approve-endorsement');
+                vm.approveEndorsement(uuid);
+            })
+            vm.$refs.to_be_endorsed_datatable.vmDataTable.on('click', 'a[data-decline-endorsement]', function(e) {
+                e.preventDefault();
+                var uuid = $(this).attr('data-decline-endorsement');
+                vm.declineEndorsement(uuid);
+            })
+        },
+        approveEndorsement: function(uuid){
+            let vm = this
+            swal({
+                title: "Endorse Application",
+                text: "Are you sure you want to endorse this application?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Endorse Application',
+                confirmButtonColor:'#dc3545'
+            }).then(() => {
+                vm.$http.get('/aua_for_endorsement/' + uuid + '/endorse/')
+                .then((response) => {
+                    swal(
+                        'Endorsed',
+                        'Application has been endorsed',
+                        'success'
+                    )
+                    vm.$refs.to_be_endorsed_datatable.vmDataTable.draw();
+                }, (error) => {
 
+                });
+            },(error) => {
+
+            });
+        },
+        declineEndorsement: function(uuid){
+            let vm = this
+            swal({
+                title: "Decline endorsement",
+                text: "Are you sure you want to decline endorsement?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Decline Endorsement',
+                confirmButtonColor:'#dc3545'
+            }).then(() => {
+                vm.$http.get('/aua_for_endorsement/' + uuid + '/decline/')
+                .then((response) => {
+                    swal(
+                        'Declined',
+                        'Application has been declined',
+                        'success'
+                    )
+                    vm.$refs.to_be_endorsed_datatable.vmDataTable.draw();
+                }, (error) => {
+
+                });
+            },(error) => {
+
+            });
+
+        },
     },
     created: function(){
 
     },
     mounted: function(){
-
+        this.$nextTick(() => {
+            this.addEventListeners();
+        })
     }
 }
 </script>

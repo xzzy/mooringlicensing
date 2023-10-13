@@ -93,7 +93,7 @@
             </transition>
             <!-- End:new file field -->
 
-            <div v-if="applicationTypeCodeMLA" class="row form-group">
+            <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Proof of vessel ownership</label>
                 <div class="col-sm-9">
                     <FileField 
@@ -372,11 +372,6 @@ export default {
                 )
             }
             return url;
-        },
-        applicationTypeCodeMLA: function () {
-            if (this.proposal && this.proposal.application_type_code === 'mla') {
-                return true;
-            }
         },
         companyName: function () {
             if (this.vessel.vessel_ownership.company_ownership && this.vessel.vessel_ownership.company_ownership.company) {

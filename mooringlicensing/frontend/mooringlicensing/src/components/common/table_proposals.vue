@@ -217,6 +217,13 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     if (vm.is_internal){
+                        if (full.processing_status === 'Declined' && full.application_type_dict.code === 'aua'){
+                            if (full.declined_by_endorser){
+                                return 'Declined (Licensee)'
+                            } else {
+                                return 'Declined (RIA)'
+                            }
+                        }
                         return full.processing_status
                     }
                     return full.customer_status

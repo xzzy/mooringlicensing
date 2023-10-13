@@ -1202,7 +1202,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_created = serializers.DateTimeField(read_only=True)
     date_updated = serializers.DateTimeField(read_only=True)
     user_detail = serializers.SerializerMethodField()
-    waive_the_fee = serializers.BooleanField()
+    waive_the_fee = serializers.BooleanField(required=False)
 
     class Meta:
         model = StickerActionDetail

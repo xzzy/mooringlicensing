@@ -281,6 +281,10 @@ def sticker_export():
                     mooring_names = [mooring.name for mooring in moorings]
                     mooring_names = ', '.join(mooring_names)
 
+                    if not sticker.postal_address_line1 or not sticker.postal_address_suburb or not sticker.postal_address_state or not sticker.postal_address_postcode:
+                        logger.warning(f'Postal address not found for the Sticker: [{sticker}].')
+                        continue
+
                     ws1.append([
                         today.strftime('%d/%m/%Y'),
                         sticker.first_name,
@@ -546,11 +550,9 @@ def update_personal_details(request, user_id):
     if dob:
         dob = datetime.strptime(dob, '%d/%m/%Y')
         payload['dob'] = dob.strftime('%Y-%m-%d')
-
     residential_address = payload.get('residential_address', None)
     if residential_address:
         payload.update(residential_address)
-
     postal_address = payload.get('postal_address', None)
     if postal_address:
         payload.update(postal_address)
@@ -568,5 +570,6 @@ def update_personal_details(request, user_id):
             serializer = ProposalApplicantSerializer(proposal_applicant, data=payload)
             serializer.is_valid(raise_exception=True)
             proposal_applicant = serializer.save()
+            logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated with the data: [{payload}].')
 
     return ret

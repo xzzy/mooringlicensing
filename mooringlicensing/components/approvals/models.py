@@ -332,25 +332,30 @@ class Approval(RevisionedMixin):
         return attachment
 
     @property
+    def postal_address_obj(self):
+        if self.submitter_obj.postal_same_as_residential:
+            address_obj = self.submitter_obj.residential_address
+        else:
+            address_obj = self.submitter_obj.postal_address
+        return address_obj
+
+    @property
     def postal_address_line1(self):
         try:
-            if self.current_proposal.proposal_applicant.postal_same_as_residential:
-                ret_value = self.current_proposal.proposal_applicant.residential_line1
-            else:
-                ret_value = self.current_proposal.proposal_applicant.postal_line1
+            ret_value = self.postal_address_obj.line1
         except:
-            logger.error(f'Postal address line1 cannot be retrieved for the approval [{self}]')
+            logger.error(f'Postal address line1 cannot be retrieved for the approval [{self}].')
             return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_address_line1 found for the Approval: [{self}].')
 
         return ret_value
 
     @property
     def postal_address_line2(self):
         try:
-            if self.current_proposal.proposal_applicant.postal_same_as_residential:
-                ret_value = self.current_proposal.proposal_applicant.residential_line2
-            else:
-                ret_value = self.current_proposal.proposal_applicant.postal_line2
+            ret_value = self.postal_address_obj.line2
         except:
             logger.error(f'Postal address line2 cannot be retrieved for the approval [{self}]')
             return ''
@@ -360,39 +365,39 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_state(self):
         try:
-            if self.current_proposal.proposal_applicant.postal_same_as_residential:
-                ret_value = self.current_proposal.proposal_applicant.residential_state
-            else:
-                ret_value = self.current_proposal.proposal_applicant.postal_state
+            ret_value = self.postal_address_obj.state
         except:
             logger.error(f'Postal address state cannot be retrieved for the approval [{self}]')
             return ''
+
+        if not ret_value:
+            logger.warning(f'Empty state found for the postal address of the Approval: [{self}].')
 
         return ret_value
 
     @property
     def postal_address_suburb(self):
         try:
-            if self.current_proposal.proposal_applicant.postal_same_as_residential:
-                ret_value = self.current_proposal.proposal_applicant.residential_locality
-            else:
-                ret_value = self.current_proposal.proposal_applicant.postal_locality
+            ret_value = self.postal_address_obj.locality
         except:
             logger.error(f'Postal address locality cannot be retrieved for the approval [{self}]')
             return ''
+
+        if not ret_value:
+            logger.warning(f'Empty locality found for the postal address of the Approval: [{self}].')
 
         return ret_value
 
     @property
     def postal_address_postcode(self):
         try:
-            if self.current_proposal.proposal_applicant.postal_same_as_residential:
-                ret_value = self.current_proposal.proposal_applicant.residential_postcode
-            else:
-                ret_value = self.current_proposal.proposal_applicant.postal_postcode
+            ret_value = self.postal_address_obj.postcode
         except:
             logger.error(f'Postal address postcode cannot be retrieved for the approval [{self}]')
             return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postcode found for the postal address of the Approval: [{self}].')
 
         return ret_value
 
