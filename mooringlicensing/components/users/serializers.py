@@ -71,6 +71,19 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         email = EmailUserRO.objects.get(id=self.context.get('user_id')).email
         return email
 
+    
+class UserForEndorserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = EmailUserRO
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+            'email',
+            'phone_number',
+        )
+
 
 class UserFilterSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
@@ -87,6 +100,19 @@ class UserFilterSerializer(serializers.ModelSerializer):
 
     def get_name(self, obj):
         return obj.get_full_name()
+
+
+class ProposalApplicantForEndorserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProposalApplicant
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+            'email',
+            'phone_number',
+        )
 
 
 class ProposalApplicantSerializer(serializers.ModelSerializer):

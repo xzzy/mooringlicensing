@@ -543,6 +543,109 @@ class ListProposalSerializer(BaseProposalSerializer):
         return False
 
 
+# class ProposalSerializerForEndorser(serializers.ModelSerializer):
+#     class Meta:
+#         model = Proposal
+#         fields = (
+#             'id',
+#         )
+
+class ProposalForEndorserSerializer(BaseProposalSerializer):
+    for_endorser = serializers.SerializerMethodField()
+    readonly = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        fields = (
+            'id',
+            'for_endorser',
+            'readonly',
+
+            'application_type_code',
+            'application_type_text',
+            'approval_type_text',
+            'application_type_dict',
+            'proposal_type',
+            'approval_level',
+            'title',
+            'customer_status',
+            'processing_status',
+            'applicant_type',
+            'applicant',
+            'submitter',
+            'assigned_officer',
+            'get_history',
+            'lodgement_date',
+            'modified_date',
+            'documents',
+            'requirements',
+            'readonly',
+            'can_user_edit',
+            'can_user_view',
+            'documents_url',
+            'lodgement_number',
+            'lodgement_sequence',
+            'can_officer_process',
+            'allowed_assessors',
+            'pending_amendment_request',
+            'is_amendment_proposal',
+            'applicant_details',
+            # 'fee_paid',
+            # 'invoices',
+            ## vessel fields
+            # 'rego_no',
+            # 'vessel_id',
+            # 'vessel_details_id',
+            # 'vessel_ownership_id',
+            'vessel_type',
+            # 'vessel_name',
+            'vessel_length',
+            'vessel_draft',
+            'vessel_beam',
+            'vessel_weight',
+            'berth_mooring',
+            'dot_name',
+            # 'percentage',
+            # 'editable_vessel_details',
+            # 'individual_owner',
+            'insurance_choice',
+            # 'preferred_bay_id',
+            # 'silent_elector',
+            # 'bay_preferences_numbered',
+            'site_licensee_email',
+            'mooring_id',
+            'mooring_authorisation_preference',
+            'company_ownership_name',
+            'company_ownership_percentage',
+            'previous_application_id',
+            'previous_application_vessel_details_id',
+            'previous_application_preferred_bay_id',
+            'current_vessels_rego_list',
+            'approval_lodgement_number',
+            'approval_vessel_rego_no',
+            'waiting_list_application_id',
+            'authorised_user_moorings_str',
+            # 'temporary_document_collection_id',
+            'previous_application_vessel_details_obj',
+            'previous_application_vessel_ownership_obj',
+            # 'max_vessel_length_with_no_payment',
+            'keep_existing_mooring',
+            'keep_existing_vessel',
+            'approval_reissued',
+            'vessel_on_proposal',
+            'null_vessel_on_create',
+            'proposal_applicant',
+            'uuid',
+            'amendment_requests',
+        )
+
+    def get_readonly(self, obj):
+        return True
+        
+    def get_for_endorser(self, obj):
+        return True
+
+
 class ProposalSerializer(BaseProposalSerializer):
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)

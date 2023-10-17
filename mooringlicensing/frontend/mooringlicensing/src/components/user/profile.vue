@@ -44,7 +44,7 @@
                                 <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                             </div>
                           </div>
-                          <div class="row form-group">
+                          <div class="row form-group" v-if="!forEndorser">
                               <label for="" class="col-sm-3 control-label">Date of Birth</label>
                               <div class="col-sm-3 input-group date" ref="dobDatePicker">
                                   <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
@@ -65,7 +65,7 @@
             </div>
         </div>
 
-        <div class="row">
+        <div class="row" v-if="!forEndorser">
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
@@ -190,10 +190,10 @@
                                <input :readonly="phoneNumberReadonly || readonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
                             </div>
                             <div v-else class="col-sm-6">
-                                <input type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
+                                <input :readonly="readonly || forEndorser" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
                             </div>
                           </div>
-                          <div class="form-group">
+                          <div class="form-group" v-if="!forEndorser">
                             <label for="" class="col-sm-3 control-label" >Mobile</label>
                             <div v-if="profile.is_department_user" class="col-sm-6">
                                 <input :readonly="mobileNumberReadonly || readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
@@ -304,7 +304,10 @@ export default {
             type: Boolean,
             default: false,
         },
-
+        forEndorser: {
+            type: Boolean,
+            default: false,
+        }
     },
     data () {
         let vm = this;
