@@ -589,11 +589,6 @@ def submit_vessel_data(instance, request, vessel_data):
         if vessel_lookup_errors:
             raise serializers.ValidationError(vessel_lookup_errors)
 
-    min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
-    min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
-    min_vessel_size = float(min_vessel_size_str)
-    min_mooring_vessel_size = float(min_mooring_vessel_size_str)
-
     if not vessel_data.get('rego_no'):
         if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
             if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
@@ -609,53 +604,7 @@ def submit_vessel_data(instance, request, vessel_data):
     instance.vessel_details = vessel_details
     instance.save()
 
-    ## vessel min length requirements - cannot use serializer validation due to @property vessel_applicable_length
-    if type(instance.child_obj) == AnnualAdmissionApplication:
-        if instance.vessel_details.vessel_applicable_length < min_vessel_size:
-            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
-            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
-    elif type(instance.child_obj) == AuthorisedUserApplication:
-        if instance.vessel_details.vessel_applicable_length < min_vessel_size:
-            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
-            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
-        # check new site licensee mooring
-        proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
-        mooring_id = proposal_data.get('mooring_id')
-        if mooring_id and proposal_data.get('site_licensee_email'):
-            mooring = Mooring.objects.get(id=mooring_id)
-            if (instance.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
-            instance.vessel_details.vessel_draft > mooring.vessel_draft_limit):
-                logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
-                raise serializers.ValidationError("Vessel unsuitable for mooring")
-        if instance.approval:
-            # Amend / Renewal
-            if proposal_data.get('keep_existing_mooring'):
-                # check existing moorings against current vessel dimensions
-                for moa in instance.approval.mooringonapproval_set.filter(end_date__isnull=True):
-                    if instance.vessel_details.vessel_applicable_length > moa.mooring.vessel_size_limit:
-                        logger.error(f"Vessel applicable lentgh: [{instance.vessel_details.vessel_applicable_length}] is not suitable for the mooring: [{moa.mooring}]")
-                        raise serializers.ValidationError(f"Vessel length: {instance.vessel_details.vessel_applicable_length}[m] is not suitable for the vessel size limit: {moa.mooring.vessel_size_limit} [m] of the mooring: [{moa.mooring}]")
-                    if instance.vessel_details.vessel_draft > moa.mooring.vessel_draft_limit:
-                        logger.error(f"Vessel draft: [{instance.vessel_details.vessel_draft}] is not suitable for the mooring: [{moa.mooring}]")
-                        raise serializers.ValidationError(f"Vessel draft: {instance.vessel_details.vessel_draft} [m] is not suitable for the vessel draft limit: {moa.mooring.vessel_draft_limit} [m] of the mooring: [{moa.mooring}]")
-    elif type(instance.child_obj) == WaitingListApplication:
-        if instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
-            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
-            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
-    else:
-        ## Mooring Licence Application
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and instance.vessel_details.vessel_applicable_length < min_vessel_size:
-            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_vessel_size_str))
-            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
-        elif instance.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
-            logger.error("Proposal {}: Vessel must be at least {}m in length".format(instance, min_mooring_vessel_size_str))
-            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
-        elif instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and (
-                instance.vessel_details.vessel_applicable_length > instance.approval.child_obj.mooring.vessel_size_limit or
-                instance.vessel_details.vessel_draft > instance.approval.child_obj.mooring.vessel_draft_limit
-                ):
-            logger.error("Proposal {}: Vessel unsuitable for mooring".format(instance))
-            raise serializers.ValidationError("Vessel unsuitable for mooring")
+    instance.validate_vessel_length(request)
 
     # record ownership data
     vessel_ownership = store_vessel_ownership(request, vessel, instance)
@@ -675,12 +624,9 @@ def submit_vessel_data(instance, request, vessel_data):
     approvals = list(dict.fromkeys(approvals))  # remove duplicates
     approvals_wla = []
     approvals_ml = []
-    approvals_ml_sus = []
     approvals_aap = []
     approvals_aup = []
-    approvals_aup_sus = []
     for proposal in proposals:
-        # if type(proposal) == WaitingListApplication and proposal.processing_status not in ['approved', 'declined', 'discarded']:
         if proposal.processing_status not in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]:
             if type(proposal) == WaitingListApplication:
                 proposals_wla.append(proposal)
@@ -700,11 +646,6 @@ def submit_vessel_data(instance, request, vessel_data):
                 approvals_aap.append(approval)
             if type(approval.child_obj) == AuthorisedUserPermit:
                 approvals_aup.append(approval)
-
-    wl_applications = WaitingListApplication.get_intermediate_proposals(instance.submitter).exclude(id=instance.id)
-    wl_allocations = WaitingListAllocation.get_intermediate_approvals(instance.submitter).exclude(approval=instance.approval)
-    ml_applications = MooringLicenceApplication.get_intermediate_proposals(instance.submitter)
-    ml_approvals = MooringLicence.get_valid_approvals(instance.submitter)
 
     # apply rules
     if type(instance.child_obj) == WaitingListApplication and (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
