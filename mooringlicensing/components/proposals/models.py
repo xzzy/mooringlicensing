@@ -2508,11 +2508,17 @@ class WaitingListApplication(Proposal):
     
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=self.vessel_ownership.vessel).exclude(id=self.id)]
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
         proposals_wla = []
         proposals_mla = []
-        for proposal in proposals:
+        for proposal in child_proposals:
             if proposal.processing_status not in [
                 Proposal.PROCESSING_STATUS_APPROVED, 
                 Proposal.PROCESSING_STATUS_DECLINED, 
@@ -2523,7 +2529,13 @@ class WaitingListApplication(Proposal):
                 if type(proposal) == MooringLicenceApplication:
                     proposals_mla.append(proposal)
 
-        approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_ownership.vessel).exclude(approval_id=self.approval_id)]
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
         approvals = list(dict.fromkeys(approvals))  # remove duplicates
         approvals_wla = []
         approvals_ml = []
@@ -2748,12 +2760,18 @@ class AnnualAdmissionApplication(Proposal):
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=self.vessel_ownership.vessel).exclude(id=self.id)]
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
         proposals_mla = []
         proposals_aaa = []
         proposals_aua = []
-        for proposal in proposals:
+        for proposal in child_proposals:
             if proposal.processing_status not in [
                 Proposal.PROCESSING_STATUS_APPROVED, 
                 Proposal.PROCESSING_STATUS_DECLINED, 
@@ -2766,7 +2784,13 @@ class AnnualAdmissionApplication(Proposal):
                 if type(proposal) == AuthorisedUserApplication:
                     proposals_aua.append(proposal)
 
-        approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_ownership.vessel).exclude(approval_id=self.approval_id)]
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
         approvals = list(dict.fromkeys(approvals))  # remove duplicates
         approvals_ml = []
         approvals_aap = []
@@ -2977,10 +3001,16 @@ class AuthorisedUserApplication(Proposal):
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AuthorisedUserPermit
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=self.vessel_ownership.vessel).exclude(id=self.id)]
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
         proposals_aua = []
-        for proposal in proposals:
+        for proposal in child_proposals:
             if proposal.processing_status not in [
                 Proposal.PROCESSING_STATUS_APPROVED,
                 Proposal.PROCESSING_STATUS_DECLINED,
@@ -2989,7 +3019,13 @@ class AuthorisedUserApplication(Proposal):
                 if type(proposal) == AuthorisedUserApplication:
                     proposals_aua.append(proposal)
 
-        approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_ownership.vessel).exclude(approval_id=self.approval_id)]
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
         approvals = list(dict.fromkeys(approvals))  # remove duplicates
         approvals_aup = []
         for approval in approvals:
@@ -3457,10 +3493,16 @@ class MooringLicenceApplication(Proposal):
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        proposals = [proposal.child_obj for proposal in Proposal.objects.filter(vessel_details__vessel=self.vessel_ownership.vessel).exclude(id=self.id)]
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
         proposals_mla = []
-        for proposal in proposals:
+        for proposal in child_proposals:
             if proposal.processing_status not in [
                 Proposal.PROCESSING_STATUS_APPROVED,
                 Proposal.PROCESSING_STATUS_DECLINED,
@@ -3469,7 +3511,13 @@ class MooringLicenceApplication(Proposal):
                 if type(proposal) == MooringLicenceApplication:
                     proposals_mla.append(proposal)
 
-        approvals = [ah.approval for ah in ApprovalHistory.objects.filter(end_date=None, vessel_ownership__vessel=self.vessel_ownership.vessel).exclude(approval_id=self.approval_id)]
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
         approvals = list(dict.fromkeys(approvals))  # remove duplicates
         approvals_ml = []
         for approval in approvals:
@@ -4170,19 +4218,14 @@ class Vessel(RevisionedMixin):
 
         ## 3. Other Approvals filter
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-        # approval_filter = Q(
-        #     Q(current_proposal__vessel_ownership__vessel=self) &
-        #     ~Q(current_proposal__vessel_ownership=vessel_ownership) &
-        #     ~Q(proposal=proposal_being_processed)
-        # )
         approval_filter = Q()
-        # Same vessel
+        # Approval is for the same vessel
         approval_filter &= Q(current_proposal__vessel_ownership__vessel=self)
-        # Vessel not sold
+        # The vessel has not been sold yet
         approval_filter &= Q(current_proposal__vessel_ownership__end_date__gt=today)
-        # Different owner
+        # Approval holder is different person
         approval_filter &= ~Q(current_proposal__vessel_ownership=vessel_ownership)
-        # Other approvals  We don't want to include the approval this proposal is for.
+        # We don't want to include the approval this proposal is for.
         approval_filter &= ~Q(id=proposal_being_processed.approval.id) if proposal_being_processed.approval else Q()
 
         blocking_approvals = Approval.objects.filter(approval_filter)
