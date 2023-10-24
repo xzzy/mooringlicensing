@@ -234,6 +234,11 @@ class Approval(RevisionedMixin):
         (INTERNAL_STATUS_SUBMITTED, 'Mooring Site Licence application submitted'),
         (INTERNAL_STATUS_APPROVED, 'Mooring Site Licence application approved'),
     )
+    APPROVED_STATUSES = [
+        APPROVAL_STATUS_CURRENT,
+        APPROVAL_STATUS_SURRENDERED,
+        APPROVAL_STATUS_FULFILLED,
+    ]
     lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
                                        default=STATUS_CHOICES[0][0])

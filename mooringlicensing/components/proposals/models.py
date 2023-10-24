@@ -43,6 +43,7 @@ from mooringlicensing import exceptions, settings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
+    GlobalSettings,
     UserAction,
     Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin,
 )
@@ -2314,6 +2315,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
         return vessel_exists
 
+    def validate_vessel_length(self, request):
+        self.child_obj.validate_vessel_length(request)
+
+    def validate_against_existing_proposals_and_approvals(self):
+        self.child_obj.validate_against_existing_proposals_and_approvals()
+
 
 class ProposalApplicant(RevisionedMixin):
     proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
@@ -2498,6 +2505,68 @@ class WaitingListApplication(Proposal):
 
     class Meta:
         app_label = 'mooringlicensing'
+    
+    def validate_against_existing_proposals_and_approvals(self):
+        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
+        proposals_wla = []
+        proposals_mla = []
+        for proposal in child_proposals:
+            if proposal.processing_status not in [
+                Proposal.PROCESSING_STATUS_APPROVED, 
+                Proposal.PROCESSING_STATUS_DECLINED, 
+                Proposal.PROCESSING_STATUS_DISCARDED,
+            ]:
+                if type(proposal) == WaitingListApplication:
+                    proposals_wla.append(proposal)
+                if type(proposal) == MooringLicenceApplication:
+                    proposals_mla.append(proposal)
+
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
+        approvals = list(dict.fromkeys(approvals))  # remove duplicates
+        approvals_wla = []
+        approvals_ml = []
+        for approval in approvals:
+            if approval.status in Approval.APPROVED_STATUSES:
+                if type(approval.child_obj) == WaitingListAllocation:
+                    approvals_wla.append(approval)
+                if type(approval.child_obj) == MooringLicence:
+                    approvals_ml.append(approval)
+
+        if (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
+            raise serializers.ValidationError("The vessel in the application is already listed in " +
+            ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_wla]) +
+            ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_wla])
+            )
+        # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
+        elif (
+                WaitingListApplication.get_intermediate_proposals(self.submitter).exclude(id=self.id) or
+                WaitingListAllocation.get_intermediate_approvals(self.submitter).exclude(approval=self.approval) or
+                MooringLicenceApplication.get_intermediate_proposals(self.submitter) or
+                MooringLicence.get_valid_approvals(self.submitter)
+            ):
+            raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application")
+    
+    def validate_vessel_length(self, request):
+        min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
+        min_mooring_vessel_size = float(min_mooring_vessel_size_str)
+
+        if self.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_mooring_vessel_size_str))
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
 
     def process_after_discarded(self):
         logger.debug(f'called in [{self}]')
@@ -2689,6 +2758,65 @@ class AnnualAdmissionApplication(Proposal):
     apply_page_visibility = True
     description = 'Annual Admission Application'
 
+    def validate_against_existing_proposals_and_approvals(self):
+        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
+        proposals_mla = []
+        proposals_aaa = []
+        proposals_aua = []
+        for proposal in child_proposals:
+            if proposal.processing_status not in [
+                Proposal.PROCESSING_STATUS_APPROVED, 
+                Proposal.PROCESSING_STATUS_DECLINED, 
+                Proposal.PROCESSING_STATUS_DISCARDED,
+            ]:
+                if type(proposal) == MooringLicenceApplication:
+                    proposals_mla.append(proposal)
+                if type(proposal) == AnnualAdmissionApplication:
+                    proposals_aaa.append(proposal)
+                if type(proposal) == AuthorisedUserApplication:
+                    proposals_aua.append(proposal)
+
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
+        approvals = list(dict.fromkeys(approvals))  # remove duplicates
+        approvals_ml = []
+        approvals_aap = []
+        approvals_aup = []
+        for approval in approvals:
+            if approval.status in Approval.APPROVED_STATUSES:
+                if type(approval.child_obj) == MooringLicence:
+                    approvals_ml.append(approval)
+                if type(approval.child_obj) == AnnualAdmissionPermit:
+                    approvals_aap.append(approval)
+                if type(approval.child_obj) == AuthorisedUserPermit:
+                    approvals_aup.append(approval)
+
+        if proposals_aaa or approvals_aap or proposals_aua or approvals_aup or proposals_mla or approvals_ml:
+            list_sum = proposals_aaa + proposals_aua + proposals_mla + approvals_aap + approvals_aup + approvals_ml
+            raise serializers.ValidationError("The vessel in the application is already listed in " +
+            ", ".join(['{} {} '.format(item.description, item.lodgement_number) for item in list_sum]))
+
+    def validate_vessel_length(self, request):
+        min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
+        min_vessel_size = float(min_vessel_size_str)
+
+        if self.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+
     def process_after_discarded(self):
         logger.debug(f'called in [{self}]')
 
@@ -2870,6 +2998,76 @@ class AuthorisedUserApplication(Proposal):
 
     # This uuid is used to generate the URL for the AUA endorsement link
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+
+    def validate_against_existing_proposals_and_approvals(self):
+        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AuthorisedUserPermit
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
+        proposals_aua = []
+        for proposal in child_proposals:
+            if proposal.processing_status not in [
+                Proposal.PROCESSING_STATUS_APPROVED,
+                Proposal.PROCESSING_STATUS_DECLINED,
+                Proposal.PROCESSING_STATUS_DISCARDED,
+            ]:
+                if type(proposal) == AuthorisedUserApplication:
+                    proposals_aua.append(proposal)
+
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
+        approvals = list(dict.fromkeys(approvals))  # remove duplicates
+        approvals_aup = []
+        for approval in approvals:
+            if approval.status in Approval.APPROVED_STATUSES:
+                if type(approval.child_obj) == AuthorisedUserPermit:
+                    approvals_aup.append(approval)
+
+        if proposals_aua or approvals_aup:
+            #association_fail = True
+            raise serializers.ValidationError("The vessel in the application is already listed in " +  
+                ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_aua]) +
+                ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_aup])
+            )
+
+    def validate_vessel_length(self, request):
+        min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
+        min_vessel_size = float(min_vessel_size_str)
+
+        if self.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+
+        # check new site licensee mooring
+        proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+        mooring_id = proposal_data.get('mooring_id')
+        if mooring_id and proposal_data.get('site_licensee_email'):
+            mooring = Mooring.objects.get(id=mooring_id)
+            if (self.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
+            self.vessel_details.vessel_draft > mooring.vessel_draft_limit):
+                logger.error("Proposal {}: Vessel unsuitable for mooring".format(self))
+                raise serializers.ValidationError("Vessel unsuitable for mooring")
+        if self.approval:
+            # Amend / Renewal
+            if proposal_data.get('keep_existing_mooring'):
+                # check existing moorings against current vessel dimensions
+                for moa in self.approval.mooringonapproval_set.filter(end_date__isnull=True):
+                    if self.vessel_details.vessel_applicable_length > moa.mooring.vessel_size_limit:
+                        logger.error(f"Vessel applicable lentgh: [{self.vessel_details.vessel_applicable_length}] is not suitable for the mooring: [{moa.mooring}]")
+                        raise serializers.ValidationError(f"Vessel length: {self.vessel_details.vessel_applicable_length}[m] is not suitable for the vessel size limit: {moa.mooring.vessel_size_limit} [m] of the mooring: [{moa.mooring}]")
+                    if self.vessel_details.vessel_draft > moa.mooring.vessel_draft_limit:
+                        logger.error(f"Vessel draft: [{self.vessel_details.vessel_draft}] is not suitable for the mooring: [{moa.mooring}]")
+                        raise serializers.ValidationError(f"Vessel draft: {self.vessel_details.vessel_draft} [m] is not suitable for the vessel draft limit: {moa.mooring.vessel_draft_limit} [m] of the mooring: [{moa.mooring}]")
 
     def process_after_discarded(self):
         logger.debug(f'called in [{self}]')
@@ -3292,6 +3490,65 @@ class MooringLicenceApplication(Proposal):
 
     # This uuid is used to generate the URL for the ML document upload page
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+
+    def validate_against_existing_proposals_and_approvals(self):
+        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        # Get blocking proposals
+        proposals = Proposal.objects.filter(
+            vessel_details__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(id=self.id)
+        child_proposals = [proposal.child_obj for proposal in proposals]
+        proposals_mla = []
+        for proposal in child_proposals:
+            if proposal.processing_status not in [
+                Proposal.PROCESSING_STATUS_APPROVED,
+                Proposal.PROCESSING_STATUS_DECLINED,
+                Proposal.PROCESSING_STATUS_DISCARDED,
+            ]:
+                if type(proposal) == MooringLicenceApplication:
+                    proposals_mla.append(proposal)
+
+        # Get blocking approvals
+        approval_histories = ApprovalHistory.objects.filter(
+            end_date=None,
+            vessel_ownership__vessel=self.vessel_ownership.vessel,
+            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+        ).exclude(approval_id=self.approval_id)
+        approvals = [ah.approval for ah in approval_histories]
+        approvals = list(dict.fromkeys(approvals))  # remove duplicates
+        approvals_ml = []
+        for approval in approvals:
+            if approval.status in Approval.APPROVED_STATUSES:
+                if type(approval.child_obj) == MooringLicence:
+                    approvals_ml.append(approval)
+
+        if proposals_mla or approvals_ml:
+            raise serializers.ValidationError("The vessel in the application is already listed in " +  
+                ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_mla]) +
+                ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_ml])
+            )
+
+    def validate_vessel_length(self, request):
+        min_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH).value
+        min_vessel_size = float(min_vessel_size_str)
+        min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
+        min_mooring_vessel_size = float(min_mooring_vessel_size_str)
+
+        if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and self.vessel_details.vessel_applicable_length < min_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+        elif self.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+            logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_mooring_vessel_size_str))
+            raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size_str))
+        elif self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT] and (
+                self.vessel_details.vessel_applicable_length > self.approval.child_obj.mooring.vessel_size_limit or
+                self.vessel_details.vessel_draft > self.approval.child_obj.mooring.vessel_draft_limit
+                ):
+            logger.error("Proposal {}: Vessel unsuitable for mooring".format(self))
+            raise serializers.ValidationError("Vessel unsuitable for mooring")
 
     def process_after_discarded(self):
         if self.waiting_list_allocation:
@@ -3918,28 +4175,28 @@ class Vessel(RevisionedMixin):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
 
-        # 1. Requirement: If vessel is owned by multiple parties then there must be no other application
-        #   in status other than issued, declined or discarded where the applicant is another owner than this applicant
-        proposals_filter = Q(
-            vessel_ownership__vessel=self) & ~Q(
-            Q(vessel_ownership=vessel_ownership) |
-            Q(processing_status__in=[
-                Proposal.PROCESSING_STATUS_DECLINED,
-                Proposal.PROCESSING_STATUS_EXPIRED,
-                Proposal.PROCESSING_STATUS_DISCARDED,]) |
-            Q(id=proposal_being_processed.id)
-        )
+        ## Requirement: If vessel is owned by multiple parties then there must be no
+        # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
+        proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
+        proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
+        proposals_filter &= ~Q(processing_status__in=[  # Blocking proposal's status is not the statuses listed
+            Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
+            Proposal.PROCESSING_STATUS_DISCARDED,
+        ])
+        proposals_filter &= Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
+
         blocking_proposals = Proposal.objects.filter(proposals_filter)
         if blocking_proposals:
-            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel is already listed with RIA under another owner.')
+            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
 
-        # 2. Requirement:  Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
-        #   where Permit or Licence holder is an owner other than the applicant of this Waiting List application
-        ## ML Filter
+        # 2. Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
+        #    where Permit or Licence holder is an owner other than the applicant of this Waiting List application
+        ## ML Filter <== Is this just for WLApplication...???
         ml_filter = Q(
             ~Q(
-                # Q(status__in=['cancelled', 'expired', 'surrendered']) |
                 Q(status__in=[
                     Approval.APPROVAL_STATUS_CANCELLED,
                     Approval.APPROVAL_STATUS_EXPIRED,
@@ -3954,24 +4211,26 @@ class Vessel(RevisionedMixin):
             Q(vesselownershiponapproval__end_date__isnull=True) &
             Q(vesselownershiponapproval__vessel_ownership__vessel=self)
         )
-        blocking_proposals = MooringLicence.objects.filter(ml_filter)
-        if blocking_proposals:
-            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  Another owner of this vessel holds a current Mooring Site Licence.')
+        blocking_approvals = MooringLicence.objects.filter(ml_filter)
+        if blocking_approvals:
+            logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Mooring Site Licence.')
             raise serializers.ValidationError("Another owner of this vessel holds a current Mooring Site Licence")
 
         ## 3. Other Approvals filter
-        approval_filter = Q(
-            Q(current_proposal__vessel_ownership__vessel=self) &
-            ~Q(current_proposal__vessel_ownership=vessel_ownership) &
-            ~Q(proposal=proposal_being_processed)
-        )
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        approval_filter = Q()
+        # Approval is for the same vessel
+        approval_filter &= Q(current_proposal__vessel_ownership__vessel=self)
+        # The vessel has not been sold yet
+        approval_filter &= Q(current_proposal__vessel_ownership__end_date__gt=today)
+        # Approval holder is different person
+        approval_filter &= ~Q(current_proposal__vessel_ownership=vessel_ownership)
+        # We don't want to include the approval this proposal is for.
+        approval_filter &= ~Q(id=proposal_being_processed.approval.id) if proposal_being_processed.approval else Q()
 
-        if proposal_being_processed.approval:
-            approval_filter &= ~Q(id=proposal_being_processed.approval.id)  # We don't want to include the approval this proposal is for.
-
-        blocking_proposals = Approval.objects.filter(approval_filter)
-        if blocking_proposals:
-            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  Another owner of this vessel holds a current Licence/Permit.')
+        blocking_approvals = Approval.objects.filter(approval_filter)
+        if blocking_approvals:
+            logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
             raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
 
     @property

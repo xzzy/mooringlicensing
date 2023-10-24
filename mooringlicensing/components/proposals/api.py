@@ -60,6 +60,7 @@ from mooringlicensing.components.proposals.models import (
     Mooring,
 )
 from mooringlicensing.components.proposals.serializers import (
+    ProposalForEndorserSerializer,
     ProposalSerializer,
     InternalProposalSerializer,
     #SaveProposalSerializer,
@@ -777,12 +778,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
     serializer_class = ProposalSerializer
     lookup_field = 'id'
 
+    def get_serializer_class(self):
+        if not self.kwargs.get('id').isnumeric():
+            # Endorser is accessing this proposal.  We don't want to send all the proposal data.
+            return ProposalForEndorserSerializer
+        return super(ProposalViewSet, self).get_serializer_class()
+
+    # def retrieve(self, request, *args, **kwargs):
+    #     return super(ProposalViewSet, self).retrieve(request, *args, **kwargs)
+
     def get_object(self):
         logger.info(f'Getting object in the ProposalViewSet...')
-        # obj = super(ProposalViewSet, self).get_object()
         if self.kwargs.get('id').isnumeric():
             obj = super(ProposalViewSet, self).get_object()
         else:
+            # When AUP holder accesses this proposal for endorsement 
             uuid = self.kwargs.get('id')
             obj = AuthorisedUserApplication.objects.get(uuid=uuid)
             obj = obj.proposal
@@ -814,15 +824,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             return queryset
         logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
-
-    # def retrieve(self, request, *args, **kwargs):
-    #     try:
-    #         temp = super(ProposalViewSet, self).retrieve(request, *args)
-    #         return temp
-    #     except Exception as e:
-    #         uuid = kwargs.get('id')
-    #         proposal = AuthorisedUserApplication.objects.get(uuid=uuid)
-    #         return Response(self.serializer_class(proposal.proposal).data)
 
     def internal_serializer_class(self):
        try:
