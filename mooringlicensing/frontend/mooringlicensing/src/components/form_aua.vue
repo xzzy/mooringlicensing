@@ -17,22 +17,22 @@
                   Vessel
                 </a>
               </li>
-              <li v-show="showInsuranceTab" class="nav-item">
+              <li v-show="showInsuranceTab" v-if="!forEndorser" class="nav-item">
                 <a class="nav-link" id="pills-insurance-tab" data-toggle="pill" href="#pills-insurance" role="tab" aria-controls="pills-insurance" aria-selected="false">
                   Insurance
                 </a>
               </li>
-              <li class="nav-item">
+              <li v-if="!forEndorser" class="nav-item">
                 <a class="nav-link" id="pills-mooring-tab" data-toggle="pill" href="#pills-mooring" role="tab" aria-controls="pills-mooring" aria-selected="false">
                   Mooring Bay
                 </a>
               </li>
-              <li v-show="showPaymentTab" class="nav-item" id="li-payment">
+              <li v-if="!forEndorser" v-show="showPaymentTab" class="nav-item" id="li-payment">
                 <a class="nav-link disabled" id="pills-payment-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-payment" aria-selected="false">
                   Payment
                 </a>
               </li>
-              <li v-if="is_external" class="nav-item" id="li-confirm">
+              <li v-if="is_external && !forEndorser" class="nav-item" id="li-confirm">
                 <a class="nav-link disabled" id="pills-confirm-tab" data-toggle="pill" href="" role="tab" aria-controls="pills-confirm" aria-selected="false">
                     Confirmation
                 </a>
@@ -50,6 +50,7 @@
                         :proposalId="proposal.id"
                         :readonly="readonly"
                         :submitterId="submitterId"
+                        :forEndorser="forEndorser"
                     />
                   </div>
                   <div v-else>
@@ -69,6 +70,7 @@
                           :readonly=readonly
                           :is_internal=is_internal
                           @resetCurrentVessel=resetCurrentVessel
+                            :forEndorser="forEndorser"
                           />
                   </div>
                   <Vessels
@@ -86,6 +88,7 @@
                     @noVessel="noVessel"
                     @updateMaxVesselLengthForAAComponent=updateMaxVesselLengthForAAComponent
                     @updateMaxVesselLengthForMainComponent=updateMaxVesselLengthForMainComponent
+                            :forEndorser="forEndorser"
                   />
               </div>
               <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
@@ -223,7 +226,13 @@
             Profile,
         },
         computed:{
-
+            forEndorser: function() {
+                let forEndorser = false
+                if (this.proposal && this.proposal.for_endorser){
+                    forEndorser = true
+                }
+                return forEndorser
+            },
             profileVar: function() {
                 if (this.is_external) {
                     return this.profile;

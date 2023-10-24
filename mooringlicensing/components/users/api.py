@@ -22,13 +22,14 @@ from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-# from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
+from rest_framework.permissions import BasePermission
 # from rest_framework.pagination import PageNumberPagination
 # from datetime import datetime, timedelta
 # from collections import OrderedDict
 from django.core.cache import cache
 # from ledger.accounts.models import EmailUser,Address, Profile, EmailIdentity, EmailUserAction
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from mooringlicensing.components.approvals.models import Approval
 
 from mooringlicensing.components.main.decorators import basic_exception_handler
 # from ledger.address.models import Country
@@ -44,6 +45,8 @@ from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.components.users.serializers import (
+    ProposalApplicantForEndorserSerializer,
+    UserForEndorserSerializer,
     UserSerializer,
     UserFilterSerializer,
     UserAddressSerializer,
@@ -63,6 +66,9 @@ from mooringlicensing.components.main.models import UserSystemSettings
 #         )
 
 import logging
+
+from mooringlicensing.helpers import is_customer, is_internal
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
@@ -86,11 +92,18 @@ class GetProposalApplicant(views.APIView):
     def get(self, request, proposal_pk, format=None):
         from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
         proposal = Proposal.objects.get(id=proposal_pk)
-        proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-        # proposal_applicant.postal_country = proposal_applicant.residential_country
-        # proposal_applicant.save()
-        serializer = ProposalApplicantSerializer(proposal_applicant, context={'request': request})
-        return Response(serializer.data)
+        if (is_customer(self.request) and proposal.submitter == request.user.id) or is_internal(self.request):
+            # Holder of this proposal is accessing OR internal user is accessing.
+            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+            serializer = ProposalApplicantSerializer(proposal_applicant, context={'request': request})
+            return Response(serializer.data)
+        elif is_customer(self.request) and proposal.site_licensee_email == request.user.email:
+            # ML holder is accessing the proposal as an endorser
+            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+            # applicant = retrieve_email_userro(proposal.submitter)
+            # serializer = UserForEndorserSerializer(applicant)
+            serializer = ProposalApplicantForEndorserSerializer(proposal_applicant, context={'request': request})
+            return Response(serializer.data)
 
 
 class GetProfile(views.APIView):

@@ -435,8 +435,6 @@ CRON_CLASSES = [
 
 # Is licence holder allowed to operate
 APPROVED_OPERATIONAL_STATUS = ['current', ]
-# Is licence/permit still approved?  Other than cancelled, expired or surrendered
-APPROVED_APPROVAL_STATUS = ['current', 'suspended', ]
 
 # Use git commit hash for purging cache in browser for deployment changes
 GIT_COMMIT_HASH = ''

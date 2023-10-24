@@ -1,5 +1,5 @@
 <template lang="html">
-    <div id="current_vessels" v-if="vesselExists">
+    <div id="current_vessels" v-if="vesselExists && !forEndorser">
         <FormSection v-if="mooringLicenceCurrentVesselDisplayText || currentVesselDisplayText" label="Current Vessel" Index="current_vessel">
             <div v-if="mooringLicenceCurrentVesselDisplayText" class="row form-group">
                 <div class="col-sm-9">
@@ -107,6 +107,10 @@ from '@/utils/hooks'
                 type: Boolean,
                 default: false,
             },
+            forEndorser: {
+                type: Boolean,
+                default: false,
+            }
         },
         computed: {
             vesselExists: function() {

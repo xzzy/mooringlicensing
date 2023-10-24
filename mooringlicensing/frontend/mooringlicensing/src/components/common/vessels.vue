@@ -1,6 +1,6 @@
 <template lang="html">
     <div id="vessels">
-        <FormSection label="Registration Details" Index="registration_details">
+        <FormSection label="Registration Details" Index="registration_details" v-if="!forEndorser">
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Vessel registration *</label>
                 <div class="col-sm-9">
@@ -203,11 +203,15 @@ export default {
         },
         is_internal: {
             type: Boolean,
-            default: false
+            default: false,
         },
         keep_current_vessel: {
             type: Boolean,
         },
+        forEndorser: {
+            type: Boolean,
+            default: false,
+        }
     },
     watch: {
         vessel: {
