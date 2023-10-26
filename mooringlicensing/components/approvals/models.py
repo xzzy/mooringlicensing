@@ -1223,7 +1223,7 @@ class AnnualAdmissionPermit(Approval):
         super(Approval, self).save(*args, **kwargs)
 
     def _create_new_sticker_by_proposal(self, proposal, sticker_to_be_replaced=None):
-        sticker = Sticker.objects.create(
+        new_sticker = Sticker.objects.create(
             approval=self,
             # vessel_ownership=proposal.vessel_ownership,
             # fee_constructor=proposal.fee_constructor,
@@ -1233,9 +1233,8 @@ class AnnualAdmissionPermit(Approval):
             fee_season=self.latest_applied_season,
         )
 
-        logger.info(f'Sticker: {sticker} has been created (proposal_initiated: {proposal}).')
-
-        return sticker
+        logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+        return new_sticker
 
     def _get_current_stickers(self):
         current_stickers = self.stickers.filter(
@@ -1301,6 +1300,7 @@ class AnnualAdmissionPermit(Approval):
                 fee_season=self.latest_applied_season,
                 status=new_sticker_status,
             )
+            logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
 
             # Set statuses to both new and existing stickers
             if existing_sticker_to_be_expired:
@@ -1314,58 +1314,6 @@ class AnnualAdmissionPermit(Approval):
             logger.info(f'No new sticker is going to be created because this is amendment application with the same vessel and the same sticker colour.')
 
         return new_sticker, existing_sticker_to_be_returned
-
-
-        # if proposal.approval and proposal.approval.reissued:
-        #     # Can only change the conditions, so goes to Approved
-        #     proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-        #     proposal.save()
-        #     return [], []
-        #
-        # if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
-        #     # New sticker created with status Ready
-        #     new_sticker = self._create_new_sticker_by_proposal(proposal)
-        #
-        #     # Application goes to status Printing Sticker
-        #     proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        #     proposal.save()
-        #
-        #     return [], []
-        # elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-        #     if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
-        #         # Same vessel
-        #         next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
-        #         current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
-        #         if current_colour != next_colour:
-        #             logger.info(f'Current sticker colour is {current_colour} ({proposal.previous_application.vessel_length} [m] vessel).  But {next_colour} colour sticker is required for the vessel amended ({proposal.vessel_length} [m] vessel).')
-        #             return self._calc_stickers(proposal)
-        #         else:
-        #             return [], []
-        #     else:
-        #         # Different vessel
-        #         return self._calc_stickers(proposal)
-        # elif proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-        #     if not proposal.approval.reissued or not proposal.keep_existing_vessel:
-        #         # New sticker goes to ready
-        #         current_stickers = self._get_current_stickers()
-        #         sticker_to_be_replaced = current_stickers.first()  # There should be 0 or 1 current sticker (0: when vessel sold before renewal)
-        #         new_sticker = self._create_new_sticker_by_proposal(proposal, sticker_to_be_replaced)
-        #         logger.info(f'New Sticker: [{new_sticker}] has been created.')
-        #
-        #         # Old sticker goes to status Expired when new sticker is printed
-        #         new_sticker.sticker_to_replace = sticker_to_be_replaced
-        #         new_sticker.save()
-        #
-        #         logger.info(f'Sticker: [{sticker_to_be_replaced}] is replaced by the sticker: {new_sticker}.')
-        #
-        #         # Application goes to status Printing Sticker
-        #         proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-        #         proposal.save()
-        #         logger.info(f'Status: {Proposal.PROCESSING_STATUS_PRINTING_STICKER} has been set to the proposal {proposal}.')
-        #
-        #         return [], []
-        #     else:
-        #         return [], []
 
     def _calc_stickers(self, proposal):
         # New sticker created with status Ready
@@ -1752,7 +1700,7 @@ class AuthorisedUserPermit(Approval):
                     fee_season=self.latest_applied_season,
                     status=new_status
                 )
-                logger.info(f'New sticker: [{new_sticker}] has been created.')
+                logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
                 new_stickers.append(new_sticker)
             if moa_to_be_on_new_sticker.sticker in stickers_to_be_replaced_for_renewal:
                 # Store old sticker in the new sticker in order to set 'expired' status to it once the new sticker gets 'awaiting_printing' status
@@ -1933,14 +1881,15 @@ class MooringLicence(Approval):
                     moa.approval.child_obj.update_moorings(self)
 
     def _create_new_sticker_by_proposal(self, proposal):
-        sticker = Sticker.objects.create(
+        new_sticker = Sticker.objects.create(
             approval=self,
             vessel_ownership=proposal.vessel_ownership,
             fee_constructor=proposal.fee_constructor,
             proposal_initiated=proposal,
             fee_season=self.latest_applied_season,
         )
-        return sticker
+        logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+        return new_sticker
 
     def manage_stickers(self, proposal):
         logger.info(f'Managing stickers for the MooringSiteLicence: [{self}]...')
@@ -2076,6 +2025,7 @@ class MooringLicence(Approval):
                     fee_season=self.latest_applied_season,
                 )
                 stickers_to_be_kept.append(new_sticker)
+                logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
 
                 if existing_sticker:
                     new_sticker.sticker_to_replace = existing_sticker
@@ -2087,12 +2037,24 @@ class MooringLicence(Approval):
 
             return [], []  # Is this correct?
 
-    def current_vessel_attributes(self, attribute=None, proposal=None):
-        attribute_list = []
+    def get_current_vessel_ownership_on_approvals(self):
         vooas = self.vesselownershiponapproval_set.filter(
             Q(end_date__isnull=True) &
             Q(vessel_ownership__end_date__isnull=True)
         )
+        return vooas
+
+    def get_current_min_vessel_applicable_length(self):
+            min_length = 0
+            vessel_details = self.current_vessel_attributes('vessel_details')
+            for vessel_detail in vessel_details:
+                if not min_length or vessel_detail.vessel_applicable_length < min_length:
+                    min_length = vessel_detail.vessel_applicable_length
+            return min_length
+
+    def current_vessel_attributes(self, attribute=None, proposal=None):
+        attribute_list = []
+        vooas = self.get_current_vessel_ownership_on_approvals()
         for vooa in vooas:
             if not attribute:
                 attribute_list.append(vooa.vessel_ownership)
@@ -2931,7 +2893,7 @@ class Sticker(models.Model):
             fee_constructor=self.fee_constructor,
             fee_season=self.approval.latest_applied_season,
         )
-        logger.info(f'New sticker: [{new_sticker}] has been created.')
+        logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
 
         return new_sticker
 
