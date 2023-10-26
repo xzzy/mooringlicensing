@@ -3537,20 +3537,22 @@ class MooringLicenceApplication(Proposal):
         min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
         min_mooring_vessel_size = float(min_mooring_vessel_size_str)
 
-        # TEST
-        if self.approval:
-            min_vessel_applicable_length = self.approval.child_obj.get_current_min_vessel_applicable_length()
-
         if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT]:
-            
             # Even when renewal/amendment, there might not be the vessels on the approval because of the sales of the vessels.  Check it.
             min_vessel_applicable_length = self.approval.child_obj.get_current_min_vessel_applicable_length()
-            # TODO:
 
-            if self.vessel_details.vessel_applicable_length < min_vessel_size:
-                logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
-                raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+            if min_vessel_applicable_length > min_mooring_vessel_size:
+                # There is already a sufficient size vessel for ML.
+                if self.vessel_details.vessel_applicable_length < min_vessel_size:
+                    logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
+                    raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
+            else:
+                # There are no sufficient size vessels for ML.
+                if self.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
+                    logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_mooring_vessel_size_str))
+                    raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_mooring_vessel_size))
             if self.vessel_details.vessel_applicable_length > self.approval.child_obj.mooring.vessel_size_limit or self.vessel_details.vessel_draft > self.approval.child_obj.mooring.vessel_draft_limit:
+                # Vessel is too long / Vessel draft is too deep
                 logger.error("Proposal {}: Vessel unsuitable for mooring".format(self))
                 raise serializers.ValidationError("Vessel unsuitable for mooring")
         elif self.vessel_details.vessel_applicable_length < min_mooring_vessel_size:
