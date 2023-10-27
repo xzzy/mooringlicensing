@@ -48,7 +48,7 @@
                         :showElectoralRoll="showElectoralRoll"
                         :storedSilentElector="silentElector"
                         :proposalId="proposal.id"
-                        :readonly="readonly"
+                        :readonly="true"
                         :submitterId="submitterId"
                     />
                   </div>

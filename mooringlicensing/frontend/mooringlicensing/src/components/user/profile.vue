@@ -120,7 +120,7 @@
                             <div class="col-sm-3">
                             </div>
                             <div class="col-sm-6">
-                              <input :readonly="readonly" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential" @change="togglePostal"/>
+                              <input disabled :readonly="readonly" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential" @change="togglePostal"/>
                               <label for="postal_same_as_residential" class="control-label">Same as residential address</label>
                             </div>
                           </div>
@@ -199,7 +199,7 @@
                                 <input :readonly="mobileNumberReadonly || readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                             <div v-else class="col-sm-6">
-                                <input type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
+                                <input :readonly="readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                           </div>
                           <div class="form-group">

@@ -48,7 +48,7 @@
                         @profile-fetched="populateProfile"
                         :showElectoralRoll="showElectoralRoll"
                         :proposalId="proposal.id"
-                        :readonly="readonly"
+                        :readonly="true"
                         :submitterId="submitterId"
                         :forEndorser="forEndorser"
                     />
