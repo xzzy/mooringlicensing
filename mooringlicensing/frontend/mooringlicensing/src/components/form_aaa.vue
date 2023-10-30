@@ -44,7 +44,7 @@
                     @profile-fetched="populateProfile"
                     :showElectoralRoll="showElectoralRoll"
                     :proposalId="proposal.id"
-                    :readonly="true"
+                    :readonly="readonly"
                     :submitterId="submitterId"
                     />
                   </div>

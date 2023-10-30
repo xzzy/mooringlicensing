@@ -2034,7 +2034,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')
 
-                self.proposal_applicant.copy_self_to_proposal(proposal)
+                # self.proposal_applicant.copy_self_to_proposal(proposal)
 
                 proposal.save(no_revision=True)
                 return proposal

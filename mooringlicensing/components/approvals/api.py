@@ -1295,7 +1295,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
 
                 # Copy applicant details to the new proposal
                 proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
-                proposal_applicant.copy_self_to_proposal(new_proposal)
+                # proposal_applicant.copy_self_to_proposal(new_proposal)
                 logger.info(f'ProposalApplicant: [{proposal_applicant}] has been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
 
                 # Copy vessel details to the new proposal

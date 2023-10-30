@@ -377,6 +377,8 @@ def save_proponent_data_aaa(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
+        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
@@ -410,6 +412,8 @@ def save_proponent_data_wla(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
+        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
@@ -446,6 +450,8 @@ def save_proponent_data_mla(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
+        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
 
@@ -476,6 +482,8 @@ def save_proponent_data_aua(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
+        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
 
@@ -1015,9 +1023,10 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     return fee_amount_adjusted
 
 
-def make_proposal_applicant_ready(proposal, request):
+def create_proposal_applicant_if_not_exist(proposal, request):
     proposal_applicant, created = ProposalApplicant.objects.get_or_create(proposal=proposal)
     if created:
+        # Copy data from the EmailUserRO only when a new proposal_applicant obj is created
         proposal_applicant.first_name = request.user.first_name
         proposal_applicant.last_name = request.user.last_name
         proposal_applicant.dob = request.user.dob

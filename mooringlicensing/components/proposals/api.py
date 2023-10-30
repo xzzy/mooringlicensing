@@ -26,7 +26,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
+    save_proponent_data, create_proposal_applicant_if_not_exist, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -585,7 +585,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -616,7 +616,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Authorised User Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -652,7 +652,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -685,7 +685,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
         logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         # make_ownership_ready(obj, request)
 
