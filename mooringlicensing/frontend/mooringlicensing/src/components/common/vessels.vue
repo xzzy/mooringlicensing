@@ -591,17 +591,16 @@ export default {
             });
         },
         initialiseRegoNoSelect: function () {
-            console.log('in initialiseRegoNoSelect()')
             let vm = this
             let allow_add_new_vessel = !vm.keep_current_vessel
-            // Vessel search
+
             $(vm.$refs.vessel_rego_nos).select2({
                 minimumInputLength: 2,
                 "theme": "bootstrap",
                 placeholder: "",
                 // tags: true,  // true: user can add a new item. user can select from existing items
-                             // false: user can select from existing items
-                tags: allow_add_new_vessel,  // true: user can add a new item. user can select from existing items
+                                // false: user can select from existing items
+                tags: allow_add_new_vessel,
                 createTag: function (tag) {
                     console.log({tag})
                     return {
@@ -617,6 +616,8 @@ export default {
                         var query = {
                             term: params.term,
                             type: 'public',
+                            allow_add_new_vessel: allow_add_new_vessel,
+                            proposal_id: vm.proposal.id,
                         }
                         return query;
                     },

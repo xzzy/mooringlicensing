@@ -277,12 +277,29 @@ class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
-        if search_term:
-            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
-            return Response({"results": data_transform})
-        return Response()
+        allow_add_new_vessel = request.GET.get('allow_add_new_vessel', 'true')
+        allow_add_new_vessel = True if allow_add_new_vessel.lower() == 'true' else False
+        proposal_id = request.GET.get('proposal_id', 0)
+        proposal = Proposal.objects.get(id=proposal_id)
 
+        if not search_term or not proposal:
+            return Response()
+
+        if allow_add_new_vessel:
+            # Return all the vessels
+            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
+        else:
+            # Return only existing vessels
+            if proposal.approval:
+                vooas = proposal.approval.child_obj.get_current_vessel_ownership_on_approvals()
+                data = []
+                for vessel_ownership_on_approval in vooas:
+                    data.append(vessel_ownership_on_approval.vessel_ownership.vessel)
+            else:
+                data = []
+
+        data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+        return Response({"results": data_transform})
 
 class GetCompanyNames(views.APIView):
     renderer_classes = [JSONRenderer, ]
