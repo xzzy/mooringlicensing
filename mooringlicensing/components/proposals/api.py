@@ -285,16 +285,26 @@ class GetVesselRegoNos(views.APIView):
         if not search_term or not proposal:
             return Response()
 
-        if allow_add_new_vessel:
-            # Return all the vessels
+        if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
+            # Make sure 'allow_add_new_vessel' is True when new application
+            allow_add_new_vessel = True
             data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
         else:
-            # Return only existing vessels
+            # Amendment/Renewal
             if proposal.approval:
                 vooas = proposal.approval.child_obj.get_current_vessel_ownership_on_approvals()
-                data = []
+                existing_vessel_ids = []  # Store id of the vessel that belongs to the proposal.approval
                 for vessel_ownership_on_approval in vooas:
-                    data.append(vessel_ownership_on_approval.vessel_ownership.vessel)
+                    existing_vessel_ids.append(vessel_ownership_on_approval.vessel_ownership.vessel.id)
+
+                if allow_add_new_vessel:
+                    # Customer wants to add a new vessel
+                    # Return all the vessels except existing vessels that belongs to the proposal.approval
+                    data = Vessel.objects.filter(rego_no__icontains=search_term).exclude(id__in=existing_vessel_ids).values('id', 'rego_no')[:10]
+                else:
+                    # Customer wants to edit an existing vessel which belongs to the proposal.approval
+                    # Return only existing vessels that belong to the proposal.approval
+                    data = Vessel.objects.filter(rego_no__icontains=search_term, id__in=existing_vessel_ids).values('id', 'rego_no')[:10]
             else:
                 data = []
 
