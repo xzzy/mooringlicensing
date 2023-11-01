@@ -239,7 +239,6 @@ export default {
     computed: {
         regoReadonly: function () {
             let readonly = false;
-            //if (this.proposal && this.proposal.approval_reissued && !this.proposal.approval_vessel_rego_no &&
             if (!this.vesselOwnershipExists){
                 readonly = false
             } else if (this.proposal && !this.proposal.approval_vessel_rego_no && !this.proposal.current_vessels_rego_list && !this.readonly) {
@@ -593,17 +592,20 @@ export default {
         },
         initialiseRegoNoSelect: function () {
             console.log('in initialiseRegoNoSelect()')
-            let vm = this;
+            let vm = this
+            let allow_add_new_vessel = !vm.keep_current_vessel
             // Vessel search
             $(vm.$refs.vessel_rego_nos).select2({
                 minimumInputLength: 2,
                 "theme": "bootstrap",
                 placeholder: "",
-                tags: true,
+                // tags: true,  // true: user can add a new item. user can select from existing items
+                             // false: user can select from existing items
+                tags: allow_add_new_vessel,  // true: user can add a new item. user can select from existing items
                 createTag: function (tag) {
-                    console.log('in createTag()')
+                    console.log({tag})
                     return {
-                        id: tag.term,
+                        id: tag.term,  
                         text: tag.term,
                         tag: true
                     };
@@ -611,14 +613,20 @@ export default {
                 ajax: {
                     url: api_endpoints.vessel_rego_nos,
                     dataType: 'json',
-                    data: function (params) {
-                        console.log('in data()')
+                    data: function (params) {  // This function is called before the ajax call.
                         var query = {
                             term: params.term,
                             type: 'public',
                         }
                         return query;
                     },
+                    processResults: function(data, params){  // This function is called after the results are returned.
+                                                             // Mainly used for modifying the items before being displayed.
+                        console.log({data})
+                        return {
+                            results: data.results,  // This is the array of items to be displayed
+                        }
+                    }
                 },
                 templateSelection: function (data) {
                     console.log("in templateSelection()");
@@ -792,38 +800,6 @@ export default {
             this.vessel.vessel_details = Object.assign({}, vessel_details);
             this.readOwnershipFromProposal();
         },
-        /*
-        fetchVessel: async function() {
-            if (this.proposal.processing_status === 'Draft' && (!this.readonly || this.is_internal)) {
-                // read in draft proposal data pre-submit
-                this.vessel.rego_no = this.proposal.rego_no;
-                //this.vessel.vessel_id = this.proposal.vessel_id;
-                this.vessel.id = this.proposal.vessel_id;
-                let vessel_details = {};
-                vessel_details.vessel_type = this.proposal.vessel_type;
-                vessel_details.vessel_name = this.proposal.vessel_name;
-                //vessel_details.vessel_overall_length = this.proposal.vessel_overall_length;
-                vessel_details.vessel_length = this.proposal.vessel_length;
-                vessel_details.vessel_draft = this.proposal.vessel_draft;
-                vessel_details.vessel_beam = this.proposal.vessel_beam;
-                vessel_details.vessel_weight = this.proposal.vessel_weight;
-                vessel_details.berth_mooring = this.proposal.berth_mooring;
-                this.vessel.vessel_details = Object.assign({}, vessel_details);
-                this.readOwnershipFromProposal();
-            } else {
-                // fetch submitted proposal data
-                let url = '';
-                if (this.proposal && this.proposal.id && this.proposal.vessel_details_id) {
-                    url = helpers.add_endpoint_join(
-                        //'/api/proposal/',
-                        api_endpoints.proposal,
-                        this.proposal.id + '/fetch_vessel/'
-                    )
-                }
-                await this.fetchReadonlyVesselCommon(url);
-            }
-        },
-        */
         readOwnershipFromProposal: function () {
             console.log('in readOwnershipFromProposal()')
             let vessel_ownership = {};
@@ -870,13 +846,11 @@ export default {
         this.$nextTick(async () => {
             console.log('in mounted nextTick()')
             await this.fetchVesselTypes();
-            // if (this.proposal && this.keep_current_vessel) {
             if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
                 console.log('%cPerform fetchDraftData', consoleColour)
 
                 // fetches vessel data from proposal (saved as draft)
                 await this.fetchDraftData();
-
             } else if (!this.proposal) {
                 console.log('%cPerform fetchReadonlyVesselCommon', consoleColour)
 
@@ -889,7 +863,6 @@ export default {
             this.addEventListeners();
 
             // read in Renewal/Amendment vessel details
-            //if (!this.keep_current_vessel && this.proposal.proposal_type.code !=='new' && this.proposal.application_type_code === 'mla') {
             if (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new') {
                 //await this.fetchVessel();
                 // await this.fetchDraftData();  // Combine this if statement with the above (line 879).  Due to the complexity of this if statements, not very sure if it is correct though it works.
