@@ -197,7 +197,7 @@
                 profile: {},
                 uuid: 0,
                 mooringAuthorisationUuid: 0,
-                keepCurrentVessel: true,
+                keepCurrentVessel: false,
                 changeMooring: false,
                 showPaymentTab: false,
                 showInsuranceTab: true,

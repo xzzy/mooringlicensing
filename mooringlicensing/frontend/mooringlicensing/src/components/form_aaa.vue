@@ -167,7 +167,7 @@
                 values:null,
                 profile: {},
                 uuid: 0,
-                keepCurrentVessel: true,
+                keepCurrentVessel: false,
                 showPaymentTab: true,
                 showInsuranceTab: true,
                 higherVesselCategory: false,

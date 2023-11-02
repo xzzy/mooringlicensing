@@ -292,10 +292,16 @@ class GetVesselRegoNos(views.APIView):
         else:
             # Amendment/Renewal
             if proposal.approval:
-                vooas = proposal.approval.child_obj.get_current_vessel_ownership_on_approvals()
                 existing_vessel_ids = []  # Store id of the vessel that belongs to the proposal.approval
-                for vessel_ownership_on_approval in vooas:
-                    existing_vessel_ids.append(vessel_ownership_on_approval.vessel_ownership.vessel.id)
+                if proposal.approval.child_obj.code == 'ml':
+                    vooas = proposal.approval.child_obj.get_current_vessel_ownership_on_approvals()
+                    for vessel_ownership_on_approval in vooas:
+                        existing_vessel_ids.append(vessel_ownership_on_approval.vessel_ownership.vessel.id)
+                else:
+                    v_details = proposal.approval.child_obj.current_proposal.latest_vessel_details
+                    v_ownership = proposal.approval.child_obj.current_proposal.vessel_ownership
+                    if v_details and not v_ownership.end_date:
+                        existing_vessel_ids.append(v_details.vessel.id)
 
                 if allow_add_new_vessel:
                     # Customer wants to add a new vessel
