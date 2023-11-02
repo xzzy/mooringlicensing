@@ -145,6 +145,7 @@ from '@/utils/hooks'
             },
         },
         mounted: function () {
+            this.resetCurrentVessel();
         },
         created: function() {
             if (this.proposal && !this.proposal.keep_existing_vessel) {
