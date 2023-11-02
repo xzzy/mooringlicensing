@@ -166,7 +166,7 @@ export default {
             values: null,
             profile: {},
             uuid: 0,
-            keepCurrentVessel: true,
+            keepCurrentVessel: false,
             mooringPreferenceChanged: false,
             vesselOwnershipChanged: false,
             //vesselLength: null,
