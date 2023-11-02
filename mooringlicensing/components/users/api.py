@@ -45,6 +45,8 @@ from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.components.users.serializers import (
+    EmailUserRoForEndorserSerializer,
+    EmailUserRoSerializer,
     ProposalApplicantForEndorserSerializer,
     UserForEndorserSerializer,
     UserSerializer,
@@ -88,21 +90,28 @@ class GetCountries(views.APIView):
 
 class GetProposalApplicant(views.APIView):
     renderer_classes = [JSONRenderer,]
+    DISPLAY_PROPOSAL_APPLICANT = False
 
     def get(self, request, proposal_pk, format=None):
         from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
         proposal = Proposal.objects.get(id=proposal_pk)
         if (is_customer(self.request) and proposal.submitter == request.user.id) or is_internal(self.request):
             # Holder of this proposal is accessing OR internal user is accessing.
-            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-            serializer = ProposalApplicantSerializer(proposal_applicant, context={'request': request})
+            if self.DISPLAY_PROPOSAL_APPLICANT:
+                proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+                serializer = ProposalApplicantSerializer(proposal_applicant, context={'request': request})
+            else:
+                submitter = retrieve_email_userro(proposal.submitter)
+                serializer = EmailUserRoSerializer(submitter)
             return Response(serializer.data)
         elif is_customer(self.request) and proposal.site_licensee_email == request.user.email:
             # ML holder is accessing the proposal as an endorser
-            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-            # applicant = retrieve_email_userro(proposal.submitter)
-            # serializer = UserForEndorserSerializer(applicant)
-            serializer = ProposalApplicantForEndorserSerializer(proposal_applicant, context={'request': request})
+            if self.DISPLAY_PROPOSAL_APPLICANT:
+                proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
+                serializer = ProposalApplicantForEndorserSerializer(proposal_applicant, context={'request': request})
+            else:
+                submitter = retrieve_email_userro(proposal.submitter)
+                serializer = EmailUserRoForEndorserSerializer(submitter)
             return Response(serializer.data)
 
 

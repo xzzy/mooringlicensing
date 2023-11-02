@@ -74,6 +74,7 @@
                           @resetCurrentVessel=resetCurrentVessel
                           />
                   </div>
+
                   <Vessels
                     :proposal="proposal"
                     :profile="profileVar"
@@ -119,6 +120,7 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
+    // import Vessel from '@/components/common/vessel.vue'
     import CurrentVessels from '@/components/common/current_vessels.vue'
     import Insurance from '@/components/common/insurance.vue'
     import MooringSiteLicenceDocumentsUpload from '@/components/external/mooring_licence_documents_upload.vue'
@@ -200,6 +202,7 @@
             Applicant,
             Confirmation,
             Vessels,
+            // Vessel,
             CurrentVessels,
             Insurance,
             Profile,
@@ -355,6 +358,7 @@
                 this.updateAmendmentRenewalProperties();
             },
             resetCurrentVessel: function(keep) {
+                console.log('in recetCurrentVessel()')
                 this.keepCurrentVessel = keep;
                 this.uuid++
                 this.updateAmendmentRenewalProperties();
