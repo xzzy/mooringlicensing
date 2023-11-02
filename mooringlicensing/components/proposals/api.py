@@ -26,7 +26,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, make_proposal_applicant_ready, make_ownership_ready,
+    save_proponent_data, create_proposal_applicant_if_not_exist, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -277,12 +277,39 @@ class GetVesselRegoNos(views.APIView):
     renderer_classes = [JSONRenderer, ]
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
-        if search_term:
-            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
-            data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
-            return Response({"results": data_transform})
-        return Response()
+        allow_add_new_vessel = request.GET.get('allow_add_new_vessel', 'true')
+        allow_add_new_vessel = True if allow_add_new_vessel.lower() == 'true' else False
+        proposal_id = request.GET.get('proposal_id', 0)
+        proposal = Proposal.objects.get(id=proposal_id)
 
+        if not search_term or not proposal:
+            return Response()
+
+        if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
+            # Make sure 'allow_add_new_vessel' is True when new application
+            allow_add_new_vessel = True
+            data = Vessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no')[:10]
+        else:
+            # Amendment/Renewal
+            if proposal.approval:
+                vooas = proposal.approval.child_obj.get_current_vessel_ownership_on_approvals()
+                existing_vessel_ids = []  # Store id of the vessel that belongs to the proposal.approval
+                for vessel_ownership_on_approval in vooas:
+                    existing_vessel_ids.append(vessel_ownership_on_approval.vessel_ownership.vessel.id)
+
+                if allow_add_new_vessel:
+                    # Customer wants to add a new vessel
+                    # Return all the vessels except existing vessels that belongs to the proposal.approval
+                    data = Vessel.objects.filter(rego_no__icontains=search_term).exclude(id__in=existing_vessel_ids).values('id', 'rego_no')[:10]
+                else:
+                    # Customer wants to edit an existing vessel which belongs to the proposal.approval
+                    # Return only existing vessels that belong to the proposal.approval
+                    data = Vessel.objects.filter(rego_no__icontains=search_term, id__in=existing_vessel_ids).values('id', 'rego_no')[:10]
+            else:
+                data = []
+
+        data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
+        return Response({"results": data_transform})
 
 class GetCompanyNames(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -585,7 +612,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -616,7 +643,7 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Authorised User Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -652,7 +679,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -685,7 +712,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
         logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
 
-        make_proposal_applicant_ready(obj, request)
+        # make_proposal_applicant_ready(obj, request)
 
         # make_ownership_ready(obj, request)
 

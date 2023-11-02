@@ -114,7 +114,65 @@ class ProposalApplicantForEndorserSerializer(serializers.ModelSerializer):
             'phone_number',
         )
 
+class EmailUserRoForEndorserSerializer(serializers.ModelSerializer):
 
+    class Meta:
+        model = EmailUserRO
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+            'email',
+            'phone_number',
+        )
+
+
+class EmailUserRoSerializer(serializers.ModelSerializer):
+    residential_line1 = serializers.CharField(source='residential_address.line1')
+    residential_line2 = serializers.CharField(source='residential_address.line2')
+    residential_line3 = serializers.CharField(source='residential_address.line3')
+    residential_locality = serializers.CharField(source='residential_address.locality')
+    residential_state = serializers.CharField(source='residential_address.state')
+    residential_country = serializers.CharField(source='residential_address.country')
+    residential_postcode = serializers.CharField(source='residential_address.postcode')
+    postal_line1 = serializers.CharField(source='postal_address.line1')
+    postal_line2 = serializers.CharField(source='postal_address.line2')
+    postal_line3 = serializers.CharField(source='postal_address.line3')
+    postal_locality = serializers.CharField(source='postal_address.locality')
+    postal_state = serializers.CharField(source='postal_address.state')
+    postal_country = serializers.CharField(source='postal_address.country')
+    postal_postcode = serializers.CharField(source='postal_address.postcode')
+
+    class Meta:
+        model = EmailUserRO
+        fields = (
+            'id',
+            'last_name',
+            'first_name',
+            'dob',
+
+            'residential_line1',
+            'residential_line2',
+            'residential_line3',
+            'residential_locality',
+            'residential_state',
+            'residential_country',
+            'residential_postcode',
+
+            'postal_same_as_residential',
+
+            'postal_line1',
+            'postal_line2',
+            'postal_line3',
+            'postal_locality',
+            'postal_state',
+            'postal_country',
+            'postal_postcode',
+
+            'email',
+            'phone_number',
+            'mobile_number',
+        )
 class ProposalApplicantSerializer(serializers.ModelSerializer):
 
     class Meta:
