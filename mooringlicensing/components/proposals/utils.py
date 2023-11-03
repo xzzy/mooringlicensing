@@ -522,7 +522,6 @@ def save_vessel_data(instance, request, vessel_data):
     else:
         serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
         serializer.is_valid(raise_exception=True)
-        print(serializer.validated_data)
         serializer.save()
         logger.info(f'Proposal: [{instance}] has been updated with the vessel data: [{vessel_data}]')
 
@@ -604,11 +603,13 @@ def submit_vessel_data(instance, request, vessel_data):
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")
 
-    # save vessel data into proposal first
+    # Handle fields of the Proposal obj
     save_vessel_data(instance, request, vessel_data)
+
+    # Handle VesselDetails obj
     vessel, vessel_details = store_vessel_data(request, vessel_data)
 
-    # associate vessel_details with proposal
+    # Associate the vessel_details with the proposal
     instance.vessel_details = vessel_details
     instance.save()
 
@@ -783,10 +784,11 @@ def store_vessel_ownership(request, vessel, instance=None):
             vo_created = True
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
         # Retrieve a vessel_ownership from the previous proposal
-        vessel_ownership = instance.previous_application.vessel_ownership
+        # vessel_ownership = instance.previous_application.vessel_ownership  # !!! This is not always true when ML !!!
+        vessel_ownership = instance.get_latest_vessel_ownership_by_vessel(vessel)
 
         vessel_ownership_to_be_created = False
-        if vessel_ownership.end_date:
+        if vessel_ownership and vessel_ownership.end_date:
             logger.info(f'Existing VesselOwnership: [{vessel_ownership}] has been retrieved, but the vessel is sold.  This vessel ownership cannot be used.')
             vessel_ownership_to_be_created = True
 

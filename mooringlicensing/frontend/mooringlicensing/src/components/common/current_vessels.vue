@@ -84,7 +84,7 @@ from '@/utils/hooks'
         name:'current_vessels',
         data:function () {
             return {
-                keep_current_vessel: null,
+                keep_current_vessel: null,  // Force the user to select one of the radio buttons
             }
         },
         components:{
@@ -145,13 +145,15 @@ from '@/utils/hooks'
             },
         },
         mounted: function () {
-            // this.resetCurrentVessel();
+            if (this.proposal && this.proposal.proposal_type.code == 'new' && this.proposal.processing_status != 'Draft'){
+                this.keep_current_vessel = true
+                this.resetCurrentVessel()
+            } else if (this.proposal && !this.proposal.keep_existing_vessel) {
+                this.keep_current_vessel = false
+                this.resetCurrentVessel()
+            }
         },
         created: function() {
-            if (this.proposal && !this.proposal.keep_existing_vessel) {
-                this.keep_current_vessel = false;
-                this.resetCurrentVessel();
-            }
         },
     }
 </script>
