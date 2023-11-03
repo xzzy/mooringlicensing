@@ -849,7 +849,7 @@ class Approval(RevisionedMixin):
                     wla = self.child_obj
                     wla.internal_status = Approval.INTERNAL_STATUS_WAITING
                     current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                    wla.wla_queue_date = current_datetime
+                    # wla.wla_queue_date = current_datetime  # Comment out this line because we never want to lost the original queue_date.
                     wla.save()
                     wla.set_wla_order()
                 send_approval_reinstate_email_notification(self, request)

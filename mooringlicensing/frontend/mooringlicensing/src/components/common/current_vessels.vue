@@ -84,7 +84,7 @@ from '@/utils/hooks'
         name:'current_vessels',
         data:function () {
             return {
-                keep_current_vessel: true,
+                keep_current_vessel: null,
             }
         },
         components:{
@@ -145,7 +145,7 @@ from '@/utils/hooks'
             },
         },
         mounted: function () {
-            this.resetCurrentVessel();
+            // this.resetCurrentVessel();
         },
         created: function() {
             if (this.proposal && !this.proposal.keep_existing_vessel) {
