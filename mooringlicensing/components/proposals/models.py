@@ -409,6 +409,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         app_label = 'mooringlicensing'
         verbose_name = "Application"
         verbose_name_plural = "Applications"
+    
+    def get_latest_vessel_ownership_by_vessel(self, vessel):
+        if self.previous_application:
+            if self.previous_application.vessel_ownership:
+                if self.previous_application.vessel_ownership.vessel == vessel:
+                    return self.previous_application.vessel_ownership
+                else:
+                    return self.previous_application.get_latest_vessel_ownership_by_vessel(vessel)
+            else:
+                return self.previous_application.get_latest_vessel_ownership_by_vessel(vessel)
+        return None
 
     def copy_proof_of_identity_documents(self, proposal):
         for doc in self.proof_of_identity_documents.all():
