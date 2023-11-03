@@ -67,8 +67,12 @@
                 </div>
                 <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                     <div v-if="proposal">
-                        <CurrentVessels :proposal=proposal :readonly=readonly :is_internal=is_internal
-                            @resetCurrentVessel=resetCurrentVessel />
+                        <CurrentVessels
+                            :proposal=proposal
+                            :readonly=readonly
+                            :is_internal=is_internal
+                            @resetCurrentVessel=resetCurrentVessel
+                        />
                     </div>
                     <Vessels 
                         :proposal="proposal" 
@@ -296,6 +300,7 @@ export default {
             this.$emit("updateVesselOwnershipChanged", changed);
         },
         resetCurrentVessel: function (keep) {
+            console.log({keep})
             this.keepCurrentVessel = keep;
             this.uuid++
             this.updateAmendmentRenewalProperties();

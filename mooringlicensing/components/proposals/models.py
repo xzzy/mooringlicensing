@@ -409,6 +409,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         app_label = 'mooringlicensing'
         verbose_name = "Application"
         verbose_name_plural = "Applications"
+    
+    def get_latest_vessel_ownership_by_vessel(self, vessel):
+        if self.previous_application:
+            if self.previous_application.vessel_ownership:
+                if self.previous_application.vessel_ownership.vessel == vessel:
+                    # Same vessel is found.
+                    return self.previous_application.vessel_ownership
+                else:
+                    # vessel of the previous application is differenct vessel.  Search further back.
+                    return self.previous_application.get_latest_vessel_ownership_by_vessel(vessel)
+            else:
+                # vessel_ownership is None or so (Null vessel case).  Search further back.
+                return self.previous_application.get_latest_vessel_ownership_by_vessel(vessel)
+        else:
+            # No previous application exists
+            return None
 
     def copy_proof_of_identity_documents(self, proposal):
         for doc in self.proof_of_identity_documents.all():
