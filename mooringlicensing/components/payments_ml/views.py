@@ -777,7 +777,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         # When WLA / AAA
                         if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code]:
                             proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id), request)
+                            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
 
                             proposal.child_obj.send_emails_after_payment_success(request)
                             proposal.save()

@@ -285,8 +285,12 @@ export default {
                             }
                         }
                         if (full.application_type_dict.code === 'mla' && full.processing_status === 'Draft'){
-                            // Only mooring licensing draft application can be withdrawn
+                            // Only ML draft application can be withdrawn
                             links +=  `<a href='#${full.id}' data-withdraw-proposal='${full.id}'>Withdraw</a><br/>`
+                        }
+                        if (full.application_type_dict.code === 'mla' && full.processing_status === 'Discarded'){
+                            // Only ML discarded application can make originated WL allocation reinstated
+                            links +=  `<a href='#${full.id}' data-reinstate-wl-allocation='${full.id}'>Reinstate WL allocation</a><br/>`
                         }
                     }
                     if (vm.is_external){
@@ -453,6 +457,33 @@ export default {
                 name: 'apply_proposal'
             })
         },
+        reinstateWLAllocation: function(proposal_id){
+            let vm = this;
+            swal({
+                title: "Reinstate Waiting List Allocation",
+                text: "Are you sure you want to put the originated waiting list allocation back on the waiting list?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Reinstate WL Allocation',
+                confirmButtonColor:'#dc3545'
+            }).then(() => {
+                vm.$http.put('/api/proposal/' + proposal_id + '/reinstate_wl_allocation/')
+                .then((response) => {
+                    console.log({response})
+                    swal(
+                        'Reinstated',
+                        'Originated waiting list allocation has been reinstated',
+                        'success'
+                    )
+                    vm.$refs.application_datatable.vmDataTable.draw();
+                }, (error) => {
+                    helpers.processError(error)
+                });
+            },(error) => {
+
+            });
+
+        },
         withdrawProposal: function(proposal_id){
             let vm = this;
             swal({
@@ -573,6 +604,11 @@ export default {
                 e.preventDefault();
                 let id = $(this).attr('data-withdraw-proposal');
                 vm.withdrawProposal(id)
+            })
+            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-reinstate-wl-allocation]', function(e) {
+                e.preventDefault();
+                let id = $(this).attr('data-reinstate-wl-allocation');
+                vm.reinstateWLAllocation(id)
             })
         },
     },

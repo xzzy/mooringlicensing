@@ -462,7 +462,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
-        self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number, request))
+        self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number), request)
 
         # Perform post-processing for each application type after discarding.
         self.child_obj.process_after_withdrawn()
@@ -471,7 +471,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
-        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number, request))
+        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number), request)
 
         # Perform post-processing for each application type after discarding.
         self.child_obj.process_after_discarded()
@@ -1374,9 +1374,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
             # Create a log entry for the proposal
             if self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR:
-                self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_BACK_TO_PROCESSING.format(self.lodgement_number), request)
             elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
-                self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.lodgement_number), request)
 
     def reissue_approval(self, request):
         with transaction.atomic():
@@ -1672,6 +1672,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     )
                     if created:
                         logger.info(f'New approval: [{approval}] has been created.')
+                        approval.log_user_action(f'New approval: {approval} has been created.', request)
                 self.approval = approval
                 self.save()
 
@@ -1709,11 +1710,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Log proposal action
                 if details:
                     # When not auto-approve
-                    self.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
+                    self.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.lodgement_number), request)
                     # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
                 else:
                     # When auto approve
-                    self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
+                    self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.lodgement_number),)
                     # applicant_field.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
 
                 # set proposal status to approved - can change later after manage_stickers
@@ -3262,7 +3263,7 @@ class AuthorisedUserApplication(Proposal):
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         self.save()
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
         # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
@@ -3507,6 +3508,11 @@ class MooringLicenceApplication(Proposal):
 
     # This uuid is used to generate the URL for the ML document upload page
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
+
+    def reinstate_wl_allocation(self, request):
+        wlallocation = self.waiting_list_allocation.reinstate_wla_order()
+        self.log_user_action(f'Reinstate Waiting List Alocation: {wlallocation.lodgement_number} back to the waiting list queue.', request)
+        return wlallocation
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
@@ -3765,7 +3771,7 @@ class MooringLicenceApplication(Proposal):
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.id), request)
+        self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
 
         if self.proposal_type in (ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,])):
             # Renewal
