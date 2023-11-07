@@ -415,6 +415,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if self.previous_application.vessel_ownership:
                 if self.previous_application.vessel_ownership.vessel == vessel:
                     # Same vessel is found.
+                    # TODO: Check if vessel_ownership is valid
                     return self.previous_application.vessel_ownership
                 else:
                     # vessel of the previous application is differenct vessel.  Search further back.

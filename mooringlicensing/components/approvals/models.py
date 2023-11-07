@@ -1147,7 +1147,7 @@ class WaitingListAllocation(Approval):
         self.status = Approval.APPROVAL_STATUS_CURRENT
         self.internal_status = Approval.INTERNAL_STATUS_WAITING
         self.save()
-        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
+        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].  These changes make this WL allocation back to the waiting list queue.')
         self.set_wla_order()
 
 

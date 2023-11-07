@@ -834,8 +834,9 @@ class ApplicationFeeSuccessView(TemplateView):
 
         except Exception as e:
             # Should not reach here
-            msg = 'Failed to process the payment. {}'.format(str(e))
+            msg = f'Failed to process the payment. {str(e)}'
             logger.error(msg)
+            logger.error('Check if the preload_url is configured correctly.')
             raise Exception(msg)
 
 
