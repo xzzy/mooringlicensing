@@ -635,17 +635,31 @@ class Approval(RevisionedMixin):
         return self.current_proposal.allowed_assessors
 
     def allowed_assessors_user(self, request):
-        return self.current_proposal.allowed_assessors_user(request)
+        if self.current_proposal:
+            return self.current_proposal.allowed_assessors_user(request)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return None
 
-    def is_assessor(self,user):
+    def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        return self.current_proposal.is_assessor(user)
+
+        if self.current_proposal:
+            return self.current_proposal.is_assessor(user)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return False
 
     def is_approver(self,user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        return self.current_proposal.is_approver(user)
+
+        if self.current_proposal:
+            return self.current_proposal.is_approver(user)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return False
 
     @property
     def is_issued(self):
