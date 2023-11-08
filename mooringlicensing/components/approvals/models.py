@@ -635,17 +635,31 @@ class Approval(RevisionedMixin):
         return self.current_proposal.allowed_assessors
 
     def allowed_assessors_user(self, request):
-        return self.current_proposal.allowed_assessors_user(request)
+        if self.current_proposal:
+            return self.current_proposal.allowed_assessors_user(request)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return None
 
-    def is_assessor(self,user):
+    def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        return self.current_proposal.is_assessor(user)
+
+        if self.current_proposal:
+            return self.current_proposal.is_assessor(user)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return False
 
     def is_approver(self,user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        return self.current_proposal.is_approver(user)
+
+        if self.current_proposal:
+            return self.current_proposal.is_approver(user)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return False
 
     @property
     def is_issued(self):
@@ -654,7 +668,7 @@ class Approval(RevisionedMixin):
     @property
     def can_action(self):
         if not (self.set_to_cancel or self.set_to_suspend or self.set_to_surrender):
-                return True
+            return True
         else:
             return False
 
@@ -848,8 +862,6 @@ class Approval(RevisionedMixin):
                 if type(self.child_obj) == WaitingListAllocation and previous_status in [Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED]:
                     wla = self.child_obj
                     wla.internal_status = Approval.INTERNAL_STATUS_WAITING
-                    current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                    # wla.wla_queue_date = current_datetime  # Comment out this line because we never want to lost the original queue_date.
                     wla.save()
                     wla.set_wla_order()
                 send_approval_reinstate_email_notification(self, request)
@@ -1139,7 +1151,7 @@ class WaitingListAllocation(Approval):
         logger.info(f'Set attributes as follows: [status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
-    def reinstate_wla_order(self, request):
+    def reinstate_wla_order(self):
         """
         This function makes this WL allocation back to the 'waiting' status
         """
@@ -1147,8 +1159,9 @@ class WaitingListAllocation(Approval):
         self.status = Approval.APPROVAL_STATUS_CURRENT
         self.internal_status = Approval.INTERNAL_STATUS_WAITING
         self.save()
-        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
+        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].  These changes make this WL allocation back to the waiting list queue.')
         self.set_wla_order()
+        return self
 
 
 class AnnualAdmissionPermit(Approval):

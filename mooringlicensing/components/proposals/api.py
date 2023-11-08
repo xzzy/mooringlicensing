@@ -617,8 +617,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
+        obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -647,9 +646,8 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
-        logger.info(f'Authorised User Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
+        logger.info(f'Authorised User Permit Application: [{obj}] has been created by the user: [{request.user}].')
+        obj.log_user_action(f'Authorised User Permit Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -684,8 +682,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 allocated_mooring=mooring,
                 )
         logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
+        obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -717,14 +714,10 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 )
 
         logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
-
-        # make_ownership_ready(obj, request)
+        obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
-
 
 
 class ProposalByUuidViewSet(viewsets.ModelViewSet):
@@ -873,6 +866,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
        except Exception as e:
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['PUT'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def reinstate_wl_allocation(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if is_internal(request) and instance.child_obj.code == MooringLicenceApplication.code and instance.processing_status in [Proposal.PROCESSING_STATUS_DISCARDED,]:
+            # Internal user is accessing
+            # Proposal is ML application and the status of it is 'discarded'
+            wlallocation = instance.child_obj.reinstate_wl_allocation(request)
+            return Response({'lodgement_number': wlallocation.lodgement_number})  # TODO
+        else:
+            msg = f'This application: [{instance}] does not meet the conditions to put the original WLAllocation to the waiting list queue.'
+            logger.warn(msg)
+            raise serializers.ValidationError(msg)
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -1075,7 +1083,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
-        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -1388,14 +1395,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         else:
             instance.destroy(request, *args, **kwargs)
 
-        ## ML
-        # if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
-        #     pass
-            # instance.waiting_list_allocation.internal_status = 'waiting'
-            # current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-            # instance.waiting_list_allocation.wla_queue_date = current_datetime
-            # instance.waiting_list_allocation.save()
-            # instance.waiting_list_allocation.set_wla_order()
         return Response()
 
     @detail_route(methods=['POST',], detail=True)

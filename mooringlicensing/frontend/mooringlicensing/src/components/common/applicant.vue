@@ -431,112 +431,112 @@ export default {
     // },
     computed: {
         applicant_first_name: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.first_name
             } else {
                 return this.email_user.first_name
             }
         },
         applicant_last_name: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.last_name
             } else {
                 return this.email_user.last_name
             }
         },
         applicant_dob: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.dob
             } else {
                 return this.email_user.dob
             }
         },
         contact_mobile_number: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.mobile_number
             } else {
                 return this.email_user.mobile_number
             }
         },
         contact_phone_number: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.phone_number
             } else {
                 return this.email_user.phone_number
             }
         },
         residential_line1: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.residential_line1
             } else {
                 return this.email_user.residential_address.line1
             }
         },
         residential_locality: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.residential_locality
             } else {
                 return this.email_user.residential_address.locality
             }
         },
         residential_state: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.residential_state
             } else {
                 return this.email_user.residential_address.state
             }
         },
         residential_postcode: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.residential_postcode
             } else {
                 return this.email_user.residential_address.postcode
             }
         },
         residential_country: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.residential_country
             } else {
                 return this.email_user.residential_address.country
             }
         },
         postal_same_as_residential: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.postal_same_as_residential
             } else {
                 return this.email_user.postal_same_as_residential
             }
         },
         postal_line1: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.postal_line1
             } else {
                 return this.email_user.postal_address.line1
             }
         },
         postal_locality: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.postal_locality
             } else {
                 return this.email_user.postal_address.locality
             }
         },
         postal_state: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.postal_state
             } else {
                 return this.email_user.postal_address.state
             }
         },
         postal_postcode: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.postal_postcode
             } else {
                 return this.email_user.postal_address.postcode
             }
         },
         postal_country: function(){
-            if (this.proposal){
+            if (this.proposal && this.proposal.proposal_applicant){
                 return this.proposal.proposal_applicant.postal_country
             } else {
                 return this.email_user.postal_address.country

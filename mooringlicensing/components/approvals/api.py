@@ -1302,6 +1302,8 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 waiting_list_allocation.current_proposal.copy_vessel_details(new_proposal)
                 logger.info(f'Vessel details have been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
 
+                waiting_list_allocation.log_user_action(f'Offer new Mooring Site Licence application: {new_proposal.lodgement_number}.', request)
+
             if new_proposal:
                 # send email
                 send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)

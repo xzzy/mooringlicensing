@@ -945,8 +945,6 @@ export default {
         */
 
         offerMooringLicence: function(id){
-            console.log('offerMooringLicence')
-            console.log(id)
             this.selectedWaitingListAllocationId = parseInt(id);
             this.uuid++;
             this.$nextTick(() => {
