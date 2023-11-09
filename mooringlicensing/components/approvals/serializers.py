@@ -840,7 +840,11 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_current_proposal_approved(self, obj):
         from mooringlicensing.components.proposals.models import Proposal
-        return obj.current_proposal.processing_status == Proposal.PROCESSING_STATUS_APPROVED
+        if obj.current_proposal:
+            return obj.current_proposal.processing_status == Proposal.PROCESSING_STATUS_APPROVED
+        else:
+            logger.warning(f'Current proposal of the approval: [{obj}] not found.')
+            return ''
 
     def get_is_assessor(self, obj):
         request = self.context.get('request')
@@ -972,10 +976,15 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
             # if obj.current_proposal.vessel_details:
             #     regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
-            if obj.current_proposal.vessel_ownership:
-                if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
-                    # We don't want to include the sold vessel
-                    regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
+            if obj.current_proposal:
+                if obj.current_proposal.vessel_ownership:
+                    if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
+                        # We don't want to include the sold vessel
+                        regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
+            else:
+                logger.warning(f'Current proposal of the approval: [{obj}] not found.')
+                return ''
+
 
         return regos
 
