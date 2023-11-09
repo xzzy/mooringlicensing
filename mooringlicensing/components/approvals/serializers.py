@@ -764,8 +764,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_grace_period_details(self, obj):
         grace_period_end_date = obj.grace_period_end_date
-
         days_left = None
+
         if grace_period_end_date:
             today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
             days_left = (grace_period_end_date - today).days
