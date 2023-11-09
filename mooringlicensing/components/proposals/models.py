@@ -1446,7 +1446,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approver_comment = ''
                 self.move_to_status(request, Proposal.PROCESSING_STATUS_WITH_APPROVER, approver_comment)
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.lodgement_number), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
@@ -1571,7 +1571,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.assigned_officer = None
                 self.save()
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
@@ -1923,7 +1923,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             if not self.payment_required():
                                 self.approval.generate_doc()
                             send_application_approved_or_declined_email(self, 'approved', request)
-                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.lodgement_number), request)
 
                         except Exception as e:
                             err_msg = 'Failed to create invoice'
@@ -3416,24 +3416,24 @@ class AuthorisedUserApplication(Proposal):
                 # Same vessel
                 if stickers_to_be_printed:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), )
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number), )
                 else:
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
             else:
                 # Vessel changed OR null vessel
                 # there is a sticker to be returned, application status gets 'Sticker to be Returned' status
                 self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
-                self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
         else:
             # There are no stickers to be returned
             if stickers_to_be_printed:
                 # There is a sticker to be printed
                 self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
             else:
                 # There are no stickers to be printed
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
         self.save()
         # self.refresh_from_db()
         # self.proposal.refresh_from_db()

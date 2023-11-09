@@ -270,8 +270,6 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log('in column_action')
-                    console.log({full})
                     let links = '';
                     if (vm.is_internal){
                         if (vm.debug){
@@ -295,8 +293,9 @@ export default {
                     }
                     if (vm.is_external){
                         if (full.can_user_edit) {
+                            console.log({full})
                             links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}' data-application-type-code='${full.application_type_dict.code}'>Discard</a><br/>`;
+                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}' data-application-type-code='${full.application_type_dict.code}' data-proposal-type-code='${full.proposal_type.code}'>Discard</a><br/>`;
                         }
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
@@ -508,7 +507,7 @@ export default {
 
             });
         },
-        discardProposal: function(proposal_id, application_type_code) {
+        discardProposal: function(proposal_id, application_type_code, proposal_type_code) {
             let vm = this;
             swal({
                 title: "Discard Application",
@@ -518,7 +517,7 @@ export default {
                 confirmButtonText: 'Discard Application',
                 confirmButtonColor:'#dc3545'
             }).then(() => {
-                if (application_type_code === 'mla'){
+                if (application_type_code === 'mla' && proposal_type_code === 'new'){
                     swal({
                         title: "Are you sure you want to discard this offer?",
                         text: "Please note this will withdraw your offer and you will lose your current position on the waiting list.",
@@ -595,19 +594,20 @@ export default {
         addEventListeners: function(){
             let vm = this
             vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-discard-proposal]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-discard-proposal');
-                let application_type_code = $(this).attr('data-application-type-code');
-                vm.discardProposal(id, application_type_code)
+                e.preventDefault()
+                let id = $(this).attr('data-discard-proposal')
+                let application_type_code = $(this).attr('data-application-type-code')
+                let proposal_type_code = $(this).attr('data-proposal-type-code')
+                vm.discardProposal(id, application_type_code, proposal_type_code)
             })
             vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-withdraw-proposal]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-withdraw-proposal');
+                e.preventDefault()
+                let id = $(this).attr('data-withdraw-proposal')
                 vm.withdrawProposal(id)
             })
             vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-reinstate-wl-allocation]', function(e) {
-                e.preventDefault();
-                let id = $(this).attr('data-reinstate-wl-allocation');
+                e.preventDefault()
+                let id = $(this).attr('data-reinstate-wl-allocation')
                 vm.reinstateWLAllocation(id)
             })
         },
