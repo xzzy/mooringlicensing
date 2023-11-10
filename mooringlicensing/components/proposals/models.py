@@ -4154,6 +4154,17 @@ class Vessel(RevisionedMixin):
     def __str__(self):
         return self.rego_no
 
+    def get_current_wlas(self, target_date):
+        from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation
+        existing_wlas = WaitingListAllocation.objects.filter(
+            status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,),
+            start_date__lte=target_date,
+            expiry_date__gte=target_date,
+            current_proposal__vessel_details__vessel=self,
+            # current_proposal__vessel_ownership__end_date__isnull=True,
+        ).distinct()
+        return existing_wlas
+
     def get_current_aaps(self, target_date):
         from mooringlicensing.components.approvals.models import Approval, AnnualAdmissionPermit
         existing_aaps = AnnualAdmissionPermit.objects.filter(
@@ -4161,7 +4172,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            current_proposal__vessel_ownership__end_date__isnull=True,
+            # current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_aaps
 
@@ -4172,7 +4183,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            current_proposal__vessel_ownership__end_date__isnull=True,
+            # current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_aups
 
@@ -4184,19 +4195,19 @@ class Vessel(RevisionedMixin):
             expiry_date__gte=target_date,
             proposal__processing_status__in=(Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED,),
             proposal__vessel_details__vessel=self,
-            proposal__vessel_ownership__end_date__isnull=True,
+            # proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_mls
 
     def get_current_approvals(self, target_date):
         # Return all the approvals where this vessel is on.
-        from mooringlicensing.components.approvals.models import Approval, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
-
+        existing_wla = self.get_current_wlas(target_date)
         existing_aaps = self.get_current_aaps(target_date)
         existing_aups = self.get_current_aups(target_date)
         existing_mls = self.get_current_mls(target_date)
 
         return {
+            'wla': existing_wla,
             'aaps': existing_aaps,
             'aups': existing_aups,
             'mls': existing_mls
