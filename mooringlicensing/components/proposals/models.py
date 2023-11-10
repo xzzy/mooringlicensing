@@ -1446,7 +1446,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approver_comment = ''
                 self.move_to_status(request, Proposal.PROCESSING_STATUS_WITH_APPROVER, approver_comment)
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.lodgement_number), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
@@ -1571,7 +1571,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.assigned_officer = None
                 self.save()
                 # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.lodgement_number), request)
                 # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
@@ -1923,7 +1923,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             if not self.payment_required():
                                 self.approval.generate_doc()
                             send_application_approved_or_declined_email(self, 'approved', request)
-                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.id), request)
+                            self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.lodgement_number), request)
 
                         except Exception as e:
                             err_msg = 'Failed to create invoice'
@@ -3416,24 +3416,24 @@ class AuthorisedUserApplication(Proposal):
                 # Same vessel
                 if stickers_to_be_printed:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id), )
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number), )
                 else:
                     self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
             else:
                 # Vessel changed OR null vessel
                 # there is a sticker to be returned, application status gets 'Sticker to be Returned' status
                 self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
-                self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.id), request)
+                self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
         else:
             # There are no stickers to be returned
             if stickers_to_be_printed:
                 # There is a sticker to be printed
                 self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
             else:
                 # There are no stickers to be printed
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.id),)
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
         self.save()
         # self.refresh_from_db()
         # self.proposal.refresh_from_db()
@@ -4154,6 +4154,17 @@ class Vessel(RevisionedMixin):
     def __str__(self):
         return self.rego_no
 
+    def get_current_wlas(self, target_date):
+        from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation
+        existing_wlas = WaitingListAllocation.objects.filter(
+            status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,),
+            start_date__lte=target_date,
+            expiry_date__gte=target_date,
+            current_proposal__vessel_details__vessel=self,
+            # current_proposal__vessel_ownership__end_date__isnull=True,
+        ).distinct()
+        return existing_wlas
+
     def get_current_aaps(self, target_date):
         from mooringlicensing.components.approvals.models import Approval, AnnualAdmissionPermit
         existing_aaps = AnnualAdmissionPermit.objects.filter(
@@ -4161,7 +4172,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            current_proposal__vessel_ownership__end_date__isnull=True,
+            # current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_aaps
 
@@ -4172,7 +4183,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            current_proposal__vessel_ownership__end_date__isnull=True,
+            # current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_aups
 
@@ -4184,19 +4195,19 @@ class Vessel(RevisionedMixin):
             expiry_date__gte=target_date,
             proposal__processing_status__in=(Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED,),
             proposal__vessel_details__vessel=self,
-            proposal__vessel_ownership__end_date__isnull=True,
+            # proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_mls
 
     def get_current_approvals(self, target_date):
         # Return all the approvals where this vessel is on.
-        from mooringlicensing.components.approvals.models import Approval, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
-
+        existing_wla = self.get_current_wlas(target_date)
         existing_aaps = self.get_current_aaps(target_date)
         existing_aups = self.get_current_aups(target_date)
         existing_mls = self.get_current_mls(target_date)
 
         return {
+            'wla': existing_wla,
             'aaps': existing_aaps,
             'aups': existing_aups,
             'mls': existing_mls

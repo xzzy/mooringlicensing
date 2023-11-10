@@ -8,13 +8,14 @@ import logging
 from mooringlicensing.components.approvals.email import send_approval_cancelled_due_to_no_vessels_nominated_mail
 from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
 from mooringlicensing.management.commands.utils import ml_meet_vessel_requirement, construct_email_message
+from mooringlicensing.settings import AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED
 
 logger = logging.getLogger('cron_tasks')
 cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'Send email to AAP/ML holder configurable number of days before end of six month period in which a new vessel is to be nominated'
+    help = 'Send email to WL/ML holder configurable number of days before end of six month period in which a new vessel is to be nominated'
 
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()
@@ -70,12 +71,15 @@ class Command(BaseCommand):
 
         for a in approvals:
             try:
-                send_approval_cancelled_due_to_no_vessels_nominated_mail(a)
-                # a.vessel_nomination_reminder_sent = True
-                a.status = Approval.APPROVAL_STATUS_CANCELLED
-                a.save()
-                logger.info('Cancel notification to permission holder sent for Approval {}'.format(a.lodgement_number))
-                updates.append(a.lodgement_number)
+                if AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED:
+                    send_approval_cancelled_due_to_no_vessels_nominated_mail(a)
+                    a.status = Approval.APPROVAL_STATUS_CANCELLED
+                    a.save()
+                    logger.info(f'Grace period of the Approval: [{a}] has been expired.  The approval has been cancelled.')
+                    logger.info('Cancel notification to permission holder sent for Approval {}'.format(a.lodgement_number))
+                    updates.append(a.lodgement_number)
+                else:
+                    logger.info(f'Grace period of the Approval: [{a}] has been expired.  However no automated processes have been triggered.')
             except Exception as e:
                 err_msg = 'Error sending cancel notification to permission holder for Approval {}'.format(a.lodgement_number)
                 logger.error('{}\n{}'.format(err_msg, str(e)))

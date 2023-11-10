@@ -243,6 +243,7 @@ class StickerReplacementFeeView(TemplateView):
                 fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
 
                 lines = []
+                applicant = None
                 for sticker_action_detail in sticker_action_details:
                     line = {
                         'ledger_description': 'Sticker Replacement Fee, sticker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
@@ -251,11 +252,14 @@ class StickerReplacementFeeView(TemplateView):
                         'price_excl_tax': 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
                         'quantity': 1,
                     }
+                    if not applicant:
+                        submitter_obj = sticker_action_detail.sticker.approval.submitter_obj
                     lines.append(line)
 
                 checkout_response = checkout(
                     request,
-                    request.user,
+                    # request.user,
+                    submitter_obj,
                     lines,
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),

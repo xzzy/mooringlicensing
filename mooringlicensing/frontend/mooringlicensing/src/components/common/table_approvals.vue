@@ -303,6 +303,7 @@ export default {
                     'Approval letter',
                     'Sticker replacement',
                     'Vessel Rego',
+                    'Grace period end date',
                     'Action',
                     //'Mooring Licence Vessels',
                     //'Authorised User Permit Moorings',
@@ -317,7 +318,6 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
-                            console.log(full)
                             return full.id
                         }
                     }
@@ -778,16 +778,11 @@ export default {
                     vm.columnIssueDate,
                     vm.columnStartDate,
                     vm.columnExpiryDate,
-                    // vm.columnVesselRegistration,
                     vm.columnVesselRegos,
                     vm.columnMooring,
                     vm.columnAction,
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,
-                    /*
-                    vm.columnMooringLicenceVessels,
-                    vm.columnAuthorisedUserMoorings,
-                    */
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -826,11 +821,8 @@ export default {
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,
                     vm.columnVesselRegos,
+                    vm.columnGracePeriod,
                     vm.columnAction,
-                    /*
-                    vm.columnMooringLicenceVessels,
-                    vm.columnAuthorisedUserMoorings,
-                    */
                 ]
             }
             let buttons = []

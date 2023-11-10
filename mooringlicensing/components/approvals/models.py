@@ -1176,10 +1176,8 @@ class AnnualAdmissionPermit(Approval):
         app_label = 'mooringlicensing'
 
     def get_grace_period_end_date(self):
-        end_date = None
-        # if self.current_proposal.vessel_ownership.end_date:
-        #     end_date = relativedelta(months=+6)
-        return end_date
+        # No grace period for the AAP
+        return None
 
     def process_after_discarded(self):
         logger.debug(f'in AAP called.')
@@ -1374,10 +1372,8 @@ class AuthorisedUserPermit(Approval):
         app_label = 'mooringlicensing'
 
     def get_grace_period_end_date(self):
-        end_date = None
-        # if self.current_proposal.vessel_ownership.end_date:
-        #     end_date = relativedelta(months=+6)
-        return end_date
+        # No grace period for the AUP
+        return None
 
     def process_after_discarded(self):
         logger.debug(f'in AUP called.')
@@ -1740,11 +1736,27 @@ class MooringLicence(Approval):
 
     def get_grace_period_end_date(self):
         end_date = None
-        for vo in self.vesselownershiponapproval_set.all():
-            logger.debug(vo)
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
+        min_mooring_vessel_size = float(min_mooring_vessel_size_str)
 
-        # TODO: Calculate end_date from possibly multiple vessels sold
-
+        for vooa in self.vesselownershiponapproval_set.all():
+            vessel_ownership = vooa.vessel_ownership
+            if vessel_ownership.vessel.latest_vessel_details.vessel_applicable_length >= min_mooring_vessel_size:
+                # Vessel size is large enough
+                if vessel_ownership.end_date is None or vessel_ownership.end_date >= today:
+                    # The vessel has not been sold.  We don't have to consider the grace period.
+                    end_date = None  # Reset end_date
+                    break
+                else:
+                    # the vessel has been sold
+                    if not end_date or end_date < vessel_ownership.end_date:
+                        end_date = vessel_ownership.end_date + relativedelta(months=+6)
+            else:
+                # Vessel is too small to consider the grace period.  We are interested only in the vessels larger than or equal to the min_mooring_vessel_size.
+                pass
+        
+        logger.debug(f'end_date: {end_date} of ML: {self}')
         return end_date
 
     def process_after_withdrawn(self):

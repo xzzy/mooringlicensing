@@ -93,19 +93,21 @@
             </transition>
             <!-- End:new file field -->
 
-            <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Proof of vessel ownership</label>
-                <div class="col-sm-9">
-                    <FileField 
-                        :readonly="hinReadonly"
-                        ref="hull_identification_number_documents"
-                        name="hull-identification-number-documents"
-                        :isRepeatable="true"
-                        :documentActionUrl="hullIdentificationNumberDocumentUrl"
-                        :replace_button_by_text="true"
-                    />
+            <transition>
+                <div v-if="showProofOfVesselOwnership" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">Proof of vessel ownership</label>
+                    <div class="col-sm-9">
+                        <FileField 
+                            :readonly="hinReadonly"
+                            ref="hull_identification_number_documents"
+                            name="hull-identification-number-documents"
+                            :isRepeatable="true"
+                            :documentActionUrl="hullIdentificationNumberDocumentUrl"
+                            :replace_button_by_text="true"
+                        />
+                    </div>
                 </div>
-            </div>
+            </transition>
 
         </FormSection>
         <FormSection label="Vessel Details" Index="vessel_details">
@@ -316,6 +318,13 @@ export default {
                     lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}.`;
             }
             return displayText;
+        },
+        showProofOfVesselOwnership: function(){
+            let retVal = false
+            if (this.companyOwner){
+                retVal = true
+            }
+            return retVal
         },
         showDotRegistrationPapers: function () {
             let retVal = false;
