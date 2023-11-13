@@ -186,7 +186,6 @@ export default {
     },
     watch: {
         show_expired_surrendered: function(value){
-            console.log(value)
             this.$refs.approvals_datatable.vmDataTable.ajax.reload()
         },
         filterStatus: function(){
@@ -399,20 +398,6 @@ export default {
                         name: "internal_status",
                     }
         },
-        // columnVesselRegistration: function() {
-        //     return {
-        //                 // 6. Vessel Registration
-        //                 data: "id",
-        //                 orderable: true,
-        //                 searchable: false,
-        //                 visible: true,
-        //                 'render': function(row, type, full){
-        //                     console.log('columnVesselRegistration')
-        //                     return full.vessel_registration;
-        //                 },
-        //                 name: "current_proposal__vessel_details__vessel__rego_no"
-        //             }
-        // },
         columnVesselName: function() {
             return {
                         // 7. Vessel Name
@@ -473,7 +458,6 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            console.log(full)
                             let links = '';
                             if(vm.debug){
                                 links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
@@ -878,8 +862,19 @@ export default {
                 columns: selectedColumns,
                 processing: true,
                 initComplete: function() {
-                    console.log('in initComplete')
+
                 },
+                createdRow: function(row, data, dataIndex){
+                    if (data.grace_period_details && data.grace_period_details.days_left){
+                        let colour_code = '#ff6961'
+                        if (data.grace_period_details.days_left > 0){
+                            colour_code = '#ffa07a'
+                        }
+                        $(row).css({
+                            'background-color': colour_code
+                        })
+                    }
+                }
             }
         },
         offerMooringLicenceKey: function() {
@@ -889,14 +884,12 @@ export default {
     },
     methods: {
         sendData: function(params){
-            console.log(params)
             let vm = this
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
                 res => {
                     helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
                 },
                 err => {
-                    console.log(err)
                     vm.$refs.request_new_sticker_modal.isModalOpen = false
                     swal({
                         title: "Request New Sticker",
@@ -912,30 +905,9 @@ export default {
                 vm.profile = response.body
 
             },(error) => {
-                console.log(error);
 
             })
         },
-        /*
-        check_assessor: function(proposal){
-            let vm = this;
-            //console.log(proposal.id, proposal.can_approver_reissue);
-            var assessor = proposal.allowed_assessors.filter(function(elem){
-                    return(elem.id==vm.profile.id)
-
-                });
-
-            if (assessor.length > 0){
-                //console.log(proposal.id, assessor)
-                return true;
-            }
-            else
-                return false;
-
-            return false;
-        },
-        */
-
         offerMooringLicence: function(id){
             this.selectedWaitingListAllocationId = parseInt(id);
             this.uuid++;
@@ -1284,3 +1256,6 @@ export default {
     }
 }
 </script>
+
+<style lang="css" scoped>
+</style>
