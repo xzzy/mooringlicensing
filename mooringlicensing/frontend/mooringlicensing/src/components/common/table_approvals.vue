@@ -246,6 +246,7 @@ export default {
                     'Start Date',
                     'Expiry Date',
                     'Action',
+                    'Grace period end date',
                     'Approval letter',
                 ]
             } else if (this.is_external) {
@@ -262,6 +263,7 @@ export default {
                     'Vessel Rego',
                     'Mooring',
                     'Action',
+                    'Grace period end date',
                     'Approval letter',
                     'Sticker replacement',
                 ]
@@ -304,8 +306,6 @@ export default {
                     'Vessel Rego',
                     'Grace period end date',
                     'Action',
-                    //'Mooring Licence Vessels',
-                    //'Authorised User Permit Moorings',
                 ]
             }
         },
@@ -749,6 +749,7 @@ export default {
                     vm.columnStartDate,
                     vm.columnExpiryDate,
                     vm.columnAction,
+                    vm.columnGracePeriod,
                     vm.columnApprovalLetter,
                 ]
             } else if (this.is_external) {
@@ -765,6 +766,7 @@ export default {
                     vm.columnVesselRegos,
                     vm.columnMooring,
                     vm.columnAction,
+                    vm.columnGracePeriod,
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,
                 ]
