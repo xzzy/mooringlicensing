@@ -115,8 +115,9 @@ from '@/utils/hooks'
         computed: {
             vesselExists: function() {
                 if (this.proposal && !this.proposal.null_vessel_on_create) {
-                    return true;
+                    return true
                 }
+                return false
             },
             mooringLicenceCurrentVesselDisplayText: function() {
                 //if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
@@ -147,11 +148,12 @@ from '@/utils/hooks'
         mounted: function () {
             if (this.proposal && this.proposal.proposal_type.code == 'new' && this.proposal.processing_status != 'Draft'){
                 this.keep_current_vessel = true
-                this.resetCurrentVessel()
             } else if (this.proposal && !this.proposal.keep_existing_vessel) {
                 this.keep_current_vessel = false
-                this.resetCurrentVessel()
+            } else if (!this.vesselExists){
+                this.keep_current_vessel = false
             }
+            this.resetCurrentVessel()
         },
         created: function() {
         },
