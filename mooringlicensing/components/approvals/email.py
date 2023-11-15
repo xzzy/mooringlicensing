@@ -247,48 +247,6 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
             _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
     return msg
-
-
-# def send_vessel_sale_notification_mail(request, vessel_ownership):
-#     email = TemplateEmailBase(
-#         subject='Notice of Vessel Sale',
-#         html_template='mooringlicensing/emails_2/vessel_sale_notification_mail.html',
-#         txt_template='mooringlicensing/emails_2/vessel_sale_notification_mail.txt',
-#     )
-
-#     context = {
-#         'recipient': request.user,
-#         'vessel_rego_no': vessel_ownership.vessel.rego_no,
-#         'sale_date': vessel_ownership.end_date.strftime('%d-%m-%Y'),
-#     }
-
-#     all_bccs = []
-#     for proposal in vessel_ownership.proposal_set.all():
-#         all_bccs += proposal.assessor_recipients
-
-#     msg = email.send(proposal.submitter_obj.email, cc=[], bcc=all_bccs, context=context)
-#     if msg:
-#         sender = settings.DEFAULT_FROM_EMAIL
-#         try:
-#             sender_user = EmailUser.objects.get(email__icontains=sender)
-#         except:
-#             EmailUser.objects.create(email=sender, password='')
-#             sender_user = EmailUser.objects.get(email__icontains=sender)
-        
-#         target_datetime = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE))
-#         target_date = target_datetime.date()
-#         current_approvals = vessel_ownership.vessel.get_current_approvals(target_date)
-#         approvals = []
-#         for key, apps in current_approvals.items():
-#             for approval in apps:
-#                 _log_approval_email(msg, approval, sender=sender_user)
-
-    #     _log_approval_email(msg, approval, sender=sender_user)
-    #     #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-    #     if approval.org_applicant:
-    #         _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-    #     else:
-    #         _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
     
 
 def send_vessel_nomination_reminder_mail(approval, request=None):
