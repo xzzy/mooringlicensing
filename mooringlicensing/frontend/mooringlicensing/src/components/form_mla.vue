@@ -359,6 +359,7 @@
             },
             resetCurrentVessel: function(keep) {
                 console.log('in recetCurrentVessel()')
+                console.log({keep})
                 this.keepCurrentVessel = keep;
                 this.uuid++
                 this.updateAmendmentRenewalProperties();

@@ -147,13 +147,20 @@ from '@/utils/hooks'
         },
         mounted: function () {
             if (this.proposal && this.proposal.proposal_type.code == 'new' && this.proposal.processing_status != 'Draft'){
+                console.log('mounted1')
                 this.keep_current_vessel = true
+                this.resetCurrentVessel()
             } else if (this.proposal && !this.proposal.keep_existing_vessel) {
+                console.log('mounted2')
                 this.keep_current_vessel = false
+                this.resetCurrentVessel()
             } else if (!this.vesselExists){
+                console.log('mounted3')
                 this.keep_current_vessel = false
+                this.resetCurrentVessel()
+            } else {
+                console.log('mounted4')
             }
-            this.resetCurrentVessel()
         },
         created: function() {
         },

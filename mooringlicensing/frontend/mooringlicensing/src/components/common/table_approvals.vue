@@ -706,7 +706,7 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    if (full.grace_period_details.grace_period_end_date){
+                    if (full.status === 'Current' && full.grace_period_details.grace_period_end_date){
                         return moment(full.grace_period_details.grace_period_end_date).format('DD/MM/YYYY') + ' (' + full.grace_period_details.days_left + ' days left)'
                     }
                     return 'N/A'
@@ -867,14 +867,16 @@ export default {
 
                 },
                 createdRow: function(row, data, dataIndex){
-                    if (data.grace_period_details && data.grace_period_details.days_left){
-                        let colour_code = '#ff6961'
-                        if (data.grace_period_details.days_left > 0){
-                            colour_code = '#ffa07a'
+                    if (data.status === 'Current'){
+                        if (data.grace_period_details && data.grace_period_details.days_left){
+                            let colour_code = '#ff6961'
+                            if (data.grace_period_details.days_left > 0){
+                                colour_code = '#ffa07a'
+                            }
+                            $(row).css({
+                                'background-color': colour_code
+                            })
                         }
-                        $(row).css({
-                            'background-color': colour_code
-                        })
                     }
                 }
             }
