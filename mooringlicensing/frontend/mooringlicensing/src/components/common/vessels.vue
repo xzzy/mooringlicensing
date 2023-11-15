@@ -422,14 +422,13 @@ export default {
                 } else {
 
                     if (
-                        // this.vesselDetails.berth_mooring && this.vesselDetails.berth_mooring.trim() !== this.previousApplicationVesselDetails.berth_mooring.trim()) ||
                         Number(this.vesselDetails.vessel_draft) != Number(this.previousApplicationVesselDetails.vessel_draft) ||
                         Number(this.vesselDetails.vessel_length) != Number(this.previousApplicationVesselDetails.vessel_length) ||
                         (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim() !== this.previousApplicationVesselDetails.vessel_name.trim()) ||
                         this.vesselDetails.vessel_type !== this.previousApplicationVesselDetails.vessel_type ||
                         Number(this.vesselDetails.vessel_weight) != Number(this.previousApplicationVesselDetails.vessel_weight) ||
-                        Number(this.vesselOwnership.percentage) != Number(this.previousApplicationVesselOwnership.percentage)
-                        // (this.vesselOwnership.dot_name && this.vesselOwnership.dot_name.trim() !== this.previousApplicationVesselOwnership.dot_name.trim())
+                        Number(this.vesselOwnership.percentage) != Number(this.previousApplicationVesselOwnership.percentage) ||
+                        this.vessel.new_vessel
                     ) {
                         vesselChanged = true;
                     }

@@ -4161,7 +4161,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            # current_proposal__vessel_ownership__end_date__isnull=True,
+            current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_wlas
 
@@ -4172,7 +4172,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            # current_proposal__vessel_ownership__end_date__isnull=True,
+            current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_aaps
 
@@ -4183,7 +4183,7 @@ class Vessel(RevisionedMixin):
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             current_proposal__vessel_details__vessel=self,
-            # current_proposal__vessel_ownership__end_date__isnull=True,
+            current_proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_aups
 
@@ -4195,7 +4195,7 @@ class Vessel(RevisionedMixin):
             expiry_date__gte=target_date,
             proposal__processing_status__in=(Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED,),
             proposal__vessel_details__vessel=self,
-            # proposal__vessel_ownership__end_date__isnull=True,
+            proposal__vessel_ownership__end_date__isnull=True,
         ).distinct()
         return existing_mls
 
