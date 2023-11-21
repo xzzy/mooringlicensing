@@ -509,8 +509,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
             while True:
                 if proposal.previous_application:
-                    if proposal.previous_application.vessel_ownership.excludable(proposal):
-                        vessel_ownerships.append(proposal.previous_application.vessel_ownership)
+                    if proposal.previous_application.vessel_ownership:
+                        if proposal.previous_application.vessel_ownership.excludable(proposal):
+                            vessel_ownerships.append(proposal.previous_application.vessel_ownership)
 
                 if get_out_of_loop:
                     break
@@ -2077,6 +2078,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal.previous_application = self
                 proposal.proposed_issuance_approval= None
 
+                from mooringlicensing.components.approvals.models import MooringLicence
+                if self.approval.child_obj.code == MooringLicence.code:
+                    proposal.allocated_mooring = self.approval.child_obj.mooring
+
+                    # Copy links to the documents so that the documents are shown on the amendment application form
+                    self.copy_proof_of_identity_documents(proposal)
+                    self.copy_mooring_report_documents(proposal)
+                    self.copy_written_proof_documents(proposal)
+                    self.copy_signed_licence_agreement_documents(proposal)
+
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
                 if req:
@@ -2091,12 +2102,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         r.id = None
                         r.district_proposal=None
                         r.save()
-                # Create a log entry for the proposal
-                # self.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id), request)
-
-                # Create a log entry for the organisation
-                # applicant_field = getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_RENEW_PROPOSAL.format(self.id), request)
 
                 #Log entry for approval
                 from mooringlicensing.components.approvals.models import ApprovalUserAction

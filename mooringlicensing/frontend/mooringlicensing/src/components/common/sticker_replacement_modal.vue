@@ -33,9 +33,18 @@
                 </div>
             </div>
             <div slot="footer">
-                <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
-                <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                <div class="row">
+                    <div class="col-md-7">
+                        <span v-if="showWaiveFeeCheckbox">
+                            <strong><input type="checkbox" v-model="waive_the_fee" /> Waive the fee</strong>
+                        </span>
+                    </div>
+                    <div class="col-md-5">
+                        <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
+                        <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
+                        <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                    </div>
+                </div>
             </div>
         </modal>
     </div>
@@ -70,6 +79,7 @@ export default {
             errorString: '',
             //successString: '',
             //success:false,
+            waive_the_fee: false,
         }
     },
     computed: {
@@ -108,6 +118,13 @@ export default {
                 return '---'
             }
         },
+        showWaiveFeeCheckbox: function(){
+            let show = false
+            if (this.action === 'request_replacement'){
+                show = true
+            }
+            return show
+        },
         showDateOfLost: function(){
             if (this.action === 'record_lost'){
                 return true
@@ -137,6 +154,7 @@ export default {
                 "details": vm.details,
                 "sticker": vm.sticker,
                 "action": vm.action,
+                "waive_the_fee": vm.waive_the_fee,
             })
         },
         cancel:function () {

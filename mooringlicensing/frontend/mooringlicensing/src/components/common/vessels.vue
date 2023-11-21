@@ -22,16 +22,31 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input @change="clearOrgName" :disabled="readonly" type="radio"
-                                id="registered_owner_current_user" name="registered_owner" :value="true"
-                                v-model="vessel.vessel_ownership.individual_owner" required />
+                            <input 
+                                @change="clearOrgName"
+                                :disabled="readonly"
+                                type="radio"
+                                id="registered_owner_current_user"
+                                name="registered_owner"
+                                :value="true"
+                                v-model="vessel.vessel_ownership.individual_owner"
+                                required
+                            />
                             <label for="registered_owner_current_user" class="control-label">{{ profileFullName }}</label>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input :disabled="readonly" type="radio" id="registered_owner_company" name="registered_owner"
-                                :value="false" v-model="vessel.vessel_ownership.individual_owner" required="" />
+                            <input
+                                @change="clearOrgName"
+                                :disabled="readonly"
+                                type="radio"
+                                id="registered_owner_company"
+                                name="registered_owner"
+                                :value="false"
+                                v-model="vessel.vessel_ownership.individual_owner"
+                                required=""
+                            />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                     </div>
@@ -52,7 +67,8 @@
                     <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
                         id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required="" />
                 </div>
-                <div v-else-if="companyOwner" class="col-sm-2">
+                <!-- <div v-else-if="companyOwner" class="col-sm-2"> -->
+                <div v-else class="col-sm-2">
                     <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
                         id="ownership_percentage_company" placeholder="" :key="companyOwnershipName"
                         v-model="vessel.vessel_ownership.company_ownership.percentage" required="" 
@@ -63,8 +79,15 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Name as shown on DoT registration papers</label>
                 <div class="col-sm-9">
-                    <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="dot_name" placeholder=""
-                        v-model="vessel.vessel_ownership.dot_name" required="" />
+                    <input
+                        :readonly="readonly"
+                        type="text"
+                        class="col-sm-9 form-control"
+                        id="dot_name"
+                        placeholder=""
+                        v-model="vessel.vessel_ownership.dot_name"
+                        required=""
+                    />
                 </div>
             </div>
 
@@ -334,13 +357,13 @@ export default {
             return retVal;
         },
         companyOwner: function () {
-            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
+            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner == false) {
                 return true;
             }
             return false
         },
         individualOwner: function () {
-            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
+            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner == true) {
                 return true;
             }
             return false
@@ -418,9 +441,18 @@ export default {
             await this.$nextTick(() => {
                 // do not perform check if no previous application vessel
                 if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership) {
-                    return
+                    if (
+                        Number(this.vesselDetails.vessel_draft) ||
+                        Number(this.vesselDetails.vessel_length) ||
+                        (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim()) ||
+                        this.vesselDetails.vessel_type ||
+                        Number(this.vesselDetails.vessel_weight) ||
+                        Number(this.vesselOwnership.percentage) ||
+                        this.vessel.new_vessel
+                    ) {
+                        vesselChanged = true;
+                    }
                 } else {
-
                     if (
                         Number(this.vesselDetails.vessel_draft) != Number(this.previousApplicationVesselDetails.vessel_draft) ||
                         Number(this.vesselDetails.vessel_length) != Number(this.previousApplicationVesselDetails.vessel_length) ||
@@ -438,7 +470,6 @@ export default {
                         if (this.vesselOwnership.individual_owner) {
                             // Company ownership --> Individual ownership
                             vesselOwnershipChanged = true
-                            console.log('%cCompanyOwnership --> IndividualOwnership', consoleColour)
                         } else {
                             if (this.vesselOwnership.company_ownership) {
                                 if (this.previousApplicationVesselOwnership.company_ownership.company && this.vesselOwnership.company_ownership.company) {
@@ -446,7 +477,6 @@ export default {
                                         if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()) {
                                             // Company name changed
                                             vesselOwnershipChanged = true
-                                            console.log('%cCompany name changed', consoleColour)
                                         }
                                     }
                                 }
@@ -454,7 +484,6 @@ export default {
                                     if (Number(this.previousApplicationVesselOwnership.company_ownership.percentage) !== Number(this.vesselOwnership.company_ownership.percentage)) {
                                         // Company percentage changed
                                         vesselOwnershipChanged = true
-                                        console.log('%cCompanyOwnership percentage changed', consoleColour)
                                     }
                                 }
                             }
@@ -463,26 +492,19 @@ export default {
                         if (!this.vesselOwnership.individual_owner) {
                             // Individual ownership --> Company ownership
                             vesselOwnershipChanged = true
-                            console.log('%c IndividualOwnership --> CompanyOwnership', consoleColour)
                         }
                     }
                 }
-                console.log('vesselChanged: ' + vesselChanged)
-                console.log('vesselOwnershipChanged: ' + vesselOwnershipChanged)
             })
-            console.log("%cemit vesselChanged from the vessels.vue", consoleColour)
             await this.$emit("vesselChanged", vesselChanged)
 
             const missingVessel = this.vessel.rego_no ? false : true;
             await this.$emit("noVessel", missingVessel)
 
-            console.log('%cemit updateVesselOwnershipChanged from the vessels.vue', consoleColour)
             await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
             //return vesselChanged;
         },
         addToTemporaryDocumentCollectionList(temp_doc_id) {
-            console.log('in addToTemporaryDocumentCollectionList')
-            console.log({ temp_doc_id })
             this.temporary_document_collection_id = temp_doc_id;
         },
         /*
@@ -490,7 +512,6 @@ export default {
         },
         */
         retrieveIndividualOwner: async function () {
-            console.log("in retrieveIndividualOwner()")
             if (this.individualOwner && this.vessel.id) {
                 const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
                 const res = await this.$http.post(url);
