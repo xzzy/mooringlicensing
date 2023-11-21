@@ -118,7 +118,7 @@
                                             <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
 
                                             <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
-                                                {{ submitText }}&nbsp; 
+                                                {{ submitText }}&nbsp;
                                                 <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                             </button>
                                             <input v-else 
@@ -205,8 +205,8 @@ export default {
   // },
   computed: {
       disableSubmit: function() {
-          console.log('%cdisableSubmit() is being called...', 'color: #FF0000')
-          let disable = false;
+          let disable = false
+
           if (this.proposal){
               if (this.proposal.proposal_type.code ==='amendment'){
                   if (this.missingVessel && ['aaa', 'aua'].includes(this.proposal.application_type_code)){

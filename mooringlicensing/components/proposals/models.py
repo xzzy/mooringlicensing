@@ -509,8 +509,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
             while True:
                 if proposal.previous_application:
-                    if proposal.previous_application.vessel_ownership.excludable(proposal):
-                        vessel_ownerships.append(proposal.previous_application.vessel_ownership)
+                    if proposal.previous_application.vessel_ownership:
+                        if proposal.previous_application.vessel_ownership.excludable(proposal):
+                            vessel_ownerships.append(proposal.previous_application.vessel_ownership)
 
                 if get_out_of_loop:
                     break
@@ -2079,7 +2080,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 from mooringlicensing.components.approvals.models import MooringLicence
                 if self.approval.child_obj.code == MooringLicence.code:
-                    # proposal.allocated_mooring = self.approval.child_obj.mooring
+                    proposal.allocated_mooring = self.approval.child_obj.mooring
 
                     # Copy links to the documents so that the documents are shown on the amendment application form
                     self.copy_proof_of_identity_documents(proposal)

@@ -418,9 +418,18 @@ export default {
             await this.$nextTick(() => {
                 // do not perform check if no previous application vessel
                 if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership) {
-                    return
+                    if (
+                        Number(this.vesselDetails.vessel_draft) ||
+                        Number(this.vesselDetails.vessel_length) ||
+                        (this.vesselDetails.vessel_name && this.vesselDetails.vessel_name.trim()) ||
+                        this.vesselDetails.vessel_type ||
+                        Number(this.vesselDetails.vessel_weight) ||
+                        Number(this.vesselOwnership.percentage) ||
+                        this.vessel.new_vessel
+                    ) {
+                        vesselChanged = true;
+                    }
                 } else {
-
                     if (
                         Number(this.vesselDetails.vessel_draft) != Number(this.previousApplicationVesselDetails.vessel_draft) ||
                         Number(this.vesselDetails.vessel_length) != Number(this.previousApplicationVesselDetails.vessel_length) ||
@@ -438,7 +447,6 @@ export default {
                         if (this.vesselOwnership.individual_owner) {
                             // Company ownership --> Individual ownership
                             vesselOwnershipChanged = true
-                            console.log('%cCompanyOwnership --> IndividualOwnership', consoleColour)
                         } else {
                             if (this.vesselOwnership.company_ownership) {
                                 if (this.previousApplicationVesselOwnership.company_ownership.company && this.vesselOwnership.company_ownership.company) {
@@ -446,7 +454,6 @@ export default {
                                         if (this.previousApplicationVesselOwnership.company_ownership.company.name.trim() !== this.vesselOwnership.company_ownership.company.name.trim()) {
                                             // Company name changed
                                             vesselOwnershipChanged = true
-                                            console.log('%cCompany name changed', consoleColour)
                                         }
                                     }
                                 }
@@ -454,7 +461,6 @@ export default {
                                     if (Number(this.previousApplicationVesselOwnership.company_ownership.percentage) !== Number(this.vesselOwnership.company_ownership.percentage)) {
                                         // Company percentage changed
                                         vesselOwnershipChanged = true
-                                        console.log('%cCompanyOwnership percentage changed', consoleColour)
                                     }
                                 }
                             }
@@ -463,26 +469,19 @@ export default {
                         if (!this.vesselOwnership.individual_owner) {
                             // Individual ownership --> Company ownership
                             vesselOwnershipChanged = true
-                            console.log('%c IndividualOwnership --> CompanyOwnership', consoleColour)
                         }
                     }
                 }
-                console.log('vesselChanged: ' + vesselChanged)
-                console.log('vesselOwnershipChanged: ' + vesselOwnershipChanged)
             })
-            console.log("%cemit vesselChanged from the vessels.vue", consoleColour)
             await this.$emit("vesselChanged", vesselChanged)
 
             const missingVessel = this.vessel.rego_no ? false : true;
             await this.$emit("noVessel", missingVessel)
 
-            console.log('%cemit updateVesselOwnershipChanged from the vessels.vue', consoleColour)
             await this.$emit("updateVesselOwnershipChanged", vesselOwnershipChanged)
             //return vesselChanged;
         },
         addToTemporaryDocumentCollectionList(temp_doc_id) {
-            console.log('in addToTemporaryDocumentCollectionList')
-            console.log({ temp_doc_id })
             this.temporary_document_collection_id = temp_doc_id;
         },
         /*
@@ -490,7 +489,6 @@ export default {
         },
         */
         retrieveIndividualOwner: async function () {
-            console.log("in retrieveIndividualOwner()")
             if (this.individualOwner && this.vessel.id) {
                 const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
                 const res = await this.$http.post(url);
