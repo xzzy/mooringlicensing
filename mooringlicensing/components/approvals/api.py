@@ -1197,13 +1197,16 @@ class StickerViewSet(viewsets.ModelViewSet):
     def request_replacement(self, request, *args, **kwargs):
         # internal
         sticker = self.get_object()
-        data = request.data
+        # data = request.data
+        data = {}
 
         # Update Sticker action
         data['sticker'] = sticker.id
         data['action'] = 'Request replacement'
         data['user'] = request.user.id
-        serializer = StickerActionDetailSerializer(data=request.data)
+        data['waive_the_fee'] = request.data.get('waive_the_fee', False)
+        data['reason'] = request.data.get('details', {}).get('reason', '')
+        serializer = StickerActionDetailSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         details = serializer.save()
 
