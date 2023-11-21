@@ -22,16 +22,31 @@
                 <div class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
-                            <input @change="clearOrgName" :disabled="readonly" type="radio"
-                                id="registered_owner_current_user" name="registered_owner" :value="true"
-                                v-model="vessel.vessel_ownership.individual_owner" required />
+                            <input 
+                                @change="clearOrgName"
+                                :disabled="readonly"
+                                type="radio"
+                                id="registered_owner_current_user"
+                                name="registered_owner"
+                                :value="true"
+                                v-model="vessel.vessel_ownership.individual_owner"
+                                required
+                            />
                             <label for="registered_owner_current_user" class="control-label">{{ profileFullName }}</label>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-sm-3">
-                            <input :disabled="readonly" type="radio" id="registered_owner_company" name="registered_owner"
-                                :value="false" v-model="vessel.vessel_ownership.individual_owner" required="" />
+                            <input
+                                @change="clearOrgName"
+                                :disabled="readonly"
+                                type="radio"
+                                id="registered_owner_company"
+                                name="registered_owner"
+                                :value="false"
+                                v-model="vessel.vessel_ownership.individual_owner"
+                                required=""
+                            />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
                     </div>
@@ -52,7 +67,8 @@
                     <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
                         id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required="" />
                 </div>
-                <div v-else-if="companyOwner" class="col-sm-2">
+                <!-- <div v-else-if="companyOwner" class="col-sm-2"> -->
+                <div v-else class="col-sm-2">
                     <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
                         id="ownership_percentage_company" placeholder="" :key="companyOwnershipName"
                         v-model="vessel.vessel_ownership.company_ownership.percentage" required="" 
@@ -63,8 +79,15 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Name as shown on DoT registration papers</label>
                 <div class="col-sm-9">
-                    <input :readonly="readonly" type="text" class="col-sm-9 form-control" id="dot_name" placeholder=""
-                        v-model="vessel.vessel_ownership.dot_name" required="" />
+                    <input
+                        :readonly="readonly"
+                        type="text"
+                        class="col-sm-9 form-control"
+                        id="dot_name"
+                        placeholder=""
+                        v-model="vessel.vessel_ownership.dot_name"
+                        required=""
+                    />
                 </div>
             </div>
 
@@ -334,13 +357,13 @@ export default {
             return retVal;
         },
         companyOwner: function () {
-            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner === false) {
+            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner == false) {
                 return true;
             }
             return false
         },
         individualOwner: function () {
-            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner) {
+            if (this.vessel && this.vessel.vessel_ownership && this.vessel.vessel_ownership.individual_owner == true) {
                 return true;
             }
             return false
