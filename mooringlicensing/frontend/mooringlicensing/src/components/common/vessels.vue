@@ -434,13 +434,13 @@ export default {
             });
         },
         vesselChanged: async function () {
+            console.log('in vesselChanged')
             let vesselChanged = false
             let vesselOwnershipChanged = false
             let consoleColour = 'color: #009900'
 
             await this.$nextTick(() => {
-                // do not perform check if no previous application vessel
-                if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership) {
+                if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership || (this.proposal && this.proposal.null_vessel_on_create)) {
                     if (
                         Number(this.vesselDetails.vessel_draft) ||
                         Number(this.vesselDetails.vessel_length) ||
