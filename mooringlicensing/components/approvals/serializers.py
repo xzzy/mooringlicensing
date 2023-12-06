@@ -795,10 +795,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         try:
             request = self.context.get('request')
             if type(obj.child_obj) == AuthorisedUserPermit:
-                for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                moas = MooringOnApproval.get_current_moas_by_approval(obj)
+                # for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                for moa in moas:
                     try:
-                        logger.debug(f'moa: [{moa}]')
-                        logger.debug(f'request.GET: [{request.GET}]')
                         links.append({
                             'id': moa.mooring.id,
                             'bay_name': moa.mooring.mooring_bay.name,

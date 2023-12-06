@@ -142,7 +142,7 @@ class MooringOnApproval(RevisionedMixin):
         no_end_date = Q(end_date__isnull=True)
         ml_is_current = Q(mooring__mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)
         sticker_is_current = Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT)
-        moas = approval.mooringonapproval_set.filter((no_end_date | ml_is_current) & sticker_is_current)  # Is (end_date_is_not_set | ml_is_current) correct?
+        moas = approval.mooringonapproval_set.filter((no_end_date & ml_is_current) & sticker_is_current)  # Is (end_date_is_not_set | ml_is_current) correct?
         return moas
 
     @staticmethod
@@ -1599,7 +1599,9 @@ class AuthorisedUserPermit(Approval):
                     logger.info(f'There is a non-filled sticker: [{sticker}], which is to be returned.')
                     stickers_to_be_returned.append(sticker)
                     for moa in sticker.mooringonapproval_set.all():
-                        moas_to_be_reallocated.append(moa)
+                        # moas_to_be_reallocated.append(moa)
+                        if moa not in moas_to_be_removed:
+                            moas_to_be_reallocated.append(moa)
                 elif stickers.count() > 1:
                     # Should not reach here
                     msg = f'AUP: [{self.lodgement_number}] has more than one stickers without 4 moorings.'
@@ -1657,29 +1659,6 @@ class AuthorisedUserPermit(Approval):
 
         return moas_to_be_reallocated, stickers_to_be_replaced
 
-    #     stickers = self.stickers.filter(status__in=Sticker.STATUSES_AS_CURRENT)
-    #
-    #     if self.approval.current_proposal.vessel_removed:
-    #         # self.current_proposal.vessel_ownership.vessel_removed --> All the stickers to be returned
-    #         # A vessel --> No vessels
-    #         for sticker in stickers:
-    #             stickers_to_be_replaced.append(sticker)
-    #
-    #     if self.approval.current_proposal.vessel_swapped:
-    #         # All the stickers to be removed and all the mooring on them to be reallocated
-    #         # A vessel --> Another vessel
-    #         for sticker in stickers:
-    #             stickers_to_be_replaced.append(sticker)
-    #
-    #     if self.approval.current_proposal.vessel_null_to_new:
-    #         # --> Create new sticker
-    #         # No vessels --> New vessel
-    #         # All moas should be on new stickers
-    #         moas_list = self.mooringonapproval_set. \
-    #             filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status__in=[MooringLicence.APPROVAL_STATUS_CURRENT,MooringLicence.APPROVAL_STATUS_SUSPENDED]))
-    #         for moa in moas_list:
-    #             moas_to_be_reallocated.append(moa)
-
     def _assign_to_new_stickers(self, moas_to_be_on_new_sticker, proposal, stickers_to_be_returned, stickers_to_be_replaced_for_renewal=[]):
         new_stickers = []
 
@@ -1703,7 +1682,8 @@ class AuthorisedUserPermit(Approval):
                 # There is no stickers to fill, or there is a sticker but already be filled with 4 moas, create a new sticker
                 new_sticker = Sticker.objects.create(
                     approval=self,
-                    vessel_ownership=moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else proposal.vessel_ownership,
+                    # vessel_ownership=moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else proposal.vessel_ownership,
+                    vessel_ownership=proposal.vessel_ownership if proposal.vessel_ownership else moa_to_be_on_new_sticker.sticker.vessel_ownership,
                     fee_constructor=proposal.fee_constructor if proposal.fee_constructor else moa_to_be_on_new_sticker.sticker.fee_constructor if moa_to_be_on_new_sticker.sticker else None,
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
