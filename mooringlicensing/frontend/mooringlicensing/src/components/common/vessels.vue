@@ -64,14 +64,33 @@
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Ownership percentage *</label>
                 <div v-if="individualOwner" class="col-sm-2">
-                    <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
-                        id="ownership_percentage" placeholder="" v-model="vessel.vessel_ownership.percentage" required="" />
+                    <input
+                        :readonly="readonly"
+                        type="number"
+                        step="1"
+                        min="25"
+                        max="100"
+                        class="form-control"
+                        id="ownership_percentage"
+                        placeholder=""
+                        v-model="vessel.vessel_ownership.percentage"
+                        required=""
+                    />
                 </div>
                 <!-- <div v-else-if="companyOwner" class="col-sm-2"> -->
                 <div v-else class="col-sm-2">
-                    <input :readonly="readonly" type="number" step="1" min="25" max="100" class="form-control"
-                        id="ownership_percentage_company" placeholder="" :key="companyOwnershipName"
-                        v-model="vessel.vessel_ownership.company_ownership.percentage" required="" 
+                    <input
+                        :readonly="readonly"
+                        type="number"
+                        step="1"
+                        min="25"
+                        max="100"
+                        class="form-control"
+                        id="ownership_percentage_company"
+                        placeholder=""
+                        :key="companyOwnershipName"
+                        v-model="vessel.vessel_ownership.company_ownership.percentage"
+                        required="" 
                     />
                 </div>
 
@@ -297,9 +316,6 @@ export default {
             return companyName
         },
         existingVesselOwnership: function () {
-            console.log('in existingVesselOwnership()')
-            // if (this.vessel.vessel_ownership && this.vessel.vessel_ownership.id) {
-
             // Found that there is a case where there is no vessel_ownership.id is defined (I don't know why), which results in javascript error.
             // Therefore rewrite the above line avoiding accessing the vessel_ownership.id
             if (this.vessel.vessel_ownership) {
@@ -394,8 +410,6 @@ export default {
             } else {
                 url = 'temporary_document';
             }
-            console.log('in vesselRegistrationDocumentUrl at vessel.vue')
-            console.log({ url })
             return url;
         },
         hullIdentificationNumberDocumentUrl: function () {
@@ -434,13 +448,13 @@ export default {
             });
         },
         vesselChanged: async function () {
+            console.log('in vesselChanged')
             let vesselChanged = false
             let vesselOwnershipChanged = false
             let consoleColour = 'color: #009900'
 
             await this.$nextTick(() => {
-                // do not perform check if no previous application vessel
-                if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership) {
+                if (!this.previousApplicationVesselDetails || !this.previousApplicationVesselOwnership || (this.proposal && this.proposal.null_vessel_on_create)) {
                     if (
                         Number(this.vesselDetails.vessel_draft) ||
                         Number(this.vesselDetails.vessel_length) ||
@@ -524,6 +538,10 @@ export default {
                     }
                     this.vessel.vessel_ownership = Object.assign({}, vesselOwnership);
                     this.vessel = Object.assign({}, this.vessel);
+                    console.log('==========')
+                    console.log({ vesselOwnership })
+                    console.log(this.vessel)
+                    console.log('==========')
                 }
             }
         },
