@@ -377,7 +377,7 @@ def save_proponent_data_aaa(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
-        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+        update_proposal_applicant(instance.child_obj, request)
 
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
@@ -412,7 +412,7 @@ def save_proponent_data_wla(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
-        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+        update_proposal_applicant(instance.child_obj, request)
 
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
@@ -421,7 +421,6 @@ def save_proponent_data_wla(instance, request, viewset):
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.save()
-
 
 def save_proponent_data_mla(instance, request, viewset):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
@@ -450,7 +449,7 @@ def save_proponent_data_mla(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
-        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+        update_proposal_applicant(instance.child_obj, request)
 
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
@@ -482,7 +481,7 @@ def save_proponent_data_aua(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     if viewset.action == 'submit':
-        create_proposal_applicant_if_not_exist(instance.child_obj, request)
+        update_proposal_applicant(instance.child_obj, request)
 
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
@@ -1007,10 +1006,42 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     return fee_amount_adjusted
 
 
-def create_proposal_applicant_if_not_exist(proposal, request):
+def update_proposal_applicant(proposal, request):
     proposal_applicant, created = ProposalApplicant.objects.get_or_create(proposal=proposal)
     if created:
-        # Copy data from the EmailUserRO only when a new proposal_applicant obj is created
+        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the proposal: [{proposal}].')
+
+    # Retrieve proposal applicant data from the application
+    proposal_applicant_data = request.data.get('profile') if request.data.get('profile') else {}
+
+    # Copy data from the application
+    if proposal_applicant_data:
+        proposal_applicant.first_name = proposal_applicant_data.first_name
+        proposal_applicant.last_name = proposal_applicant_data.last_name
+        proposal_applicant.dob = proposal_applicant_data.dob
+        
+        proposal_applicant.residential_line1 = proposal_applicant_data.residential_line1
+        proposal_applicant.residential_line2 = proposal_applicant_data.residential_line2
+        proposal_applicant.residential_line3 = proposal_applicant_data.residential_line3
+        proposal_applicant.residential_locality = proposal_applicant_data.residential_locality
+        proposal_applicant.residential_state = proposal_applicant_data.residential_state
+        proposal_applicant.residential_country = proposal_applicant_data.residential_country
+        proposal_applicant.residential_postcode = proposal_applicant_data.residential_postcode
+
+        proposal_applicant.postal_same_as_residential = proposal_applicant_data.postal_same_as_residential
+        proposal_applicant.postal_line1 = proposal_applicant_data.postal_line1
+        proposal_applicant.postal_line2 = proposal_applicant_data.postal_line2
+        proposal_applicant.postal_line3 = proposal_applicant_data.postal_line3
+        proposal_applicant.postal_locality = proposal_applicant_data.postal_locality
+        proposal_applicant.postal_state = proposal_applicant_data.postal_state
+        proposal_applicant.postal_country = proposal_applicant_data.postal_country
+        proposal_applicant.postal_postcode = proposal_applicant_data.postal_postcode
+
+        proposal_applicant.email = proposal_applicant_data.email
+        proposal_applicant.phone_number = proposal_applicant_data.phone_number
+        proposal_applicant.mobile_number = proposal_applicant_data.mobile_number
+    else:
+        # Copy data from the EmailUserRO 
         proposal_applicant.first_name = request.user.first_name
         proposal_applicant.last_name = request.user.last_name
         proposal_applicant.dob = request.user.dob
@@ -1036,8 +1067,8 @@ def create_proposal_applicant_if_not_exist(proposal, request):
         proposal_applicant.phone_number = request.user.phone_number
         proposal_applicant.mobile_number = request.user.mobile_number
 
-        proposal_applicant.save()
-        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created.')
+    proposal_applicant.save()
+    logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated.')
 
 
 def make_ownership_ready(proposal, request):

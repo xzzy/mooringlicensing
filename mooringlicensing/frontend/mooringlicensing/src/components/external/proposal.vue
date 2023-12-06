@@ -379,6 +379,7 @@ export default {
         let payload = {
             proposal: {},
             vessel: {},
+            profile: {},
         }
         // WLA
         if (this.$refs.waiting_list_application) {
@@ -477,6 +478,7 @@ export default {
             }
             */
         }
+        payload.profile = this.profile
 
         //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
         const res = await vm.$http.post(url, payload);
@@ -756,9 +758,6 @@ export default {
 
     },
     submit: async function(){
-        //console.log('in submit()')
-        //let vm = this;
-
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
         this.submitting = true;
         this.paySubmitting=true;

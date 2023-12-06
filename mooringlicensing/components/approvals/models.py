@@ -345,9 +345,43 @@ class Approval(RevisionedMixin):
         return address_obj
 
     @property
+    def proposal_applicant(self):
+        proposal_applicant = None
+        if self.current_proposal:
+            proposal_applicant = self.current_proposal.proposal_applicant
+        return proposal_applicant
+
+    @property
+    def postal_first_name(self):
+        try:
+            ret_value = self.proposal_applicant.first_name
+        except:
+            logger.error(f'Postal address first_name cannot be retrieved for the approval [{self}].')
+            return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_first_name found for the Approval: [{self}].')
+
+        return ret_value
+
+    @property
+    def postal_last_name(self):
+        try:
+            ret_value = self.proposal_applicant.last_name
+        except:
+            logger.error(f'Postal address last_name cannot be retrieved for the approval [{self}].')
+            return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_last_name found for the Approval: [{self}].')
+
+        return ret_value
+
+
+    @property
     def postal_address_line1(self):
         try:
-            ret_value = self.postal_address_obj.line1
+            ret_value = self.proposal_applicant.postal_address_line1
         except:
             logger.error(f'Postal address line1 cannot be retrieved for the approval [{self}].')
             return ''
@@ -360,7 +394,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_line2(self):
         try:
-            ret_value = self.postal_address_obj.line2
+            ret_value = self.proposal_applicant.postal_address_line2
         except:
             logger.error(f'Postal address line2 cannot be retrieved for the approval [{self}]')
             return ''
@@ -370,7 +404,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_state(self):
         try:
-            ret_value = self.postal_address_obj.state
+            ret_value = self.proposal_applicant.postal_address_state
         except:
             logger.error(f'Postal address state cannot be retrieved for the approval [{self}]')
             return ''
@@ -383,7 +417,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_suburb(self):
         try:
-            ret_value = self.postal_address_obj.locality
+            ret_value = self.proposal_applicant.postal_address_suburb
         except:
             logger.error(f'Postal address locality cannot be retrieved for the approval [{self}]')
             return ''
@@ -396,7 +430,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_postcode(self):
         try:
-            ret_value = self.postal_address_obj.postcode
+            ret_value = self.proposal_applicant.postal_address_postcode
         except:
             logger.error(f'Postal address postcode cannot be retrieved for the approval [{self}]')
             return ''
@@ -2968,15 +3002,17 @@ class Sticker(models.Model):
 
     @property
     def first_name(self):
-        if self.approval and self.approval.submitter:
-            return self.approval.submitter_obj.first_name
-        return '---'
+        # if self.approval and self.approval.submitter:
+        #     return self.approval.submitter_obj.first_name
+        # return '---'
+        return self.approval.postal_first_name
 
     @property
     def last_name(self):
-        if self.approval and self.approval.submitter:
-            return self.approval.submitter_obj.last_name
-        return '---'
+        # if self.approval and self.approval.submitter:
+        #     return self.approval.submitter_obj.last_name
+        # return '---'
+        return self.approval.postal_last_name
 
     @property
     def postal_address_line1(self):
@@ -3007,6 +3043,13 @@ class Sticker(models.Model):
         return self.approval.postal_address_suburb
 
     @property
+    def postal_address_postcode(self):
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.postcode
+        # return '---'
+        return self.approval.postal_address_postcode
+
+    @property
     def vessel_registration_number(self):
         if self.vessel_ownership and self.vessel_ownership.vessel:
             return self.vessel_ownership.vessel.rego_no
@@ -3017,13 +3060,6 @@ class Sticker(models.Model):
         if self.vessel_ownership and self.vessel_ownership.vessel and self.vessel_ownership.vessel.latest_vessel_details:
             return self.vessel_ownership.vessel.latest_vessel_details.vessel_applicable_length
         raise ValueError('Vessel size not found for the sticker: {}'.format(self))
-
-    @property
-    def postal_address_postcode(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.postcode
-        # return '---'
-        return self.approval.postal_address_postcode
 
 
 class StickerActionDetail(models.Model):
