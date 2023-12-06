@@ -49,12 +49,9 @@ export default {
         },
         panel_collapse_class: function() {
             if (this.formCollapse) {
-                console.log('3')
-                console.log(this.formCollapse)
                 this.panel_chevron_class = "glyphicon glyphicon-chevron-down pull-right";
                 return "panel-body collapse";
             } else {
-                console.log('4')
                 if (this.treeHeight) {
                     this.panel_chevron_class = "glyphicon glyphicon-chevron-up pull-right";
                     return "panel-body collapse in flex-container";
