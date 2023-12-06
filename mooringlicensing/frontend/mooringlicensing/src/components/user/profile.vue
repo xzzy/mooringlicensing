@@ -358,7 +358,7 @@ export default {
             phoneNumberReadonly: false,
             mobileNumberReadonly: false,
 
-            readonly2: true,  // We don't allow customer to edit the persona details on the application page
+            readonly2: false,  // We don't allow customer to edit the persona details on the application page
         }
     },
     components: {

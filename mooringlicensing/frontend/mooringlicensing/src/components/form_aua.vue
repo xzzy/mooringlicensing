@@ -406,7 +406,9 @@
                 }
             },
             populateProfile: function(profile) {
-                this.profile = Object.assign({}, profile);
+                // this.profile = Object.assign({}, profile);
+                this.profile = profile
+                this.$emit('profile-fetched', this.profile);
             },
             set_tabs:function(){
                 let vm = this;

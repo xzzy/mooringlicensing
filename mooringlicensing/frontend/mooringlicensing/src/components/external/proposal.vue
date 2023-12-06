@@ -74,6 +74,7 @@
                 @changeMooring="updateMooringAuth"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
             <MooringLicenceApplication
                 v-if="proposal && proposal.application_type_code==='mla'"
@@ -190,6 +191,7 @@ export default {
       autoApprove: false,
       missingVessel: false,
       // add_vessel: false,
+      profile: {},
     }
   },
   components: {
@@ -311,6 +313,9 @@ export default {
       },
   },
   methods: {
+    populateProfile: function(profile) {
+        this.profile = profile
+    },
     noVessel: function(noVessel) {
         this.missingVessel = noVessel;
     },
