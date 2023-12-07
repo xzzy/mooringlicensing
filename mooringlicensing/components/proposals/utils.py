@@ -1,3 +1,4 @@
+import datetime
 import re
 from decimal import Decimal
 
@@ -1016,30 +1017,32 @@ def update_proposal_applicant(proposal, request):
 
     # Copy data from the application
     if proposal_applicant_data:
-        proposal_applicant.first_name = proposal_applicant_data.first_name
-        proposal_applicant.last_name = proposal_applicant_data.last_name
-        proposal_applicant.dob = proposal_applicant_data.dob
-        
-        proposal_applicant.residential_line1 = proposal_applicant_data.residential_line1
-        proposal_applicant.residential_line2 = proposal_applicant_data.residential_line2
-        proposal_applicant.residential_line3 = proposal_applicant_data.residential_line3
-        proposal_applicant.residential_locality = proposal_applicant_data.residential_locality
-        proposal_applicant.residential_state = proposal_applicant_data.residential_state
-        proposal_applicant.residential_country = proposal_applicant_data.residential_country
-        proposal_applicant.residential_postcode = proposal_applicant_data.residential_postcode
+        proposal_applicant.first_name = proposal_applicant_data['first_name']
+        proposal_applicant.last_name = proposal_applicant_data['last_name']
+        # correct_date = datetime.datetime.strptime(proposal_applicant_data['dob'], "%d/%m/%Y").strftime("%Y-%m-%d")
+        correct_date = datetime.datetime.strptime(proposal_applicant_data['dob'], '%d/%m/%Y').date()
+        proposal_applicant.dob = correct_date
+ 
+        proposal_applicant.residential_line1 = proposal_applicant_data['residential_line1']
+        proposal_applicant.residential_line2 = proposal_applicant_data['residential_line2']
+        proposal_applicant.residential_line3 = proposal_applicant_data['residential_line3']
+        proposal_applicant.residential_locality = proposal_applicant_data['residential_locality']
+        proposal_applicant.residential_state = proposal_applicant_data['residential_state']
+        proposal_applicant.residential_country = proposal_applicant_data['residential_country']
+        proposal_applicant.residential_postcode = proposal_applicant_data['residential_postcode']
 
-        proposal_applicant.postal_same_as_residential = proposal_applicant_data.postal_same_as_residential
-        proposal_applicant.postal_line1 = proposal_applicant_data.postal_line1
-        proposal_applicant.postal_line2 = proposal_applicant_data.postal_line2
-        proposal_applicant.postal_line3 = proposal_applicant_data.postal_line3
-        proposal_applicant.postal_locality = proposal_applicant_data.postal_locality
-        proposal_applicant.postal_state = proposal_applicant_data.postal_state
-        proposal_applicant.postal_country = proposal_applicant_data.postal_country
-        proposal_applicant.postal_postcode = proposal_applicant_data.postal_postcode
+        proposal_applicant.postal_same_as_residential = proposal_applicant_data['postal_same_as_residential']
+        proposal_applicant.postal_line1 = proposal_applicant_data['postal_line1']
+        proposal_applicant.postal_line2 = proposal_applicant_data['postal_line2']
+        proposal_applicant.postal_line3 = proposal_applicant_data['postal_line3']
+        proposal_applicant.postal_locality = proposal_applicant_data['postal_locality']
+        proposal_applicant.postal_state = proposal_applicant_data['postal_state']
+        proposal_applicant.postal_country = proposal_applicant_data['postal_country']
+        proposal_applicant.postal_postcode = proposal_applicant_data['postal_postcode']
 
-        proposal_applicant.email = proposal_applicant_data.email
-        proposal_applicant.phone_number = proposal_applicant_data.phone_number
-        proposal_applicant.mobile_number = proposal_applicant_data.mobile_number
+        proposal_applicant.email = proposal_applicant_data['email']
+        proposal_applicant.phone_number = proposal_applicant_data['phone_number']
+        proposal_applicant.mobile_number = proposal_applicant_data['mobile_number']
     else:
         # Copy data from the EmailUserRO 
         proposal_applicant.first_name = request.user.first_name

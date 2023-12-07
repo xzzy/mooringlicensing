@@ -969,13 +969,15 @@ export default {
             });
         },
         fetchProfile: async function(){
+            console.log('in fetchProfile')
             let response = null;
-            if (this.submitterId) {
-                response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
-            } else {
-                response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
-            }
-            this.profile = Object.assign(response.body);
+            // if (this.submitterId) {
+            //     response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
+            // } else {
+            //     response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
+            // }
+            response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId)
+            this.profile = Object.assign(response.body)
             if (this.profile.residential_address == null){
                 this.profile.residential_address = Object.assign({country:'AU'})
             }
@@ -985,14 +987,14 @@ export default {
             if (this.profile.dob) {
                 this.profile.dob = moment(this.profile.dob).format('DD/MM/YYYY')
             }
-            this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
-            this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
+            this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true
+            this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true
         },
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.profile).then((response) => {
             if (response.body.address_details && response.body.personal_details && response.body.contact_details && to.name == 'first-time'){
-                window.location.href='/';
+                window.location.href='/'
             }
             else{
                 next(vm => {
