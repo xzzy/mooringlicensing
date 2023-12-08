@@ -1,3 +1,4 @@
+import math
 from dateutil.relativedelta import relativedelta
 
 import ledger_api_client.utils
@@ -2367,6 +2368,13 @@ class DcvAdmission(RevisionedMixin):
 
             private_visit = 'YES' if dcv_admission_arrival.private_visit else 'NO'
 
+            if settings.DEBUG:
+                # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+                total_amount = math.ceil(total_amount)
+                total_amount_excl_tax = math.ceil(calculate_excl_gst(total_amount)) if fee_constructor.incur_gst else math.ceil(total_amount)
+            else:
+                total_amount_excl_tax = calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount
+
             line_item = {
                 'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
                     fee_constructor.application_type.description,
@@ -2377,7 +2385,7 @@ class DcvAdmission(RevisionedMixin):
                 ),
                 'oracle_code': oracle_code,
                 'price_incl_tax': total_amount,
-                'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             }
             line_items.append(line_item)
@@ -2556,6 +2564,14 @@ class DcvPermit(RevisionedMixin):
         db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
+        if settings.DEBUG:
+            # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+            total_amount = math.ceil(fee_item.amount)
+            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount),
+        else:
+            total_amount = fee_item.amount
+            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+
         line_items = [
             {
                 # 'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
@@ -2568,8 +2584,8 @@ class DcvPermit(RevisionedMixin):
                 ),
                 # 'oracle_code': application_type.oracle_code,
                 'oracle_code': ApplicationType.get_current_oracle_code_by_application(application_type.code),
-                'price_incl_tax': fee_item.amount,
-                'price_excl_tax': ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+                'price_incl_tax': total_amount,
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             },
         ]
