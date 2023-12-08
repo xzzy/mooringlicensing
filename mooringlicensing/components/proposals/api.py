@@ -814,8 +814,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #     return super(ProposalViewSet, self).retrieve(request, *args, **kwargs)
 
     def get_object(self):
-        logger.info(f'Getting object in the ProposalViewSet...')
-        if self.kwargs.get('id').isnumeric():
+        id = self.kwargs.get('id')
+        logger.info(f'Getting proposal in the ProposalViewSet by the ID: [{id}]...')
+
+        if id.isnumeric():
             obj = super(ProposalViewSet, self).get_object()
         else:
             # When AUP holder accesses this proposal for endorsement 
@@ -825,7 +827,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return obj
 
     def get_queryset(self):
-        logger.info(f'Getting queryset in the ProposalViewSet...')
         request_user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()

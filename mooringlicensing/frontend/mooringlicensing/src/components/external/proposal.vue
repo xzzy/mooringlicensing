@@ -45,6 +45,7 @@
                 @mooringPreferenceChanged="updateMooringPreference"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
 
             <AnnualAdmissionApplication
@@ -60,6 +61,7 @@
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
             <AuthorisedUserApplication
                 v-if="proposal && proposal.application_type_code==='aua'"
@@ -89,6 +91,7 @@
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
 
             <div>

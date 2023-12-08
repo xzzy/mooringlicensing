@@ -3420,37 +3420,6 @@ class AuthorisedUserApplication(Proposal):
                 compliance.save()
             self.generate_compliances(approval, request)
 
-    def copy_self_to_proposal(self, target_proposal):
-        proposal_applicant = ProposalApplicant.objects.create(
-            proposal=target_proposal,
-
-            first_name = self.first_name,
-            last_name = self.last_name,
-            dob = self.dob,
-
-            residential_line1 = self.residential_line1,
-            residential_line2 = self.residential_line2,
-            residential_line3 = self.residential_line3,
-            residential_locality = self.residential_locality,
-            residential_state = self.residential_state,
-            residential_country = self.residential_country,
-            residential_postcode = self.residential_postcode,
-
-            postal_same_as_residential = self.postal_same_as_residential,
-            postal_line1 = self.postal_line1,
-            postal_line2 = self.postal_line2,
-            postal_line3 = self.postal_line3,
-            postal_locality = self.postal_locality,
-            postal_state = self.postal_state,
-            postal_country = self.postal_country,
-            postal_postcode = self.postal_postcode,
-
-            email = self.email,
-            phone_number = self.phone_number,
-            mobile_number = self.mobile_number,
-        )
-        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the Proposal: [{target_proposal}] by copying the ProposalApplicant: [{self}].')
-
 
 def update_sticker_doc_filename(instance, filename):
     return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)

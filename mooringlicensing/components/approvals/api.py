@@ -1294,12 +1294,8 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                     waiting_list_allocation=waiting_list_allocation,
                     date_invited=current_date,
                 )
+                waiting_list_allocation.proposal_applicant.copy_self_to_proposal(new_proposal)
                 logger.info(f'Offering new Mooring Site Licence application: [{new_proposal}], which has been created from the waiting list allocation: [{waiting_list_allocation}].')
-
-                # Copy applicant details to the new proposal
-                proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
-                # proposal_applicant.copy_self_to_proposal(new_proposal)
-                logger.info(f'ProposalApplicant: [{proposal_applicant}] has been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
 
                 # Copy vessel details to the new proposal
                 waiting_list_allocation.current_proposal.copy_vessel_details(new_proposal)
