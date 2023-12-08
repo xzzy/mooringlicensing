@@ -26,7 +26,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, create_proposal_applicant_if_not_exist, make_ownership_ready,
+    save_proponent_data, update_proposal_applicant, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -814,8 +814,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #     return super(ProposalViewSet, self).retrieve(request, *args, **kwargs)
 
     def get_object(self):
-        logger.info(f'Getting object in the ProposalViewSet...')
-        if self.kwargs.get('id').isnumeric():
+        id = self.kwargs.get('id')
+        logger.info(f'Getting proposal in the ProposalViewSet by the ID: [{id}]...')
+
+        if id.isnumeric():
             obj = super(ProposalViewSet, self).get_object()
         else:
             # When AUP holder accesses this proposal for endorsement 
@@ -825,7 +827,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return obj
 
     def get_queryset(self):
-        logger.info(f'Getting queryset in the ProposalViewSet...')
         request_user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()
@@ -1241,7 +1242,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
             
-            save_proponent_data(instance,request,self)
+            save_proponent_data(instance, request, self)
             return Response()
 
     @detail_route(methods=['GET',], detail=True)

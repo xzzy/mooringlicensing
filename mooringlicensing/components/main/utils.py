@@ -566,8 +566,7 @@ def update_personal_details(request, user_id):
         # Now we want to update the proposal_applicant of all of this user's proposals with 'draft' status
         proposals = Proposal.objects.filter(submitter=user_id, processing_status=Proposal.PROCESSING_STATUS_DRAFT)
         for proposal in proposals:
-            proposal_applicant = ProposalApplicant.objects.filter(proposal=proposal).order_by('updated_at').last()
-            serializer = ProposalApplicantSerializer(proposal_applicant, data=payload)
+            serializer = ProposalApplicantSerializer(proposal.proposal_applicant, data=payload)
             serializer.is_valid(raise_exception=True)
             proposal_applicant = serializer.save()
             logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated with the data: [{payload}].')
