@@ -1,4 +1,5 @@
 import traceback
+from django.core.paginator import Paginator, EmptyPage
 from confy import env
 import datetime
 import pytz
@@ -112,11 +113,21 @@ class GetSticker(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('term', '')
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+
         if search_term:
-            data = Sticker.objects.filter(number__icontains=search_term)[:10]
+            data = Sticker.objects.filter(number__icontains=search_term)
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+
             data_transform = []
-            for sticker in data:
+            for sticker in my_objects:
                 approval_history = sticker.approvalhistory_set.order_by('id').first()  # Should not be None, but could be None for the data generated at the early stage of development.
                 if approval_history and approval_history.approval:
                     data_transform.append({
@@ -134,7 +145,12 @@ class GetSticker(views.APIView):
                     # Should not reach here
                     pass
 
-            return Response({"results": data_transform})
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
         return Response()
 
 
