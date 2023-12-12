@@ -1,4 +1,5 @@
 import json
+from django.core.paginator import Paginator, EmptyPage
 import os
 import traceback
 import pathlib
@@ -146,43 +147,71 @@ class GetVessel(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('term', '')
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+
         if search_term:
             data_transform = []
-
+            ### VesselDetails
             ml_data = VesselDetails.filtered_objects.filter(
-                    Q(vessel__rego_no__icontains=search_term) | 
-                    Q(vessel_name__icontains=search_term)
-                    ).values(
-                            'vessel__id', 
-                            'vessel__rego_no',
-                            'vessel_name'
-                            )[:10]
-            for vd in ml_data:
+                Q(vessel__rego_no__icontains=search_term) | 
+                Q(vessel_name__icontains=search_term)
+            ).values(
+                'vessel__id', 
+                'vessel__rego_no',
+                'vessel_name'
+            )
+            paginator = Paginator(ml_data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                logger.debug(f'VesselDetails empty')
+                my_objects = []
+
+            for vd in my_objects:
                 data_transform.append({
                     'id': vd.get('vessel__id'), 
                     'rego_no': vd.get('vessel__rego_no'),
                     'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
                     'entity_type': 'ml',
-                    })
+                })
+
+            ### DcvVessel
             dcv_data = DcvVessel.objects.filter(
-                    Q(rego_no__icontains=search_term) | 
-                    Q(vessel_name__icontains=search_term)
-                    ).values(
-                            'id', 
-                            'rego_no',
-                            'vessel_name'
-                            )[:10]
-            for dcv in dcv_data:
+                Q(rego_no__icontains=search_term) | 
+                Q(vessel_name__icontains=search_term)
+            ).values(
+                'id', 
+                'rego_no',
+                'vessel_name'
+            )
+            paginator2 = Paginator(dcv_data, items_per_page)
+            try:
+                current_page2 = paginator2.page(page_number)
+                my_objects2 = current_page2.object_list
+            except EmptyPage:
+                logger.debug(f'DcvVessel empty')
+                my_objects2 = []
+
+            for dcv in my_objects2:
                 data_transform.append({
                     'id': dcv.get('id'), 
                     'rego_no': dcv.get('rego_no'),
                     'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
                     'entity_type': 'dcv',
-                    })
+                })
+
             ## order results
             data_transform.sort(key=lambda item: item.get("id"))
-            return Response({"results": data_transform})
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next() or current_page2.has_next()
+                }
+            })
         return Response()
 
 

@@ -130,18 +130,18 @@ class GetPerson(views.APIView):
         search_term = request.GET.get('search_term', '')
         page_number = request.GET.get('page_number', 1)
         items_per_page = 10
-        # a space in the search term is interpreted as first name, last name
+
         if search_term:
             my_queryset = EmailUser.objects.annotate(
-                    search_term=Concat(
-                        "first_name",
-                        Value(" "),
-                        "last_name",
-                        Value(" "),
-                        "email",
-                        output_field=CharField(),
-                        )
-                    ).filter(search_term__icontains=search_term)
+                search_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    Value(" "),
+                    "email",
+                    output_field=CharField(),
+                    )
+                ).filter(search_term__icontains=search_term)
             paginator = Paginator(my_queryset, items_per_page)
             try:
                 current_page = paginator.page(page_number)

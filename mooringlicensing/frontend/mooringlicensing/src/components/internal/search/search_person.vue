@@ -66,7 +66,6 @@ from '@/utils/hooks'
                         url: api_endpoints.person_lookup,
                         dataType: 'json',
                         data: function(params) {
-                            console.log({params})
                             return {
                                 search_term: params.term,
                                 page: params.page || 1,
