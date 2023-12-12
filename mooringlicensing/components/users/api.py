@@ -371,23 +371,40 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                mutable=request.data._mutable
-                request.data._mutable=True
-                request.data['emailuser'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data._mutable=mutable
-                serializer = EmailUserLogEntrySerializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                comms = serializer.save()
-                # Save the files
+                # mutable=request.data._mutable
+                # request.data._mutable=True
+                # request.data['emailuser'] = u'{}'.format(instance.id)
+                # request.data['staff'] = u'{}'.format(request.user.id)
+                # request.data._mutable=mutable
+                # serializer = EmailUserLogEntrySerializer(data=request.data)
+                # serializer.is_valid(raise_exception=True)
+                # comms = serializer.save()
+                ### Save the files
+                # for f in request.FILES:
+                #     document = comms.documents.create()
+                #     document.name = str(request.FILES[f])
+                #     document._file = request.FILES[f]
+                #     document.save()
+                ### End Save Documents
+                kwargs = {
+                    'subject': request.data.get('subject', ''),
+                    'text': request.data.get('text', ''),
+                    'email_user_id': instance.id,
+                    'customer': instance.id,
+                    'staff': request.data.get('staff', request.user.id),
+                    'to': request.data.get('to', ''),
+                    'fromm': request.data.get('fromm', ''),
+                    'cc': '',
+                }
+                eu_entry = EmailUserLogEntry.objects.create(**kwargs)
+
+                # for attachment in attachments:
                 for f in request.FILES:
-                    document = comms.documents.create()
+                    document = eu_entry.documents.create()
                     document.name = str(request.FILES[f])
                     document._file = request.FILES[f]
                     document.save()
-                # End Save Documents
-
-                return Response(serializer.data)
+                return Response({})
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

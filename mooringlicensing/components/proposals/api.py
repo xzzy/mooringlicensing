@@ -566,9 +566,10 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         if is_internal(self.request):
             if target_email_user_id:
+                # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                user_orgs = [org.id for org in target_user.mooringlicensing_organisations.all()]
-                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
+                user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
+                all = all.filter(Q(org_applicant__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
