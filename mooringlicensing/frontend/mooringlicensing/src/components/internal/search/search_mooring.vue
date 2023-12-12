@@ -65,16 +65,16 @@ from '@/utils/hooks'
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Mooring",
+                    pagination: true,
                     ajax: {
                         url: api_endpoints.mooring_lookup,
-                        //url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
-                            var query = {
-                                term: params.term,
+                            return {
+                                search_term: params.term,
+                                page: params.page || 1,
                                 type: 'public',
                             }
-                            return query;
                         },
                     },
                 }).

@@ -219,17 +219,31 @@ class GetMooring(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
         private_moorings = request.GET.get('private_moorings')
-        search_term = request.GET.get('term', '')
+
         if search_term:
             if private_moorings:
-                # data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
                 data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')
             else:
-                # data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
                 data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')
-            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
-            return Response({"results": data_transform})
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+            
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in my_objects]
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
         return Response()
 
 
@@ -1904,7 +1918,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        return Response({})
+        # return Response({})
         vessel = self.get_object()
         booking_date_str = request.data.get("selected_date")
         booking_date = None
@@ -1931,23 +1945,23 @@ class VesselViewSet(viewsets.ModelViewSet):
             for vd in vd_set:
                 for prop in vd.proposal_set.all():
                     if (
-                            prop.approval and 
-                            selected_date >= prop.approval.start_date and
-                            selected_date <= prop.approval.expiry_date and
-                            # ensure vessel has not been sold
-                            prop.vessel_ownership and not prop.vessel_ownership.end_date
-                            ):
+                        prop.approval and 
+                        selected_date >= prop.approval.start_date and
+                        selected_date <= prop.approval.expiry_date and
+                        # ensure vessel has not been sold
+                        prop.vessel_ownership and not prop.vessel_ownership.end_date
+                    ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
         else:
             for vd in vd_set:
                 for prop in vd.proposal_set.all():
                     if (
-                            prop.approval and 
-                            prop.approval.status == 'current' and
-                            # ensure vessel has not been sold
-                            prop.vessel_ownership and not prop.vessel_ownership.end_date
-                            ):
+                        prop.approval and 
+                        prop.approval.status == 'current' and
+                        # ensure vessel has not been sold
+                        prop.vessel_ownership and not prop.vessel_ownership.end_date
+                    ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
 

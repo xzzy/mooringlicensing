@@ -84,7 +84,6 @@ from '@/utils/hooks'
                             }
                         },
                         processResults: function(data){
-                            console.log({data})
                             return {
                                 'results': data.results,
                                 'pagination': {
