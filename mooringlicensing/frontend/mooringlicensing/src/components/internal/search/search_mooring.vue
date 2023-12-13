@@ -76,6 +76,14 @@ from '@/utils/hooks'
                                 type: 'public',
                             }
                         },
+                        processResults: function(data){
+                            return {
+                                'results': data.results,
+                                'pagination': {
+                                    'more': data.pagination.more
+                                }
+                            }
+                        },
                     },
                 }).
                 on("select2:select", function (e) {

@@ -1,3 +1,4 @@
+import logging
 import traceback
 # import os
 # import datetime
@@ -48,6 +49,8 @@ from mooringlicensing.components.compliances.serializers import (
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
+
+logger = logging.getLogger(__name__)
 
 
 class ComplianceViewSet(viewsets.ModelViewSet):
@@ -372,9 +375,6 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         if filter_compliance_status and not filter_compliance_status.lower() == 'all':
             queryset = queryset.filter(customer_status=filter_compliance_status)
 
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -383,8 +383,13 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
         try:
             queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
+
+            # Custom search 
+            # search_term = request.GET.get('search[value]')  # This has a search term.
+            # email_users = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+            # q_set = Compliance.objects.filter(submitter__in=list(email_users))
         except Exception as e:
-            print(e)
+            logger.error(f'ComplianceFilterBackend raises an error: [{e}].  Query may not work correctly.')
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
