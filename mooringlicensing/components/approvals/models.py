@@ -1,3 +1,4 @@
+import math
 from dateutil.relativedelta import relativedelta
 
 import ledger_api_client.utils
@@ -345,9 +346,43 @@ class Approval(RevisionedMixin):
         return address_obj
 
     @property
+    def proposal_applicant(self):
+        proposal_applicant = None
+        if self.current_proposal:
+            proposal_applicant = self.current_proposal.proposal_applicant
+        return proposal_applicant
+
+    @property
+    def postal_first_name(self):
+        try:
+            ret_value = self.proposal_applicant.first_name
+        except:
+            logger.error(f'Postal address first_name cannot be retrieved for the approval [{self}].')
+            return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_first_name found for the Approval: [{self}].')
+
+        return ret_value
+
+    @property
+    def postal_last_name(self):
+        try:
+            ret_value = self.proposal_applicant.last_name
+        except:
+            logger.error(f'Postal address last_name cannot be retrieved for the approval [{self}].')
+            return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_last_name found for the Approval: [{self}].')
+
+        return ret_value
+
+
+    @property
     def postal_address_line1(self):
         try:
-            ret_value = self.postal_address_obj.line1
+            ret_value = self.proposal_applicant.postal_address_line1
         except:
             logger.error(f'Postal address line1 cannot be retrieved for the approval [{self}].')
             return ''
@@ -360,7 +395,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_line2(self):
         try:
-            ret_value = self.postal_address_obj.line2
+            ret_value = self.proposal_applicant.postal_address_line2
         except:
             logger.error(f'Postal address line2 cannot be retrieved for the approval [{self}]')
             return ''
@@ -370,7 +405,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_state(self):
         try:
-            ret_value = self.postal_address_obj.state
+            ret_value = self.proposal_applicant.postal_address_state
         except:
             logger.error(f'Postal address state cannot be retrieved for the approval [{self}]')
             return ''
@@ -383,7 +418,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_suburb(self):
         try:
-            ret_value = self.postal_address_obj.locality
+            ret_value = self.proposal_applicant.postal_address_suburb
         except:
             logger.error(f'Postal address locality cannot be retrieved for the approval [{self}]')
             return ''
@@ -396,7 +431,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_postcode(self):
         try:
-            ret_value = self.postal_address_obj.postcode
+            ret_value = self.proposal_applicant.postal_address_postcode
         except:
             logger.error(f'Postal address postcode cannot be retrieved for the approval [{self}]')
             return ''
@@ -2333,6 +2368,13 @@ class DcvAdmission(RevisionedMixin):
 
             private_visit = 'YES' if dcv_admission_arrival.private_visit else 'NO'
 
+            if settings.DEBUG:
+                # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+                total_amount = math.ceil(total_amount)
+                total_amount_excl_tax = math.ceil(calculate_excl_gst(total_amount)) if fee_constructor.incur_gst else math.ceil(total_amount)
+            else:
+                total_amount_excl_tax = calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount
+
             line_item = {
                 'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
                     fee_constructor.application_type.description,
@@ -2343,7 +2385,7 @@ class DcvAdmission(RevisionedMixin):
                 ),
                 'oracle_code': oracle_code,
                 'price_incl_tax': total_amount,
-                'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             }
             line_items.append(line_item)
@@ -2522,6 +2564,14 @@ class DcvPermit(RevisionedMixin):
         db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
+        if settings.DEBUG:
+            # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+            total_amount = math.ceil(fee_item.amount)
+            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount),
+        else:
+            total_amount = fee_item.amount
+            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+
         line_items = [
             {
                 # 'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
@@ -2534,8 +2584,8 @@ class DcvPermit(RevisionedMixin):
                 ),
                 # 'oracle_code': application_type.oracle_code,
                 'oracle_code': ApplicationType.get_current_oracle_code_by_application(application_type.code),
-                'price_incl_tax': fee_item.amount,
-                'price_excl_tax': ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+                'price_incl_tax': total_amount,
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             },
         ]
@@ -2968,15 +3018,17 @@ class Sticker(models.Model):
 
     @property
     def first_name(self):
-        if self.approval and self.approval.submitter:
-            return self.approval.submitter_obj.first_name
-        return '---'
+        # if self.approval and self.approval.submitter:
+        #     return self.approval.submitter_obj.first_name
+        # return '---'
+        return self.approval.postal_first_name
 
     @property
     def last_name(self):
-        if self.approval and self.approval.submitter:
-            return self.approval.submitter_obj.last_name
-        return '---'
+        # if self.approval and self.approval.submitter:
+        #     return self.approval.submitter_obj.last_name
+        # return '---'
+        return self.approval.postal_last_name
 
     @property
     def postal_address_line1(self):
@@ -3007,6 +3059,13 @@ class Sticker(models.Model):
         return self.approval.postal_address_suburb
 
     @property
+    def postal_address_postcode(self):
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.postcode
+        # return '---'
+        return self.approval.postal_address_postcode
+
+    @property
     def vessel_registration_number(self):
         if self.vessel_ownership and self.vessel_ownership.vessel:
             return self.vessel_ownership.vessel.rego_no
@@ -3017,13 +3076,6 @@ class Sticker(models.Model):
         if self.vessel_ownership and self.vessel_ownership.vessel and self.vessel_ownership.vessel.latest_vessel_details:
             return self.vessel_ownership.vessel.latest_vessel_details.vessel_applicable_length
         raise ValueError('Vessel size not found for the sticker: {}'.format(self))
-
-    @property
-    def postal_address_postcode(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.postcode
-        # return '---'
-        return self.approval.postal_address_postcode
 
 
 class StickerActionDetail(models.Model):

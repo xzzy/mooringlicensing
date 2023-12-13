@@ -35,30 +35,30 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Given name(s)</label>
                             <div class="col-sm-6">
-                                <input :readonly="firstNameReadOnly || readonly2" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
+                                <input :readonly="firstNameReadOnly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Surname</label>
                             <div class="col-sm-6">
-                                <input :readonly="lastNameReadOnly || readonly2" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
+                                <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                             </div>
                           </div>
                           <div class="row form-group" v-if="!forEndorser">
                               <label for="" class="col-sm-3 control-label">Date of Birth</label>
                               <div class="col-sm-3 input-group date" ref="dobDatePicker">
-                                  <input :disabled="dobReadOnly || readonly2" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
+                                  <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
                                   <span class="input-group-addon">
                                       <span class="glyphicon glyphicon-calendar ml-1"></span>
                                   </span>
                               </div>
                           </div>
-                          <div class="form-group">
-                            <div v-if="!readonly && !readonly2" class="col-sm-12">
+                          <!-- <div class="form-group">
+                            <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
-                          </div>
+                          </div> -->
                        </form>
                   </div>
                 </div>
@@ -84,29 +84,29 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Residential Address</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly || readonly2" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_line1">
+                                <input :readonly="readonly" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input :readonly="readonly || readonly2" type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_locality">
+                                <input :readonly="readonly" type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">State</label>
                             <div class="col-sm-3">
-                                <input :readonly="readonly || readonly2" type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_state">
+                                <input :readonly="readonly" type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_state">
                             </div>
                             <label for="" class="col-sm-1 control-label">Postcode</label>
                             <div class="col-sm-2">
-                                <input :readonly="readonly || readonly2" type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_postcode">
+                                <input :readonly="readonly" type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
-                                <select :disabled="readonly || readonly2" class="form-control" id="country" name="Country" v-model="profile.residential_country">
+                                <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="profile.residential_country">
                                     <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
                                     <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                 </select>
@@ -120,36 +120,36 @@
                             <div class="col-sm-3">
                             </div>
                             <div class="col-sm-6">
-                              <input disabled :readonly="readonly || readonly2" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential" @change="togglePostal"/>
+                              <input :readonly="readonly" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential" @change="togglePostal"/>
                               <label for="postal_same_as_residential" class="control-label">Same as residential address</label>
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Postal Address</label>
                             <div class="col-sm-6">
-                                <input :readonly="postalAddressReadonly || readonly2" type="text" class="form-control" id="postal_line1" name="Street" placeholder="" v-model="profile.postal_line1">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_line1" name="Street" placeholder="" v-model="profile.postal_line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input :readonly="postalAddressReadonly || readonly2" type="text" class="form-control" id="postal_locality" name="Town/Suburb" placeholder="" v-model="profile.postal_locality">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_locality" name="Town/Suburb" placeholder="" v-model="profile.postal_locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">State</label>
                             <div class="col-sm-3">
-                                <input :readonly="postalAddressReadonly || readonly2" type="text" class="form-control" id="postal_state" name="State" placeholder="" v-model="profile.postal_state">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_state" name="State" placeholder="" v-model="profile.postal_state">
                             </div>
                             <label for="" class="col-sm-1 control-label">Postcode</label>
                             <div class="col-sm-2">
-                                <input :readonly="postalAddressReadonly || readonly2" type="text" class="form-control" id="postal_postcode" name="Postcode" placeholder="" v-model="profile.postal_postcode">
+                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_postcode" name="Postcode" placeholder="" v-model="profile.postal_postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
-                                <select :disabled="postalAddressReadonly || readonly2" class="form-control" id="postal_country" name="Country" v-model="profile.postal_country">
+                                <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="profile.postal_country">
                                     <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
                                     <option value=""></option>
                                     <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
@@ -158,12 +158,12 @@
                           </div>
                       </div>
 
-                          <div class="form-group">
-                            <div v-if="!readonly && !readonly2" class="col-sm-12">
+                          <!-- <div class="form-group">
+                            <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddressWrapper()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
-                          </div>
+                          </div> -->
                        </form>
                   </div>
                 </div>
@@ -190,7 +190,7 @@
                                <input :readonly="phoneNumberReadonly || readonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
                             </div>
                             <div v-else class="col-sm-6">
-                                <input :readonly="readonly || forEndorser || readonly2" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
+                                <input :readonly="readonly || forEndorser" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
                             </div>
                           </div>
                           <div class="form-group" v-if="!forEndorser">
@@ -199,21 +199,21 @@
                                 <input :readonly="mobileNumberReadonly || readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                             <div v-else class="col-sm-6">
-                                <input :readonly="readonly || readonly2" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
+                                <input :readonly="readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Email</label>
                             <div class="col-sm-6">
-                                <input :readonly="emailReadOnly || readonly2" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
+                                <input :readonly="emailReadOnly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
                             </div>
                           </div>
-                          <div class="form-group">
-                            <div v-if="!readonly && !readonly2" class="col-sm-12">
+                          <!-- <div class="form-group">
+                            <div v-if="!readonly" class="col-sm-12">
                                 <button v-if="!updatingContact" class="pull-right btn btn-primary" @click.prevent="updateContact()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
-                          </div>
+                          </div> -->
                        </form>
                   </div>
                 </div>
@@ -357,8 +357,6 @@ export default {
             role : null,
             phoneNumberReadonly: false,
             mobileNumberReadonly: false,
-
-            readonly2: true,  // We don't allow customer to edit the persona details on the application page
         }
     },
     components: {
@@ -969,13 +967,15 @@ export default {
             });
         },
         fetchProfile: async function(){
+            console.log('in fetchProfile')
             let response = null;
-            if (this.submitterId) {
-                response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
-            } else {
-                response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
-            }
-            this.profile = Object.assign(response.body);
+            // if (this.submitterId) {
+            //     response = await Vue.http.get(`${api_endpoints.submitter_profile}?submitter_id=${this.submitterId}`);
+            // } else {
+            //     response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId);
+            // }
+            response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId)
+            this.profile = Object.assign(response.body)
             if (this.profile.residential_address == null){
                 this.profile.residential_address = Object.assign({country:'AU'})
             }
@@ -985,14 +985,14 @@ export default {
             if (this.profile.dob) {
                 this.profile.dob = moment(this.profile.dob).format('DD/MM/YYYY')
             }
-            this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true;
-            this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true;
+            this.phoneNumberReadonly = this.profile.phone_number === '' || this.profile.phone_number === null || this.profile.phone_number === 0 ?  false : true
+            this.mobileNumberReadonly = this.profile.mobile_number === '' || this.profile.mobile_number === null || this.profile.mobile_number === 0 ?  false : true
         },
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.profile).then((response) => {
             if (response.body.address_details && response.body.personal_details && response.body.contact_details && to.name == 'first-time'){
-                window.location.href='/';
+                window.location.href='/'
             }
             else{
                 next(vm => {
