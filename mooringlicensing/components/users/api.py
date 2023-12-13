@@ -30,7 +30,7 @@ from django.core.cache import cache
 # from ledger.accounts.models import EmailUser,Address, Profile, EmailIdentity, EmailUserAction
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from mooringlicensing.components.approvals.models import Approval
-
+from django.core.paginator import Paginator, EmptyPage
 from mooringlicensing.components.main.decorators import basic_exception_handler
 # from ledger.address.models import Country
 # from datetime import datetime,timedelta, date
@@ -127,37 +127,30 @@ class GetPerson(views.APIView):
     renderer_classes = [JSONRenderer,]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('term', '')
-        # a space in the search term is interpreted as first name, last name
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+
         if search_term:
-            #if ' ' in search_term:
-            #    first_name_part, last_name_part = search_term.split(' ')
-            #    data = EmailUser.objects.filter(
-            #        (Q(first_name__icontains=first_name_part) &
-            #        Q(last_name__icontains=last_name_part)) |
-            #        Q(first_name__icontains=search_term) |
-            #        Q(last_name__icontains=search_term)
-            #    )[:10]
-            #else:
-            #    data = EmailUser.objects.filter(
-            #        Q(first_name__icontains=search_term) |
-            #        Q(last_name__icontains=search_term) |
-            #        Q(email__icontains=search_term)
-            #    )[:10]
-            data = EmailUser.objects.annotate(
-                    search_term=Concat(
-                        "first_name",
-                        Value(" "),
-                        "last_name",
-                        Value(" "),
-                        "email",
-                        output_field=CharField(),
-                        )
-                    ).filter(search_term__icontains=search_term)[:10]
-            print(data[0].__dict__)
-            print(len(data))
+            my_queryset = EmailUser.objects.annotate(
+                search_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    Value(" "),
+                    "email",
+                    output_field=CharField(),
+                    )
+                ).filter(search_term__icontains=search_term)
+            paginator = Paginator(my_queryset, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+
             data_transform = []
-            for email_user in data:
+            for email_user in my_objects:
                 if email_user.dob:
                     text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
                 else:
@@ -167,7 +160,12 @@ class GetPerson(views.APIView):
                 email_user_data = serializer.data
                 email_user_data['text'] = text
                 data_transform.append(email_user_data)
-            return Response({"results": data_transform})
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
         return Response()
 
 
@@ -373,23 +371,40 @@ class UserViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                mutable=request.data._mutable
-                request.data._mutable=True
-                request.data['emailuser'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data._mutable=mutable
-                serializer = EmailUserLogEntrySerializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                comms = serializer.save()
-                # Save the files
+                # mutable=request.data._mutable
+                # request.data._mutable=True
+                # request.data['emailuser'] = u'{}'.format(instance.id)
+                # request.data['staff'] = u'{}'.format(request.user.id)
+                # request.data._mutable=mutable
+                # serializer = EmailUserLogEntrySerializer(data=request.data)
+                # serializer.is_valid(raise_exception=True)
+                # comms = serializer.save()
+                ### Save the files
+                # for f in request.FILES:
+                #     document = comms.documents.create()
+                #     document.name = str(request.FILES[f])
+                #     document._file = request.FILES[f]
+                #     document.save()
+                ### End Save Documents
+                kwargs = {
+                    'subject': request.data.get('subject', ''),
+                    'text': request.data.get('text', ''),
+                    'email_user_id': instance.id,
+                    'customer': instance.id,
+                    'staff': request.data.get('staff', request.user.id),
+                    'to': request.data.get('to', ''),
+                    'fromm': request.data.get('fromm', ''),
+                    'cc': '',
+                }
+                eu_entry = EmailUserLogEntry.objects.create(**kwargs)
+
+                # for attachment in attachments:
                 for f in request.FILES:
-                    document = comms.documents.create()
+                    document = eu_entry.documents.create()
                     document.name = str(request.FILES[f])
                     document._file = request.FILES[f]
                     document.save()
-                # End Save Documents
-
-                return Response(serializer.data)
+                return Response({})
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

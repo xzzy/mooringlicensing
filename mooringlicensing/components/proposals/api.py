@@ -1,4 +1,5 @@
 import json
+from django.core.paginator import Paginator, EmptyPage
 import os
 import traceback
 import pathlib
@@ -146,43 +147,71 @@ class GetVessel(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('term', '')
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+
         if search_term:
             data_transform = []
-
+            ### VesselDetails
             ml_data = VesselDetails.filtered_objects.filter(
-                    Q(vessel__rego_no__icontains=search_term) | 
-                    Q(vessel_name__icontains=search_term)
-                    ).values(
-                            'vessel__id', 
-                            'vessel__rego_no',
-                            'vessel_name'
-                            )[:10]
-            for vd in ml_data:
+                Q(vessel__rego_no__icontains=search_term) | 
+                Q(vessel_name__icontains=search_term)
+            ).values(
+                'vessel__id', 
+                'vessel__rego_no',
+                'vessel_name'
+            )
+            paginator = Paginator(ml_data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                logger.debug(f'VesselDetails empty')
+                my_objects = []
+
+            for vd in my_objects:
                 data_transform.append({
                     'id': vd.get('vessel__id'), 
                     'rego_no': vd.get('vessel__rego_no'),
                     'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
                     'entity_type': 'ml',
-                    })
+                })
+
+            ### DcvVessel
             dcv_data = DcvVessel.objects.filter(
-                    Q(rego_no__icontains=search_term) | 
-                    Q(vessel_name__icontains=search_term)
-                    ).values(
-                            'id', 
-                            'rego_no',
-                            'vessel_name'
-                            )[:10]
-            for dcv in dcv_data:
+                Q(rego_no__icontains=search_term) | 
+                Q(vessel_name__icontains=search_term)
+            ).values(
+                'id', 
+                'rego_no',
+                'vessel_name'
+            )
+            paginator2 = Paginator(dcv_data, items_per_page)
+            try:
+                current_page2 = paginator2.page(page_number)
+                my_objects2 = current_page2.object_list
+            except EmptyPage:
+                logger.debug(f'DcvVessel empty')
+                my_objects2 = []
+
+            for dcv in my_objects2:
                 data_transform.append({
                     'id': dcv.get('id'), 
                     'rego_no': dcv.get('rego_no'),
                     'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
                     'entity_type': 'dcv',
-                    })
+                })
+
             ## order results
             data_transform.sort(key=lambda item: item.get("id"))
-            return Response({"results": data_transform})
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next() or current_page2.has_next()
+                }
+            })
         return Response()
 
 
@@ -190,17 +219,31 @@ class GetMooring(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
         private_moorings = request.GET.get('private_moorings')
-        search_term = request.GET.get('term', '')
+
         if search_term:
             if private_moorings:
-                # data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
                 data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')
             else:
-                # data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
                 data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')
-            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
-            return Response({"results": data_transform})
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+            
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in my_objects]
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
         return Response()
 
 
@@ -566,9 +609,10 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         if is_internal(self.request):
             if target_email_user_id:
+                # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                user_orgs = [org.id for org in target_user.mooringlicensing_organisations.all()]
-                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
+                user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
+                all = all.filter(Q(org_applicant__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
@@ -1874,7 +1918,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        return Response({})
+        # return Response({})
         vessel = self.get_object()
         booking_date_str = request.data.get("selected_date")
         booking_date = None
@@ -1901,23 +1945,23 @@ class VesselViewSet(viewsets.ModelViewSet):
             for vd in vd_set:
                 for prop in vd.proposal_set.all():
                     if (
-                            prop.approval and 
-                            selected_date >= prop.approval.start_date and
-                            selected_date <= prop.approval.expiry_date and
-                            # ensure vessel has not been sold
-                            prop.vessel_ownership and not prop.vessel_ownership.end_date
-                            ):
+                        prop.approval and 
+                        selected_date >= prop.approval.start_date and
+                        selected_date <= prop.approval.expiry_date and
+                        # ensure vessel has not been sold
+                        prop.vessel_ownership and not prop.vessel_ownership.end_date
+                    ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
         else:
             for vd in vd_set:
                 for prop in vd.proposal_set.all():
                     if (
-                            prop.approval and 
-                            prop.approval.status == 'current' and
-                            # ensure vessel has not been sold
-                            prop.vessel_ownership and not prop.vessel_ownership.end_date
-                            ):
+                        prop.approval and 
+                        prop.approval.status == 'current' and
+                        # ensure vessel has not been sold
+                        prop.vessel_ownership and not prop.vessel_ownership.end_date
+                    ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
 

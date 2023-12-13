@@ -200,12 +200,13 @@ export default {
         approvalSubmitterColumn: function() {
             return {
                         data: "id",
-                        orderable: true,
-                        searchable: true,
+                        orderable: false,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             return full.approval_submitter;
-                        }
+                        },
+                        // name: 'proposal__proposalapplicant__first_name'
                     }
         },
         approvalTypeColumn: function() {
@@ -266,7 +267,7 @@ export default {
                         // 5. Due Date
                         data: "id",
                         orderable: true,
-                        searchable: true,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             console.log(full)
@@ -331,8 +332,8 @@ export default {
             return {
                         // 7. Action
                         data: "id",
-                        orderable: true,
-                        searchable: true,
+                        orderable: false,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             return full.assigned_to_name;

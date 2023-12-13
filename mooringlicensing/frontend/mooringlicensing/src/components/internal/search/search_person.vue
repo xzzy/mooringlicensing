@@ -61,17 +61,25 @@ from '@/utils/hooks'
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Person",
+                    pagination: true,
                     ajax: {
                         url: api_endpoints.person_lookup,
-                        //url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
-                            console.log(params)
-                            var query = {
-                                term: params.term,
+                            return {
+                                search_term: params.term,
+                                page: params.page || 1,
                                 type: 'public',
                             }
-                            return query;
+                        },
+                        processResults: function(data){
+                            console.log({data})
+                            return {
+                                'results': data.results,
+                                'pagination': {
+                                    'more': data.pagination.more
+                                }
+                            }
                         },
                     },
                 }).
