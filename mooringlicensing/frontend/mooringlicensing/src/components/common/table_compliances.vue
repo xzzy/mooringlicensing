@@ -387,7 +387,6 @@ export default {
             }
 
             return {
-                searching: false,
                 autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
