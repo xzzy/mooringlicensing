@@ -396,9 +396,10 @@ export default {
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: true,
+                searchDelay: 500,
                 order: [
                     [0, 'desc']
-                    ],
+                ],
 
                 ajax: {
                     "url": api_endpoints.compliances_paginated_external + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
@@ -413,17 +414,6 @@ export default {
                 },
                 dom: 'lBfrtip',
                 buttons: buttons,
-                /*
-
-                buttons:[
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                ],
-                */
                 columns: vm.applicableColumns,
                 processing: true,
                 initComplete: function() {
