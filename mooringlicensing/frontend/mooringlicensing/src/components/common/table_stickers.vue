@@ -161,7 +161,7 @@ export default {
             return {
                 data: "approval",
                 orderable: false,
-                searchable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.approval){
@@ -172,7 +172,7 @@ export default {
                         return ''
                     }
                 },
-                name: 'approval__applicant'
+                name: 'approval__current_proposal__proposalapplicant__first_name, approval__current_proposal__proposalapplicant__last_name, approval__current_proposal__proposalapplicant__email'
             }
         },
         column_number: function(){
