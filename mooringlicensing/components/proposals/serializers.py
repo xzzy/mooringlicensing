@@ -1721,6 +1721,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
     mooring_bay_name = serializers.SerializerMethodField()
     authorised_user_permits = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    holder = serializers.SerializerMethodField()
 
     class Meta:
         model = Mooring
@@ -1734,6 +1735,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
                 'vessel_weight_limit',
                 'authorised_user_permits',
                 'status',
+                'holder',
             )
         datatables_always_serialize = (
                 'id',
@@ -1745,7 +1747,13 @@ class ListMooringSerializer(serializers.ModelSerializer):
                 'vessel_weight_limit',
                 'authorised_user_permits',
                 'status',
+                'holder',
             )
+    
+    def get_holder(self, obj):
+        if obj.mooring_licence:
+            return obj.mooring_licence.submitter_obj.get_full_name()
+        return 'N/A'
 
     def get_mooring_bay_name(self, obj):
         return obj.mooring_bay.name

@@ -2948,7 +2948,7 @@ class Sticker(models.Model):
             fee_constructor=self.fee_constructor,
             fee_season=self.approval.latest_applied_season,
         )
-        logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+        logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
 
         return new_sticker
 

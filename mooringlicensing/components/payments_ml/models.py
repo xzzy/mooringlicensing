@@ -263,10 +263,19 @@ class ApplicationFee(Payment):
 
     @property
     def fee_constructor(self):
-        # TODO: this is not always correct...???
-        if self.fee_items.count():
+        fee_constructor = None
+
+        if self.fee_items.count() == 1:
             return self.fee_items.first().fee_constructor
-        return None
+        elif self.fee_items.count() > 1:
+            # There are multiple fee_items in this application_fee
+            for fee_item in self.fee_items.all():
+                if fee_item.fee_constructor.application_type.code != AnnualAdmissionApplication.code:
+                    # One of the fee_items should be for either AU or ML, which is main fee component.
+                    fee_constructor = fee_item.fee_constructor
+                    break
+
+        return fee_constructor
 
     class Meta:
         app_label = 'mooringlicensing'
