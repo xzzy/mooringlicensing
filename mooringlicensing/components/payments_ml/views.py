@@ -243,16 +243,16 @@ class StickerReplacementFeeView(TemplateView):
                 application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_REPLACEMENT_STICKER['code'])
                 fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
 
-                if settings.DEBUG:
-                    total_amount = 0 if sticker_action_detail.waive_the_fee else math.ceil(fee_item.amount)
-                    total_amount_excl_tax = 0 if sticker_action_detail.waive_the_fee else math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_item.incur_gst else math.ceil(fee_item.amount)
-                else:
-                    total_amount = 0 if sticker_action_detail.waive_the_fee else fee_item.amount
-                    total_amount_excl_tax = 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount
-
                 lines = []
                 applicant = None
                 for sticker_action_detail in sticker_action_details:
+                    if settings.DEBUG:
+                        total_amount = 0 if sticker_action_detail.waive_the_fee else math.ceil(fee_item.amount)
+                        total_amount_excl_tax = 0 if sticker_action_detail.waive_the_fee else math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_item.incur_gst else math.ceil(fee_item.amount)
+                    else:
+                        total_amount = 0 if sticker_action_detail.waive_the_fee else fee_item.amount
+                        total_amount_excl_tax = 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount
+
                     line = {
                         'ledger_description': 'Sticker Replacement Fee, sticker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
                         'oracle_code': application_type.get_oracle_code_by_date(current_datetime.date()),

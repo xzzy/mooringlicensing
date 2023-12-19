@@ -86,7 +86,19 @@ export default {
                 headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
             }
             */
-            return ['Mooring', 'Bay', 'Type', 'Status', 'Authorised User Permits (RIA/LIC)', 'Max Vessel Length', 'Max Vessel Draft', 'Action'];
+            return ['Mooring', 'Bay', 'Type', 'Status', 'Holder', 'Authorised User Permits<br/>(RIA/LIC)', 'Max Vessel<br/>Length', 'Max Vessel<br/>Draft', 'Action'];
+        },
+        holderColumn: function () {
+            return {
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function (row, type, full) {
+                    return full.holder;
+                },
+                name: 'name',
+            }
         },
         mooringNameColumn: function () {
             return {
@@ -160,7 +172,6 @@ export default {
                 data: "id",
                 orderable: true,
                 searchable: true,
-                className: "aho",
                 createdCell: function (td, cellData, rowData, row, col) {
                     $(td).css("text-align", "right").css("padding", "0 1em 0 0")
                 },
@@ -177,6 +188,9 @@ export default {
                 orderable: true,
                 searchable: true,
                 visible: true,
+                createdCell: function (td, cellData, rowData, row, col) {
+                    $(td).css("text-align", "right").css("padding", "0 1em 0 0")
+                },
                 'render': function (row, type, full) {
                     return full.vessel_draft_limit;
                 }
@@ -202,6 +216,7 @@ export default {
                 this.mooringBayColumn,
                 this.mooringTypeColumn,
                 this.statusColumn,
+                this.holderColumn,
                 this.authorisedUserPermitsColumn,
                 this.maxVesselLengthColumn,
                 this.maxVesselDraftColumn,
@@ -212,7 +227,14 @@ export default {
         mooringsOptions: function () {
             let vm = this;
             return {
-                searching: false,
+                columns: vm.applicableColumns,
+                columnDefs: [{
+                    targets: [0],
+                    render: function(data, type, full, meta) {
+                        console.log({data})
+                        return '<div>' + data + '</div>';
+                    }
+                }],
                 autoWidth: false,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -221,12 +243,10 @@ export default {
                 serverSide: true,
                 lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
                 searching: true,
+                searchDelay: 500,
 
                 ajax: {
-                    //"url": `${api_endpoints.mooring}internal_list.json?format=datatables`,
-                    //"url": `${api_endpoints.mooring}internal_list?format=datatables`,
                     "url": api_endpoints.moorings_paginated_internal + '?format=datatables',
-                    //"url": `${api_endpoints.mooring}internal_list.json`,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
@@ -251,17 +271,6 @@ export default {
                         }
                     },
                 ],
-                /*
-                buttons:[
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                ],
-                */
-                columns: vm.applicableColumns,
                 processing: true,
                 initComplete: function () {
                     console.log('in initComplete')

@@ -3,7 +3,8 @@
       <table class="hover table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%" :id="id">
             <thead>
                 <tr>
-                    <th :data-class="(i == 0 )? 'expand':null" v-for="(header,i) in dtHeaders"> {{ header}}</th>
+                    <!-- <th :data-class="(i == 0 )? 'expand':null" v-for="(header,i) in dtHeaders"> {{ header }}</th> -->
+                    <th :data-class="(i == 0 )? 'expand':null" v-for="(header,i) in dtHeaders"><div class="html-header" v-html="header"></div></th>
                 </tr>
             </thead>
             <tbody>
@@ -179,5 +180,8 @@ module.exports = {
     }
     .dataTables_wrapper .dt-buttons{
     float: right;
+  }
+  .html-header {
+    text-align: center;
   }
 </style>

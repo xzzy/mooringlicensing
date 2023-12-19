@@ -385,9 +385,13 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
             queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
 
             # Custom search 
-            # search_term = request.GET.get('search[value]')  # This has a search term.
-            # email_users = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
-            # q_set = Compliance.objects.filter(submitter__in=list(email_users))
+            search_term = request.GET.get('search[value]')  # This has a search term.
+            if search_term:
+                email_users = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+                q_set = Compliance.objects.filter(approval__submitter__in=list(email_users))
+
+                queryset = queryset.union(q_set)
+            return queryset
         except Exception as e:
             logger.error(f'ComplianceFilterBackend raises an error: [{e}].  Query may not work correctly.')
         setattr(view, '_datatables_total_count', total_count)

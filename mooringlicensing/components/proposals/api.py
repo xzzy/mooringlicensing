@@ -2168,6 +2168,21 @@ class MooringFilterBackend(DatatablesFilterBackend):
 
         try:
             queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
+
+            # Custom search
+            search_term = request.GET.get('search[value]')  # This has a search term.
+            if search_term:
+                email_users = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+                # 1
+                q_set = Mooring.objects.filter(mooring_licence__submitter__in=list(email_users))
+                # 2
+                # q_set2 = Mooring.objects.filter(mooringonapproval__approval__submitter__in=list(email_users), mooringonapproval__end_date__isnull=True)
+
+                queryset = queryset.union(q_set)
+
+            return queryset
+
+
         except Exception as e:
             print(e)
         setattr(view, '_datatables_total_count', total_count)

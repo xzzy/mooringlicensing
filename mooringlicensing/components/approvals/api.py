@@ -103,9 +103,15 @@ class GetFeeSeasonsDict(views.APIView):
                 application_type = ApplicationType.objects.filter(code=app_code)
                 if application_type:
                     application_types.append(application_type.first())
-            data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.filter(application_type__in=application_types)]
+            fee_seasons = FeeSeason.objects.filter(application_type__in=application_types)
         else:
-            data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.all()]
+            fee_seasons = FeeSeason.objects.all()
+
+        data = [{
+            'id': season.id,
+            'name': season.name,
+            'application_type_code': season.application_type.code,
+            'application_type_description': season.application_type.description} for season in fee_seasons]
         return Response(data)
 
 
@@ -1130,6 +1136,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
 
         # Filter Year (FeeSeason)
         filter_fee_season_id = request.GET.get('filter_year')
+        logger.debug(f'fee_season id: {filter_fee_season_id}')
         if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
             fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
             queryset = queryset.filter(fee_constructor__fee_season=fee_season)
