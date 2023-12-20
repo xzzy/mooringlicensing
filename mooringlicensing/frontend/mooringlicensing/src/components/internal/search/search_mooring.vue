@@ -72,7 +72,7 @@ from '@/utils/hooks'
                         data: function(params) {
                             return {
                                 search_term: params.term,
-                                page: params.page || 1,
+                                page_number: params.page || 1,
                                 type: 'public',
                             }
                         },
