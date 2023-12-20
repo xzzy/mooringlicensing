@@ -112,6 +112,9 @@ class ApprovalDocument(Document):
 
 
 class MooringOnApproval(RevisionedMixin):
+    """
+    This class is used only for AUP, because an AUP can have multiple moorings.
+    """
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
     mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
@@ -1748,6 +1751,56 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_CURRENT,
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
+
+    def swap_moorings(self, target_mooring_licence):
+        logger.info(f'Swapping moorings between an approval: [{self}] and an approval: [{target_mooring_licence}]...')
+        # Validation
+
+        # Swap mooring objects
+        my_mooring = self.mooring
+        target_mooring = target_mooring_licence.mooring
+
+        my_mooring.mooring_licence = None
+        target_mooring.mooring_licence = None
+        my_mooring.save()
+        target_mooring.save()
+
+        my_mooring.mooring_licence = target_mooring_licence
+        target_mooring.mooring_licence = self
+        my_mooring.save()
+        target_mooring.save()
+
+        # Handle stickers
+        approvals_swapped = [self.approval, target_mooring_licence.approval,]
+        for approval in approvals_swapped:
+            # 1. Set to_be_returned to the existing stickers.  There may be multiple stickers because of the multiple vessels registered to this approval.
+            existing_stickers = Sticker.objects.filter(approval=approval, status__in=[
+                Sticker.STICKER_STATUS_NOT_READY_YET,
+                Sticker.STICKER_STATUS_READY,
+                Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                Sticker.STICKER_STATUS_CURRENT,  # <== It should be always this
+            ])
+            for existing_sticker in existing_stickers:
+                existing_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                existing_sticker.save()
+                logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the Sticker: [{existing_sticker}].')
+                # 2. Create new stickers
+                new_sticker = Sticker.objects.create(
+                    approval=existing_sticker.approval,
+                    vessel_ownership=existing_sticker.vessel_ownership,
+                    fee_constructor=existing_sticker.fee_constructor,
+                    # proposal_initiated=proposal,
+                    fee_season=existing_sticker.fee_season,
+                )
+                logger.info(f'New Sticker: [{new_sticker}] has been created based on the existing sticker: [{existing_sticker}].')
+
+        # Generate licences
+        self.generate_doc(False)
+        target_mooring_licence.generate_doc(False)
+
+        # Generate AU summary documents
+
+        # Emails
 
     def get_grace_period_end_date(self):
         end_date = None
