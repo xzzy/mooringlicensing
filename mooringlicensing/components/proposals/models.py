@@ -19,7 +19,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME, GROUP_ASSESSOR_MOORING_LICENCE, \
+from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME, GROUP_ASSESSOR_MOORING_LICENCE, \
     GROUP_APPROVER_MOORING_LICENCE
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 # from ledger_api_client.pdf import create_invoice_pdf_bytes
@@ -1867,7 +1867,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
 
                         try:
-                            logger.info(f'Creating invoice for the application: [{self}]...')
+                            logger.info(f'Creating future invoice for the application: [{self}]...')
 
                             # Following two lines are for future invoicing.
                             # However because we need to segregate 'ledger' from this system, we cannot use these two functions.
@@ -2302,7 +2302,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             else:
                 # Renewal application is being applied after the approval expiry date... Not sure if this is allowed.
                 target_date = applied_date
-        elif self.proposal_type.code == settings.PROPOSAL_TYPE_NEW:
+        elif self.proposal_type.code in [settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_SWAP_MOORINGS,]:
             target_date = applied_date
         else:
             raise ValueError('Unknown proposal type of the proposal: {}'.format(self))
@@ -3666,6 +3666,16 @@ class MooringLicenceApplication(Proposal):
         target_date = self.get_target_date(current_datetime.date())
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
+        if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+            # When this proposal is for Swap-Moorings, it's easy.
+            return [{
+                'ledger_description': 'Mooring Swap',
+                'oracle_code': self.application_type.get_oracle_code_by_date(target_date),
+                'price_incl_tax': 317.00,
+                'price_excl_tax': 317.00,
+                'quantity': 1,
+            }], []
+
         logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self.lodgement_number, target_date))
 
         # Retrieve FeeItem object from FeeConstructor object
@@ -3849,26 +3859,40 @@ class MooringLicenceApplication(Proposal):
                 existing_mooring_licence = self.approval.child_obj
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
-            mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
+            
+            if self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
+                # When swap moorings, self.allocated_mooring should have a target mooring.
+                mooring = self.allocated_mooring
+            else:
+                mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
             created = None
             approval_created = False
 
-            if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
                 approval = self.approval.child_obj
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
-                approval.expiry_date = self.end_date
+                if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+                    # When renewal, we have to update the expiry_date of the approval
+                    approval.expiry_date = self.end_date
                 approval.submitter = self.submitter
                 approval.save()
-            elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-                approval = self.approval.child_obj
-                approval.current_proposal=self
-                approval.issue_date = current_datetime
-                approval.start_date = current_datetime.date()
-                # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
-                approval.submitter = self.submitter
-                approval.save()
+                if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+                    current_mooring = approval.mooring
+                    target_mooring = self.allocated_mooring
+
+                    if current_mooring.mooring_licence == approval:
+                        # Mooring and MooringLicence is a 1TO1 relation.
+                        current_mooring.mooring_licence = None
+                        current_mooring.save()
+                        target_mooring.mooring_licence = None
+                        target_mooring.save()
+
+                    target_mooring.mooring_licence = approval
+                    target_mooring.save()
+
+                    logger.info(f'Swapping moorings: The ownership of the mooring: [{target_mooring}] has been set to the MooringLicence: [{approval}].')
             else:
                 approval, approval_created = self.approval_class.objects.update_or_create(
                     current_proposal=self,
@@ -3915,7 +3939,7 @@ class MooringLicenceApplication(Proposal):
                             vo2.end_date = None
                             vo2.save()
             # set auto_approve renewal application ProposalRequirement due dates to those from previous application + 12 months
-            if self.auto_approve and self.proposal_type.code == 'renewal':
+            if self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                 for req in self.requirements.filter(is_deleted=False):
                     if req.copied_from and req.copied_from.due_date:
                         req.due_date = req.copied_from.due_date + relativedelta(months=+12)
@@ -3926,26 +3950,26 @@ class MooringLicenceApplication(Proposal):
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
                 #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
                 #target_proposal = self.previous_application if self.previous_application else self.proposal
-                target_proposal = self.previous_application if self.proposal_type.code == 'amendment' else self.proposal
+                target_proposal = self.previous_application if self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT else self.proposal
                 for compliance in Compliance.objects.filter(
                     approval=approval.approval,
                     proposal=target_proposal,
                     processing_status='future',
                     ):
                 #approval_compliances.delete()
-                    compliance.processing_status='discarded'
-                    compliance.customer_status = 'discarded'
+                    compliance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
+                    compliance.customer_status = Compliance.CUSTOMER_STATUS_DISCARDED
                     compliance.reminder_sent=True
                     compliance.post_reminder_sent=True
                     compliance.save()
                 self.generate_compliances(approval, request)
 
             mooring.log_user_action(
-                    MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
-                        str(approval),
-                        ),
-                    request
-                    )
+                MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
+                    str(approval),
+                ),
+                request
+            )
             # always reset this flag
             approval.renewal_sent = False
             approval.export_to_mooring_booking = True
@@ -3960,7 +3984,7 @@ class MooringLicenceApplication(Proposal):
 
             # Creating documents should be performed at the end
             approval.generate_doc()
-            if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+            if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
                 approval.generate_au_summary_doc(request.user)
 
             # Email with attachments

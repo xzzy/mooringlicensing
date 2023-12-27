@@ -1189,8 +1189,6 @@ export default {
                 confirmButtonText: 'Renew approval',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_approval')),{
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')), {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=renew', {
 
                 })
@@ -1223,7 +1221,6 @@ export default {
                 confirmButtonText: 'Amend',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')),{
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=amend', {
 
                 })
