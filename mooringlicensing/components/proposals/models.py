@@ -2148,11 +2148,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         r.id = None
                         r.district_proposal=None
                         r.save()
+
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+
                 # Create a log entry for the organisation
-                applicant_field=getattr(self, self.applicant_field)
+                # applicant_field=getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
+
                 #Log entry for approval
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
@@ -3855,7 +3858,7 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'Updating/Creating Mooring Site Licence from the application: [{self}]...')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
-            if self.approval and self.approval.child_obj.mooring:
+            if self.approval and hasattr(self.approval.child_obj, 'mooring') and self.approval.child_obj.mooring:
                 existing_mooring_licence = self.approval.child_obj
             else:
                 existing_mooring_licence = self.allocated_mooring.mooring_licence if self.allocated_mooring else None
@@ -3879,20 +3882,36 @@ class MooringLicenceApplication(Proposal):
                 approval.submitter = self.submitter
                 approval.save()
                 if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
-                    current_mooring = approval.mooring
+                    current_mooring = approval.mooring if hasattr(approval, 'mooring') else None
                     target_mooring = self.allocated_mooring
 
-                    if current_mooring.mooring_licence == approval:
-                        # Mooring and MooringLicence is a 1TO1 relation.
-                        current_mooring.mooring_licence = None
-                        current_mooring.save()
-                        target_mooring.mooring_licence = None
-                        target_mooring.save()
+                    if current_mooring:
+                        if current_mooring.mooring_licence == approval:
+                            # Mooring and MooringLicence is a 1TO1 relation.
+                            current_mooring.mooring_licence = None
+                            current_mooring.save()
+                            target_mooring.mooring_licence = None
+                            target_mooring.save()
 
                     target_mooring.mooring_licence = approval
                     target_mooring.save()
 
-                    logger.info(f'Swapping moorings: The ownership of the mooring: [{target_mooring}] has been set to the MooringLicence: [{approval}].')
+                    # if current_mooring != target_mooring:
+                    #     # Execute mooring swaps if not done yet
+                    #     ml2 = target_mooring.mooring_licence
+
+                    #     # Reset first
+                    #     target_mooring.mooring_licence = None
+                    #     current_mooring.mooring_licence = None
+                    #     target_mooring.save()
+                    #     current_mooring.save()
+
+                    #     target_mooring.mooring_licence = ml1
+                    #     current_mooring.mooring_licence = ml2
+                    #     target_mooring.save()
+                    #     current_mooring.save()
+
+                    #     logger.info(f'Swapping moorings: The ownership of the mooring: [{target_mooring}] has been set to the MooringLicence: [{ml1}] and the ownership of the mooring: [{current_mooring}] has been set to the MooringLicence: [{ml2}].')
             else:
                 approval, approval_created = self.approval_class.objects.update_or_create(
                     current_proposal=self,
