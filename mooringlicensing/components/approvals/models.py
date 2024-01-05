@@ -1752,55 +1752,61 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
 
-    def swap_moorings(self, target_mooring_licence):
+    def swap_moorings(self, request, target_mooring_licence):
         logger.info(f'Swapping moorings between an approval: [{self}] and an approval: [{target_mooring_licence}]...')
-        # Validation
 
-        # Swap mooring objects
-        my_mooring = self.mooring
-        target_mooring = target_mooring_licence.mooring
+        with transaction.atomic():
+            try:
+                proposal1 = self.current_proposal.clone_proposal_with_status_reset()
+                proposal1.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
+                proposal1.submitter = request.user.id
+                proposal1.previous_application = self.current_proposal
+                proposal1.keep_existing_vessel = True
+                proposal1.allocated_mooring = target_mooring_licence.mooring  # Swap moorings here
+                proposal1.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+                proposal1.vessel_ownership = self.current_proposal.vessel_ownership
 
-        my_mooring.mooring_licence = None
-        target_mooring.mooring_licence = None
-        my_mooring.save()
-        target_mooring.save()
+                proposal2 = target_mooring_licence.current_proposal.clone_proposal_with_status_reset()
+                proposal2.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
+                proposal2.submitter = request.user.id
+                proposal2.previous_application = self.current_proposal
+                proposal2.keep_existing_vessel = True
+                proposal2.allocated_mooring = self.mooring  # Swap moorings here
+                proposal2.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+                proposal2.vessel_ownership = self.current_proposal.vessel_ownership
 
-        my_mooring.mooring_licence = target_mooring_licence
-        target_mooring.mooring_licence = self
-        my_mooring.save()
-        target_mooring.save()
+                # Copy links to the documents so that the documents are shown on the amendment application form
+                # self.current_proposal.copy_proof_of_identity_documents(proposal1)
+                # self.current_proposal.copy_mooring_report_documents(proposal1)
+                # self.current_proposal.copy_written_proof_documents(proposal1)
+                # self.current_proposal.copy_signed_licence_agreement_documents(proposal1)
 
-        # Handle stickers
-        approvals_swapped = [self.approval, target_mooring_licence.approval,]
-        for approval in approvals_swapped:
-            # 1. Set to_be_returned to the existing stickers.  There may be multiple stickers because of the multiple vessels registered to this approval.
-            existing_stickers = Sticker.objects.filter(approval=approval, status__in=[
-                Sticker.STICKER_STATUS_NOT_READY_YET,
-                Sticker.STICKER_STATUS_READY,
-                Sticker.STICKER_STATUS_AWAITING_PRINTING,
-                Sticker.STICKER_STATUS_CURRENT,  # <== It should be always this
-            ])
-            for existing_sticker in existing_stickers:
-                existing_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
-                existing_sticker.save()
-                logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the Sticker: [{existing_sticker}].')
-                # 2. Create new stickers
-                new_sticker = Sticker.objects.create(
-                    approval=existing_sticker.approval,
-                    vessel_ownership=existing_sticker.vessel_ownership,
-                    fee_constructor=existing_sticker.fee_constructor,
-                    # proposal_initiated=proposal,
-                    fee_season=existing_sticker.fee_season,
-                )
-                logger.info(f'New Sticker: [{new_sticker}] has been created based on the existing sticker: [{existing_sticker}].')
+                # req = self.current_proposal.requirements.all().exclude(is_deleted=True)
+                # from copy import deepcopy
+                # if req:
+                #     for r in req:
+                #         old_r = deepcopy(r)
+                #         r.proposal = proposal1
+                #         r.copied_from = old_r
+                #         r.id = None
+                #         r.district_proposal = None
+                #         r.save()
 
-        # Generate licences
-        self.generate_doc(False)
-        target_mooring_licence.generate_doc(False)
+                # Create a log entry for the proposal
+                self.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(self.current_proposal.id), request)
+                target_mooring_licence.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(target_mooring_licence.current_proposal.id), request)
 
-        # Generate AU summary documents
+                # Create a log entry for the approval
+                self.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(self.id), request)
+                target_mooring_licence.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(target_mooring_licence.id), request)
 
-        # Emails
+                proposal1.save(version_comment=f'New Swap moorings Application created, from origin {proposal1.previous_application_id}')
+                proposal1.add_vessels_and_moorings_from_licence()
+                proposal2.save(version_comment=f'New Swap moorings Application created, from origin {proposal2.previous_application_id}')
+                proposal2.add_vessels_and_moorings_from_licence()
+
+            except Exception as e:
+                raise e
 
     def get_grace_period_end_date(self):
         end_date = None
@@ -2298,6 +2304,7 @@ class ApprovalUserAction(UserAction):
     ACTION_SURRENDER_APPROVAL = "Surrender approval {}"
     ACTION_RENEW_APPROVAL = "Create renewal Application for approval {}"
     ACTION_AMEND_APPROVAL = "Create amendment Application for approval {}"
+    ACTION_SWAP_MOORINGS = "Create swap moorings Application for approval {}"
     ACTION_REISSUE_APPROVAL = "Reissue approval {}"
     ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Site Licence {}"
     ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval: {}"

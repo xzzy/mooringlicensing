@@ -2159,6 +2159,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #Log entry for approval
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
                 self.approval.log_user_action(ApprovalUserAction.ACTION_AMEND_APPROVAL.format(self.approval.id),request)
+
                 proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
                 proposal.add_vessels_and_moorings_from_licence()
                 return proposal
@@ -4969,6 +4970,7 @@ class ProposalUserAction(UserAction):
     ACTION_SURRENDER_APPROVAL = "Surrender approval for application {}"
     ACTION_RENEW_PROPOSAL = "Create Renewal application for application {}"
     ACTION_AMEND_PROPOSAL = "Create Amendment application for application {}"
+    ACTION_SWAP_MOORINGS_PROPOSAL = "Create Swap moorings application for application {}"
     #Vessel
     ACTION_CREATE_VESSEL = "Create Vessel {}"
     ACTION_EDIT_VESSEL= "Edit Vessel {}"

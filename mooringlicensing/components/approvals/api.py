@@ -499,13 +499,16 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 })
         return Response(moorings)
 
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def swap_moorings(self, request, *args, **kwargs):
         with transaction.atomic():
             originated_approval = self.get_object()
             target_approval_id = request.data.get('target_approval_id')
             target_approval = Approval.objects.get(id=target_approval_id)
-            originated_approval.child_obj.swap_moorings(target_approval.child_obj)
-
+            originated_approval.child_obj.swap_moorings(request, target_approval.child_obj)
+            return Response()
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
