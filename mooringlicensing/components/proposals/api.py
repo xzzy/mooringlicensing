@@ -1792,7 +1792,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
 
                 ## collect impacted Approvals
                 approval_list = []
-                for prop in instance.proposal_set.filter(approval__status='current'):
+                for prop in instance.proposal_set.filter(approval__status=Approval.APPROVAL_STATUS_CURRENT):
                     if (type(prop.approval.child_obj) in [WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit] and
                             prop.approval not in approval_list):
                         approval_list.append(prop.approval)
