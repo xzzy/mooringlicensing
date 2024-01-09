@@ -4,7 +4,7 @@
             <div class="container-fluid">
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                 <div class="row form-group">
-                    <table class="table table-striped table-bordered">
+                    <!-- <table class="table table-striped table-bordered">
                         <thead>
                             <tr>
                                 <th scope="col"></th>
@@ -25,7 +25,7 @@
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                    </table> -->
 
                     <datatable
                         ref="swap_moorings_datatable"
@@ -35,12 +35,12 @@
                     />
 
                 </div>
-                <div class="row form-group">
+                <!-- <div class="row form-group">
                     <label class="col-sm-2 control-label" for="reason">Reason</label>
                     <div class="col-sm-9">
                         <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
                     </div>
-                </div>
+                </div> -->
             </div>
             <div slot="footer">
                 <div class="row">
@@ -127,6 +127,18 @@ export default {
                         }
                     }
         },
+        columnSelect: function() {
+            return {
+                        // 1. ID
+                        data: "id",
+                        orderable: false,
+                        searchable: false,
+                        visible: true,
+                        'render': function(row, type, full){
+                            return '<input type="radio" name="select" value="' + full.id + '">';
+                        }
+                    }
+        },
         columnLodgementNumber: function() {
             return {
                         // 2. Lodgement Number
@@ -170,6 +182,7 @@ export default {
             if (vm.is_internal) {
                 selectedColumns = [
                     vm.columnId,
+                    vm.columnSelect,
                     vm.columnLodgementNumber,
                     // vm.columnApprovalType,
                     // vm.columnStickerNumber,
@@ -188,22 +201,22 @@ export default {
                 ]
             }
             let buttons = []
-            if (vm.is_internal){
-                buttons = [
-                    {
-                        extend: 'excel',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
-                    },
-                    {
-                        extend: 'csv',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
-                    },
-                ]
-            }
+            // if (vm.is_internal){
+            //     buttons = [
+            //         {
+            //             extend: 'excel',
+            //             exportOptions: {
+            //                 //columns: ':visible'
+            //             }
+            //         },
+            //         {
+            //             extend: 'csv',
+            //             exportOptions: {
+            //                 //columns: ':visible'
+            //             }
+            //         },
+            //     ]
+            // }
 
             return {
                 autoWidth: false,
@@ -222,7 +235,7 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        // d.filter_approval_type = vm.approvalTypeFilter.join(',');
+                        d.filter_approval_type = 'ml'
                         // d.show_expired_surrendered = vm.show_expired_surrendered;
                         //d.external_waiting_list = vm.externalWaitingList;
                         //d.filter_status = vm.filterStatus;
@@ -261,6 +274,7 @@ export default {
             if (this.is_internal) {
                 return [
                     'Id',
+                    'Select',
                     'Number',
                     // 'Type',
                     // 'Sticker Number/s',
