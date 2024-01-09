@@ -509,7 +509,7 @@ export default {
                                     links += `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
                                 }
                                 if(full.approval_type_dict && full.approval_type_dict.code == 'ml'){
-                                    links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}'>Swap moorings</a><br/>`
+                                    links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}' data-swap-moorings-approval-lodgement-number='${full.lodgement_number}'>Swap moorings</a><br/>`
                                 }
                             }
                             if (full.approval_type_dict.code != 'wla') {
@@ -1035,7 +1035,8 @@ export default {
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-swap-moorings-approval]', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-swap-moorings-approval');
-                vm.swapMoorings(id);
+                var lodgement_number = $(this).attr('data-swap-moorings-approval-lodgement-number');
+                vm.swapMoorings(id, lodgement_number);
             });
 
             // Internal Reinstate listener
@@ -1193,9 +1194,11 @@ export default {
             this.$refs.approval_suspension.approval_id = approval_id;
             this.$refs.approval_suspension.isModalOpen = true;
         },
-        swapMoorings: function(approval_id){
+        swapMoorings: function(approval_id, lodgement_number){
             this.$refs.swap_moorings_modal.approval_id = approval_id
+            this.$refs.swap_moorings_modal.approval_lodgement_number = lodgement_number
             this.$refs.swap_moorings_modal.isModalOpen = true
+            // this.$refs.swap_moorings_modal.vmDataTable.ajax.reload()
         },
         surrenderApproval: function(approval_id, approval_type_name){
             this.$refs.approval_surrender.approval_id = approval_id;

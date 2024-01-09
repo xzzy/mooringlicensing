@@ -33,7 +33,6 @@
                         :dtOptions="datatable_options"
                         :dtHeaders="datatable_headers"
                     />
-
                 </div>
                 <!-- <div class="row form-group">
                     <label class="col-sm-2 control-label" for="reason">Reason</label>
@@ -44,7 +43,7 @@
             </div>
             <div slot="footer">
                 <div class="row">
-                    <div class="col-md-5">
+                    <div class="col-md-12">
                         <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                         <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
                         <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
@@ -62,7 +61,7 @@ import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
 import datatable from '@/utils/vue/datatable.vue'
 
 export default {
-    name:'RequestNewStickerModal',
+    name:'SwapMooringsModal',
     components:{
         modal,
         alert,
@@ -83,6 +82,7 @@ export default {
         let vm = this;
         return {
             approval_id: null,
+            approval_lodgement_number: null,
             stickers: [],
             isModalOpen:false,
             action: '',
@@ -94,67 +94,78 @@ export default {
             errorString: '',
 
             datatable_id: 'swap-moorings-datatable-' + vm._uid,
+            selectedApprovalId: null,
+            selectedApprovalLodgementNumber: null,
         }
     },
     watch: {
         approval_id: async function(){
+            console.log('aho')
             let vm = this
-            // Whenever approval_id is changed, update this.stickers
-            if (vm.approval_id){
-                const ret = await vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/stickers'))
-                for (let sticker of ret.body.stickers){
-                    sticker.checked = false
-                }
-                vm.stickers = ret.body.stickers
-                console.log('vm.stickers')
-                console.log(vm.stickers)
-
-            } else {
-                vm.stickers = []
-            }
         }
     },
     computed: {
         columnId: function() {
             return {
-                        // 1. ID
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: false,
-                        'render': function(row, type, full){
-                            return full.id
-                        }
-                    }
+                // 1. ID
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: false,
+                'render': function(row, type, full){
+                    return full.id
+                }
+            }
         },
         columnSelect: function() {
             return {
-                        // 1. ID
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return '<input type="radio" name="select" value="' + full.id + '">';
-                        }
-                    }
+                // 1. ID
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    return '<input type="radio" name="select" data-selected-approval="' + full.id + '" data-selected-approval-lodgement-number="' + full.lodgement_number + '">';
+                }
+            }
         },
         columnLodgementNumber: function() {
             return {
-                        // 2. Lodgement Number
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            if (full.migrated){
-                                return full.lodgement_number + ' (M)'
-                            } else {
-                                return full.lodgement_number
-                            }
-                        },
-                        name: 'lodgement_number',
+                // 2. Lodgement Number
+                data: "id",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.migrated){
+                        return full.lodgement_number + ' (M)'
+                    } else {
+                        return full.lodgement_number
                     }
+                },
+                name: 'lodgement_number',
+            }
+        },
+        columnMooring: function(){
+            let vm = this
+            return {
+                data: "id",
+                orderable: false,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    let links = ''
+                    for (let mooring of full.moorings){
+                        if (vm.is_internal){
+                            links += `<a href='/internal/moorings/${mooring.id}' target='_blank'>${mooring.mooring_name}</a><br/>`
+                        } else {
+                            links += `${mooring.mooring_name}<br/>`
+                        }
+                    }
+                    return links
+                },
+                name: "moorings__name, mooringlicence__mooring__name",
+            }
         },
         columnVesselRegos: function() {
             return {
@@ -189,7 +200,7 @@ export default {
                     // vm.columnStickerMailedDate,
                     // vm.columnHolder,
                     // vm.columnStatus,
-                    // vm.columnMooring,
+                    vm.columnMooring,
                     // vm.columnIssueDate,
                     // vm.columnStartDate,
                     // vm.columnExpiryDate,
@@ -281,7 +292,7 @@ export default {
                     // 'Sticker mailed date',
                     // 'Holder',
                     // 'Status',
-                    // 'Mooring',
+                    'Mooring',
                     // 'Issue Date',
                     // 'Start Date',
                     // 'Expiry Date',
@@ -293,12 +304,8 @@ export default {
             }
         },
         okButtonEnabled: function(){
-            if (this.details.reason){
-                for (let sticker of this.stickers){
-                    if (sticker.checked === true){
-                        return true
-                    }
-                }
+            if (this.selectedApprovalId){
+                return true
             }
             return false
         },
@@ -322,12 +329,21 @@ export default {
             let vm =this;
             vm.errors = false
             vm.processing = true
-            vm.$emit("sendData", {
-                //"details": vm.details,
-                //"approval_id": vm.approval_id,
-                //"stickers": vm.stickers,
-                //"waive_the_fee": vm.waive_the_fee,
-                "target_approval_id": 594,
+            swal({
+                title: "Swap Moorings",
+                text: "Are you sure you want to swap moorings between the licence: " + vm.approval_lodgement_number + " and the licence: " + vm.selectedApprovalLodgementNumber + "?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Swap Moorings',
+                confirmButtonColor:'#dc3545'
+            }).then(()=>{
+                vm.$emit("sendData", {
+                    //"details": vm.details,
+                    "approval_id": vm.approval_id,
+                    //"stickers": vm.stickers,
+                    //"waive_the_fee": vm.waive_the_fee,
+                    "target_approval_id": vm.selectedApprovalId,
+                })
             })
         },
         cancel:function () {
@@ -346,6 +362,12 @@ export default {
         },
         addEventListeners: function () {
             let vm = this;
+            vm.$refs.swap_moorings_datatable.vmDataTable.on('click', 'input[type="radio"]', function(e) {
+                var id = $(this).attr('data-selected-approval');
+                var lodgement_number = $(this).attr('data-selected-approval-lodgement-number');
+                vm.selectedApprovalId = id
+                vm.selectedApprovalLodgementNumber = lodgement_number
+            })
         },
         fetchData: function(){
             let vm = this

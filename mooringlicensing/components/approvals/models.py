@@ -1759,7 +1759,7 @@ class MooringLicence(Approval):
             try:
                 proposal1 = self.current_proposal.clone_proposal_with_status_reset()
                 proposal1.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
-                proposal1.submitter = request.user.id
+                proposal1.submitter = self.current_proposal.submitter
                 proposal1.previous_application = self.current_proposal
                 proposal1.keep_existing_vessel = True
                 proposal1.allocated_mooring = target_mooring_licence.mooring  # Swap moorings here
@@ -1768,7 +1768,7 @@ class MooringLicence(Approval):
 
                 proposal2 = target_mooring_licence.current_proposal.clone_proposal_with_status_reset()
                 proposal2.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
-                proposal2.submitter = request.user.id
+                proposal2.submitter = target_mooring_licence.current_proposal.submitter
                 proposal2.previous_application = self.current_proposal
                 proposal2.keep_existing_vessel = True
                 proposal2.allocated_mooring = self.mooring  # Swap moorings here
