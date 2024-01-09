@@ -169,10 +169,12 @@ MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
 PROPOSAL_TYPE_NEW = 'new'
 PROPOSAL_TYPE_RENEWAL = 'renewal'
 PROPOSAL_TYPE_AMENDMENT = 'amendment'
+PROPOSAL_TYPE_SWAP_MOORINGS = 'swap_moorings'
 PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_NEW, 'New Application'),
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
+    (PROPOSAL_TYPE_SWAP_MOORINGS, 'Swap Moorings'),
 ]
 PROPOSAL_TYPES = [
     {
@@ -186,6 +188,10 @@ PROPOSAL_TYPES = [
     {
         'code': PROPOSAL_TYPE_RENEWAL,
         'description': 'Renewal',
+    },
+    {
+        'code': PROPOSAL_TYPE_SWAP_MOORINGS,
+        'description': 'Swap Moorings',
     },
 ]
 
