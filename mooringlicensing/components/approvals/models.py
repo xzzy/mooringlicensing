@@ -1769,11 +1769,11 @@ class MooringLicence(Approval):
                 proposal2 = target_mooring_licence.current_proposal.clone_proposal_with_status_reset()
                 proposal2.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
                 proposal2.submitter = target_mooring_licence.current_proposal.submitter
-                proposal2.previous_application = self.current_proposal
+                proposal2.previous_application = target_mooring_licence.current_proposal
                 proposal2.keep_existing_vessel = True
                 proposal2.allocated_mooring = self.mooring  # Swap moorings here
                 proposal2.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-                proposal2.vessel_ownership = self.current_proposal.vessel_ownership
+                proposal2.vessel_ownership = target_mooring_licence.current_proposal.vessel_ownership
 
                 # Copy links to the documents so that the documents are shown on the amendment application form
                 # self.current_proposal.copy_proof_of_identity_documents(proposal1)
@@ -2019,7 +2019,8 @@ class MooringLicence(Approval):
             for vessel_ownership in self.vessel_ownership_list:
                 new_sticker = Sticker.objects.create(
                     approval=self,
-                    vessel_ownership=proposal.vessel_ownership,
+                    # vessel_ownership=proposal.vessel_ownership,
+                    vessel_ownership=vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
@@ -2027,7 +2028,7 @@ class MooringLicence(Approval):
                 )
                 new_sticker_created = True
                 stickers_to_be_kept.append(new_sticker)
-                logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                logger.info(f'New Sticker: [{new_sticker}] has been created for the vessel_ownership: [{vessel_ownership}] of the licence: [{self}].')
 
             stickers_current = self.stickers.filter(
                 status__in=[
