@@ -2034,13 +2034,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     Q(vessel_ownership__end_date__isnull=True)
                     ):
                 self.listed_vessels.add(vooa.vessel_ownership)
-            self.save()
         elif self.approval and type(self) is AuthorisedUserApplication:
             for moa in self.approval.mooringonapproval_set.filter(
                     Q(end_date__isnull=True)
                     ):
                 self.listed_moorings.add(moa.mooring)
-            self.save()
+        self.save()
 
     def clone_proposal_with_status_reset(self):
         with transaction.atomic():
@@ -3888,31 +3887,20 @@ class MooringLicenceApplication(Proposal):
 
                     if current_mooring:
                         if current_mooring.mooring_licence == approval:
-                            # Mooring and MooringLicence is a 1TO1 relation.
+                            # Mooring and MooringLicence is a 1TO1 relation.  To prevent it from having 1TOMany relation, set None to both moorings.
                             current_mooring.mooring_licence = None
                             current_mooring.save()
+                            logger.info(f'Remove the link between the MSL: [{approval}] and the mooring: [{current_mooring}].')
+
+                            temp_licence = target_mooring.mooring_licence
                             target_mooring.mooring_licence = None
                             target_mooring.save()
+                            logger.info(f'Remove the link between the MSL: [{temp_licence}] and the mooring: [{target_mooring}].')
 
+                    # Create new relation between the approval and the mooring
                     target_mooring.mooring_licence = approval
                     target_mooring.save()
-
-                    # if current_mooring != target_mooring:
-                    #     # Execute mooring swaps if not done yet
-                    #     ml2 = target_mooring.mooring_licence
-
-                    #     # Reset first
-                    #     target_mooring.mooring_licence = None
-                    #     current_mooring.mooring_licence = None
-                    #     target_mooring.save()
-                    #     current_mooring.save()
-
-                    #     target_mooring.mooring_licence = ml1
-                    #     current_mooring.mooring_licence = ml2
-                    #     target_mooring.save()
-                    #     current_mooring.save()
-
-                    #     logger.info(f'Swapping moorings: The ownership of the mooring: [{target_mooring}] has been set to the MooringLicence: [{ml1}] and the ownership of the mooring: [{current_mooring}] has been set to the MooringLicence: [{ml2}].')
+                    logger.info(f'Create a link between the MSL: [{approval}] and the mooring: [{target_mooring}].')
             else:
                 approval, approval_created = self.approval_class.objects.update_or_create(
                     current_proposal=self,

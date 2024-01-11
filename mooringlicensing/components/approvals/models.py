@@ -1509,7 +1509,7 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.final_approval()
 
     def update_moorings(self, mooring_licence):
-        # The status of the mooring_licence passed as a parameter should be in ['expired', 'cancelled', 'surrendered', 'suspended']
+        # The status of the mooring_licence should be in ['expired', 'cancelled', 'surrendered', 'suspended']
         if mooring_licence.status not in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
             # Set end_date to the moa because the mooring on it is no longer available.
             moa = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence)
@@ -1521,7 +1521,7 @@ class AuthorisedUserPermit(Approval):
         if not self.mooringonapproval_set.filter(mooring__mooring_licence__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]):
             ## No moorings left on this AU permit, include information that permit holder can amend and apply for new mooring up to expiry date.
             # send_auth_user_no_moorings_notification(self.approval)
-            logger.info(f'There are no mooring left on the AU approval: [{self}].')
+            logger.info(f'There are no moorings left on the AU approval: [{self}].')
             send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         else:
             for moa in self.mooringonapproval_set.all():
@@ -1752,58 +1752,32 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
 
+    def _create_new_swap_moorings_application(self, request, new_mooring):
+        new_proposal = self.current_proposal.clone_proposal_with_status_reset()
+        new_proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
+        new_proposal.submitter = self.current_proposal.submitter
+        new_proposal.previous_application = self.current_proposal
+        new_proposal.keep_existing_vessel = True
+        new_proposal.allocated_mooring = new_mooring  # Swap moorings here
+        new_proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+        new_proposal.vessel_ownership = self.current_proposal.vessel_ownership
+
+        # Create a log entry for the proposal
+        self.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(self.current_proposal.id), request)
+
+        # Create a log entry for the approval
+        self.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(self.id), request)
+
+        new_proposal.save(version_comment=f'New Swap moorings Application: [{new_proposal}] created with the new mooring: [{new_mooring}] from the origin {new_proposal.previous_application}')
+        new_proposal.add_vessels_and_moorings_from_licence()
+
     def swap_moorings(self, request, target_mooring_licence):
-        logger.info(f'Swapping moorings between an approval: [{self}] and an approval: [{target_mooring_licence}]...')
+        logger.info(f'Swapping moorings between an approval: [{self} ({self.mooring})] and an approval: [{target_mooring_licence} ({target_mooring_licence.mooring})]...')
 
         with transaction.atomic():
             try:
-                proposal1 = self.current_proposal.clone_proposal_with_status_reset()
-                proposal1.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
-                proposal1.submitter = self.current_proposal.submitter
-                proposal1.previous_application = self.current_proposal
-                proposal1.keep_existing_vessel = True
-                proposal1.allocated_mooring = target_mooring_licence.mooring  # Swap moorings here
-                proposal1.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-                proposal1.vessel_ownership = self.current_proposal.vessel_ownership
-
-                proposal2 = target_mooring_licence.current_proposal.clone_proposal_with_status_reset()
-                proposal2.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
-                proposal2.submitter = target_mooring_licence.current_proposal.submitter
-                proposal2.previous_application = target_mooring_licence.current_proposal
-                proposal2.keep_existing_vessel = True
-                proposal2.allocated_mooring = self.mooring  # Swap moorings here
-                proposal2.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
-                proposal2.vessel_ownership = target_mooring_licence.current_proposal.vessel_ownership
-
-                # Copy links to the documents so that the documents are shown on the amendment application form
-                # self.current_proposal.copy_proof_of_identity_documents(proposal1)
-                # self.current_proposal.copy_mooring_report_documents(proposal1)
-                # self.current_proposal.copy_written_proof_documents(proposal1)
-                # self.current_proposal.copy_signed_licence_agreement_documents(proposal1)
-
-                # req = self.current_proposal.requirements.all().exclude(is_deleted=True)
-                # from copy import deepcopy
-                # if req:
-                #     for r in req:
-                #         old_r = deepcopy(r)
-                #         r.proposal = proposal1
-                #         r.copied_from = old_r
-                #         r.id = None
-                #         r.district_proposal = None
-                #         r.save()
-
-                # Create a log entry for the proposal
-                self.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(self.current_proposal.id), request)
-                target_mooring_licence.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(target_mooring_licence.current_proposal.id), request)
-
-                # Create a log entry for the approval
-                self.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(self.id), request)
-                target_mooring_licence.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(target_mooring_licence.id), request)
-
-                proposal1.save(version_comment=f'New Swap moorings Application created, from origin {proposal1.previous_application_id}')
-                proposal1.add_vessels_and_moorings_from_licence()
-                proposal2.save(version_comment=f'New Swap moorings Application created, from origin {proposal2.previous_application_id}')
-                proposal2.add_vessels_and_moorings_from_licence()
+                self._create_new_swap_moorings_application(request, target_mooring_licence.mooring)
+                target_mooring_licence._create_new_swap_moorings_application(request, self.mooring)
 
             except Exception as e:
                 raise e
