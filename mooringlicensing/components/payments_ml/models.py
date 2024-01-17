@@ -257,6 +257,7 @@ class ApplicationFee(Payment):
     fee_items = models.ManyToManyField('FeeItem', related_name='application_fees', through='FeeItemApplicationFee')
     system_invoice = models.BooleanField(default=False)
     uuid = models.CharField(max_length=36, blank=True, null=True)
+    handled_in_preload = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return 'Application {} : Invoice {}'.format(self.proposal, self.invoice_reference)

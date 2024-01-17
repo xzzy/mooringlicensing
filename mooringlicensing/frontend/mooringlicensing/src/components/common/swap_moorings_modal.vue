@@ -246,11 +246,11 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_type = 'ml'
+                        // d.filter_approval_type = 'ml'
                         // d.show_expired_surrendered = vm.show_expired_surrendered;
                         //d.external_waiting_list = vm.externalWaitingList;
                         //d.filter_status = vm.filterStatus;
-                        //d.filter_approval_type2 = vm.filterApprovalType;
+                        d.filter_approval_type2 = 'ml'
                         //d.filter_mooring_bay_id = vm.filterMooringBay;
                         //d.filter_holder_id = vm.filterHolder;
                         // d.max_vessel_length = vm.maxVesselLength;

@@ -687,6 +687,9 @@ class ApplicationFeeSuccessViewPreload(APIView):
                 logger.info(f'ApplicationFee with uuid: {uuid} exist.')
             application_fee = ApplicationFee.objects.get(uuid=uuid)
 
+            if application_fee.handled_in_preload:
+                return Response(status=status.HTTP_200_OK)
+
             # invoice_reference is set in the URL when normal invoice,
             # invoice_reference is not set in the URL when future invoice, but it is set in the application_fee on creation.
             invoice_reference = request.GET.get("invoice", "")
@@ -758,6 +761,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')
 
             application_fee.invoice_reference = invoice_reference
+            application_fee.handled_in_preload = datetime.datetime.now()
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
@@ -806,6 +810,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                     logger.error(msg)
                     raise Exception(msg)
 
+                application_fee.handled_in_preload = datetime.datetime.now()
                 application_fee.save()
 
             logger.info(
