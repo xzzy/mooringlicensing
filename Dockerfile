@@ -73,7 +73,9 @@ COPY --chown=oim:oim requirements.txt ./
 
 RUN pip install -r requirements.txt \
   && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
-
+RUN pip install --upgrade pip
+RUN wget -O /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=e2fe6cfbab02d535bc52c77cdbe1e860304347f16d30a4708dc342a231412c57
+RUN pip install /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_ml
 COPY  --chown=oim:oim gunicorn.ini manage_ml.py ./
