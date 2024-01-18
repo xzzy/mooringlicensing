@@ -368,12 +368,13 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
+        # exclude_approval_id = self.request.GET.get('exclude_approval_id', 0)
 
-        # target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
-        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+        all = Approval.objects.all()
+        # all = Approval.objects.all().exclude(id=exclude_approval_id)  # We may need to exclude the approvals created from the Waiting List Application
 
         if is_internal(self.request):
+            target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
                 all = all.filter(Q(submitter=target_user.id))
@@ -502,6 +503,17 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
+    def swap_moorings(self, request, *args, **kwargs):
+        with transaction.atomic():
+            originated_approval = self.get_object()
+            target_approval_id = request.data.get('target_approval_id')
+            target_approval = Approval.objects.get(id=target_approval_id)
+            originated_approval.child_obj.swap_moorings(request, target_approval.child_obj)
+            return Response()
+
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
         # external
         approval = self.get_object()
@@ -615,7 +627,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ApprovalCancellationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.approval_cancellation(request,serializer.validated_data)
+        instance.approval_cancellation(request, serializer.validated_data)
         return Response()
 
     @detail_route(methods=['POST',], detail=True)

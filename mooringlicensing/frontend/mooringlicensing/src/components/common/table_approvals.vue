@@ -111,6 +111,11 @@
             :is_internal="is_internal"
             @sendData="sendData"
         />
+        <SwapMooringsModal
+            ref="swap_moorings_modal"
+            :is_internal="is_internal"
+            @sendData="sendDataForSwapMoorings"
+        />
     </div>
 </template>
 
@@ -122,6 +127,7 @@ import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
 import RequestNewStickerModal from "@/components/common/request_new_sticker_modal.vue"
+import SwapMooringsModal from "@/components/common/swap_moorings_modal.vue"
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 
@@ -183,6 +189,7 @@ export default {
         ApprovalSurrender,
         ApprovalHistory,
         RequestNewStickerModal,
+        SwapMooringsModal,
     },
     watch: {
         show_expired_surrendered: function(value){
@@ -499,11 +506,14 @@ export default {
                                     }
                                 }
                                 if(full.renewal_document && full.renewal_sent){
-                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
+                                    links += `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
+                                }
+                                if(full.approval_type_dict && full.approval_type_dict.code == 'ml'){
+                                    links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}' data-swap-moorings-approval-lodgement-number='${full.lodgement_number}'>Swap moorings</a><br/>`
                                 }
                             }
                             if (full.approval_type_dict.code != 'wla') {
-                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
+                                links += `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
                             }
 
                             return links;
@@ -887,6 +897,23 @@ export default {
 
     },
     methods: {
+        sendDataForSwapMoorings: function(params){
+            console.log('in sendDataForSwapMoorings')
+            let vm = this
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/swap_moorings'), params).then(
+                res => {
+                   vm.$router.push('/internal/')
+                },
+                err => {
+                    vm.$refs.request_new_sticker_modal.isModalOpen = false
+                    swal({
+                        title: "Request New Sticker",
+                        text: err.body,
+                        type: "error",
+                    })
+                }
+            )
+        },
         sendData: function(params){
             let vm = this
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
@@ -1002,6 +1029,14 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-suspend-approval');
                 vm.suspendApproval(id);
+            });
+
+            //Internal Swap moorings listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-swap-moorings-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-swap-moorings-approval');
+                var lodgement_number = $(this).attr('data-swap-moorings-approval-lodgement-number');
+                vm.swapMoorings(id, lodgement_number);
             });
 
             // Internal Reinstate listener
@@ -1159,7 +1194,12 @@ export default {
             this.$refs.approval_suspension.approval_id = approval_id;
             this.$refs.approval_suspension.isModalOpen = true;
         },
-
+        swapMoorings: function(approval_id, lodgement_number){
+            this.$refs.swap_moorings_modal.approval_id = approval_id
+            this.$refs.swap_moorings_modal.approval_lodgement_number = lodgement_number
+            this.$refs.swap_moorings_modal.isModalOpen = true
+            // this.$refs.swap_moorings_modal.vmDataTable.ajax.reload()
+        },
         surrenderApproval: function(approval_id, approval_type_name){
             this.$refs.approval_surrender.approval_id = approval_id;
             this.$refs.approval_surrender.approval_type_name = approval_type_name
@@ -1189,8 +1229,6 @@ export default {
                 confirmButtonText: 'Renew approval',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_approval')),{
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')), {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=renew', {
 
                 })
@@ -1223,7 +1261,6 @@ export default {
                 confirmButtonText: 'Amend',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')),{
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=amend', {
 
                 })

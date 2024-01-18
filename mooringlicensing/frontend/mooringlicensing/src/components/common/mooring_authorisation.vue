@@ -146,17 +146,27 @@ import draggable from 'vuedraggable';
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Mooring",
+                    pagination: true,
                     ajax: {
                         url: api_endpoints.mooring_lookup,
                         //url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
                             var query = {
-                                term: params.term,
+                                search_term: params.term,
                                 type: 'public',
                                 private_moorings: true,
+                                page_number: params.page || 1,
                             }
                             return query;
+                        },
+                        processResults: function(data){
+                            return {
+                                'results': data.results,
+                                'pagination': {
+                                    'more': data.pagination.more
+                                }
+                            }
                         },
                     },
                 }).

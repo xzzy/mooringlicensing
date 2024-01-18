@@ -1,18 +1,12 @@
 import logging
+from ledger_api_client.settings_base import TIME_ZONE
 from django.db.models.signals import post_save
+from django.db.models import Q
 from django.dispatch import receiver
-
-from mooringlicensing.components.proposals.models import AuthorisedUserApplication, MooringLicenceApplication, Proposal, CompanyOwnership, VesselOwnershipCompanyOwnership
+from mooringlicensing.components.proposals.models import Mooring, MooringLicenceApplication, Proposal, CompanyOwnership, VesselOwnershipCompanyOwnership
 
 logger = logging.getLogger(__name__)
 
-
-# class TestListener(object):
-#     @staticmethod
-#     @receiver(post_save, sender=MooringLicenceApplication)
-#     def _post_save(sender, instance, **kwargs):
-#         logger.info(f'sender: [{sender}]')
-#         logger.info(f'instance: [{instance}]')
 
 class ProposalListener(object):
     @staticmethod

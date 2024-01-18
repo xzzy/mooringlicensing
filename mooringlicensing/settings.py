@@ -64,6 +64,7 @@ INSTALLED_APPS += [
     'reset_migrations',
     'ckeditor',
     'ledger_api_client',
+    'appmonitor_client',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -169,10 +170,12 @@ MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
 PROPOSAL_TYPE_NEW = 'new'
 PROPOSAL_TYPE_RENEWAL = 'renewal'
 PROPOSAL_TYPE_AMENDMENT = 'amendment'
+PROPOSAL_TYPE_SWAP_MOORINGS = 'swap_moorings'
 PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_NEW, 'New Application'),
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
+    (PROPOSAL_TYPE_SWAP_MOORINGS, 'Swap Moorings'),
 ]
 PROPOSAL_TYPES = [
     {
@@ -186,6 +189,10 @@ PROPOSAL_TYPES = [
     {
         'code': PROPOSAL_TYPE_RENEWAL,
         'description': 'Renewal',
+    },
+    {
+        'code': PROPOSAL_TYPE_SWAP_MOORINGS,
+        'description': 'Swap Moorings',
     },
 ]
 
@@ -431,6 +438,7 @@ UNALLOCATED_ORACLE_CODE = 'NNP449 GST'
 
 CRON_CLASSES = [
     'mooringlicensing.cron.OracleIntegrationCronJob',
+    'appmonitor_client.cron.CronJobAppMonitorClient',
 ]
 
 # Is licence holder allowed to operate
