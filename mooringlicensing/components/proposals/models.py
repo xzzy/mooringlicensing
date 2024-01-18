@@ -14,6 +14,7 @@ import django_countries
 
 import pytz
 import uuid
+from mooringlicensing.components.approvals.email import send_aup_revoked_due_to_mooring_swap_email
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
@@ -2034,13 +2035,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     Q(vessel_ownership__end_date__isnull=True)
                     ):
                 self.listed_vessels.add(vooa.vessel_ownership)
-            self.save()
         elif self.approval and type(self) is AuthorisedUserApplication:
             for moa in self.approval.mooringonapproval_set.filter(
                     Q(end_date__isnull=True)
                     ):
                 self.listed_moorings.add(moa.mooring)
-            self.save()
+        self.save()
 
     def clone_proposal_with_status_reset(self):
         with transaction.atomic():
@@ -3888,31 +3888,22 @@ class MooringLicenceApplication(Proposal):
 
                     if current_mooring:
                         if current_mooring.mooring_licence == approval:
-                            # Mooring and MooringLicence is a 1TO1 relation.
+                            # Mooring and MooringLicence is a 1TO1 relation.  To prevent it from having 1TOMany relation, set None to both moorings.
                             current_mooring.mooring_licence = None
                             current_mooring.save()
+                            logger.info(f'Remove the link between the MSL: [{approval}] and the mooring: [{current_mooring}].')
+                            current_mooring.handle_aups_after_save_mooring(request)
+
+                            temp_licence = target_mooring.mooring_licence
                             target_mooring.mooring_licence = None
                             target_mooring.save()
+                            logger.info(f'Remove the link between the MSL: [{temp_licence}] and the mooring: [{target_mooring}].')
+                            target_mooring.handle_aups_after_save_mooring(request)
 
+                    # Create new relation between the approval and the mooring
                     target_mooring.mooring_licence = approval
                     target_mooring.save()
-
-                    # if current_mooring != target_mooring:
-                    #     # Execute mooring swaps if not done yet
-                    #     ml2 = target_mooring.mooring_licence
-
-                    #     # Reset first
-                    #     target_mooring.mooring_licence = None
-                    #     current_mooring.mooring_licence = None
-                    #     target_mooring.save()
-                    #     current_mooring.save()
-
-                    #     target_mooring.mooring_licence = ml1
-                    #     current_mooring.mooring_licence = ml2
-                    #     target_mooring.save()
-                    #     current_mooring.save()
-
-                    #     logger.info(f'Swapping moorings: The ownership of the mooring: [{target_mooring}] has been set to the MooringLicence: [{ml1}] and the ownership of the mooring: [{current_mooring}] has been set to the MooringLicence: [{ml2}].')
+                    logger.info(f'Create a link between the MSL: [{approval}] and the mooring: [{target_mooring}].')
             else:
                 approval, approval_created = self.approval_class.objects.update_or_create(
                     current_proposal=self,
@@ -4159,6 +4150,60 @@ class Mooring(RevisionedMixin):
     # Used for WLAllocation create MLApplication check
     # mooring licence can onl,y have one Mooring
     mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring", on_delete=models.SET_NULL)
+
+    def handle_aups_after_save_mooring(self, request):
+        logger.debug(f'in handle_aups_after_save_mooring().  self: [{self}]')
+
+        from mooringlicensing.components.approvals.models import Approval, MooringOnApproval
+
+        today=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+        if not self.mooring_licence:
+            # This mooring doesn't have a link to any mooring_licences
+            query = Q()
+            query &= Q(mooring=self)
+            query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,])
+            query &= Q(Q(end_date__gt=today) | Q(end_date__isnull=True))  # No end date or future end date
+            
+            # Retrieve all the AUPs which link to the mooring without any MSLs.  Which means we have to set the end_date and cancell the AUPs.
+            active_mooring_on_approvals = MooringOnApproval.objects.filter(query)
+
+            for active_mooring_on_approval in active_mooring_on_approvals:
+                logger.debug(f'active_mooring_on_approval: [{active_mooring_on_approval}]')
+
+                # Set end date.
+                active_mooring_on_approval.end_date = today  
+                active_mooring_on_approval.save()
+                logger.info(f'End date: [{today}] has been set to the MooringOnApproval: [{active_mooring_on_approval}] .')
+
+                # Set 'to_be_returned' to the sticker
+                from mooringlicensing.components.approvals.models import Sticker
+                # sticker = active_mooring_on_approval.sticker
+                # if sticker:
+                #     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                #     sticker.save()
+                #     # TODO: check existence of other valid moorings
+                #     # This sticker may have another mooring which is still valid.  In that case a new sticker must be printed.
+                # else:
+                #     # Should not reach here
+                #     logger.warn(f'')
+
+                # Cancel AUP
+                # affected_aup = active_mooring_on_approval.approval
+                # affected_aup.approval_cancellation(
+                #     request, 
+                #     {
+                #         'cancellation_date': today,
+                #         'cancellation_details': 'The licence has been cancelled due to a mooring swap.',
+                #         'cancel_due_to_mooring_swap': True,
+                #         'mooring': self,
+                #         'sticker': sticker,
+                #     }
+                # )
+
+                active_mooring_on_approval.approval.manage_stickers()  
+                # send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
+
 
     def __str__(self):
         return f'{self.name} (Bay: {self.mooring_bay.name})'

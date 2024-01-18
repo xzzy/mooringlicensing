@@ -2,6 +2,7 @@ import logging
 from django.core.management.base import BaseCommand
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.main.utils import sticker_export, email_stickers_document, reorder_wla
+from mooringlicensing.components.proposals.models import Mooring
 from mooringlicensing.management.commands.utils import construct_email_message
 
 logger = logging.getLogger('cron_tasks')
@@ -26,6 +27,6 @@ class Command(BaseCommand):
         logger.info(msg)
         cron_email.info(msg)
 
-        ml1 = Approval.objects.get(lodgement_number='MOL000417')
-        ml2 = Approval.objects.get(lodgement_number='MOL000445')
+        # ml1 = Approval.objects.get(lodgement_number='MOL000417')
+        # ml2 = Approval.objects.get(lodgement_number='MOL000445')
         # ml1.child_obj.swap_moorings(ml2.child_obj)

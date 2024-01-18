@@ -627,7 +627,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ApprovalCancellationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.approval_cancellation(request,serializer.validated_data)
+        instance.approval_cancellation(request, serializer.validated_data)
         return Response()
 
     @detail_route(methods=['POST',], detail=True)

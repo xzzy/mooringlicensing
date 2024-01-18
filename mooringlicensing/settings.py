@@ -64,6 +64,7 @@ INSTALLED_APPS += [
     'reset_migrations',
     'ckeditor',
     'ledger_api_client',
+    'appmonitor_client',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -437,6 +438,7 @@ UNALLOCATED_ORACLE_CODE = 'NNP449 GST'
 
 CRON_CLASSES = [
     'mooringlicensing.cron.OracleIntegrationCronJob',
+    'appmonitor_client.cron.CronJobAppMonitorClient',
 ]
 
 # Is licence holder allowed to operate
