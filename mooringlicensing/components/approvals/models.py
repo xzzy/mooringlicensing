@@ -1708,6 +1708,10 @@ class AuthorisedUserPermit(Approval):
         return moas_to_be_reallocated, stickers_to_be_replaced
 
     def _assign_to_new_stickers(self, moas_to_be_on_new_sticker, proposal, stickers_to_be_returned, stickers_to_be_replaced_for_renewal=[]):
+        logger.debug(f'moas_to_be_on_new_sticker: [{moas_to_be_on_new_sticker}]')
+        logger.debug(f'proposal: [{proposal}]')
+        logger.debug(f'stickers_to_be_returned: [{stickers_to_be_returned}]')
+        logger.debug(f'stickers_to_be_replaced_for_renewal: [{stickers_to_be_replaced_for_renewal}]')
         new_stickers = []
 
         if len(stickers_to_be_returned):
@@ -1726,13 +1730,14 @@ class AuthorisedUserPermit(Approval):
 
         new_sticker = None
         for moa_to_be_on_new_sticker in moas_to_be_on_new_sticker:
+            logger.debug(f'moa_to_be_on_new_sticker: [{moa_to_be_on_new_sticker}]')
             if not new_sticker or new_sticker.mooringonapproval_set.count() % 4 == 0:
                 # There is no stickers to fill, or there is a sticker but already be filled with 4 moas, create a new sticker
                 new_sticker = Sticker.objects.create(
                     approval=self,
                     # vessel_ownership=moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else proposal.vessel_ownership,
-                    vessel_ownership=proposal.vessel_ownership if proposal.vessel_ownership else moa_to_be_on_new_sticker.sticker.vessel_ownership,
-                    fee_constructor=proposal.fee_constructor if proposal.fee_constructor else moa_to_be_on_new_sticker.sticker.fee_constructor if moa_to_be_on_new_sticker.sticker else None,
+                    vessel_ownership=proposal.vessel_ownership if proposal and proposal.vessel_ownership else moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else None,
+                    fee_constructor=proposal.fee_constructor if proposal and proposal.fee_constructor else moa_to_be_on_new_sticker.sticker.fee_constructor if moa_to_be_on_new_sticker.sticker else None,
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
                     status=new_status
