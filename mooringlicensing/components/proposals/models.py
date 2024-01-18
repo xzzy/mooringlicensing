@@ -4202,7 +4202,7 @@ class Mooring(RevisionedMixin):
                 # )
 
                 active_mooring_on_approval.approval.manage_stickers()  
-                # send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
+                send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
 
 
     def __str__(self):
