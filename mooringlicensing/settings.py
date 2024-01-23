@@ -75,6 +75,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_datatables.renderers.DatatablesRenderer',
     ),
+    # 'DEFAULT_PAGINATION_CLASS': 'datatablefilter.rest_framework.DatatablesPageNumberPagination',
+    # 'PAGE_SIZE': 10,
 }
 
 MIDDLEWARE_CLASSES += [
