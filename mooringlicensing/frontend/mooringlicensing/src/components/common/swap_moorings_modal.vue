@@ -1,6 +1,7 @@
 <template lang="html">
     <div id="change-contact">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
+            <p>Please select a Mooring Site License to exchange with the mooring of Mooring Site License: <strong>{{ approval_lodgement_number }}</strong>.</p>
             <div class="container-fluid">
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                 <div class="row form-group">
@@ -305,10 +306,15 @@ export default {
             }
         },
         okButtonEnabled: function(){
-            if (this.selectedApprovalId){
-                return true
+            // if (this.selectedApprovalId){
+            //     return true
+            // }
+            // return false
+            let enabled = false
+            if (this.approval_id && this.selectedApprovalId && this.approval_id != this.selectedApprovalId){
+                enabled = true
             }
-            return false
+            return enabled
         },
         showError: function() {
             var vm = this;
