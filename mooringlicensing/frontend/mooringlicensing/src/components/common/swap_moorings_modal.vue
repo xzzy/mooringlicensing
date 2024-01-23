@@ -81,7 +81,7 @@ export default {
     data:function () {
         let vm = this;
         return {
-            approval_id: null,
+            approval_id: null,  // ID is assigned when opening this modal.
             approval_lodgement_number: null,
             stickers: [],
             isModalOpen:false,
@@ -188,6 +188,7 @@ export default {
           return helpers.getCookie('csrftoken')
         },
         datatable_options: function() {
+            console.log('datatable_options!!!')
             let vm = this;
             let selectedColumns = [];
             if (vm.is_internal) {
@@ -369,21 +370,21 @@ export default {
                 vm.selectedApprovalLodgementNumber = lodgement_number
             })
         },
-        fetchData: function(){
-            let vm = this
+        // fetchData: function(){
+        //     let vm = this
 
-            vm.$http.get(api_endpoints.fee_item_sticker_replacement).then(
-                (response) => {
-                    vm.fee_item = response.body
-                },
-                (error) => {
-                    console.log(error)
-                }
-            )
-        }
+        //     vm.$http.get(api_endpoints.fee_item_sticker_replacement).then(
+        //         (response) => {
+        //             vm.fee_item = response.body
+        //         },
+        //         (error) => {
+        //             console.log(error)
+        //         }
+        //     )
+        // }
     },
     created:function () {
-        this.fetchData()
+        // this.fetchData()
         this.$nextTick(() => {
             this.addEventListeners();
         });
