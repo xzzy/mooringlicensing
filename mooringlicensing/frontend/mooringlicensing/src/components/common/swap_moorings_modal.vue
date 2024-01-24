@@ -1,6 +1,7 @@
 <template lang="html">
     <div id="change-contact">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
+            <p>Please select a Mooring Site License to exchange with the mooring of Mooring Site License: <strong>{{ approval_lodgement_number }}</strong>.</p>
             <div class="container-fluid">
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                 <div class="row form-group">
@@ -81,7 +82,7 @@ export default {
     data:function () {
         let vm = this;
         return {
-            approval_id: null,
+            approval_id: null,  // ID is assigned when opening this modal.
             approval_lodgement_number: null,
             stickers: [],
             isModalOpen:false,
@@ -188,6 +189,7 @@ export default {
           return helpers.getCookie('csrftoken')
         },
         datatable_options: function() {
+            console.log('datatable_options!!!')
             let vm = this;
             let selectedColumns = [];
             if (vm.is_internal) {
@@ -304,10 +306,15 @@ export default {
             }
         },
         okButtonEnabled: function(){
-            if (this.selectedApprovalId){
-                return true
+            // if (this.selectedApprovalId){
+            //     return true
+            // }
+            // return false
+            let enabled = false
+            if (this.approval_id && this.selectedApprovalId && this.approval_id != this.selectedApprovalId){
+                enabled = true
             }
-            return false
+            return enabled
         },
         showError: function() {
             var vm = this;
@@ -369,21 +376,21 @@ export default {
                 vm.selectedApprovalLodgementNumber = lodgement_number
             })
         },
-        fetchData: function(){
-            let vm = this
+        // fetchData: function(){
+        //     let vm = this
 
-            vm.$http.get(api_endpoints.fee_item_sticker_replacement).then(
-                (response) => {
-                    vm.fee_item = response.body
-                },
-                (error) => {
-                    console.log(error)
-                }
-            )
-        }
+        //     vm.$http.get(api_endpoints.fee_item_sticker_replacement).then(
+        //         (response) => {
+        //             vm.fee_item = response.body
+        //         },
+        //         (error) => {
+        //             console.log(error)
+        //         }
+        //     )
+        // }
     },
     created:function () {
-        this.fetchData()
+        // this.fetchData()
         this.$nextTick(() => {
             this.addEventListeners();
         });

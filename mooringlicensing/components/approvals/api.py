@@ -28,7 +28,7 @@ from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger, timeit
 from mooringlicensing.components.payments_ml.api import logger
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor
+from mooringlicensing.components.payments_ml.models import FeePeriod, FeeSeason, FeeConstructor
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring, \
@@ -107,12 +107,23 @@ class GetFeeSeasonsDict(views.APIView):
         else:
             fee_seasons = FeeSeason.objects.all()
 
-        data = [{
-            'id': season.id,
-            'name': season.name,
-            'application_type_code': season.application_type.code,
-            'application_type_description': season.application_type.description} for season in fee_seasons]
-        return Response(data)
+        # data = [{
+        #     'id': season.id,
+        #     'name': season.name,
+        #     'application_type_code': season.application_type.code,
+        #     'application_type_description': season.application_type.description} for season in fee_seasons]
+
+        handled = []
+        data = []
+        for fee_season in fee_seasons:
+            if fee_season.start_date not in handled:
+                handled.append(fee_season.start_date)
+                data.append({
+                    'start_date': fee_season.start_date,
+                    'name': str(fee_season.start_date.year) + ' - ' + str(fee_season.start_date.year + 1)
+                })
+        data_sorted = sorted(data, key=lambda x: x['start_date'], reverse=True) if data else []
+        return Response(data_sorted)
 
 
 class GetSticker(views.APIView):
@@ -1147,11 +1158,17 @@ class StickerFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(approval__in=Approval.objects.filter(mooringlicence__in=MooringLicence.objects.all()))
 
         # Filter Year (FeeSeason)
-        filter_fee_season_id = request.GET.get('filter_year')
-        logger.debug(f'fee_season id: {filter_fee_season_id}')
-        if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
-            fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
-            queryset = queryset.filter(fee_constructor__fee_season=fee_season)
+        # filter_fee_season_id = request.GET.get('filter_year')
+        # logger.debug(f'fee_season id: {filter_fee_season_id}')
+        # if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
+        #     fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
+        #     queryset = queryset.filter(fee_constructor__fee_season=fee_season)
+        filter_year = request.GET.get('filter_year')
+        logger.debug(f'filter_year: {filter_year}')
+        if filter_year and not filter_year.lower() == 'all':
+            filter_year = datetime.strptime(filter_year, '%Y-%m-%d').date()
+            fee_seasons = FeePeriod.objects.filter(start_date=filter_year).values_list('fee_season')
+            queryset = queryset.filter(fee_constructor__fee_season__in=fee_seasons)
 
         # Filter sticker status
         filter_sticker_status_id = request.GET.get('filter_sticker_status')
@@ -1172,6 +1189,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
         except Exception as e:
             print(e)
         setattr(view, '_datatables_total_count', total_count)
+        logger.debug(f'queryset count(): [{queryset.count()}]')
         return queryset
 
 
@@ -1271,6 +1289,18 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
             else:
                 qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
         return qs
+
+    def list(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = StickerSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
 
 
 class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):

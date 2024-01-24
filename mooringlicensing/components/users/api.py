@@ -133,7 +133,7 @@ class GetPerson(views.APIView):
 
         if search_term:
             my_queryset = EmailUser.objects.annotate(
-                search_term=Concat(
+                custom_term=Concat(
                     "first_name",
                     Value(" "),
                     "last_name",
@@ -141,7 +141,7 @@ class GetPerson(views.APIView):
                     "email",
                     output_field=CharField(),
                     )
-                ).filter(search_term__icontains=search_term)
+                ).filter(custom_term__icontains=search_term)
             paginator = Paginator(my_queryset, items_per_page)
             try:
                 current_page = paginator.page(page_number)

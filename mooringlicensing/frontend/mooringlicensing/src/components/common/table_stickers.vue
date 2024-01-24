@@ -24,7 +24,7 @@
                     <label for="">Season</label>
                     <select class="form-control" v-model="filterYear">
                         <option value="All">All</option>
-                        <option v-for="season in fee_seasons" :value="season.id">{{ season.name }} {{ season.application_type_description }}</option>
+                        <option v-for="season in fee_seasons" :value="season.start_date">{{ season.name }}</option>
                     </select>
                 </div>
             </div>
@@ -347,6 +347,7 @@ export default {
                 //responsive: true,
                 responsive: true,
                 serverSide: true,
+                paging: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: search,
                 ordering: true,
