@@ -735,7 +735,7 @@ class Approval(RevisionedMixin):
                 elif type(self.child_obj) == MooringLicence:
                     customer_status_choices = [Proposal.CUSTOMER_STATUS_WITH_ASSESSOR, Proposal.CUSTOMER_STATUS_DRAFT, Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT, Proposal.CUSTOMER_STATUS_PRINTING_STICKER, Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT, Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS]
             existing_proposal_qs=self.proposal_set.filter(customer_status__in=customer_status_choices,
-                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL]))
+                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]))
             ## cannot amend or renew
             if existing_proposal_qs or ria_generated_proposal_qs:
                 amend_renew = None
@@ -743,6 +743,17 @@ class Approval(RevisionedMixin):
             elif self.renewal_document and self.renewal_sent:
                 amend_renew = 'renew'
             return amend_renew
+        except Exception as e:
+            raise e
+
+    @property
+    def mooring_swappable(self):
+        logger.debug(f'approval: [{self}]')
+        logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
+        try:
+            if self.amend_or_renew:
+                return True  # if it is amendable/renewable, it is also swappable.
+            return False
         except Exception as e:
             raise e
 
