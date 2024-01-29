@@ -1151,21 +1151,29 @@ class StickerFilterBackend(DatatablesFilterBackend):
 
         # Custom fullname search
         pattern = re.compile(r'\S\s+')
-        qs_fullname = Sticker.objects.none()
+        qs_stickers = Sticker.objects.none()
+        qs_stickers2 = Sticker.objects.none()
         if pattern.search(search_term):
             # Only when the search term has a space after a some text(first_name), then perform custome query because we just want to perform full_name search.
-            my_queryset = EmailUser.objects.annotate(
+            email_user_ids = EmailUser.objects.annotate(
                 custom_term=Concat(
                     "first_name",
                     Value(" "),
                     "last_name",
-                    Value(" "),
-                    "email",
                     output_field=CharField(),
-                    )
-                ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
-            qs_fullname = queryset.filter(approval__in=Approval.objects.filter(submitter__in=list(my_queryset)))
+                )
+            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+            qs_stickers = queryset.filter(approval__in=Approval.objects.filter(submitter__in=list(email_user_ids)))
 
+            proposal_applicants = ProposalApplicant.objects.annotate(
+                custom_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    output_field=CharField(),
+                )
+            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+            qs_stickers2 = queryset.filter(approval__current_proposal__proposalapplicant__in=proposal_applicants)
 
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
@@ -1212,7 +1220,8 @@ class StickerFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_total_count', total_count)
 
         # Merge with the custom search
-        queryset = queryset.union(qs_fullname)
+        queryset = queryset.union(qs_stickers)
+        queryset = queryset.union(qs_stickers2)
 
         return queryset
 
