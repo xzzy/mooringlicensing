@@ -663,6 +663,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
+    mooring_swappable = serializers.SerializerMethodField()
     allowed_assessors_user = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     stickers_historical = serializers.SerializerMethodField()
@@ -704,6 +705,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'can_action',
             'can_reinstate',
             'amend_or_renew',
+            'mooring_swappable',
             'renewal_document',
             'allowed_assessors_user',
             'stickers',
@@ -748,6 +750,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'can_action',
             'can_reinstate',
             'amend_or_renew',
+            'mooring_swappable',
             'renewal_document',
             'allowed_assessors_user',
             'stickers',
@@ -894,6 +897,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_amend_or_renew(self,obj):
         return obj.amend_or_renew
+
+    def get_mooring_swappable(self,obj):
+        return obj.mooring_swappable
 
     def get_mooring_licence_vessels(self, obj):
         links = ''

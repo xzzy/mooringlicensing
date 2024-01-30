@@ -1,4 +1,7 @@
+import re
 import traceback
+from django.db.models import Q, Min, CharField, Value
+from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
 from confy import env
 import datetime
@@ -1144,6 +1147,33 @@ class StickerRenderer(DatatablesRenderer):
 class StickerFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
+        search_term = request.GET.get('search[value]', '')
+
+        # Custom fullname search
+        pattern = re.compile(r'\S\s+')
+        qs_stickers = Sticker.objects.none()
+        qs_stickers2 = Sticker.objects.none()
+        if pattern.search(search_term):
+            # Only when the search term has a space after a some text(first_name), then perform custome query because we just want to perform full_name search.
+            email_user_ids = EmailUser.objects.annotate(
+                custom_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    output_field=CharField(),
+                )
+            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+            qs_stickers = queryset.filter(approval__in=Approval.objects.filter(submitter__in=list(email_user_ids)))
+
+            proposal_applicants = ProposalApplicant.objects.annotate(
+                custom_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    output_field=CharField(),
+                )
+            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+            qs_stickers2 = queryset.filter(approval__current_proposal__proposalapplicant__in=proposal_applicants)
 
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
@@ -1164,7 +1194,6 @@ class StickerFilterBackend(DatatablesFilterBackend):
         #     fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
         #     queryset = queryset.filter(fee_constructor__fee_season=fee_season)
         filter_year = request.GET.get('filter_year')
-        logger.debug(f'filter_year: {filter_year}')
         if filter_year and not filter_year.lower() == 'all':
             filter_year = datetime.strptime(filter_year, '%Y-%m-%d').date()
             fee_seasons = FeePeriod.objects.filter(start_date=filter_year).values_list('fee_season')
@@ -1189,7 +1218,11 @@ class StickerFilterBackend(DatatablesFilterBackend):
         except Exception as e:
             print(e)
         setattr(view, '_datatables_total_count', total_count)
-        logger.debug(f'queryset count(): [{queryset.count()}]')
+
+        # Merge with the custom search
+        queryset = queryset.union(qs_stickers)
+        queryset = queryset.union(qs_stickers2)
+
         return queryset
 
 
