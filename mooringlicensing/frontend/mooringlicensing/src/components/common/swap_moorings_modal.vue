@@ -242,7 +242,7 @@ export default {
                 //searching: false,
                 searching: true,
                 ajax: {
-                    "url": api_endpoints.approvals_paginated_list + '/list2/?format=datatables&target_email_user_id=' + vm.target_email_user_id,
+                    "url": api_endpoints.approvals_paginated_list + '/list2/?format=datatables&target_email_user_id=' + vm.target_email_user_id + '&for_swap_moorings_modal=True',
                     "dataSrc": 'data',
                     "type": 'POST',
 
