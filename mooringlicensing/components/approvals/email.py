@@ -714,6 +714,33 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
             _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
 
 
+def send_swap_moorings_application_created_notification(mooring_licence, request):
+    email = TemplateEmailBase(
+        subject=f'Swap moorings application created',
+        html_template='mooringlicensing/emails_2/swap_moorings_application_created.html',
+        txt_template='mooringlicensing/emails_2/swap_moorings_application_created.txt',
+    )
+    proposal = mooring_licence.current_proposal
+
+    context = {
+        'dashboard_external_url': get_public_url(request),
+    }
+    all_ccs = []
+    all_bccs = []
+    attachments = []
+
+    all_bccs = proposal.assessor_recipients
+
+    msg = email.send(proposal.submitter_obj.email, cc=all_ccs, bcc=all_bccs, context=context, attachments=attachments)
+    if msg:
+        sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+        _log_approval_email(msg, mooring_licence, sender=sender, attachments=attachments)
+        if mooring_licence.org_applicant:
+            _log_org_email(msg, mooring_licence.org_applicant, proposal.submitter_obj, sender=sender)
+        else:
+            _log_user_email(msg, mooring_licence.submitter_obj, proposal.submitter_obj, sender=sender)
+
+
 def send_approval_reinstate_email_notification(approval, request):
     # 31 Reinstated
     # email to licence/permit holder when licence/permit is reinstated or when suspension ends
