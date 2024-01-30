@@ -724,6 +724,7 @@ def send_swap_moorings_application_created_notification(mooring_licence, request
 
     context = {
         'dashboard_external_url': get_public_url(request),
+        'recipient': mooring_licence.submitter_obj,
     }
     all_ccs = []
     all_bccs = []
