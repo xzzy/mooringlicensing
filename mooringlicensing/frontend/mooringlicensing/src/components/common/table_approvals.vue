@@ -509,7 +509,8 @@ export default {
                                     links += `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
                                 }
                                 if(full.approval_type_dict && full.approval_type_dict.code == 'ml'){
-                                    links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}' data-swap-moorings-approval-lodgement-number='${full.lodgement_number}'>Swap moorings</a><br/>`
+                                    if(full.mooring_swappable)
+                                        links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}' data-swap-moorings-approval-lodgement-number='${full.lodgement_number}'>Swap moorings</a><br/>`
                                 }
                             }
                             if (full.approval_type_dict.code != 'wla') {

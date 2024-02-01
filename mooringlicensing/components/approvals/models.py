@@ -44,6 +44,7 @@ from mooringlicensing.components.approvals.email import (
     send_aup_revoked_due_to_mooring_swap_email,
     # send_auth_user_no_moorings_notification,
     send_auth_user_mooring_removed_notification,
+    send_swap_moorings_application_created_notification,
 )
 from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
@@ -735,7 +736,7 @@ class Approval(RevisionedMixin):
                 elif type(self.child_obj) == MooringLicence:
                     customer_status_choices = [Proposal.CUSTOMER_STATUS_WITH_ASSESSOR, Proposal.CUSTOMER_STATUS_DRAFT, Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT, Proposal.CUSTOMER_STATUS_PRINTING_STICKER, Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT, Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS]
             existing_proposal_qs=self.proposal_set.filter(customer_status__in=customer_status_choices,
-                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL]))
+                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]))
             ## cannot amend or renew
             if existing_proposal_qs or ria_generated_proposal_qs:
                 amend_renew = None
@@ -743,6 +744,17 @@ class Approval(RevisionedMixin):
             elif self.renewal_document and self.renewal_sent:
                 amend_renew = 'renew'
             return amend_renew
+        except Exception as e:
+            raise e
+
+    @property
+    def mooring_swappable(self):
+        logger.debug(f'approval: [{self}]')
+        logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
+        try:
+            if self.amend_or_renew:
+                return True  # if it is amendable/renewable, it is also swappable.
+            return False
         except Exception as e:
             raise e
 
@@ -1777,14 +1789,19 @@ class MooringLicence(Approval):
         new_proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
         new_proposal.vessel_ownership = self.current_proposal.vessel_ownership
 
+        new_proposal.save(version_comment=f'New Swap moorings Application: [{new_proposal}] created with the new mooring: [{new_mooring}] from the origin {new_proposal.previous_application}')
+        new_proposal.add_vessels_and_moorings_from_licence()
+
+        self.current_proposal = new_proposal  # current_proposal of this ML should be new_proposal
+        self.save()
+
         # Create a log entry for the proposal
         self.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(self.current_proposal.id), request)
 
         # Create a log entry for the approval
         self.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(self.id), request)
-
-        new_proposal.save(version_comment=f'New Swap moorings Application: [{new_proposal}] created with the new mooring: [{new_mooring}] from the origin {new_proposal.previous_application}')
-        new_proposal.add_vessels_and_moorings_from_licence()
+        
+        send_swap_moorings_application_created_notification(self, request)
 
     def swap_moorings(self, request, target_mooring_licence):
         logger.info(f'Swapping moorings between an approval: [{self} ({self.mooring})] and an approval: [{target_mooring_licence} ({target_mooring_licence.mooring})]...')

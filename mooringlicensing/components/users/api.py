@@ -189,8 +189,16 @@ class UserListFilterView(generics.ListAPIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = EmailUser.objects.all()
+    queryset = EmailUser.objects.none()
     serializer_class = UserSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return EmailUser.objects.all()
+        elif is_customer(self.request):
+            user = self.request.user
+            return EmailUser.objects.filter(Q(id=user.id))
+        return EmailUser.objects.none()
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler

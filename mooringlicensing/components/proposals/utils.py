@@ -47,7 +47,7 @@ from mooringlicensing.components.approvals.models import (
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_SWAP_MOORINGS
 import traceback
 from copy import deepcopy
 from rest_framework import serializers
@@ -579,7 +579,7 @@ def submit_vessel_data(instance, request, vessel_data):
             raise serializers.ValidationError(vessel_lookup_errors)
 
     if not vessel_data.get('rego_no'):
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,]:
+        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
             if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
                 return
         else:
@@ -764,7 +764,7 @@ def store_vessel_ownership(request, vessel, instance=None):
                 vessel_ownership.company_ownerships.add(company_ownership)
                 logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
             vo_created = True
-    elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
+    elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]:
         # Retrieve a vessel_ownership from the previous proposal
         # vessel_ownership = instance.previous_application.vessel_ownership  # !!! This is not always true when ML !!!
         vessel_ownership = instance.get_latest_vessel_ownership_by_vessel(vessel)
