@@ -1,3 +1,4 @@
+import math
 from dateutil.relativedelta import relativedelta
 
 import ledger_api_client.utils
@@ -21,7 +22,7 @@ from django.db.models import Q
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import TIME_ZONE, GROUP_DCV_PERMIT_ADMIN
+from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, GROUP_DCV_PERMIT_ADMIN
 # from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, EmailUserRO
@@ -40,8 +41,10 @@ from mooringlicensing.components.approvals.email import (
     send_approval_suspend_email_notification,
     send_approval_reinstate_email_notification,
     send_approval_surrender_email_notification,
+    send_aup_revoked_due_to_mooring_swap_email,
     # send_auth_user_no_moorings_notification,
     send_auth_user_mooring_removed_notification,
+    send_swap_moorings_application_created_notification,
 )
 from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
@@ -111,6 +114,9 @@ class ApprovalDocument(Document):
 
 
 class MooringOnApproval(RevisionedMixin):
+    """
+    This class is used only for AUP, because an AUP can have multiple moorings.
+    """
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
     mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
@@ -142,7 +148,7 @@ class MooringOnApproval(RevisionedMixin):
         no_end_date = Q(end_date__isnull=True)
         ml_is_current = Q(mooring__mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)
         sticker_is_current = Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT)
-        moas = approval.mooringonapproval_set.filter((no_end_date | ml_is_current) & sticker_is_current)  # Is (end_date_is_not_set | ml_is_current) correct?
+        moas = approval.mooringonapproval_set.filter((no_end_date & ml_is_current) & sticker_is_current)  # Is (end_date_is_not_set | ml_is_current) correct?
         return moas
 
     @staticmethod
@@ -345,9 +351,43 @@ class Approval(RevisionedMixin):
         return address_obj
 
     @property
+    def proposal_applicant(self):
+        proposal_applicant = None
+        if self.current_proposal:
+            proposal_applicant = self.current_proposal.proposal_applicant
+        return proposal_applicant
+
+    @property
+    def postal_first_name(self):
+        try:
+            ret_value = self.proposal_applicant.first_name
+        except:
+            logger.error(f'Postal address first_name cannot be retrieved for the approval [{self}].')
+            return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_first_name found for the Approval: [{self}].')
+
+        return ret_value
+
+    @property
+    def postal_last_name(self):
+        try:
+            ret_value = self.proposal_applicant.last_name
+        except:
+            logger.error(f'Postal address last_name cannot be retrieved for the approval [{self}].')
+            return ''
+
+        if not ret_value:
+            logger.warning(f'Empty postal_last_name found for the Approval: [{self}].')
+
+        return ret_value
+
+
+    @property
     def postal_address_line1(self):
         try:
-            ret_value = self.postal_address_obj.line1
+            ret_value = self.proposal_applicant.postal_address_line1
         except:
             logger.error(f'Postal address line1 cannot be retrieved for the approval [{self}].')
             return ''
@@ -360,7 +400,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_line2(self):
         try:
-            ret_value = self.postal_address_obj.line2
+            ret_value = self.proposal_applicant.postal_address_line2
         except:
             logger.error(f'Postal address line2 cannot be retrieved for the approval [{self}]')
             return ''
@@ -370,7 +410,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_state(self):
         try:
-            ret_value = self.postal_address_obj.state
+            ret_value = self.proposal_applicant.postal_address_state
         except:
             logger.error(f'Postal address state cannot be retrieved for the approval [{self}]')
             return ''
@@ -383,7 +423,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_suburb(self):
         try:
-            ret_value = self.postal_address_obj.locality
+            ret_value = self.proposal_applicant.postal_address_suburb
         except:
             logger.error(f'Postal address locality cannot be retrieved for the approval [{self}]')
             return ''
@@ -396,7 +436,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_postcode(self):
         try:
-            ret_value = self.postal_address_obj.postcode
+            ret_value = self.proposal_applicant.postal_address_postcode
         except:
             logger.error(f'Postal address postcode cannot be retrieved for the approval [{self}]')
             return ''
@@ -635,17 +675,31 @@ class Approval(RevisionedMixin):
         return self.current_proposal.allowed_assessors
 
     def allowed_assessors_user(self, request):
-        return self.current_proposal.allowed_assessors_user(request)
+        if self.current_proposal:
+            return self.current_proposal.allowed_assessors_user(request)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return None
 
-    def is_assessor(self,user):
+    def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        return self.current_proposal.is_assessor(user)
+
+        if self.current_proposal:
+            return self.current_proposal.is_assessor(user)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return False
 
     def is_approver(self,user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        return self.current_proposal.is_approver(user)
+
+        if self.current_proposal:
+            return self.current_proposal.is_approver(user)
+        else:
+            logger.warning(f'Current proposal of the approval: [{self}] not found.')
+            return False
 
     @property
     def is_issued(self):
@@ -654,7 +708,7 @@ class Approval(RevisionedMixin):
     @property
     def can_action(self):
         if not (self.set_to_cancel or self.set_to_suspend or self.set_to_surrender):
-                return True
+            return True
         else:
             return False
 
@@ -682,7 +736,7 @@ class Approval(RevisionedMixin):
                 elif type(self.child_obj) == MooringLicence:
                     customer_status_choices = [Proposal.CUSTOMER_STATUS_WITH_ASSESSOR, Proposal.CUSTOMER_STATUS_DRAFT, Proposal.CUSTOMER_STATUS_AWAITING_ENDORSEMENT, Proposal.CUSTOMER_STATUS_PRINTING_STICKER, Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT, Proposal.CUSTOMER_STATUS_AWAITING_DOCUMENTS]
             existing_proposal_qs=self.proposal_set.filter(customer_status__in=customer_status_choices,
-                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL]))
+                    proposal_type__in=ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]))
             ## cannot amend or renew
             if existing_proposal_qs or ria_generated_proposal_qs:
                 amend_renew = None
@@ -690,6 +744,17 @@ class Approval(RevisionedMixin):
             elif self.renewal_document and self.renewal_sent:
                 amend_renew = 'renew'
             return amend_renew
+        except Exception as e:
+            raise e
+
+    @property
+    def mooring_swappable(self):
+        logger.debug(f'approval: [{self}]')
+        logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
+        try:
+            if self.amend_or_renew:
+                return True  # if it is amendable/renewable, it is also swappable.
+            return False
         except Exception as e:
             raise e
 
@@ -758,27 +823,34 @@ class Approval(RevisionedMixin):
             except:
                 raise
 
-    def approval_cancellation(self,request,details):
+    def approval_cancellation(self, request, details):
+        logger.debug(f'in approval_cancellation().  self: [{self}] details: [{details}]')
         with transaction.atomic():
             try:
+                logger.info(f'Cancelling the approval: [{self}]...')
                 if not request.user in self.allowed_assessors:
                     raise ValidationError('You do not have access to cancel this approval')
                 if not self.can_reissue and self.can_action:
                     raise ValidationError('You cannot cancel approval if it is not current or suspended')
-                self.cancellation_date = details.get('cancellation_date').strftime('%Y-%m-%d')
+
+                cancellation_date = details.get('cancellation_date').strftime('%Y-%m-%d')
+                cancellation_date = datetime.datetime.strptime(cancellation_date,'%Y-%m-%d').date()
+                self.cancellation_date = cancellation_date
                 self.cancellation_details = details.get('cancellation_details')
-                cancellation_date = datetime.datetime.strptime(self.cancellation_date,'%Y-%m-%d')
-                cancellation_date = cancellation_date.date()
-                self.cancellation_date = cancellation_date # test hack
                 today = timezone.now().date()
                 if cancellation_date <= today:
                     if not self.status == Approval.APPROVAL_STATUS_CANCELLED:
                         self.status = Approval.APPROVAL_STATUS_CANCELLED
                         self.set_to_cancel = False
+                        self.save()
+                        logger.info(f'Status: [{Approval.APPROVAL_STATUS_CANCELLED}] has been set to the approval: [{self}]')
+
                         send_approval_cancel_email_notification(self)
                 else:
                     self.set_to_cancel = True
-                self.save()
+                    self.save()
+                    logger.info(f'True has been set to the "set_to_cancel" attribute of the approval: [{self}]')
+
                 if type(self.child_obj) == WaitingListAllocation:
                     self.child_obj.processes_after_cancel()
                 # Log proposal action
@@ -848,8 +920,6 @@ class Approval(RevisionedMixin):
                 if type(self.child_obj) == WaitingListAllocation and previous_status in [Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED]:
                     wla = self.child_obj
                     wla.internal_status = Approval.INTERNAL_STATUS_WAITING
-                    current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                    # wla.wla_queue_date = current_datetime  # Comment out this line because we never want to lost the original queue_date.
                     wla.save()
                     wla.set_wla_order()
                 send_approval_reinstate_email_notification(self, request)
@@ -1005,7 +1075,7 @@ class Approval(RevisionedMixin):
                 # Do nothing
                 pass
 
-    def manage_stickers(self, proposal):
+    def manage_stickers(self, proposal=None):
         return self.child_obj.manage_stickers(proposal)
 
 
@@ -1139,7 +1209,7 @@ class WaitingListAllocation(Approval):
         logger.info(f'Set attributes as follows: [status=fulfilled, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
-    def reinstate_wla_order(self, request):
+    def reinstate_wla_order(self):
         """
         This function makes this WL allocation back to the 'waiting' status
         """
@@ -1147,8 +1217,9 @@ class WaitingListAllocation(Approval):
         self.status = Approval.APPROVAL_STATUS_CURRENT
         self.internal_status = Approval.INTERNAL_STATUS_WAITING
         self.save()
-        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].')
+        logger.info(f'Set attributes as follows: [status=current, internal_status=waiting, wla_order=None] of the WL Allocation: [{self}].  These changes make this WL allocation back to the waiting list queue.')
         self.set_wla_order()
+        return self
 
 
 class AnnualAdmissionPermit(Approval):
@@ -1163,10 +1234,8 @@ class AnnualAdmissionPermit(Approval):
         app_label = 'mooringlicensing'
 
     def get_grace_period_end_date(self):
-        end_date = None
-        # if self.current_proposal.vessel_ownership.end_date:
-        #     end_date = relativedelta(months=+6)
-        return end_date
+        # No grace period for the AAP
+        return None
 
     def process_after_discarded(self):
         logger.debug(f'in AAP called.')
@@ -1361,10 +1430,8 @@ class AuthorisedUserPermit(Approval):
         app_label = 'mooringlicensing'
 
     def get_grace_period_end_date(self):
-        end_date = None
-        # if self.current_proposal.vessel_ownership.end_date:
-        #     end_date = relativedelta(months=+6)
-        return end_date
+        # No grace period for the AUP
+        return None
 
     def process_after_discarded(self):
         logger.debug(f'in AUP called.')
@@ -1462,7 +1529,7 @@ class AuthorisedUserPermit(Approval):
         self.current_proposal.final_approval()
 
     def update_moorings(self, mooring_licence):
-        # The status of the mooring_licence passed as a parameter should be in ['expired', 'cancelled', 'surrendered', 'suspended']
+        # The status of the mooring_licence should be in ['expired', 'cancelled', 'surrendered', 'suspended']
         if mooring_licence.status not in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
             # Set end_date to the moa because the mooring on it is no longer available.
             moa = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence)
@@ -1474,7 +1541,7 @@ class AuthorisedUserPermit(Approval):
         if not self.mooringonapproval_set.filter(mooring__mooring_licence__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]):
             ## No moorings left on this AU permit, include information that permit holder can amend and apply for new mooring up to expiry date.
             # send_auth_user_no_moorings_notification(self.approval)
-            logger.info(f'There are no mooring left on the AU approval: [{self}].')
+            logger.info(f'There are no moorings left on the AU approval: [{self}].')
             send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
         else:
             for moa in self.mooringonapproval_set.all():
@@ -1495,7 +1562,7 @@ class AuthorisedUserPermit(Approval):
         return moorings
 
 
-    def manage_stickers(self, proposal):
+    def manage_stickers(self, proposal=None):
         logger.info(f'Managing stickers for the AuthorisedUserPermit: [{self}]...')
 
         # Lists to be returned to the caller
@@ -1524,7 +1591,7 @@ class AuthorisedUserPermit(Approval):
             _stickers_to_be_replaced.append(moa.sticker)
 
         # 3. Find all the moas to be replaced and update stickers_to_be_replaced
-        if proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # When Renewal/reissuedRenewal, (vessel changed, null vessel)
             # When renewal, all the current/awaiting_printing stickers to be replaced
             # All the sticker gets 'expired' status once payment made
@@ -1545,7 +1612,9 @@ class AuthorisedUserPermit(Approval):
 
         # There may be sticker(s) to be returned by record-sale
         # Rewrite???  Following codes pick up the stickers to be returened due not only to sale but other reasons... Is this OK???
-        stickers_return = proposal.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_TO_BE_RETURNED,])
+        # stickers_return = proposal.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_TO_BE_RETURNED,])
+        appr = proposal.approval if proposal else self
+        stickers_return = appr.stickers.filter(status__in=[Sticker.STICKER_STATUS_TO_BE_RETURNED,])
         for sticker in stickers_return:
             stickers_to_be_returned.append(sticker)
 
@@ -1590,7 +1659,9 @@ class AuthorisedUserPermit(Approval):
                     logger.info(f'There is a non-filled sticker: [{sticker}], which is to be returned.')
                     stickers_to_be_returned.append(sticker)
                     for moa in sticker.mooringonapproval_set.all():
-                        moas_to_be_reallocated.append(moa)
+                        # moas_to_be_reallocated.append(moa)
+                        if moa not in moas_to_be_removed:
+                            moas_to_be_reallocated.append(moa)
                 elif stickers.count() > 1:
                     # Should not reach here
                     msg = f'AUP: [{self.lodgement_number}] has more than one stickers without 4 moorings.'
@@ -1604,7 +1675,7 @@ class AuthorisedUserPermit(Approval):
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
     def update_lists_due_to_vessel_changes(self, moas_to_be_reallocated, stickers_to_be_replaced, proposal):
-        if proposal.previous_application:
+        if proposal and proposal.previous_application:
             # Check the sticker colour changes due to the vessel length change
             next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
             current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
@@ -1648,36 +1719,17 @@ class AuthorisedUserPermit(Approval):
 
         return moas_to_be_reallocated, stickers_to_be_replaced
 
-    #     stickers = self.stickers.filter(status__in=Sticker.STATUSES_AS_CURRENT)
-    #
-    #     if self.approval.current_proposal.vessel_removed:
-    #         # self.current_proposal.vessel_ownership.vessel_removed --> All the stickers to be returned
-    #         # A vessel --> No vessels
-    #         for sticker in stickers:
-    #             stickers_to_be_replaced.append(sticker)
-    #
-    #     if self.approval.current_proposal.vessel_swapped:
-    #         # All the stickers to be removed and all the mooring on them to be reallocated
-    #         # A vessel --> Another vessel
-    #         for sticker in stickers:
-    #             stickers_to_be_replaced.append(sticker)
-    #
-    #     if self.approval.current_proposal.vessel_null_to_new:
-    #         # --> Create new sticker
-    #         # No vessels --> New vessel
-    #         # All moas should be on new stickers
-    #         moas_list = self.mooringonapproval_set. \
-    #             filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status__in=[MooringLicence.APPROVAL_STATUS_CURRENT,MooringLicence.APPROVAL_STATUS_SUSPENDED]))
-    #         for moa in moas_list:
-    #             moas_to_be_reallocated.append(moa)
-
     def _assign_to_new_stickers(self, moas_to_be_on_new_sticker, proposal, stickers_to_be_returned, stickers_to_be_replaced_for_renewal=[]):
+        logger.debug(f'moas_to_be_on_new_sticker: [{moas_to_be_on_new_sticker}]')
+        logger.debug(f'proposal: [{proposal}]')
+        logger.debug(f'stickers_to_be_returned: [{stickers_to_be_returned}]')
+        logger.debug(f'stickers_to_be_replaced_for_renewal: [{stickers_to_be_replaced_for_renewal}]')
         new_stickers = []
 
         if len(stickers_to_be_returned):
             new_status = Sticker.STICKER_STATUS_READY
             for a_sticker in stickers_to_be_returned:
-                if proposal.vessel_ownership:
+                if proposal and proposal.vessel_ownership:
                     # Current proposal has a vessel
                     if a_sticker.vessel_ownership.vessel.rego_no != proposal.vessel_ownership.vessel.rego_no:
                         new_status = Sticker.STICKER_STATUS_NOT_READY_YET  # This sticker gets 'ready' status once the sticker with 'to be returned' status is returned.
@@ -1690,12 +1742,14 @@ class AuthorisedUserPermit(Approval):
 
         new_sticker = None
         for moa_to_be_on_new_sticker in moas_to_be_on_new_sticker:
+            logger.debug(f'moa_to_be_on_new_sticker: [{moa_to_be_on_new_sticker}]')
             if not new_sticker or new_sticker.mooringonapproval_set.count() % 4 == 0:
                 # There is no stickers to fill, or there is a sticker but already be filled with 4 moas, create a new sticker
                 new_sticker = Sticker.objects.create(
                     approval=self,
-                    vessel_ownership=moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else proposal.vessel_ownership,
-                    fee_constructor=proposal.fee_constructor if proposal.fee_constructor else moa_to_be_on_new_sticker.sticker.fee_constructor if moa_to_be_on_new_sticker.sticker else None,
+                    # vessel_ownership=moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else proposal.vessel_ownership,
+                    vessel_ownership=proposal.vessel_ownership if proposal and proposal.vessel_ownership else moa_to_be_on_new_sticker.sticker.vessel_ownership if moa_to_be_on_new_sticker.sticker else None,
+                    fee_constructor=proposal.fee_constructor if proposal and proposal.fee_constructor else moa_to_be_on_new_sticker.sticker.fee_constructor if moa_to_be_on_new_sticker.sticker else None,
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
                     status=new_status
@@ -1725,13 +1779,64 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
 
+    def _create_new_swap_moorings_application(self, request, new_mooring):
+        new_proposal = self.current_proposal.clone_proposal_with_status_reset()
+        new_proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
+        new_proposal.submitter = self.current_proposal.submitter
+        new_proposal.previous_application = self.current_proposal
+        new_proposal.keep_existing_vessel = True
+        new_proposal.allocated_mooring = new_mooring  # Swap moorings here
+        new_proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+        new_proposal.vessel_ownership = self.current_proposal.vessel_ownership
+
+        new_proposal.save(version_comment=f'New Swap moorings Application: [{new_proposal}] created with the new mooring: [{new_mooring}] from the origin {new_proposal.previous_application}')
+        new_proposal.add_vessels_and_moorings_from_licence()
+
+        self.current_proposal = new_proposal  # current_proposal of this ML should be new_proposal
+        self.save()
+
+        # Create a log entry for the proposal
+        self.current_proposal.log_user_action(ProposalUserAction.ACTION_SWAP_MOORINGS_PROPOSAL.format(self.current_proposal.id), request)
+
+        # Create a log entry for the approval
+        self.log_user_action(ApprovalUserAction.ACTION_SWAP_MOORINGS.format(self.id), request)
+        
+        send_swap_moorings_application_created_notification(self, request)
+
+    def swap_moorings(self, request, target_mooring_licence):
+        logger.info(f'Swapping moorings between an approval: [{self} ({self.mooring})] and an approval: [{target_mooring_licence} ({target_mooring_licence.mooring})]...')
+
+        with transaction.atomic():
+            try:
+                self._create_new_swap_moorings_application(request, target_mooring_licence.mooring)
+                target_mooring_licence._create_new_swap_moorings_application(request, self.mooring)
+
+            except Exception as e:
+                raise e
+
     def get_grace_period_end_date(self):
         end_date = None
-        for vo in self.vesselownershiponapproval_set.all():
-            logger.debug(vo)
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
+        min_mooring_vessel_size = float(min_mooring_vessel_size_str)
 
-        # TODO: Calculate end_date from possibly multiple vessels sold
-
+        for vooa in self.vesselownershiponapproval_set.all():
+            vessel_ownership = vooa.vessel_ownership
+            if vessel_ownership.vessel.latest_vessel_details.vessel_applicable_length >= min_mooring_vessel_size:
+                # Vessel size is large enough
+                if vessel_ownership.end_date is None or vessel_ownership.end_date >= today:
+                    # The vessel has not been sold.  We don't have to consider the grace period.
+                    end_date = None  # Reset end_date
+                    break
+                else:
+                    # the vessel has been sold
+                    if not end_date or end_date < vessel_ownership.end_date:
+                        end_date = vessel_ownership.end_date + relativedelta(months=+6)
+            else:
+                # Vessel is too small to consider the grace period.  We are interested only in the vessels larger than or equal to the min_mooring_vessel_size.
+                pass
+        
+        logger.debug(f'end_date: {end_date} of ML: {self}')
         return end_date
 
     def process_after_withdrawn(self):
@@ -1911,6 +2016,49 @@ class MooringLicence(Approval):
             proposal.save(f'Processing status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal: [{proposal}]')
             logger.info(f'')
             return [], []
+
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+            stickers_to_be_kept = []  # Store all the stickers we want to keep
+            new_sticker_created = False
+            new_sticker_status = Sticker.STICKER_STATUS_READY  # Default to 'ready'
+
+            for vessel_ownership in self.vessel_ownership_list:
+                new_sticker = Sticker.objects.create(
+                    approval=self,
+                    # vessel_ownership=proposal.vessel_ownership,
+                    vessel_ownership=vessel_ownership,
+                    fee_constructor=proposal.fee_constructor,
+                    proposal_initiated=proposal,
+                    fee_season=self.latest_applied_season,
+                    status=new_sticker_status,
+                )
+                new_sticker_created = True
+                stickers_to_be_kept.append(new_sticker)
+                logger.info(f'New Sticker: [{new_sticker}] has been created for the vessel_ownership: [{vessel_ownership}] of the licence: [{self}].')
+
+            stickers_current = self.stickers.filter(
+                status__in=[
+                    Sticker.STICKER_STATUS_CURRENT,
+                    Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                ]
+            )
+            # CurrentStickers - StickersToBeKept = StickersToBeReturned
+            stickers_to_be_returned = [sticker for sticker in stickers_current if sticker not in stickers_to_be_kept]
+
+            # Update sticker status
+            self._update_status_of_sticker_to_be_removed(stickers_to_be_returned)
+
+            # new_proposal_status = Proposal.PROCESSING_STATUS_APPROVED  # Default to 'approved'
+            # if stickers_to_be_returned_by_vessel_sold:
+            #     new_proposal_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
+            # elif new_sticker_created:
+            #     new_proposal_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            # proposal.processing_status = new_proposal_status
+            proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            proposal.save()
+            logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal: [{proposal}]')
+
+            return [], stickers_to_be_returned
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             # Amendment (vessel(s) may be changed)
@@ -2163,6 +2311,7 @@ class ApprovalUserAction(UserAction):
     ACTION_SURRENDER_APPROVAL = "Surrender approval {}"
     ACTION_RENEW_APPROVAL = "Create renewal Application for approval {}"
     ACTION_AMEND_APPROVAL = "Create amendment Application for approval {}"
+    ACTION_SWAP_MOORINGS = "Create swap moorings Application for approval {}"
     ACTION_REISSUE_APPROVAL = "Reissue approval {}"
     ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Site Licence {}"
     ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval: {}"
@@ -2328,6 +2477,13 @@ class DcvAdmission(RevisionedMixin):
 
             private_visit = 'YES' if dcv_admission_arrival.private_visit else 'NO'
 
+            if settings.DEBUG:
+                # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+                total_amount = math.ceil(total_amount)
+                total_amount_excl_tax = math.ceil(calculate_excl_gst(total_amount)) if fee_constructor.incur_gst else math.ceil(total_amount)
+            else:
+                total_amount_excl_tax = calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount
+
             line_item = {
                 'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
                     fee_constructor.application_type.description,
@@ -2338,7 +2494,7 @@ class DcvAdmission(RevisionedMixin):
                 ),
                 'oracle_code': oracle_code,
                 'price_incl_tax': total_amount,
-                'price_excl_tax': calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount,
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             }
             line_items.append(line_item)
@@ -2517,6 +2673,14 @@ class DcvPermit(RevisionedMixin):
         db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
+        if settings.DEBUG:
+            # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+            total_amount = math.ceil(fee_item.amount)
+            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount),
+        else:
+            total_amount = fee_item.amount
+            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+
         line_items = [
             {
                 # 'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
@@ -2529,8 +2693,8 @@ class DcvPermit(RevisionedMixin):
                 ),
                 # 'oracle_code': application_type.oracle_code,
                 'oracle_code': ApplicationType.get_current_oracle_code_by_application(application_type.code),
-                'price_incl_tax': fee_item.amount,
-                'price_excl_tax': ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+                'price_incl_tax': total_amount,
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             },
         ]
@@ -2893,7 +3057,7 @@ class Sticker(models.Model):
             fee_constructor=self.fee_constructor,
             fee_season=self.approval.latest_applied_season,
         )
-        logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+        logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
 
         return new_sticker
 
@@ -2963,15 +3127,17 @@ class Sticker(models.Model):
 
     @property
     def first_name(self):
-        if self.approval and self.approval.submitter:
-            return self.approval.submitter_obj.first_name
-        return '---'
+        # if self.approval and self.approval.submitter:
+        #     return self.approval.submitter_obj.first_name
+        # return '---'
+        return self.approval.postal_first_name
 
     @property
     def last_name(self):
-        if self.approval and self.approval.submitter:
-            return self.approval.submitter_obj.last_name
-        return '---'
+        # if self.approval and self.approval.submitter:
+        #     return self.approval.submitter_obj.last_name
+        # return '---'
+        return self.approval.postal_last_name
 
     @property
     def postal_address_line1(self):
@@ -3002,6 +3168,13 @@ class Sticker(models.Model):
         return self.approval.postal_address_suburb
 
     @property
+    def postal_address_postcode(self):
+        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
+        #     return self.approval.submitter_obj.postal_address.postcode
+        # return '---'
+        return self.approval.postal_address_postcode
+
+    @property
     def vessel_registration_number(self):
         if self.vessel_ownership and self.vessel_ownership.vessel:
             return self.vessel_ownership.vessel.rego_no
@@ -3012,13 +3185,6 @@ class Sticker(models.Model):
         if self.vessel_ownership and self.vessel_ownership.vessel and self.vessel_ownership.vessel.latest_vessel_details:
             return self.vessel_ownership.vessel.latest_vessel_details.vessel_applicable_length
         raise ValueError('Vessel size not found for the sticker: {}'.format(self))
-
-    @property
-    def postal_address_postcode(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.postcode
-        # return '---'
-        return self.approval.postal_address_postcode
 
 
 class StickerActionDetail(models.Model):

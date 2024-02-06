@@ -65,16 +65,24 @@ from '@/utils/hooks'
                     "theme": "bootstrap",
                     allowClear: true,
                     placeholder:"Select Sticker",
+                    pagination: true,
                     ajax: {
                         url: api_endpoints.sticker_lookup,
-                        //url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
-                            var query = {
-                                term: params.term,
+                            return {
+                                search_term: params.term,
+                                page_number: params.page || 1,
                                 type: 'public',
                             }
-                            return query;
+                        },
+                        processResults: function(data){
+                            return {
+                                'results': data.results,
+                                'pagination': {
+                                    'more': data.pagination.more
+                                }
+                            }
                         },
                     },
                 }).

@@ -22,7 +22,7 @@
                             </template>
                         </div>
                     </div>
-                    <div class="col-sm-12 top-buffer-s">
+                    <div v-if="enable_actions_section" class="col-sm-12 top-buffer-s">
                         <strong>Actions</strong><br/>
                         <a tabindex="2" ref="showActionBtn" class="actionBtn">Show</a>
                     </div>
@@ -54,6 +54,10 @@ export default {
             required: true
         },
         disable_add_entry: {
+            type: Boolean,
+            default: true
+        },
+        enable_actions_section: {
             type: Boolean,
             default: true
         }

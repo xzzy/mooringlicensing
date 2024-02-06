@@ -24,7 +24,7 @@
                     <label for="">Season</label>
                     <select class="form-control" v-model="filterYear">
                         <option value="All">All</option>
-                        <option v-for="season in fee_seasons" :value="season.id">{{ season.name }}</option>
+                        <option v-for="season in fee_seasons" :value="season.start_date">{{ season.name }}</option>
                     </select>
                 </div>
             </div>
@@ -161,7 +161,7 @@ export default {
             return {
                 data: "approval",
                 orderable: false,
-                searchable: false,
+                searchable: true,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.approval){
@@ -172,7 +172,7 @@ export default {
                         return ''
                     }
                 },
-                name: 'approval__applicant'
+                name: 'approval__current_proposal__proposalapplicant__first_name, approval__current_proposal__proposalapplicant__last_name, approval__current_proposal__proposalapplicant__email'
             }
         },
         column_number: function(){
@@ -249,7 +249,6 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     if (full.fee_season){
-                        console.log(full)
                         // This should be always reached
                         return full.fee_season
                     }
@@ -305,11 +304,6 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     return vm.getActionCellContents(full)
-                    //let links =  `<a href='#${full.id}' data-replacement='${full.id}'>Request Sticker Replacement</a><br/>`
-                    //links += `<a href='#${full.id}' data-record-returned='${full.id}'>Record Returned Sticker</a><br/>`
-                    //links += `<a href='#${full.id}' data-record-lost='${full.id}'>Record Sticker Lost</a><br/>`
-                    //links += `<a href='#${full.id}' data-view-details='${full.id}'>Show/Hide Details</a><br/>`
-                    //return '<span id="action_cell_contents_id_' + full.id + '">' + links + '</span>'
                 }
             }
         },
@@ -353,6 +347,7 @@ export default {
                 //responsive: true,
                 responsive: true,
                 serverSide: true,
+                paging: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: search,
                 ordering: true,

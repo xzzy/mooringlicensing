@@ -1,0 +1,8 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
+
+{% block content_body %}
+{% include "mooringlicensing/emails_2/salutation.html" %}
+<p>New swap moorings application has been created.  Please click <a href="{{ dashboard_external_url }}">here</a> to access the application.</p>
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}
+

@@ -32,7 +32,7 @@ class EmailUserLogEntry(CommunicationsLogEntry):
 
 
 def update_emailuser_comms_log_filename(instance, filename):
-    return '{}/emailusers/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.emailuser.id, instance.id, filename)
+    return '{}/emailusers/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.email_user_id, instance.id, filename)
 
 
 class EmailUserLogDocument(Document):

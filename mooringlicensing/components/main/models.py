@@ -68,9 +68,7 @@ class CommunicationsLogEntry(models.Model):
     subject = models.CharField(max_length=200, blank=True, verbose_name="Subject / Description")
     text = models.TextField(blank=True)
 
-    # customer = models.ForeignKey(EmailUser, null=True, related_name='+')
     customer = models.IntegerField(null=True)  # EmailUserRO
-    # staff = models.ForeignKey(EmailUser, null=True, related_name='+')
     staff = models.IntegerField(null=True, blank=True)  # EmailUserRO
 
     created = models.DateTimeField(auto_now_add=True, null=False, blank=False)

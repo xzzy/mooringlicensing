@@ -422,11 +422,10 @@ class CommunicationLogEntrySerializer(serializers.ModelSerializer):
 
 class EmailUserLogEntrySerializer(CommunicationLogEntrySerializer):
     # TODO: implement
-    pass
 #     documents = serializers.SerializerMethodField()
-#     class Meta:
-#         model = EmailUserLogEntry
-#         fields = '__all__'
+    class Meta:
+        model = EmailUserLogEntry
+        fields = '__all__'
 #         read_only_fields = (
 #             'customer',
 #         )

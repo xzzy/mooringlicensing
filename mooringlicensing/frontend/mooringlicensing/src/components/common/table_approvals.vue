@@ -111,6 +111,11 @@
             :is_internal="is_internal"
             @sendData="sendData"
         />
+        <SwapMooringsModal
+            ref="swap_moorings_modal"
+            :is_internal="is_internal"
+            @sendData="sendDataForSwapMoorings"
+        />
     </div>
 </template>
 
@@ -122,6 +127,7 @@ import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
 import RequestNewStickerModal from "@/components/common/request_new_sticker_modal.vue"
+import SwapMooringsModal from "@/components/common/swap_moorings_modal.vue"
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
 
@@ -183,10 +189,10 @@ export default {
         ApprovalSurrender,
         ApprovalHistory,
         RequestNewStickerModal,
+        SwapMooringsModal,
     },
     watch: {
         show_expired_surrendered: function(value){
-            console.log(value)
             this.$refs.approvals_datatable.vmDataTable.ajax.reload()
         },
         filterStatus: function(){
@@ -247,6 +253,7 @@ export default {
                     'Start Date',
                     'Expiry Date',
                     'Action',
+                    'Grace period end date',
                     'Approval letter',
                 ]
             } else if (this.is_external) {
@@ -263,6 +270,7 @@ export default {
                     'Vessel Rego',
                     'Mooring',
                     'Action',
+                    'Grace period end date',
                     'Approval letter',
                     'Sticker replacement',
                 ]
@@ -303,9 +311,8 @@ export default {
                     'Approval letter',
                     'Sticker replacement',
                     'Vessel Rego',
+                    'Grace period end date',
                     'Action',
-                    //'Mooring Licence Vessels',
-                    //'Authorised User Permit Moorings',
                 ]
             }
         },
@@ -317,7 +324,6 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
-                            console.log(full)
                             return full.id
                         }
                     }
@@ -399,20 +405,6 @@ export default {
                         name: "internal_status",
                     }
         },
-        // columnVesselRegistration: function() {
-        //     return {
-        //                 // 6. Vessel Registration
-        //                 data: "id",
-        //                 orderable: true,
-        //                 searchable: false,
-        //                 visible: true,
-        //                 'render': function(row, type, full){
-        //                     console.log('columnVesselRegistration')
-        //                     return full.vessel_registration;
-        //                 },
-        //                 name: "current_proposal__vessel_details__vessel__rego_no"
-        //             }
-        // },
         columnVesselName: function() {
             return {
                         // 7. Vessel Name
@@ -473,7 +465,6 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            console.log(full)
                             let links = '';
                             if(vm.debug){
                                 links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
@@ -515,11 +506,15 @@ export default {
                                     }
                                 }
                                 if(full.renewal_document && full.renewal_sent){
-                                  links +=  `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
+                                    links += `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
+                                }
+                                if(full.approval_type_dict && full.approval_type_dict.code == 'ml'){
+                                    if(full.mooring_swappable)
+                                        links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}' data-swap-moorings-approval-lodgement-number='${full.lodgement_number}'>Swap moorings</a><br/>`
                                 }
                             }
                             if (full.approval_type_dict.code != 'wla') {
-                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
+                                links += `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
                             }
 
                             return links;
@@ -722,7 +717,7 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    if (full.grace_period_details.grace_period_end_date){
+                    if (full.status === 'Current' && full.grace_period_details.grace_period_end_date){
                         return moment(full.grace_period_details.grace_period_end_date).format('DD/MM/YYYY') + ' (' + full.grace_period_details.days_left + ' days left)'
                     }
                     return 'N/A'
@@ -765,6 +760,7 @@ export default {
                     vm.columnStartDate,
                     vm.columnExpiryDate,
                     vm.columnAction,
+                    vm.columnGracePeriod,
                     vm.columnApprovalLetter,
                 ]
             } else if (this.is_external) {
@@ -778,16 +774,12 @@ export default {
                     vm.columnIssueDate,
                     vm.columnStartDate,
                     vm.columnExpiryDate,
-                    // vm.columnVesselRegistration,
                     vm.columnVesselRegos,
                     vm.columnMooring,
                     vm.columnAction,
+                    vm.columnGracePeriod,
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,
-                    /*
-                    vm.columnMooringLicenceVessels,
-                    vm.columnAuthorisedUserMoorings,
-                    */
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -826,11 +818,8 @@ export default {
                     vm.columnApprovalLetter,
                     vm.columnStickerReplacement,
                     vm.columnVesselRegos,
+                    vm.columnGracePeriod,
                     vm.columnAction,
-                    /*
-                    vm.columnMooringLicenceVessels,
-                    vm.columnAuthorisedUserMoorings,
-                    */
                 ]
             }
             let buttons = []
@@ -886,8 +875,21 @@ export default {
                 columns: selectedColumns,
                 processing: true,
                 initComplete: function() {
-                    console.log('in initComplete')
+
                 },
+                createdRow: function(row, data, dataIndex){
+                    if (data.status === 'Current'){
+                        if (data.grace_period_details && data.grace_period_details.days_left){
+                            let colour_code = '#ff6961'
+                            if (data.grace_period_details.days_left > 0){
+                                colour_code = '#ffa07a'
+                            }
+                            $(row).css({
+                                'background-color': colour_code
+                            })
+                        }
+                    }
+                }
             }
         },
         offerMooringLicenceKey: function() {
@@ -896,15 +898,30 @@ export default {
 
     },
     methods: {
+        sendDataForSwapMoorings: function(params){
+            console.log('in sendDataForSwapMoorings')
+            let vm = this
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/swap_moorings'), params).then(
+                res => {
+                   vm.$router.push('/internal/')
+                },
+                err => {
+                    vm.$refs.request_new_sticker_modal.isModalOpen = false
+                    swal({
+                        title: "Request New Sticker",
+                        text: err.body,
+                        type: "error",
+                    })
+                }
+            )
+        },
         sendData: function(params){
-            console.log(params)
             let vm = this
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
                 res => {
                     helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
                 },
                 err => {
-                    console.log(err)
                     vm.$refs.request_new_sticker_modal.isModalOpen = false
                     swal({
                         title: "Request New Sticker",
@@ -920,33 +937,10 @@ export default {
                 vm.profile = response.body
 
             },(error) => {
-                console.log(error);
 
             })
         },
-        /*
-        check_assessor: function(proposal){
-            let vm = this;
-            //console.log(proposal.id, proposal.can_approver_reissue);
-            var assessor = proposal.allowed_assessors.filter(function(elem){
-                    return(elem.id==vm.profile.id)
-
-                });
-
-            if (assessor.length > 0){
-                //console.log(proposal.id, assessor)
-                return true;
-            }
-            else
-                return false;
-
-            return false;
-        },
-        */
-
         offerMooringLicence: function(id){
-            console.log('offerMooringLicence')
-            console.log(id)
             this.selectedWaitingListAllocationId = parseInt(id);
             this.uuid++;
             this.$nextTick(() => {
@@ -1036,6 +1030,14 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-suspend-approval');
                 vm.suspendApproval(id);
+            });
+
+            //Internal Swap moorings listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-swap-moorings-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-swap-moorings-approval');
+                var lodgement_number = $(this).attr('data-swap-moorings-approval-lodgement-number');
+                vm.swapMoorings(id, lodgement_number);
             });
 
             // Internal Reinstate listener
@@ -1193,7 +1195,12 @@ export default {
             this.$refs.approval_suspension.approval_id = approval_id;
             this.$refs.approval_suspension.isModalOpen = true;
         },
-
+        swapMoorings: function(approval_id, lodgement_number){
+            this.$refs.swap_moorings_modal.approval_id = approval_id
+            this.$refs.swap_moorings_modal.approval_lodgement_number = lodgement_number
+            this.$refs.swap_moorings_modal.isModalOpen = true
+            // this.$refs.swap_moorings_modal.vmDataTable.ajax.reload()
+        },
         surrenderApproval: function(approval_id, approval_type_name){
             this.$refs.approval_surrender.approval_id = approval_id;
             this.$refs.approval_surrender.approval_type_name = approval_type_name
@@ -1223,8 +1230,6 @@ export default {
                 confirmButtonText: 'Renew approval',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_approval')),{
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')), {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=renew', {
 
                 })
@@ -1257,7 +1262,6 @@ export default {
                 confirmButtonText: 'Amend',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')),{
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=amend', {
 
                 })
@@ -1294,3 +1298,6 @@ export default {
     }
 }
 </script>
+
+<style lang="css" scoped>
+</style>

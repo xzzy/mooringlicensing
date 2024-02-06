@@ -359,6 +359,7 @@
             },
             resetCurrentVessel: function(keep) {
                 console.log('in recetCurrentVessel()')
+                console.log({keep})
                 this.keepCurrentVessel = keep;
                 this.uuid++
                 this.updateAmendmentRenewalProperties();
@@ -412,7 +413,9 @@
                 }
             },
             populateProfile: function(profile) {
-                this.profile = Object.assign({}, profile);
+                // this.profile = Object.assign({}, profile);
+                this.profile = profile
+                this.$emit('profile-fetched', this.profile);
             },
             set_tabs:function(){
                 let vm = this;

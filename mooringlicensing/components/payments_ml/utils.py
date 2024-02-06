@@ -1,6 +1,7 @@
 import logging
 # from _pydecimal import Decimal
 import decimal
+import math
 
 import pytz
 from django.http import HttpResponse
@@ -106,12 +107,22 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
             instance.lodgement_number,
             target_datetime_str,
         )
+    
+    if settings.DEBUG:
+        # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+        total_amount = math.ceil(float(fee_amount_adjusted))
+        total_amount_excl_tax = math.ceil(float(calculate_excl_gst(fee_amount_adjusted))) if fee_constructor.incur_gst else math.ceil(float(fee_amount_adjusted))
+    else:
+        total_amount = float(fee_amount_adjusted)
+        total_amount_excl_tax = float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted)
 
     return {
         'ledger_description': ledger_description,
         'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
-        'price_incl_tax': float(fee_amount_adjusted),
-        'price_excl_tax': float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted),
+        # 'price_incl_tax': float(fee_amount_adjusted),
+        # 'price_excl_tax': float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted),
+        'price_incl_tax': total_amount,
+        'price_excl_tax': total_amount_excl_tax,
         'quantity': 1,
     }
 

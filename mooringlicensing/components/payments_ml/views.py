@@ -1,5 +1,6 @@
 import datetime
 import logging
+import math
 
 import ledger_api_client.utils
 # from ledger.checkout.utils import calculate_excl_gst
@@ -243,19 +244,32 @@ class StickerReplacementFeeView(TemplateView):
                 fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
 
                 lines = []
+                applicant = None
                 for sticker_action_detail in sticker_action_details:
+                    if settings.DEBUG:
+                        total_amount = 0 if sticker_action_detail.waive_the_fee else math.ceil(fee_item.amount)
+                        total_amount_excl_tax = 0 if sticker_action_detail.waive_the_fee else math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_item.incur_gst else math.ceil(fee_item.amount)
+                    else:
+                        total_amount = 0 if sticker_action_detail.waive_the_fee else fee_item.amount
+                        total_amount_excl_tax = 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount
+
                     line = {
                         'ledger_description': 'Sticker Replacement Fee, sticker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
                         'oracle_code': application_type.get_oracle_code_by_date(current_datetime.date()),
-                        'price_incl_tax': 0 if sticker_action_detail.waive_the_fee else fee_item.amount,
-                        'price_excl_tax': 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
+                        # 'price_incl_tax': 0 if sticker_action_detail.waive_the_fee else fee_item.amount,
+                        # 'price_excl_tax': 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
+                        'price_incl_tax': total_amount,
+                        'price_excl_tax': total_amount_excl_tax,
                         'quantity': 1,
                     }
+                    if not applicant:
+                        submitter_obj = sticker_action_detail.sticker.approval.submitter_obj
                     lines.append(line)
 
                 checkout_response = checkout(
                     request,
-                    request.user,
+                    # request.user,
+                    submitter_obj,
                     lines,
                     return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
@@ -673,6 +687,9 @@ class ApplicationFeeSuccessViewPreload(APIView):
                 logger.info(f'ApplicationFee with uuid: {uuid} exist.')
             application_fee = ApplicationFee.objects.get(uuid=uuid)
 
+            if application_fee.handled_in_preload:
+                return Response(status=status.HTTP_200_OK)
+
             # invoice_reference is set in the URL when normal invoice,
             # invoice_reference is not set in the URL when future invoice, but it is set in the application_fee on creation.
             invoice_reference = request.GET.get("invoice", "")
@@ -744,6 +761,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')
 
             application_fee.invoice_reference = invoice_reference
+            application_fee.handled_in_preload = datetime.datetime.now()
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
@@ -777,7 +795,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         # When WLA / AAA
                         if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code]:
                             proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.id), request)
+                            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
 
                             proposal.child_obj.send_emails_after_payment_success(request)
                             proposal.save()
@@ -792,6 +810,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                     logger.error(msg)
                     raise Exception(msg)
 
+                application_fee.handled_in_preload = datetime.datetime.now()
                 application_fee.save()
 
             logger.info(
@@ -834,8 +853,9 @@ class ApplicationFeeSuccessView(TemplateView):
 
         except Exception as e:
             # Should not reach here
-            msg = 'Failed to process the payment. {}'.format(str(e))
+            msg = f'Failed to process the payment. {str(e)}'
             logger.error(msg)
+            logger.error('Check if the preload_url is configured correctly.')
             raise Exception(msg)
 
 

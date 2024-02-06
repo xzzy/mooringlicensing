@@ -48,9 +48,11 @@ export default {
             this.$refs.modal_details.isModalOpen = true
         },
         sendData: function(params){
+            console.log({params})
             let vm = this
             let action = params.action
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params.details).then(
+            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params.details).then(
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params).then(
                 res => {
                     if (action == 'request_replacement'){
                         // Sticker replacement requires payments

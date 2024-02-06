@@ -1,9 +1,9 @@
 <template lang="html">
     <div class="container">
         <!--button type="button" @click="createML">Mooring Licence Application</button-->
-        <div class="row" v-if="applicationsLoading">
-            <div class="col-sm-3">
-                <i class='fa fa-5x fa-spinner fa-spin pull-right'></i>
+        <div v-if="applicationsLoading">
+            <div style="text-align: center;">
+                <i class='fa fa-5x fa-spinner fa-spin'></i>
             </div>
         </div>
         <div v-else class="row">

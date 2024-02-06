@@ -1,4 +1,5 @@
 import json
+from django.core.paginator import Paginator, EmptyPage
 import os
 import traceback
 import pathlib
@@ -26,7 +27,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, create_proposal_applicant_if_not_exist, make_ownership_ready,
+    save_proponent_data, update_proposal_applicant, make_ownership_ready,
 )
 from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -146,43 +147,71 @@ class GetVessel(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('term', '')
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+
         if search_term:
             data_transform = []
-
+            ### VesselDetails
             ml_data = VesselDetails.filtered_objects.filter(
-                    Q(vessel__rego_no__icontains=search_term) | 
-                    Q(vessel_name__icontains=search_term)
-                    ).values(
-                            'vessel__id', 
-                            'vessel__rego_no',
-                            'vessel_name'
-                            )[:10]
-            for vd in ml_data:
+                Q(vessel__rego_no__icontains=search_term) | 
+                Q(vessel_name__icontains=search_term)
+            ).values(
+                'vessel__id', 
+                'vessel__rego_no',
+                'vessel_name'
+            )
+            paginator = Paginator(ml_data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                logger.debug(f'VesselDetails empty')
+                my_objects = []
+
+            for vd in my_objects:
                 data_transform.append({
                     'id': vd.get('vessel__id'), 
                     'rego_no': vd.get('vessel__rego_no'),
                     'text': vd.get('vessel__rego_no') + ' - ' + vd.get('vessel_name'),
                     'entity_type': 'ml',
-                    })
+                })
+
+            ### DcvVessel
             dcv_data = DcvVessel.objects.filter(
-                    Q(rego_no__icontains=search_term) | 
-                    Q(vessel_name__icontains=search_term)
-                    ).values(
-                            'id', 
-                            'rego_no',
-                            'vessel_name'
-                            )[:10]
-            for dcv in dcv_data:
+                Q(rego_no__icontains=search_term) | 
+                Q(vessel_name__icontains=search_term)
+            ).values(
+                'id', 
+                'rego_no',
+                'vessel_name'
+            )
+            paginator2 = Paginator(dcv_data, items_per_page)
+            try:
+                current_page2 = paginator2.page(page_number)
+                my_objects2 = current_page2.object_list
+            except EmptyPage:
+                logger.debug(f'DcvVessel empty')
+                my_objects2 = []
+
+            for dcv in my_objects2:
                 data_transform.append({
                     'id': dcv.get('id'), 
                     'rego_no': dcv.get('rego_no'),
                     'text': dcv.get('rego_no') + ' - ' + dcv.get('vessel_name'),
                     'entity_type': 'dcv',
-                    })
+                })
+
             ## order results
             data_transform.sort(key=lambda item: item.get("id"))
-            return Response({"results": data_transform})
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next() or current_page2.has_next()
+                }
+            })
         return Response()
 
 
@@ -190,17 +219,31 @@ class GetMooring(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
         private_moorings = request.GET.get('private_moorings')
-        search_term = request.GET.get('term', '')
+
         if search_term:
             if private_moorings:
-                # data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')[:10]
                 data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')
             else:
-                # data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')[:10]
                 data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')
-            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
-            return Response({"results": data_transform})
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+            
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in my_objects]
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
         return Response()
 
 
@@ -566,9 +609,10 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         if is_internal(self.request):
             if target_email_user_id:
+                # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                user_orgs = [org.id for org in target_user.mooringlicensing_organisations.all()]
-                all = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
+                user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
+                all = all.filter(Q(org_applicant__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
@@ -617,8 +661,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 proposal_type=proposal_type
                 )
         logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
+        obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -647,9 +690,8 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 submitter=request.user.id,
                 proposal_type=proposal_type
                 )
-        logger.info(f'Authorised User Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
+        logger.info(f'Authorised User Permit Application: [{obj}] has been created by the user: [{request.user}].')
+        obj.log_user_action(f'Authorised User Permit Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -684,8 +726,7 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 allocated_mooring=mooring,
                 )
         logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
+        obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -717,14 +758,10 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 )
 
         logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
-
-        # make_proposal_applicant_ready(obj, request)
-
-        # make_ownership_ready(obj, request)
+        obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
-
 
 
 class ProposalByUuidViewSet(viewsets.ModelViewSet):
@@ -821,8 +858,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
     #     return super(ProposalViewSet, self).retrieve(request, *args, **kwargs)
 
     def get_object(self):
-        logger.info(f'Getting object in the ProposalViewSet...')
-        if self.kwargs.get('id').isnumeric():
+        id = self.kwargs.get('id')
+        logger.info(f'Getting proposal in the ProposalViewSet by the ID: [{id}]...')
+
+        if id.isnumeric():
             obj = super(ProposalViewSet, self).get_object()
         else:
             # When AUP holder accesses this proposal for endorsement 
@@ -832,7 +871,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return obj
 
     def get_queryset(self):
-        logger.info(f'Getting queryset in the ProposalViewSet...')
         request_user = self.request.user
         if is_internal(self.request):
             qs = Proposal.objects.all()
@@ -873,6 +911,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
        except Exception as e:
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['PUT'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def reinstate_wl_allocation(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if is_internal(request) and instance.child_obj.code == MooringLicenceApplication.code and instance.processing_status in [Proposal.PROCESSING_STATUS_DISCARDED,]:
+            # Internal user is accessing
+            # Proposal is ML application and the status of it is 'discarded'
+            wlallocation = instance.child_obj.reinstate_wl_allocation(request)
+            return Response({'lodgement_number': wlallocation.lodgement_number})  # TODO
+        else:
+            msg = f'This application: [{instance}] does not meet the conditions to put the original WLAllocation to the waiting list queue.'
+            logger.warn(msg)
+            raise serializers.ValidationError(msg)
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -1075,7 +1128,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer_class = self.internal_serializer_class()
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
-        raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -1234,7 +1286,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
             
-            save_proponent_data(instance,request,self)
+            save_proponent_data(instance, request, self)
             return Response()
 
     @detail_route(methods=['GET',], detail=True)
@@ -1388,14 +1440,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         else:
             instance.destroy(request, *args, **kwargs)
 
-        ## ML
-        # if type(instance.child_obj) == MooringLicenceApplication and instance.waiting_list_allocation:
-        #     pass
-            # instance.waiting_list_allocation.internal_status = 'waiting'
-            # current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-            # instance.waiting_list_allocation.wla_queue_date = current_datetime
-            # instance.waiting_list_allocation.save()
-            # instance.waiting_list_allocation.set_wla_order()
         return Response()
 
     @detail_route(methods=['POST',], detail=True)
@@ -1743,11 +1787,12 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
                 serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
-                logger.info(f'VesselOwnership: [{instance}] has been updated with the end_date: [{sale_date}].')
+                logger.info(f'Vessel sold: VesselOwnership: [{instance}] has been updated with the end_date: [{sale_date}].')
+                # send_vessel_sale_notification_mail(request, instance)
 
                 ## collect impacted Approvals
                 approval_list = []
-                for prop in instance.proposal_set.filter(approval__status='current'):
+                for prop in instance.proposal_set.filter(approval__status=Approval.APPROVAL_STATUS_CURRENT):
                     if (type(prop.approval.child_obj) in [WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit] and
                             prop.approval not in approval_list):
                         approval_list.append(prop.approval)
@@ -1873,7 +1918,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        return Response({})
+        # return Response({})
         vessel = self.get_object()
         booking_date_str = request.data.get("selected_date")
         booking_date = None
@@ -1900,23 +1945,23 @@ class VesselViewSet(viewsets.ModelViewSet):
             for vd in vd_set:
                 for prop in vd.proposal_set.all():
                     if (
-                            prop.approval and 
-                            selected_date >= prop.approval.start_date and
-                            selected_date <= prop.approval.expiry_date and
-                            # ensure vessel has not been sold
-                            prop.vessel_ownership and not prop.vessel_ownership.end_date
-                            ):
+                        prop.approval and 
+                        selected_date >= prop.approval.start_date and
+                        selected_date <= prop.approval.expiry_date and
+                        # ensure vessel has not been sold
+                        prop.vessel_ownership and not prop.vessel_ownership.end_date
+                    ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
         else:
             for vd in vd_set:
                 for prop in vd.proposal_set.all():
                     if (
-                            prop.approval and 
-                            prop.approval.status == 'current' and
-                            # ensure vessel has not been sold
-                            prop.vessel_ownership and not prop.vessel_ownership.end_date
-                            ):
+                        prop.approval and 
+                        prop.approval.status == 'current' and
+                        # ensure vessel has not been sold
+                        prop.vessel_ownership and not prop.vessel_ownership.end_date
+                    ):
                         if prop.approval not in approval_list:
                             approval_list.append(prop.approval)
 
@@ -2123,6 +2168,21 @@ class MooringFilterBackend(DatatablesFilterBackend):
 
         try:
             queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
+
+            # Custom search
+            search_term = request.GET.get('search[value]')  # This has a search term.
+            if search_term:
+                email_users = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+                # 1
+                q_set = Mooring.objects.filter(mooring_licence__submitter__in=list(email_users))
+                # 2
+                # q_set2 = Mooring.objects.filter(mooringonapproval__approval__submitter__in=list(email_users), mooringonapproval__end_date__isnull=True)
+
+                queryset = queryset.union(q_set)
+
+            return queryset
+
+
         except Exception as e:
             print(e)
         setattr(view, '_datatables_total_count', total_count)

@@ -45,6 +45,7 @@
                 @mooringPreferenceChanged="updateMooringPreference"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
 
             <AnnualAdmissionApplication
@@ -60,6 +61,7 @@
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
             <AuthorisedUserApplication
                 v-if="proposal && proposal.application_type_code==='aua'"
@@ -74,6 +76,7 @@
                 @changeMooring="updateMooringAuth"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
             <MooringLicenceApplication
                 v-if="proposal && proposal.application_type_code==='mla'"
@@ -88,6 +91,7 @@
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
+                @profile-fetched="populateProfile"
             />
 
             <div>
@@ -118,7 +122,7 @@
                                             <input v-else type="button" @click.prevent="save" class="btn btn-primary" value="Save and Continue" :disabled="saveExitProposal || paySubmitting"/>
 
                                             <button v-if="paySubmitting || !terms_and_conditions_checked" type="button" class="btn btn-primary" disabled>
-                                                {{ submitText }}&nbsp; 
+                                                {{ submitText }}&nbsp;
                                                 <i v-show="terms_and_conditions_checked" class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                             </button>
                                             <input v-else 
@@ -190,6 +194,8 @@ export default {
       autoApprove: false,
       missingVessel: false,
       // add_vessel: false,
+      profile_original: {},
+      profile: {},
     }
   },
   components: {
@@ -198,33 +204,37 @@ export default {
       AuthorisedUserApplication,
       MooringLicenceApplication,
   },
-  // watch: {
-  //     disableSubmit() {
-  //         //console.log("disableSubmit")
-  //     },
-  // },
   computed: {
+      profileHasChanged: function(){
+        let originalHash = JSON.stringify(this.profile_original)
+        let currentHash = JSON.stringify(this.profile)
+        if (originalHash !== currentHash){
+          return true
+        } else {
+          return false
+        }
+      },
       disableSubmit: function() {
-          console.log('%cdisableSubmit() is being called...', 'color: #FF0000')
-          let disable = false;
+          let disable = false
+
           if (this.proposal){
               if (this.proposal.proposal_type.code ==='amendment'){
                   if (this.missingVessel && ['aaa', 'aua'].includes(this.proposal.application_type_code)){
-                      disable = true;
+                      disable = true
                   } else {
                       if (['aaa', 'mla'].includes(this.proposal.application_type_code)){
-                          if (!this.vesselChanged && !this.vesselOwnershipChanged) {
-                              disable = true;
+                          if (!this.vesselChanged && !this.vesselOwnershipChanged && !this.profileHasChanged) {
+                              disable = true
                               console.log('%cSubmit button is disabled 1', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'wla'){
-                          if (!this.vesselChanged && !this.mooringPreferenceChanged && !this.vesselOwnershipChanged) {
-                              disable = true;
+                          if (!this.vesselChanged && !this.mooringPreferenceChanged && !this.vesselOwnershipChanged && !this.profileHasChanged) {
+                              disable = true
                               console.log('%cSubmit button is disabled 2', 'color: #FF0000')
                           }
                       } else if (this.proposal.application_type_code === 'aua'){
-                          if (!this.vesselChanged && !this.mooringOptionsChanged && !this.vesselOwnershipChanged) {
-                              disable = true;
+                          if (!this.vesselChanged && !this.mooringOptionsChanged && !this.vesselOwnershipChanged && !this.profileHasChanged) {
+                              disable = true
                               console.log('%cSubmit button is disabled 3', 'color: #FF0000')
                           }
                       }
@@ -311,6 +321,10 @@ export default {
       },
   },
   methods: {
+    populateProfile: function(profile) {
+        this.profile_original = Object.assign({}, profile)  // This is shallow copy but it's enough 
+        this.profile = profile
+    },
     noVessel: function(noVessel) {
         this.missingVessel = noVessel;
     },
@@ -374,6 +388,7 @@ export default {
         let payload = {
             proposal: {},
             vessel: {},
+            profile: {},
         }
         // WLA
         if (this.$refs.waiting_list_application) {
@@ -472,6 +487,7 @@ export default {
             }
             */
         }
+        payload.profile = this.profile
 
         //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
         const res = await vm.$http.post(url, payload);
@@ -751,9 +767,6 @@ export default {
 
     },
     submit: async function(){
-        //console.log('in submit()')
-        //let vm = this;
-
         // remove the confirm prompt when navigating away from window (on button 'Submit' click)
         this.submitting = true;
         this.paySubmitting=true;

@@ -44,7 +44,7 @@ from mooringlicensing.components.users.serializers import UserSerializer, Propos
 from mooringlicensing.components.users.serializers import UserAddressSerializer
 from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
-from mooringlicensing.settings import PROPOSAL_TYPE_NEW
+from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -760,32 +760,40 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
+        logger.info(f'Validating the proposal: [{self.instance}]...')
         custom_errors = {}
-        #ignore_insurance_check=self.context.get("ignore_insurance_check")
         proposal = Proposal.objects.get(id=self.context.get("proposal_id"))
-        ignore_insurance_check = data.get("keep_existing_vessel") and proposal.proposal_type.code != 'new'
+        ignore_insurance_check = data.get("keep_existing_vessel") and proposal.proposal_type.code != PROPOSAL_TYPE_NEW
+
         if self.context.get("action") == 'submit':
             if ignore_insurance_check:
                 pass
             else:
-                insurance_choice = data.get("insurance_choice")
-                vessel_length = proposal.vessel_details.vessel_applicable_length
-                if not insurance_choice:
-                    custom_errors["Insurance Choice"] = "You must make an insurance selection"
-                elif vessel_length > Decimal("6.4") and insurance_choice not in ['ten_million', 'over_ten']:
-                    custom_errors["Insurance Choice"] = "Insurance selected is insufficient for your nominated vessel"
-                #if not data.get("insurance_choice"):
-                 #   custom_errors["Insurance Choice"] = "You must make an insurance selection"
-                if not self.instance.insurance_certificate_documents.all():
-                    custom_errors["Insurance Certificate"] = "Please attach"
+                renewal_or_amendment_application_with_vessel = proposal.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,] and proposal.vessel_details
+                new_application = proposal.proposal_type.code == PROPOSAL_TYPE_NEW
+                if renewal_or_amendment_application_with_vessel or new_application:
+                    logger.info(f'This proposal: [{self.instance}] is a new proposal or a renewal/amendment proposal with a vessel.')
+                    insurance_choice = data.get("insurance_choice")
+                    vessel_length = proposal.vessel_details.vessel_applicable_length
+                    if not insurance_choice:
+                        custom_errors["Insurance Choice"] = "You must make an insurance selection"
+                    elif vessel_length > Decimal("6.4") and insurance_choice not in ['ten_million', 'over_ten']:
+                        custom_errors["Insurance Choice"] = "Insurance selected is insufficient for your nominated vessel"
+                    if not self.instance.insurance_certificate_documents.all():
+                        custom_errors["Insurance Certificate"] = "Please attach"
+                else:
+                    logger.info(f'This proposal: [{self.instance}] is a renewal/amendment proposal without a vessel.')
+                    pass
             # electoral roll validation
             if 'silent_elector' not in data.keys():
                 custom_errors["Electoral Roll"] = "You must complete this section"
             elif data.get("silent_elector"):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
+
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
+
         return data
 
 
@@ -1713,6 +1721,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
     mooring_bay_name = serializers.SerializerMethodField()
     authorised_user_permits = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    holder = serializers.SerializerMethodField()
 
     class Meta:
         model = Mooring
@@ -1726,6 +1735,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
                 'vessel_weight_limit',
                 'authorised_user_permits',
                 'status',
+                'holder',
             )
         datatables_always_serialize = (
                 'id',
@@ -1737,7 +1747,13 @@ class ListMooringSerializer(serializers.ModelSerializer):
                 'vessel_weight_limit',
                 'authorised_user_permits',
                 'status',
+                'holder',
             )
+    
+    def get_holder(self, obj):
+        if obj.mooring_licence:
+            return obj.mooring_licence.submitter_obj.get_full_name()
+        return 'N/A'
 
     def get_mooring_bay_name(self, obj):
         return obj.mooring_bay.name

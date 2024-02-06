@@ -179,7 +179,6 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
 
         if command_script:
             logger.info('Running {}...'.format(command_script))
-            # call_command(command_script, params=request.POST)
             call_command(command_script,)
             data.update({command_script: 'true'})
 

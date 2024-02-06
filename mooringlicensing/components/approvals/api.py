@@ -1,4 +1,8 @@
+import re
 import traceback
+from django.db.models import Q, Min, CharField, Value
+from django.db.models.functions import Concat
+from django.core.paginator import Paginator, EmptyPage
 from confy import env
 import datetime
 import pytz
@@ -27,7 +31,7 @@ from mooringlicensing import forms
 from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
 from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger, timeit
 from mooringlicensing.components.payments_ml.api import logger
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor
+from mooringlicensing.components.payments_ml.models import FeePeriod, FeeSeason, FeeConstructor
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
 from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring, \
@@ -102,21 +106,48 @@ class GetFeeSeasonsDict(views.APIView):
                 application_type = ApplicationType.objects.filter(code=app_code)
                 if application_type:
                     application_types.append(application_type.first())
-            data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.filter(application_type__in=application_types)]
+            fee_seasons = FeeSeason.objects.filter(application_type__in=application_types)
         else:
-            data = [{'id': season.id, 'name': season.name} for season in FeeSeason.objects.all()]
-        return Response(data)
+            fee_seasons = FeeSeason.objects.all()
+
+        # data = [{
+        #     'id': season.id,
+        #     'name': season.name,
+        #     'application_type_code': season.application_type.code,
+        #     'application_type_description': season.application_type.description} for season in fee_seasons]
+
+        handled = []
+        data = []
+        for fee_season in fee_seasons:
+            if fee_season.start_date not in handled:
+                handled.append(fee_season.start_date)
+                data.append({
+                    'start_date': fee_season.start_date,
+                    'name': str(fee_season.start_date.year) + ' - ' + str(fee_season.start_date.year + 1)
+                })
+        data_sorted = sorted(data, key=lambda x: x['start_date'], reverse=True) if data else []
+        return Response(data_sorted)
 
 
 class GetSticker(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('term', '')
+        search_term = request.GET.get('search_term', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+
         if search_term:
-            data = Sticker.objects.filter(number__icontains=search_term)[:10]
+            data = Sticker.objects.filter(number__icontains=search_term)
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+
             data_transform = []
-            for sticker in data:
+            for sticker in my_objects:
                 approval_history = sticker.approvalhistory_set.order_by('id').first()  # Should not be None, but could be None for the data generated at the early stage of development.
                 if approval_history and approval_history.approval:
                     data_transform.append({
@@ -134,7 +165,12 @@ class GetSticker(views.APIView):
                     # Should not reach here
                     pass
 
-            return Response({"results": data_transform})
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
         return Response()
 
 
@@ -346,15 +382,25 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        all = Approval.objects.all()  # We may need to exclude the approvals created from the Waiting List Application
+        # exclude_approval_id = self.request.GET.get('exclude_approval_id', 0)
 
-        # target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
-        target_email_user_id = int(self.request.data.get('target_email_user_id', 0))
+        all = Approval.objects.all()
+        # all = Approval.objects.all().exclude(id=exclude_approval_id)  # We may need to exclude the approvals created from the Waiting List Application
 
         if is_internal(self.request):
+            target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
                 all = all.filter(Q(submitter=target_user.id))
+
+            for_swap_moorings_modal = self.request.GET.get('for_swap_moorings_modal', 'false')
+            for_swap_moorings_modal = True if for_swap_moorings_modal.lower() in ['true', 'yes', 'y', ] else False
+            if for_swap_moorings_modal:
+                all = all.filter(
+                    Q(current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,]) & 
+                    Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+                )
+            logger.debug(f'{all.count()}')
             return all
         elif is_customer(self.request):
             qs = all.filter(Q(submitter=request_user.id))
@@ -480,6 +526,17 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
+    def swap_moorings(self, request, *args, **kwargs):
+        with transaction.atomic():
+            originated_approval = self.get_object()
+            target_approval_id = request.data.get('target_approval_id')
+            target_approval = Approval.objects.get(id=target_approval_id)
+            originated_approval.child_obj.swap_moorings(request, target_approval.child_obj)
+            return Response()
+
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
         # external
         approval = self.get_object()
@@ -593,7 +650,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = ApprovalCancellationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance.approval_cancellation(request,serializer.validated_data)
+        instance.approval_cancellation(request, serializer.validated_data)
         return Response()
 
     @detail_route(methods=['POST',], detail=True)
@@ -1099,6 +1156,36 @@ class StickerRenderer(DatatablesRenderer):
 class StickerFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
+        search_term = request.GET.get('search[value]', '')
+
+        # Custom fullname search
+        pattern = re.compile(r'\S\s+')
+        qs_stickers1 = Sticker.objects.none()
+        qs_stickers2 = Sticker.objects.none()
+        if pattern.search(search_term):
+            # Only when the search term has a space after a some text(first_name), then perform custome query because we just want to perform full_name search.
+
+            # Search sticker.approval.submitter by fullname
+            email_user_ids = EmailUser.objects.annotate(
+                custom_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    output_field=CharField(),
+                )
+            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+            qs_stickers1 = queryset.filter(approval__in=Approval.objects.filter(submitter__in=list(email_user_ids)))
+
+            # Search sticker.approval.current_proposal.proposalapplicant by fullname
+            proposal_applicants = ProposalApplicant.objects.annotate(
+                custom_term=Concat(
+                    "first_name",
+                    Value(" "),
+                    "last_name",
+                    output_field=CharField(),
+                )
+            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+            qs_stickers2 = queryset.filter(approval__current_proposal__proposalapplicant__in=proposal_applicants)
 
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
@@ -1113,10 +1200,16 @@ class StickerFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(approval__in=Approval.objects.filter(mooringlicence__in=MooringLicence.objects.all()))
 
         # Filter Year (FeeSeason)
-        filter_fee_season_id = request.GET.get('filter_year')
-        if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
-            fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
-            queryset = queryset.filter(fee_constructor__fee_season=fee_season)
+        # filter_fee_season_id = request.GET.get('filter_year')
+        # logger.debug(f'fee_season id: {filter_fee_season_id}')
+        # if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
+        #     fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
+        #     queryset = queryset.filter(fee_constructor__fee_season=fee_season)
+        filter_year = request.GET.get('filter_year')
+        if filter_year and not filter_year.lower() == 'all':
+            filter_year = datetime.strptime(filter_year, '%Y-%m-%d').date()
+            fee_seasons = FeePeriod.objects.filter(start_date=filter_year).values_list('fee_season')
+            queryset = queryset.filter(fee_constructor__fee_season__in=fee_seasons)
 
         # Filter sticker status
         filter_sticker_status_id = request.GET.get('filter_sticker_status')
@@ -1137,6 +1230,11 @@ class StickerFilterBackend(DatatablesFilterBackend):
         except Exception as e:
             print(e)
         setattr(view, '_datatables_total_count', total_count)
+
+        # Merge with the custom search
+        queryset = queryset.union(qs_stickers1)
+        queryset = queryset.union(qs_stickers2)
+
         return queryset
 
 
@@ -1197,13 +1295,16 @@ class StickerViewSet(viewsets.ModelViewSet):
     def request_replacement(self, request, *args, **kwargs):
         # internal
         sticker = self.get_object()
-        data = request.data
+        # data = request.data
+        data = {}
 
         # Update Sticker action
         data['sticker'] = sticker.id
         data['action'] = 'Request replacement'
         data['user'] = request.user.id
-        serializer = StickerActionDetailSerializer(data=request.data)
+        data['waive_the_fee'] = request.data.get('waive_the_fee', False)
+        data['reason'] = request.data.get('details', {}).get('reason', '')
+        serializer = StickerActionDetailSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         details = serializer.save()
 
@@ -1233,6 +1334,18 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
             else:
                 qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
         return qs
+
+    def list(self, request, *args, **kwargs):
+        """
+        User is accessing /external/ page
+        """
+        qs = self.get_queryset()
+        qs = self.filter_queryset(qs)
+
+        self.paginator.page_size = qs.count()
+        result_page = self.paginator.paginate_queryset(qs, request)
+        serializer = StickerSerializer(result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
 
 
 class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
@@ -1291,16 +1404,17 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                     waiting_list_allocation=waiting_list_allocation,
                     date_invited=current_date,
                 )
+                waiting_list_allocation.proposal_applicant.copy_self_to_proposal(new_proposal)
                 logger.info(f'Offering new Mooring Site Licence application: [{new_proposal}], which has been created from the waiting list allocation: [{waiting_list_allocation}].')
-
-                # Copy applicant details to the new proposal
-                proposal_applicant = ProposalApplicant.objects.get(proposal=waiting_list_allocation.current_proposal)
-                # proposal_applicant.copy_self_to_proposal(new_proposal)
-                logger.info(f'ProposalApplicant: [{proposal_applicant}] has been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
 
                 # Copy vessel details to the new proposal
                 waiting_list_allocation.current_proposal.copy_vessel_details(new_proposal)
                 logger.info(f'Vessel details have been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
+
+                new_proposal.null_vessel_on_create = False
+                new_proposal.save()
+
+                waiting_list_allocation.log_user_action(f'Offer new Mooring Site Licence application: {new_proposal.lodgement_number}.', request)
 
             if new_proposal:
                 # send email

@@ -663,6 +663,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
+    mooring_swappable = serializers.SerializerMethodField()
     allowed_assessors_user = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     stickers_historical = serializers.SerializerMethodField()
@@ -704,6 +705,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'can_action',
             'can_reinstate',
             'amend_or_renew',
+            'mooring_swappable',
             'renewal_document',
             'allowed_assessors_user',
             'stickers',
@@ -748,6 +750,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'can_action',
             'can_reinstate',
             'amend_or_renew',
+            'mooring_swappable',
             'renewal_document',
             'allowed_assessors_user',
             'stickers',
@@ -764,8 +767,8 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_grace_period_details(self, obj):
         grace_period_end_date = obj.grace_period_end_date
-
         days_left = None
+
         if grace_period_end_date:
             today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
             days_left = (grace_period_end_date - today).days
@@ -795,10 +798,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         try:
             request = self.context.get('request')
             if type(obj.child_obj) == AuthorisedUserPermit:
-                for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                moas = MooringOnApproval.get_current_moas_by_approval(obj)
+                # for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                for moa in moas:
                     try:
-                        logger.debug(f'moa: [{moa}]')
-                        logger.debug(f'request.GET: [{request.GET}]')
                         links.append({
                             'id': moa.mooring.id,
                             'bay_name': moa.mooring.mooring_bay.name,
@@ -840,7 +843,11 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_current_proposal_approved(self, obj):
         from mooringlicensing.components.proposals.models import Proposal
-        return obj.current_proposal.processing_status == Proposal.PROCESSING_STATUS_APPROVED
+        if obj.current_proposal:
+            return obj.current_proposal.processing_status == Proposal.PROCESSING_STATUS_APPROVED
+        else:
+            logger.warning(f'Current proposal of the approval: [{obj}] not found.')
+            return ''
 
     def get_is_assessor(self, obj):
         request = self.context.get('request')
@@ -890,6 +897,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_amend_or_renew(self,obj):
         return obj.amend_or_renew
+
+    def get_mooring_swappable(self,obj):
+        return obj.mooring_swappable
 
     def get_mooring_licence_vessels(self, obj):
         links = ''
@@ -972,10 +982,15 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
             # if obj.current_proposal.vessel_details:
             #     regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
-            if obj.current_proposal.vessel_ownership:
-                if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
-                    # We don't want to include the sold vessel
-                    regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
+            if obj.current_proposal:
+                if obj.current_proposal.vessel_ownership:
+                    if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
+                        # We don't want to include the sold vessel
+                        regos.append(obj.current_proposal.vessel_ownership.vessel.rego_no)
+            else:
+                logger.warning(f'Current proposal of the approval: [{obj}] not found.')
+                return ''
+
 
         return regos
 

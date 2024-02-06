@@ -64,6 +64,7 @@ INSTALLED_APPS += [
     'reset_migrations',
     'ckeditor',
     'ledger_api_client',
+    'appmonitor_client',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -74,6 +75,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_datatables.renderers.DatatablesRenderer',
     ),
+    # 'DEFAULT_PAGINATION_CLASS': 'datatablefilter.rest_framework.DatatablesPageNumberPagination',
+    # 'PAGE_SIZE': 10,
 }
 
 MIDDLEWARE_CLASSES += [
@@ -169,10 +172,12 @@ MOORING_BOOKINGS_API_URL=env('MOORING_BOOKINGS_API_URL')
 PROPOSAL_TYPE_NEW = 'new'
 PROPOSAL_TYPE_RENEWAL = 'renewal'
 PROPOSAL_TYPE_AMENDMENT = 'amendment'
+PROPOSAL_TYPE_SWAP_MOORINGS = 'swap_moorings'
 PROPOSAL_TYPES_FOR_FEE_ITEM = [
     (PROPOSAL_TYPE_NEW, 'New Application'),
     (PROPOSAL_TYPE_AMENDMENT, 'Amendment'),
     (PROPOSAL_TYPE_RENEWAL, 'Renewal'),
+    (PROPOSAL_TYPE_SWAP_MOORINGS, 'Swap Moorings'),
 ]
 PROPOSAL_TYPES = [
     {
@@ -186,6 +191,10 @@ PROPOSAL_TYPES = [
     {
         'code': PROPOSAL_TYPE_RENEWAL,
         'description': 'Renewal',
+    },
+    {
+        'code': PROPOSAL_TYPE_SWAP_MOORINGS,
+        'description': 'Swap Moorings',
     },
 ]
 
@@ -431,6 +440,7 @@ UNALLOCATED_ORACLE_CODE = 'NNP449 GST'
 
 CRON_CLASSES = [
     'mooringlicensing.cron.OracleIntegrationCronJob',
+    'appmonitor_client.cron.CronJobAppMonitorClient',
 ]
 
 # Is licence holder allowed to operate
@@ -475,3 +485,4 @@ MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE = env('MAKE_PRIVATE_MEDIA_FILENAME_NON
 LEDGER_UI_CARDS_MANAGEMENT = env('LEDGER_UI_CARDS_MANAGEMENT', True)
 SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', 3600)
 CANCELATION_POLICY_URL = env('CANCELATION_POLICY_URL', 'https://ria.wa.gov.au/boating')
+AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED = env('AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED', False)  # RIA doesn't want any auto process triggered when the grace period expired.
