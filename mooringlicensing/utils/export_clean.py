@@ -1,11 +1,20 @@
 import csv
 import os
+import logging
+import re
+
+logger = logging.getLogger(__name__)
 
 def clean(srcpath='/home/jawaidm/Documents/ML_Excel/Lotus_Notes_extracts', outpath='/var/www/mooringlicensing/mooringlicensing/utils/csv/clean'):
     '''
     from mooringlicensing.utils.export_clean import clean
     clean()
     '''
+    logger.info(f'srcpath: {srcpath}')
+    logger.info(f'outpath: {outpath}')
+
+    # line = '"""aho "" baka"""'
+    # temp = re.sub(r'^"*|"*$', '', line)
 
     isExist = os.path.exists(outpath)
     if not isExist:
@@ -22,9 +31,19 @@ def clean(srcpath='/home/jawaidm/Documents/ML_Excel/Lotus_Notes_extracts', outpa
             lines = [line.rstrip() for line in inf]
 
         out_filename = filename.split('/')[-1]
-        with open(outpath + os.sep + out_filename, 'w') as outf:
-            wr = csv.writer(outf) #, delimiter ='|', quotechar = '"')
+        with open(outpath + os.sep + out_filename, 'w', newline='') as outf:
+            logger.info(f'Processing file: [{filename}]...')
+            wr = csv.writer(outf, quoting=csv.QUOTE_NONE, escapechar='\\') #, delimiter ='|', quotechar = '"')
+            line_number = 0
             for line in lines:
-                #import ipdb; ipdb.set_trace()
-                #wr.writerow(line.strip('"').split('|'))
-                wr.writerow([line.strip('"')])
+                line_number += 1  # This is used when an error raised to specify which line raises the error.
+                try:
+                    if '|' not in line:
+                        # No delimiter in a line, which means no cells in the line.  We are not interested in the line.  Skip the process
+                        continue
+
+                    # wr.writerow([line.strip('"')])
+                    temp = re.sub(r'^"*|"*$', '', line)  # Remove double quotes at the begginging and end of a string, regardless of their quantity.
+                    wr.writerow([temp])
+                except Exception as e:
+                    logger.error(f'Error: {e}.  filename: {filename},  line_number: {line_number},  line: {line}')

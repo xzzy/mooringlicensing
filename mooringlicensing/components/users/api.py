@@ -22,7 +22,7 @@ from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, OR
 # from rest_framework.pagination import PageNumberPagination
 # from datetime import datetime, timedelta
 # from collections import OrderedDict
@@ -188,9 +188,20 @@ class UserListFilterView(generics.ListAPIView):
     search_fields = ('email', 'first_name', 'last_name')
 
 
+# class IsOwner(BasePermission):
+#     def has_object_permission(self, request, view, obj):
+#         return obj == request.user
+
+
+# class IsInternalUser(BasePermission):
+#     def has_object_permission(self, request, view, obj):
+#         return is_internal(request)
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = EmailUser.objects.none()
     serializer_class = UserSerializer
+    # permission_classes = [IsOwner | IsInternalUser]
 
     def get_queryset(self):
         if is_internal(self.request):
