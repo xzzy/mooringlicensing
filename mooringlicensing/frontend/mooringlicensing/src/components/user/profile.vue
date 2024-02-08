@@ -32,33 +32,33 @@
                   <div class="panel-body collapse in" :id="pBody">
                       <form class="form-horizontal" name="personal_form" method="post">
                         <alert v-if="showPersonalError" type="danger" style="color:red"><div v-for="item in errorListPersonal"><strong>{{item}}</strong></div></alert>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Given name(s)</label>
-                            <div class="col-sm-6">
-                                <input :readonly="firstNameReadOnly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
-                            </div>
+                        <div class="form-group">
+                          <label for="" class="col-sm-3 control-label">Given name(s)</label>
+                          <div class="col-sm-6">
+                              <input :readonly="firstNameReadOnly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
                           </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Surname</label>
-                            <div class="col-sm-6">
-                                <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
-                            </div>
+                        </div>
+                        <div class="form-group">
+                          <label for="" class="col-sm-3 control-label" >Surname</label>
+                          <div class="col-sm-6">
+                              <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
                           </div>
-                          <div class="row form-group" v-if="!forEndorser">
-                              <label for="" class="col-sm-3 control-label">Date of Birth</label>
-                              <div class="col-sm-3 input-group date" ref="dobDatePicker">
-                                  <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
-                                  <span class="input-group-addon">
-                                      <span class="glyphicon glyphicon-calendar ml-1"></span>
-                                  </span>
-                              </div>
-                          </div>
-                          <!-- <div class="form-group">
-                            <div v-if="!readonly" class="col-sm-12">
-                                <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
+                        </div>
+                        <div class="row form-group" v-if="!forEndorser">
+                            <label for="" class="col-sm-3 control-label">Date of Birth</label>
+                            <div class="col-sm-3 input-group date" ref="dobDatePicker">
+                                <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar ml-1"></span>
+                                </span>
                             </div>
-                          </div> -->
+                        </div>
+                        <!-- <div class="form-group">
+                          <div v-if="!readonly" class="col-sm-12">
+                              <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
+                              <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
+                          </div>
+                        </div> -->
                        </form>
                   </div>
                 </div>
@@ -307,7 +307,11 @@ export default {
         forEndorser: {
             type: Boolean,
             default: false,
-        }
+        },
+        is_internal: {
+            type: Boolean,
+            default: false
+        },
     },
     data () {
         let vm = this;
@@ -391,21 +395,21 @@ export default {
     computed: {
         dobReadOnly: function() {
             let readonly = false;
-            if (this.readonly || this.profile.readonly_dob) {
+            if (!this.is_internal || this.readonly || this.profile.readonly_dob) {
                 readonly = true;
             }
             return readonly
         },
         firstNameReadOnly: function() {
             let readonly = false;
-            if (this.readonly || this.profile.readonly_first_name) {
+            if (!this.is_internal || this.readonly || this.profile.readonly_first_name) {
                 readonly = true;
             }
             return readonly
         },
         lastNameReadOnly: function() {
             let readonly = false;
-            if (this.readonly || this.profile.readonly_last_name) {
+            if (!this.is_internal || this.readonly || this.profile.readonly_last_name) {
                 readonly = true;
             }
             return readonly
