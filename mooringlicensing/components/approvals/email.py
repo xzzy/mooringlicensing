@@ -1046,7 +1046,7 @@ def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, 
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': authorised_user_permit.submitter,
+        'recipient': authorised_user_permit.submitter_obj,
         'mooring': mooring,
         'stickers_to_be_returned': stickers_to_be_returned,
         'dashboard_external_url': get_public_url(request),
