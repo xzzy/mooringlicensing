@@ -436,7 +436,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     "lodgement_number": approval.lodgement_number,
                     "vessel_name": (
                         approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
-                        if approval.current_proposal.vessel_details else ''
+                        if approval.current_proposal and approval.current_proposal.vessel_details else ''
                         ),
                     "holder": approval.submitter_obj.get_full_name(),
                     "mobile": approval.submitter_obj.mobile_number,

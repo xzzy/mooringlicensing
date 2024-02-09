@@ -15,6 +15,7 @@ from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.contrib.gis.geos import GEOSGeometry
 from django.utils import timezone
+from django_countries.fields import CountryField
 import csv
 import os
 import datetime
@@ -23,6 +24,7 @@ import string
 import pandas as pd
 import numpy as np
 
+from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 
@@ -30,6 +32,7 @@ from mooringlicensing.components.payments_ml.models import FeeSeason
 
 from mooringlicensing.components.proposals.models import (
     Proposal,
+    ProposalApplicant,
     ProposalType,
     Vessel,
     Owner,
@@ -546,6 +549,66 @@ class MooringLicenceReader():
 
         print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
 
+    def create_proposal_applicant(self, proposal, user, user_row):
+        postal_same_as_res = user_row.address==user_row.postal_address or user_row.postal_address==''
+
+        #import ipdb; ipdb.set_trace()
+        proposal_applicant = ProposalApplicant.objects.create(
+           proposal=proposal,
+           first_name=user_row.first_name,
+           last_name=user_row.last_name,
+           #dob=user.dob,
+           #dob=datetime.datetime.strptime(user_row.dob, '%d/%m/%Y').date() if user_row.dob else None,
+           dob=parse(user_row.dob).date() if user_row.dob else None,
+
+           residential_line1=user_row.address,
+           #residential_line2=user_row.suburb,
+           #residential_line3=None,
+           residential_locality=user_row.suburb,
+           residential_state=user_row.state,
+           #residential_country=CountryField(default='AU', blank=True),
+           residential_postcode=user_row.postcode,
+
+           postal_same_as_residential=postal_same_as_res,
+           postal_line1=user_row.postal_address if not postal_same_as_res else '',
+           #postal_line2=None,
+           #postal_line3=None,
+           postal_locality=user_row.postal_suburb,
+           postal_state=user_row.postal_state if not postal_same_as_res else '',
+           #postal_country=CountryField(default='AU', blank=True) if not postal_same_as_res else None,
+           #postal_country='AU',# if not postal_same_as_res else '',
+           postal_postcode=user_row.postal_postcode if not postal_same_as_res else '',
+
+           email=user.email,
+           phone_number=user.phone_number,
+           mobile_number=user.mobile_number,
+        )
+
+    def create_proposal_applicant_aa(self, proposal, user, user_row):
+        postal_same_as_res = True
+
+        #import ipdb; ipdb.set_trace()
+        proposal_applicant = ProposalApplicant.objects.create(
+           proposal=proposal,
+           first_name=user_row.first_name,
+           last_name=user_row.last_name,
+           #dob=parse(user_row.dob).date() if user_row.dob else None,
+           dob=user.dob if user.dob else None,
+
+           residential_line1=user_row.address,
+           residential_locality=user_row.suburb,
+           residential_state=user_row.state,
+           residential_postcode=user_row.postcode,
+
+           postal_same_as_residential=postal_same_as_res,
+
+           email=user.email,
+           phone_number=user.phone_number,
+           mobile_number=user.mobile_number,
+        )
+
+
+
     def create_users(self):
         logger.info('Creating DCV users ...')
         df = self.df_dcv.groupby('pers_no').first()
@@ -997,10 +1060,10 @@ class MooringLicenceReader():
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
                 
-                #if row.pers_no == '000036':
-                #    import ipdb; ipdb.set_trace()
-                #else:
-                #    continue
+#                if row.name == '211152':
+#                    import ipdb; ipdb.set_trace()
+#                else:
+#                    continue
 
                 if not row.name or len([_str for _str in ['KINGSTON REEF','NN64','PB 02','RIA'] if row.name in _str])>0:
                     continue
@@ -1033,6 +1096,7 @@ class MooringLicenceReader():
                 else:
                     user = users[0]
                     self.user_existing.append(email)
+
 
                 #import ipdb; ipdb.set_trace()
                 ves_row = self.df_ves[self.df_ves['Person No']==row.pers_no]
@@ -1147,13 +1211,17 @@ class MooringLicenceReader():
                         "ria_mooring_name": mooring.name,
                         "mooring_bay_id": mooring.mooring_bay.id,
                         "vessel_ownership": [{
-                                "dot_name": rego_no
+                                "id": vessel_ownership.id,
+                                "dot_name": rego_no,
+                                "checked": True
                             }],
                         "mooring_on_approval": []
                     },
                     date_invited=None, #date_invited,
                     dot_name=rego_no,
                 )
+
+                self.create_proposal_applicant(proposal, user, user_row)
 
                 #if not user_row.empty and user_row.pers_no=='000036':
                 #    import ipdb; ipdb.set_trace()
@@ -1289,8 +1357,10 @@ class MooringLicenceReader():
                 #if row.pers_no_u == '210758':
                 #    import ipdb; ipdb.set_trace()
 
-                #if rego_no == 'GM894':
-                #    import ipdb; ipdb.set_trace()
+#                if rego_no == 'MB016':
+#                    import ipdb; ipdb.set_trace()
+#                else:
+#                    continue
 
                
                 mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
@@ -1392,6 +1462,13 @@ class MooringLicenceReader():
                         "mooring_on_approval": []
                     },
                 )
+
+                #import ipdb; ipdb.set_trace()
+                try:
+                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no_l].squeeze() # as Pandas Series
+                except Exception as e:
+                    import ipdb; ipdb.set_trace()
+                self.create_proposal_applicant(proposal, user, user_row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1508,8 +1585,8 @@ class MooringLicenceReader():
                 #if row.mooring_no == 'TB999':
                 #    continue
 
-#                if row.pers_no == '088452':
-#                    import ipdb; ipdb.set_trace()
+                #if row.pers_no == '213666':
+                #    import ipdb; ipdb.set_trace()
 
                 pers_no = row['pers_no']
                 mooring_bay = MooringBay.objects.get(code=row['bay'])
@@ -1560,6 +1637,13 @@ class MooringLicenceReader():
                     processing_status='approved',
                     customer_status='approved',
                 )
+
+                #import ipdb; ipdb.set_trace()
+                try:
+                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no].squeeze() # as Pandas Series
+                except Exception as e:
+                    import ipdb; ipdb.set_trace()
+                self.create_proposal_applicant(proposal, user, user_row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1803,8 +1887,8 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_aa.iterrows(), total=self.df_aa.shape[0]):
             try:
-                if row.rego_no == '666':
-                    import ipdb; ipdb.set_trace()
+                #if row.rego_no == '666':
+                #    import ipdb; ipdb.set_trace()
 
                 rego_no = row['rego_no']
                 email = row['email']
@@ -1901,6 +1985,9 @@ class MooringLicenceReader():
                         "cc_email": None,
                     },
                 )
+
+                #import ipdb; ipdb.set_trace()
+                self.create_proposal_applicant_aa(proposal, user, row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -2178,12 +2265,12 @@ class MooringLicenceReader():
 
         for idx, a in enumerate(approvals):
             try:
-		if isinstance(a, DcvPermit) and len(a.permits.all())==0:
-		    a.generate_dcv_permit_doc()
-		elif not hasattr(a, 'licence_document') or a.licence_document is None: 
-		    a.generate_doc()
-		print(f'{idx}, Created PDF for {permit_name}: {a}')
-            except Exception as e;
+                if isinstance(a, DcvPermit) and len(a.permits.all())==0:
+                    a.generate_dcv_permit_doc()
+                elif not hasattr(a, 'licence_document') or a.licence_document is None: 
+                    a.generate_doc()
+                print(f'{idx}, Created PDF for {permit_name}: {a}')
+            except Exception as e:
                 logger.error(e)
 
 
