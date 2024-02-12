@@ -2676,10 +2676,10 @@ class DcvPermit(RevisionedMixin):
         if settings.DEBUG:
             # In debug environment, we want to avoid decimal number which may cuase some kind of error.
             total_amount = math.ceil(fee_item.amount)
-            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount),
+            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount)
         else:
             total_amount = fee_item.amount
-            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount
 
         line_items = [
             {
