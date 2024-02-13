@@ -4,32 +4,32 @@
             <div v-if="mooringLicenceCurrentVesselDisplayText" class="row form-group">
                 <div class="col-sm-9">
                     <label for="" class="col-sm-12 control-label">{{ mooringLicenceCurrentVesselDisplayText }}</label>
-                        <div class="col-sm-9">
-                            <input
-                            @change="resetCurrentVessel"
-                            :disabled="readonly"
-                            type="radio"
-                            id="current_vessel_false"
-                            name="current_vessel_false"
-                            :value="false"
-                            v-model="keep_current_vessel"
-                            required
-                            />
-                            <label for="current_vessel_false" class="control-label">Yes</label>
-                        </div>
-                        <div class="col-sm-9">
-                            <input
-                            @change="resetCurrentVessel"
-                            :disabled="readonly"
-                            type="radio"
-                            id="current_vessel_true"
-                            name="current_vessel_true"
-                            :value="true"
-                            v-model="keep_current_vessel"
-                            required
-                            />
-                            <label for="current_vessel_true" class="control-label">No</label>
-                        </div>
+                    <div class="col-sm-9">
+                        <input
+                        @change="resetCurrentVessel"
+                        :disabled="readonly"
+                        type="radio"
+                        id="current_vessel_false"
+                        name="current_vessel_false"
+                        :value="false"
+                        v-model="keep_current_vessel"
+                        required
+                        />
+                        <label for="current_vessel_false" class="control-label">Yes</label>
+                    </div>
+                    <div class="col-sm-9">
+                        <input
+                        @change="resetCurrentVessel"
+                        :disabled="readonly"
+                        type="radio"
+                        id="current_vessel_true"
+                        name="current_vessel_true"
+                        :value="true"
+                        v-model="keep_current_vessel"
+                        required
+                        />
+                        <label for="current_vessel_true" class="control-label">No</label>
+                    </div>
                 </div>
             </div>
             <div v-else class="row form-group">
@@ -136,7 +136,6 @@ from '@/utils/hooks'
                 }
                 //return '';
             },
-
         },
         methods:{
             resetCurrentVessel: function() {
@@ -157,6 +156,10 @@ from '@/utils/hooks'
             } else if (!this.vesselExists){
                 console.log('mounted3')
                 this.keep_current_vessel = false
+                this.resetCurrentVessel()
+            } else if (this.proposal && this.proposal.proposal_type.code == 'swap_moorings'){
+                // When swap moorings, always keep the current vessel
+                this.keep_current_vessel = true
                 this.resetCurrentVessel()
             } else {
                 console.log('mounted4')
