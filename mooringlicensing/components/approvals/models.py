@@ -749,8 +749,8 @@ class Approval(RevisionedMixin):
 
     @property
     def mooring_swappable(self):
-        logger.debug(f'approval: [{self}]')
-        logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
+        # logger.debug(f'approval: [{self}]')
+        # logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
         try:
             if self.amend_or_renew:
                 return True  # if it is amendable/renewable, it is also swappable.
@@ -1856,7 +1856,7 @@ class MooringLicence(Approval):
                 # Vessel is too small to consider the grace period.  We are interested only in the vessels larger than or equal to the min_mooring_vessel_size.
                 pass
         
-        logger.debug(f'end_date: {end_date} of ML: {self}')
+        # logger.debug(f'end_date: {end_date} of ML: {self}')
         return end_date
 
     def process_after_withdrawn(self):
