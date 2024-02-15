@@ -18,7 +18,7 @@ class Command(BaseCommand):
         path = options['path']
         t_start = time.time()
 
-        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt','annual_admissions_booking_report.csv', path='shared/clean/clean_22Dec2022/')
+        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt','annual_admissions_booking_report.csv', path=path)
 
         mlr.create_users()
         mlr.create_vessels()
