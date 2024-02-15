@@ -38,14 +38,15 @@
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                   <div v-if="is_external">
                     <Profile
-                    :isApplication="true"
-                    v-if="applicantType == 'SUB'"
-                    ref="profile"
-                    @profile-fetched="populateProfile"
-                    :showElectoralRoll="showElectoralRoll"
-                    :proposalId="proposal.id"
-                    :readonly="readonly"
-                    :submitterId="submitterId"
+                        :isApplication="true"
+                        v-if="applicantType == 'SUB'"
+                        ref="profile"
+                        @profile-fetched="populateProfile"
+                        :showElectoralRoll="showElectoralRoll"
+                        :proposalId="proposal.id"
+                        :readonly="readonly"
+                        :submitterId="submitterId"
+                        :is_internal=is_internal
                     />
                   </div>
                   <div v-else>

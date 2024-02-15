@@ -50,6 +50,7 @@
                         :proposalId="proposal.id"
                         :readonly="readonly"
                         :submitterId="submitterId"
+                        :is_internal=is_internal
                     />
                   </div>
                   <div v-else>

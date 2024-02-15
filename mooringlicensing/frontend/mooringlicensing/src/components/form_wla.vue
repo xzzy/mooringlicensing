@@ -50,7 +50,9 @@
                             :storedSilentElector="silentElector"
                             :proposalId="proposal.id"
                             :readonly="readonly"
-                            :submitterId="submitterId" />
+                            :submitterId="submitterId"
+                            :is_internal=is_internal
+                        />
                     </div>
                     <div v-else>
                         <Applicant 
@@ -62,7 +64,7 @@
                             :storedSilentElector="silentElector" 
                             :proposalId="proposal.id"
                             :proposal="proposal"
-                            />
+                        />
                     </div>
                 </div>
                 <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">

@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import math
 from django.core.files.storage import FileSystemStorage
 
 import os
@@ -17,6 +18,7 @@ import uuid
 from mooringlicensing.components.approvals.email import send_aup_revoked_due_to_mooring_swap_email
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from ledger_api_client.utils import calculate_excl_gst
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
@@ -3671,12 +3673,21 @@ class MooringLicenceApplication(Proposal):
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
         if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+            total_amount = float(GlobalSettings.objects.get(key=GlobalSettings.KEY_FEE_AMOUNT_OF_SWAP_MOORINGS).value)
+            incur_gst = True if GlobalSettings.objects.get(key=GlobalSettings.KEY_SWAP_MOORINGS_INCLUDES_GST).value.lower() in ['true', 't', 'yes', 'y'] else False
+            if settings.DEBUG:
+                # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+                total_amount = math.ceil(total_amount)
+                total_amount_excl_tax = math.ceil(calculate_excl_gst(total_amount)) if incur_gst else math.ceil(total_amount)
+            else:
+                total_amount_excl_tax = calculate_excl_gst(total_amount) if incur_gst else total_amount
+
             # When this proposal is for Swap-Moorings, it's easy.
             return [{
                 'ledger_description': 'Mooring Swap',
                 'oracle_code': self.application_type.get_oracle_code_by_date(target_date),
-                'price_incl_tax': 317.00,
-                'price_excl_tax': 317.00,
+                'price_incl_tax': total_amount, 
+                'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,
             }], []
 
