@@ -39,7 +39,7 @@ def clean(srcpath='/home/jawaidm/Documents/ML_Excel/Lotus_Notes_extracts', outpa
                 line_number += 1  # This is used when an error raised to specify which line raises the error.
                 try:
                     if '|' not in line:
-                        # No delimiter in a line, which means no cells in the line.  We are not interested in the line.  Skip the process
+                        # No delimiter in a line, which means no cells in the line.  Skip the process
                         continue
 
                     # wr.writerow([line.strip('"')])
