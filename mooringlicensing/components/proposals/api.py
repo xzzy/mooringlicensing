@@ -1,4 +1,5 @@
 import json
+from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
 import os
 import traceback
@@ -7,7 +8,7 @@ import uuid
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage, FileSystemStorage
 import pytz
-from django.db.models import Q
+from django.db.models import Q, CharField, Value
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
@@ -2145,7 +2146,6 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
 
 class MooringFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        print(request.GET)
         total_count = queryset.count()
         # filter_mooring_status
         filter_mooring_status = request.GET.get('filter_mooring_status')
@@ -2172,11 +2172,17 @@ class MooringFilterBackend(DatatablesFilterBackend):
             # Custom search
             search_term = request.GET.get('search[value]')  # This has a search term.
             if search_term:
-                email_users = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
-                # 1
-                q_set = Mooring.objects.filter(mooring_licence__submitter__in=list(email_users))
-                # 2
-                # q_set2 = Mooring.objects.filter(mooringonapproval__approval__submitter__in=list(email_users), mooringonapproval__end_date__isnull=True)
+                # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+                # User can search by a fullname, too
+                email_user_ids = EmailUser.objects.annotate(
+                    custom_term=Concat(
+                        "first_name",
+                        Value(" "),
+                        "last_name",
+                        output_field=CharField(),
+                    )
+                ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+                q_set = Mooring.objects.filter(mooring_licence__submitter__in=list(email_user_ids))
 
                 queryset = queryset.union(q_set)
 

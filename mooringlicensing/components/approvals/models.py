@@ -1788,6 +1788,26 @@ class MooringLicence(Approval):
         new_proposal.allocated_mooring = new_mooring  # Swap moorings here
         new_proposal.processing_status = Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
         new_proposal.vessel_ownership = self.current_proposal.vessel_ownership
+        
+        # Copy vessel details
+        new_proposal.vessel_details = self.current_proposal.vessel_details
+        new_proposal.rego_no = self.current_proposal.rego_no
+        new_proposal.vessel_id = self.current_proposal.vessel_id
+        new_proposal.vessel_type = self.current_proposal.vessel_type
+        new_proposal.vessel_name = self.current_proposal.vessel_name
+        new_proposal.vessel_length = self.current_proposal.vessel_length
+        new_proposal.vessel_draft = self.current_proposal.vessel_draft
+        new_proposal.vessel_beam = self.current_proposal.vessel_beam
+        new_proposal.vessel_weight = self.current_proposal.vessel_weight
+        new_proposal.berth_mooring = self.current_proposal.berth_mooring
+        new_proposal.dot_name = self.current_proposal.dot_name
+        new_proposal.percentage = self.current_proposal.percentage
+        new_proposal.individual_owner = self.current_proposal.individual_owner
+        new_proposal.company_ownership_percentage = self.current_proposal.company_ownership_percentage
+        new_proposal.company_ownership_name = self.current_proposal.company_ownership_name
+        
+        new_proposal.insurance_choice = self.current_proposal.insurance_choice
+        new_proposal.silent_elector = self.current_proposal.silent_elector
 
         new_proposal.save(version_comment=f'New Swap moorings Application: [{new_proposal}] created with the new mooring: [{new_mooring}] from the origin {new_proposal.previous_application}')
         new_proposal.add_vessels_and_moorings_from_licence()
@@ -2676,10 +2696,10 @@ class DcvPermit(RevisionedMixin):
         if settings.DEBUG:
             # In debug environment, we want to avoid decimal number which may cuase some kind of error.
             total_amount = math.ceil(fee_item.amount)
-            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount),
+            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount)
         else:
             total_amount = fee_item.amount
-            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount,
+            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount
 
         line_items = [
             {

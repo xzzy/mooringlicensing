@@ -1,21 +1,10 @@
-#from ledger.accounts.models import Organisation as ledger_organisation
-#from ledger.accounts.models import OrganisationAddress
-#from ledger.accounts.models import EmailUser, Address
-#from ledger.address.models import Country
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
-from ledger_api_client.country_models import Country
-#from ledger.payments.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, Address
 from django.conf import settings
-#from disturbance.components.organisations.models import Organisation, OrganisationContact, UserDelegation
-#from disturbance.components.main.models import ApplicationType
-#from disturbance.components.main.utils import get_category
-#from disturbance.components.proposals.models import Proposal, ProposalType, ApiarySite, ApiarySiteOnProposal, ProposalApiary #, ProposalOtherDetails, ProposalPark
-#from disturbance.components.approvals.models import Approval, MigratedApiaryLicence, ApiarySiteOnApproval
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.contrib.gis.geos import GEOSGeometry
 from django.utils import timezone
-from django_countries.fields import CountryField
+from ledger_api_client.country_models import Country
 import csv
 import os
 import datetime
@@ -383,12 +372,12 @@ class MooringLicenceReader():
 #        return df
 
     def _read_users(self):
-        def _get_country_code(x):
-            try:
-                country=Country.objects.get(iso_3166_1_a2=x.get('country'))
-            except Exception as e:
-                country=Country.objects.get(iso_3166_1_a2='AU')
-            return country.code
+        # def _get_country_code(x):
+        #     try:
+        #         country=Country.objects.get(iso_3166_1_a2=x.get('country'))
+        #     except Exception as e:
+        #         country=Country.objects.get(iso_3166_1_a2='AU')
+        #     return country.code
 
 
         #import ipdb; ipdb.set_trace()
