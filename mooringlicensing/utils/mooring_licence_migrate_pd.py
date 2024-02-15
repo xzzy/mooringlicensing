@@ -12,6 +12,7 @@ import time
 import string
 import pandas as pd
 import numpy as np
+import requests
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
