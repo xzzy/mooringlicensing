@@ -360,9 +360,10 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
             queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
 
             # Custom search
+            pattern = re.compile(r'\S\s+')
             search_term = request.data.get('search[value]')  # This has a search term.
-            logger.debug(f'search_term: {search_term}')
-            if re.search(r'\s{1,}', search_term):
+            if pattern.search(search_term):
+            # if re.search(r'\s{1,}', search_term):
                 # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
                 # User can search by a fullname, too
                 email_user_ids = EmailUser.objects.annotate(

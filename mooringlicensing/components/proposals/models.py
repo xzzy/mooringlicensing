@@ -4188,7 +4188,7 @@ class Mooring(RevisionedMixin):
                 logger.info(f'End date: [{today}] has been set to the MooringOnApproval: [{active_mooring_on_approval}] .')
 
                 # Set 'to_be_returned' to the sticker
-                from mooringlicensing.components.approvals.models import Sticker
+                # from mooringlicensing.components.approvals.models import Sticker
                 # sticker = active_mooring_on_approval.sticker
                 # if sticker:
                 #     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
@@ -4213,6 +4213,7 @@ class Mooring(RevisionedMixin):
                 # )
 
                 active_mooring_on_approval.approval.manage_stickers()  
+                active_mooring_on_approval.approval.generate_doc()
                 send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
 
 
