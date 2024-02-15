@@ -2207,7 +2207,6 @@ class MooringLicenceReader():
         for idx, a in enumerate(approvals):
             try:
                 if isinstance(a, DcvPermit) and len(a.permits.all())==0:
-                    import ipdb; ipdb.set_trace()
                     a.generate_dcv_permit_doc()
                 elif not hasattr(a, 'licence_document') or a.licence_document is None: 
                     a.generate_doc()
