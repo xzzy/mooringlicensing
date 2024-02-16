@@ -4663,7 +4663,10 @@ class VesselOwnership(RevisionedMixin):
         excludable = True
 
         latest_proposals = []
-        for proposal in self.proposal_set.all():
+        for proposal in self.proposal_set.exclude(processing_status__in=[
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_DISCARDED,
+        ]):
             get_latest_proposals(proposal, latest_proposals)
 
         for proposal in latest_proposals:
