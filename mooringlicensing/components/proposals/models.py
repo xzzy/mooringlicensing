@@ -4378,9 +4378,12 @@ class Vessel(RevisionedMixin):
             Proposal.PROCESSING_STATUS_EXPIRED,
             Proposal.PROCESSING_STATUS_DISCARDED,
         ])
-        proposals_filter &= Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
+        proposals_filter &= ~Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
 
         blocking_proposals = Proposal.objects.filter(proposals_filter)
+        for bp in blocking_proposals:
+            logger.debug(f'blocking_proposal: [{bp}]')
+
         if blocking_proposals:
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
