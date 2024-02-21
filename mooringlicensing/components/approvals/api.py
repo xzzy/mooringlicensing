@@ -358,6 +358,25 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         try:
             queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+
+            # Custom search
+            pattern = re.compile(r'\S\s+')
+            search_term = request.data.get('search[value]')  # This has a search term.
+            if pattern.search(search_term):
+            # if re.search(r'\s{1,}', search_term):
+                # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+                # User can search by a fullname, too
+                email_user_ids = EmailUser.objects.annotate(
+                    custom_term=Concat(
+                        "first_name",
+                        Value(" "),
+                        "last_name",
+                        output_field=CharField(),
+                    )
+                ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+                q_set = Approval.objects.filter(submitter__in=list(email_user_ids))
+
+                queryset = queryset.union(q_set)
         except Exception as e:
             logger.error(e)
         setattr(view, '_datatables_total_count', total_count)

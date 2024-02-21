@@ -4188,7 +4188,7 @@ class Mooring(RevisionedMixin):
                 logger.info(f'End date: [{today}] has been set to the MooringOnApproval: [{active_mooring_on_approval}] .')
 
                 # Set 'to_be_returned' to the sticker
-                from mooringlicensing.components.approvals.models import Sticker
+                # from mooringlicensing.components.approvals.models import Sticker
                 # sticker = active_mooring_on_approval.sticker
                 # if sticker:
                 #     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
@@ -4213,6 +4213,7 @@ class Mooring(RevisionedMixin):
                 # )
 
                 active_mooring_on_approval.approval.manage_stickers()  
+                active_mooring_on_approval.approval.generate_doc()
                 send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
 
 
@@ -4377,9 +4378,12 @@ class Vessel(RevisionedMixin):
             Proposal.PROCESSING_STATUS_EXPIRED,
             Proposal.PROCESSING_STATUS_DISCARDED,
         ])
-        proposals_filter &= Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
+        proposals_filter &= ~Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
 
         blocking_proposals = Proposal.objects.filter(proposals_filter)
+        for bp in blocking_proposals:
+            logger.debug(f'blocking_proposal: [{bp}]')
+
         if blocking_proposals:
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
@@ -4662,7 +4666,10 @@ class VesselOwnership(RevisionedMixin):
         excludable = True
 
         latest_proposals = []
-        for proposal in self.proposal_set.all():
+        for proposal in self.proposal_set.exclude(processing_status__in=[
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_DISCARDED,
+        ]):
             get_latest_proposals(proposal, latest_proposals)
 
         for proposal in latest_proposals:
