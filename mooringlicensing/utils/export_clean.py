@@ -9,6 +9,10 @@ def clean(srcpath='/home/jawaidm/Documents/ML_Excel/Lotus_Notes_extracts', outpa
     '''
     from mooringlicensing.utils.export_clean import clean
     clean()
+
+    or
+
+    clean(srcpath='/var/www/ml_seg/mooringlicensing/utils/csv/clean_06Feb2024', outpath='/var/www/ml_seg/mooringlicensing/utils/csv/clean')
     '''
     logger.info(f'srcpath: {srcpath}')
     logger.info(f'outpath: {outpath}')
