@@ -1957,6 +1957,22 @@ class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
 
+    def get_queryset(self):
+        # return super().get_queryset()
+        queryset = Vessel.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = Vessel.objects.all().order_by('id')
+        elif is_customer(self.request):
+            # user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            # queryset = Vessel.objects.filter(
+            #     Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+            # )
+            queryset = user.vessels.all()
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
+
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
@@ -2047,7 +2063,6 @@ class VesselViewSet(viewsets.ModelViewSet):
             # End Save Documents
 
             return Response(serializer.data)
-
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -2174,7 +2189,15 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringBaySerializer
 
     def get_queryset(self):
-        return MooringBay.objects.filter(active=True)
+        # return MooringBay.objects.filter(active=True)
+
+        queryset = MooringBay.objects.none()
+        user = self.request.user
+        if is_internal(self.request) or is_customer(self.request):
+            queryset = MooringBay.objects.filter(active=True)
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @list_route(methods=['GET',], detail=False)
     def lookup(self, request, *args, **kwargs):
