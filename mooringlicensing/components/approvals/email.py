@@ -680,8 +680,8 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
         details = 'This are my test details'
         surrender_date = '01/01/1970'
     else:
-        details = approval.surrender_details['details'],
-        surrender_date = approval.surrender_details['surrender_date'],
+        details = approval.surrender_details['details']
+        surrender_date = approval.surrender_details['surrender_date']
 
     context = {
         'public_url': get_public_url(request),

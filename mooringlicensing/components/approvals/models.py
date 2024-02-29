@@ -648,7 +648,41 @@ class Approval(RevisionedMixin):
         kwargs['no_revision'] = True
         super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
-        if type(self.child_obj) == MooringLicence and self.status in [Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED,]:
+
+        if type(self.child_obj) == MooringLicence and self.status in [
+            Approval.APPROVAL_STATUS_EXPIRED,
+            Approval.APPROVAL_STATUS_CANCELLED,
+            Approval.APPROVAL_STATUS_SURRENDERED,
+        ]:
+            if type(self.child_obj) == MooringLicence and self.status in [
+                Approval.APPROVAL_STATUS_CANCELLED,
+                Approval.APPROVAL_STATUS_SURRENDERED,
+            ]:
+                current_stickers = self.stickers.filter(
+                    status__in=[
+                        # Sticker.STICKER_STATUS_CURRENT,
+                        Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,
+                    ]
+                )
+                # When sticker is not printed yet, its status gets 'Cancelled'.
+                for sticker in current_stickers:
+                    sticker.status = Sticker.STICKER_STATUS_CANCELLED
+                    sticker.save()
+                    logger.info(f'Status: [{Sticker.STICKER_STATUS_CANCELLED}] has been set to the sticker: [{sticker}] due to the status: [{self.status}] of the approval: [{self}].')
+
+                current_stickers = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CURRENT,
+                    ]
+                )
+                # When sticker is current status, it should be returned.
+                for sticker in current_stickers:
+                    sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                    sticker.save()
+                    logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker: [{sticker}] due to the status: [{self.status}] of the approval: [{self}].')
+
             self.child_obj.update_auth_user_permits()
 
     def __str__(self):
@@ -749,8 +783,8 @@ class Approval(RevisionedMixin):
 
     @property
     def mooring_swappable(self):
-        logger.debug(f'approval: [{self}]')
-        logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
+        # logger.debug(f'approval: [{self}]')
+        # logger.debug(f'amend_or_renew: [{self.amend_or_renew}]')
         try:
             if self.amend_or_renew:
                 return True  # if it is amendable/renewable, it is also swappable.
@@ -1856,7 +1890,7 @@ class MooringLicence(Approval):
                 # Vessel is too small to consider the grace period.  We are interested only in the vessels larger than or equal to the min_mooring_vessel_size.
                 pass
         
-        logger.debug(f'end_date: {end_date} of ML: {self}')
+        # logger.debug(f'end_date: {end_date} of ML: {self}')
         return end_date
 
     def process_after_withdrawn(self):

@@ -703,6 +703,12 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
             elif data.get("silent_elector"):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
+            
+            # When company ownership, vessel registration document is compalsory
+            if not self.instance.vessel_ownership.individual_owner:
+                if not self.instance.vessel_ownership.vessel_registration_documents.count():
+                    custom_errors["Copy of registration papers"] = "You must provide evidence of this"
+
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -791,6 +797,11 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
 
+            # When company ownership, vessel registration document is compalsory
+            if not self.instance.vessel_ownership.individual_owner:
+                if not self.instance.vessel_ownership.vessel_registration_documents.count():
+                    custom_errors["Copy of registration papers"] = "You must provide evidence of this"
+
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
 
@@ -819,12 +830,11 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         read_only_fields=('id',)
 
     def validate(self, data):
-        print("validate data")
-        print(data)
         custom_errors = {}
         #ignore_insurance_check=self.context.get("ignore_insurance_check")
         proposal = Proposal.objects.get(id=self.context.get("proposal_id"))
-        ignore_insurance_check = data.get("keep_existing_vessel") and proposal.proposal_type.code != 'new'
+        ignore_insurance_check = data.get("keep_existing_vessel") and proposal.proposal_type.code != PROPOSAL_TYPE_NEW
+
         if self.context.get("action") == 'submit':
             if ignore_insurance_check:
                 pass
@@ -837,20 +847,24 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Insurance Choice"] = "Insurance selected is insufficient for your nominated vessel"
                 if not self.instance.insurance_certificate_documents.all():
                     custom_errors["Insurance Certificate"] = "Please attach"
-            if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
+            # if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
+            if not data.get("mooring_authorisation_preference"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
-            if data.get("mooring_authorisation_preference") == 'site_licensee' and not data.get('keep_existing_mooring'):
-                site_licensee_email = data.get("site_licensee_email")
-                mooring_id = data.get("mooring_id")
-                if not site_licensee_email:
-                    custom_errors["Site Licensee Email"] = "This field should not be blank"
-                if not mooring_id:
-                    custom_errors["Mooring Site ID"] = "This field should not be blank"
-                # check that the site_licensee_email matches the Mooring Licence holder
-                if mooring_id and Mooring.objects.get(id=mooring_id):
-                    mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                    if not mooring_licence or mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
-                        custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
+            # if data.get("mooring_authorisation_preference") == 'site_licensee' and not data.get('keep_existing_mooring'):
+            else:
+                if data.get("mooring_authorisation_preference") == 'site_licensee':
+                    if proposal.proposal_type.code == PROPOSAL_TYPE_NEW or not data.get('keep_existing_mooring'):
+                        site_licensee_email = data.get("site_licensee_email")
+                        mooring_id = data.get("mooring_id")
+                        if not site_licensee_email:
+                            custom_errors["Site Licensee Email"] = "This field should not be blank"
+                        if not mooring_id:
+                            custom_errors["Mooring Site ID"] = "This field should not be blank"
+                        # check that the site_licensee_email matches the Mooring Licence holder
+                        if mooring_id and Mooring.objects.get(id=mooring_id):
+                            mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
+                            if not mooring_licence or mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
+                                custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data

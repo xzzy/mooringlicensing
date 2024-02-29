@@ -358,6 +358,25 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         try:
             queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
+
+            # Custom search
+            pattern = re.compile(r'\S\s+')
+            search_term = request.data.get('search[value]')  # This has a search term.
+            if pattern.search(search_term):
+            # if re.search(r'\s{1,}', search_term):
+                # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
+                # User can search by a fullname, too
+                email_user_ids = EmailUser.objects.annotate(
+                    custom_term=Concat(
+                        "first_name",
+                        Value(" "),
+                        "last_name",
+                        output_field=CharField(),
+                    )
+                ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
+                q_set = Approval.objects.filter(submitter__in=list(email_user_ids))
+
+                queryset = queryset.union(q_set)
         except Exception as e:
             logger.error(e)
         setattr(view, '_datatables_total_count', total_count)
@@ -1384,6 +1403,23 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
     queryset = WaitingListAllocation.objects.all().order_by('id')
     serializer_class = WaitingListAllocationSerializer
 
+    def get_queryset(self):
+        # return super().get_queryset()
+        user = self.request.user
+        if is_internal(self.request):
+            qs = WaitingListAllocation.objects.all()
+            return qs
+        elif is_customer(self.request):
+            # queryset = WaitingListAllocation.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            queryset =  WaitingListAllocation.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter=self.request.user.id))
+            return queryset
+            # user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            # queryset =  Approval.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter = self.request.user.id))
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return WaitingListAllocation.objects.none()
+
+
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def create_mooring_licence_application(self, request, *args, **kwargs):
@@ -1428,7 +1464,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             return Response({"proposal_created": new_proposal.lodgement_number})
 
 
-class MooringLicenceViewSet(viewsets.ModelViewSet):
-    queryset = MooringLicence.objects.all().order_by('id')
-    serializer_class = ApprovalSerializer
+# class MooringLicenceViewSet(viewsets.ModelViewSet):
+#     queryset = MooringLicence.objects.all().order_by('id')
+#     serializer_class = ApprovalSerializer
 

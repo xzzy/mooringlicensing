@@ -37,6 +37,8 @@ from mooringlicensing.utils import are_migrations_running
 from django.urls import path
 
 router = routers.DefaultRouter()
+if settings.DEBUG is not True:
+    router.include_root_view = False
 router.register(r'organisations', org_api.OrganisationViewSet)
 router.register(r'proposal', proposal_api.ProposalViewSet)
 router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet)
@@ -54,7 +56,7 @@ router.register(r'compliances_paginated', compliances_api.CompliancePaginatedVie
 router.register(r'moorings_paginated', proposal_api.MooringPaginatedViewSet)
 router.register(r'approvals', approval_api.ApprovalViewSet)
 router.register(r'waitinglistallocation', approval_api.WaitingListAllocationViewSet)
-router.register(r'mooringlicence', approval_api.MooringLicenceViewSet)
+# router.register(r'mooringlicence', approval_api.MooringLicenceViewSet)
 router.register(r'compliances', compliances_api.ComplianceViewSet)
 router.register(r'proposal_requirements', proposal_api.ProposalRequirementViewSet)
 router.register(r'proposal_standard_requirements', proposal_api.ProposalStandardRequirementViewSet)
