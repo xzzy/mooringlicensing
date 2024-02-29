@@ -1691,8 +1691,6 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             queryset = AmendmentRequest.objects.all()
         elif is_customer(self.request):
-            # queryset = AmendmentRequest.objects.filter(Q(proxy_applicant_id=user.id) | Q(proposal__submitter=user.id))
-        #     # return queryset
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = AmendmentRequest.objects.filter(
                 Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)

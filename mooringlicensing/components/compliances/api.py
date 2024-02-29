@@ -318,6 +318,20 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = ComplianceAmendmentRequest.objects.all()
     serializer_class = ComplianceAmendmentRequestSerializer
 
+    def get_queryset(self):
+        queryset = ComplianceAmendmentRequest.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = ComplianceAmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            queryset = ComplianceAmendmentRequest.objects.filter(
+                Q(compliance__proposal__org_applicant_id__in=user_orgs) | Q(compliance__proposal__submitter=user.id)
+            )
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
+
     def create(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data= request.data)
