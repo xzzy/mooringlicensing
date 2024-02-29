@@ -648,7 +648,41 @@ class Approval(RevisionedMixin):
         kwargs['no_revision'] = True
         super(Approval, self).save(*args, **kwargs)
         self.child_obj.refresh_from_db()
-        if type(self.child_obj) == MooringLicence and self.status in [Approval.APPROVAL_STATUS_EXPIRED, Approval.APPROVAL_STATUS_CANCELLED, Approval.APPROVAL_STATUS_SURRENDERED,]:
+
+        if type(self.child_obj) == MooringLicence and self.status in [
+            Approval.APPROVAL_STATUS_EXPIRED,
+            Approval.APPROVAL_STATUS_CANCELLED,
+            Approval.APPROVAL_STATUS_SURRENDERED,
+        ]:
+            if type(self.child_obj) == MooringLicence and self.status in [
+                Approval.APPROVAL_STATUS_CANCELLED,
+                Approval.APPROVAL_STATUS_SURRENDERED,
+            ]:
+                current_stickers = self.stickers.filter(
+                    status__in=[
+                        # Sticker.STICKER_STATUS_CURRENT,
+                        Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,
+                    ]
+                )
+                # When sticker is not printed yet, its status gets 'Cancelled'.
+                for sticker in current_stickers:
+                    sticker.status = Sticker.STICKER_STATUS_CANCELLED
+                    sticker.save()
+                    logger.info(f'Status: [{Sticker.STICKER_STATUS_CANCELLED}] has been set to the sticker: [{sticker}] due to the status: [{self.status}] of the approval: [{self}].')
+
+                current_stickers = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CURRENT,
+                    ]
+                )
+                # When sticker is current status, it should be returned.
+                for sticker in current_stickers:
+                    sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                    sticker.save()
+                    logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker: [{sticker}] due to the status: [{self.status}] of the approval: [{self}].')
+
             self.child_obj.update_auth_user_permits()
 
     def __str__(self):

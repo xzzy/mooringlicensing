@@ -299,19 +299,27 @@ class GetMooringPerBay(views.APIView):
                             Q(mooring_bay__id=mooring_bay_id) &
                             Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
                             Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
-                            ~Q(id__in=aup_mooring_ids)
+                            ~Q(id__in=aup_mooring_ids) &
+                            Q(active=True) &
+                            Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
                         )
-                        data = Mooring.authorised_user_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
                     else:
                         data = []
                 else:
-                    data = Mooring.private_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                    mooring_filter = Q(
+                        Q(name__icontains=search_term) &
+                        Q(active=True) &
+                        Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
+                    )
+                    data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
             # data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
             data_transform = []
             for mooring in data:
                 if 'mooring_licence' in mooring and mooring['mooring_licence']:
                     data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (licensed)'})
                 else:
+                    # Should not reach here.  An unlicensed mooring would never be allocated to an AU permit.
                     data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (unlicensed)'})
             return Response({"results": data_transform})
         return Response()

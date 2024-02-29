@@ -2583,47 +2583,62 @@ class WaitingListApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        # Get blocking proposals
+        # Get blocking proposals 
+        # Checking if there are any applications still in process, but it might not be necessary to check for that because the blocking approvals are checked below.
         proposals = Proposal.objects.filter(
-            vessel_details__vessel=self.vessel_ownership.vessel,
-            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+            Q(vessel_details__vessel=self.vessel_ownership.vessel) &
+            (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True))  # Vessel has not been sold yet
         ).exclude(id=self.id)
         child_proposals = [proposal.child_obj for proposal in proposals]
-        proposals_wla = []
-        proposals_mla = []
+        logger.debug(f'child_proposals: [{child_proposals}]')
+        # proposals_wla = []
+        # proposals_mla = []
+        blocking_proposals = []  # 
         for proposal in child_proposals:
             if proposal.processing_status not in [
-                Proposal.PROCESSING_STATUS_APPROVED, 
+                # Proposal.PROCESSING_STATUS_APPROVED, 
                 Proposal.PROCESSING_STATUS_DECLINED, 
+                Proposal.PROCESSING_STATUS_EXPIRED, 
                 Proposal.PROCESSING_STATUS_DISCARDED,
-            ]:
-                if type(proposal) == WaitingListApplication:
-                    proposals_wla.append(proposal)
-                if type(proposal) == MooringLicenceApplication:
-                    proposals_mla.append(proposal)
+            ] and proposal.succeeding_proposals.count() == 0: # There are no succeeding proposals, which means this proposal is the lastest proposal.
+                # if type(proposal) == WaitingListApplication:
+                #     proposals_wla.append(proposal)
+                # if type(proposal) == MooringLicenceApplication:
+                #     proposals_mla.append(proposal)
+                blocking_proposals.append(proposal)
 
         # Get blocking approvals
         approval_histories = ApprovalHistory.objects.filter(
-            end_date=None,
-            vessel_ownership__vessel=self.vessel_ownership.vessel,
-            vessel_ownership__end_date__gt=today,  # Vessel has not been sold yet
+            Q(end_date=None) &
+            Q(vessel_ownership__vessel=self.vessel_ownership.vessel) &
+            (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True))  # Vessel has not been sold yet
         ).exclude(approval_id=self.approval_id)
         approvals = [ah.approval for ah in approval_histories]
-        approvals = list(dict.fromkeys(approvals))  # remove duplicates
-        approvals_wla = []
-        approvals_ml = []
+        approvals = list(dict.fromkeys(approvals))  # remove duplicateS
+        # approvals_wla = []
+        # approvals_ml = []
+        blocking_approvals = []
         for approval in approvals:
             if approval.status in Approval.APPROVED_STATUSES:
-                if type(approval.child_obj) == WaitingListAllocation:
-                    approvals_wla.append(approval)
-                if type(approval.child_obj) == MooringLicence:
-                    approvals_ml.append(approval)
+                # if type(approval.child_obj) == WaitingListAllocation:
+                #     approvals_wla.append(approval)
+                # if type(approval.child_obj) == MooringLicence:
+                #     approvals_ml.append(approval)
+                blocking_approvals.append(approval)
 
-        if (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
-            raise serializers.ValidationError("The vessel in the application is already listed in " +
-            ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_wla]) +
-            ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_wla])
-            )
+        # if (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
+        if (blocking_proposals or blocking_approvals):
+            bp = ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in blocking_proposals])
+            ba = ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in blocking_approvals])
+            msg = f'The vessel: {self.vessel_ownership.vessel} in the application is already listed in {bp}{ba}'
+            # raise serializers.ValidationError("The vessel in the application is already listed in " +
+            # ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_wla]) +
+            # ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in blocking_proposals]) +
+            # ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_wla])
+            # ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in blocking_approvals])
+            # )
+            logger.error(msg)
+            raise serializers.ValidationError(msg)
         # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
         elif (
                 WaitingListApplication.get_intermediate_proposals(self.submitter).exclude(id=self.id) or
@@ -2631,7 +2646,9 @@ class WaitingListApplication(Proposal):
                 MooringLicenceApplication.get_intermediate_proposals(self.submitter) or
                 MooringLicence.get_valid_approvals(self.submitter)
             ):
-            raise serializers.ValidationError("Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application")
+            msg = "Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application"
+            logger.error(msg)
+            raise serializers.ValidationError(msg)
     
     def validate_vessel_length(self, request):
         min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value

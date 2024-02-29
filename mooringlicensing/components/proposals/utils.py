@@ -585,10 +585,10 @@ def submit_vessel_data(instance, request, vessel_data):
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")
 
-    # Handle fields of the Proposal obj
+    # Update Proposal obj
     save_vessel_data(instance, request, vessel_data)
 
-    # Handle VesselDetails obj
+    # Update VesselDetails obj
     vessel, vessel_details = store_vessel_data(request, vessel_data)
 
     # Associate the vessel_details with the proposal
@@ -915,13 +915,14 @@ def ownership_percentage_validation(vessel_ownership, proposal):
             })
 
     ## Calc total existing
-    vessel_ownerships_to_excluded = proposal.get_previous_vessel_ownerships()
-    logger.info(f'Vessel ownerships to be excluded from the calculation: {vessel_ownerships_to_excluded}')
+    previous_vessel_ownerships = proposal.get_previous_vessel_ownerships()
+    logger.info(f'Vessel ownerships to be excluded from the calculation: {previous_vessel_ownerships}')
 
     total_percent = vessel_ownership_percentage
     vessel = vessel_ownership.vessel
     for vo in vessel.filtered_vesselownership_set.all():
-        if vo in vessel_ownerships_to_excluded:
+        if vo in previous_vessel_ownerships:
+            # We don't want to count the percentage in the previous vessel ownerships
             continue
         # if hasattr(vo.company_ownership, 'id'):
         if vo.company_ownerships.count():

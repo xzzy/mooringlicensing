@@ -1403,6 +1403,23 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
     queryset = WaitingListAllocation.objects.all().order_by('id')
     serializer_class = WaitingListAllocationSerializer
 
+    def get_queryset(self):
+        # return super().get_queryset()
+        user = self.request.user
+        if is_internal(self.request):
+            qs = WaitingListAllocation.objects.all()
+            return qs
+        elif is_customer(self.request):
+            # queryset = WaitingListAllocation.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            queryset =  WaitingListAllocation.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter=self.request.user.id))
+            return queryset
+            # user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
+            # queryset =  Approval.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter = self.request.user.id))
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return WaitingListAllocation.objects.none()
+
+
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def create_mooring_licence_application(self, request, *args, **kwargs):
@@ -1447,7 +1464,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             return Response({"proposal_created": new_proposal.lodgement_number})
 
 
-class MooringLicenceViewSet(viewsets.ModelViewSet):
-    queryset = MooringLicence.objects.all().order_by('id')
-    serializer_class = ApprovalSerializer
+# class MooringLicenceViewSet(viewsets.ModelViewSet):
+#     queryset = MooringLicence.objects.all().order_by('id')
+#     serializer_class = ApprovalSerializer
 

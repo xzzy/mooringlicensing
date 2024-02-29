@@ -678,7 +678,6 @@ export default {
                 },
                 templateSelection: function (data) {
                     console.log("in templateSelection()");
-                    console.log({ data })
                     return vm.validateRegoNo(data.text);
                 },
             }).
@@ -894,7 +893,8 @@ export default {
         this.$nextTick(async () => {
             console.log('in mounted nextTick()')
             await this.fetchVesselTypes();
-            if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
+            // if ((this.proposal && this.keep_current_vessel) || (!this.keep_current_vessel && this.proposal && this.proposal.proposal_type.code !== 'new')) {
+            if (this.proposal){
                 console.log('%cPerform fetchDraftData', consoleColour)
 
                 // fetches vessel data from proposal (saved as draft)
