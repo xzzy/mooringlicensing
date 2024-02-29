@@ -1563,8 +1563,22 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     serializer_class = ProposalRequirementSerializer
 
     def get_queryset(self):
-        qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        return qs
+        # qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
+        # return qs
+        queryset = ProposalRequirement.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
+        elif is_customer(self.request):
+            # queryset = ProposalRequirement.objects.filter(Q(proxy_applicant_id=user.id) | Q(proposal__submitter=user.id))
+            # return queryset
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            queryset = ProposalRequirement.objects.filter(
+                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+            )
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -1624,12 +1638,17 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         from mooringlicensing.components.main.models import ApplicationType
 
-        application_type_code = self.request.query_params.get('application_type_code', '')
-        queries = Q(application_type__isnull=True)
-        if application_type_code:
-            application_type = ApplicationType.objects.get(code=application_type_code)
-            queries |= Q(application_type=application_type)
-        qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
+        qs = ProposalStandardRequirement.objects.none()
+        user = self.request.user
+        if is_internal(self.request) or is_customer(self.request):
+            application_type_code = self.request.query_params.get('application_type_code', '')
+            queries = Q(application_type__isnull=True)
+            if application_type_code:
+                application_type = ApplicationType.objects.get(code=application_type_code)
+                queries |= Q(application_type=application_type)
+            qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -1665,6 +1684,22 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
+
+    def get_queryset(self):
+        queryset = AmendmentRequest.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = AmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            # queryset = AmendmentRequest.objects.filter(Q(proxy_applicant_id=user.id) | Q(proposal__submitter=user.id))
+        #     # return queryset
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            queryset = AmendmentRequest.objects.filter(
+                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+            )
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
