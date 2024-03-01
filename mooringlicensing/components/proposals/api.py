@@ -2301,7 +2301,15 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringSerializer
 
     def get_queryset(self):
-        return Mooring.objects.filter(active=True)
+        # return Mooring.objects.filter(active=True)
+
+        queryset = Mooring.objects.none()
+        user = self.request.user
+        if is_internal(self.request) or is_customer(self.request):
+            queryset = Mooring.objects.filter(active=True)
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
