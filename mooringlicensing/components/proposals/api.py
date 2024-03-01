@@ -1968,7 +1968,9 @@ class VesselViewSet(viewsets.ModelViewSet):
             # queryset = Vessel.objects.filter(
             #     Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
             # )
-            queryset = user.vessels.all()
+            owner = Owner.objects.filter(emailuser=user.id)
+            if owner:
+                queryset = owner[0].vessels.all()
         else:
             logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
