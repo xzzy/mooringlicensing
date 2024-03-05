@@ -742,6 +742,17 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = DcvAdmission.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            queryset = DcvAdmission.objects.filter(Q(submitter=user.id))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return DcvAdmission.objects.none()
+
     @staticmethod
     def _handle_dcv_vessel(dcv_vessel, org_id=None):
         data = dcv_vessel
