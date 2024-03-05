@@ -1091,7 +1091,15 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
     serializer_class = DcvVesselSerializer
 
     def get_queryset(self):
-        return super().get_queryset()
+        user = self.request.user
+        if is_internal(self.request):
+            qs = DcvVessel.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            queryset = DcvVessel.objects.filter(Q(dcv_permits__in=DcvPermit.objects.filter(Q(submitter=user.id))))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return DcvPermit.objects.none()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
