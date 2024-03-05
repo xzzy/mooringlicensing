@@ -34,6 +34,7 @@ from mooringlicensing.components.proposals.serializers import ProposalSerializer
 # from decimal import Decimal
 
 import logging
+from mooringlicensing.helpers import is_customer, is_internal
 
 from mooringlicensing.settings import LEDGER_SYSTEM_ID, SYSTEM_NAME
 
@@ -125,6 +126,14 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
     queryset = TemporaryDocumentCollection.objects.all()
     serializer_class = TemporaryDocumentCollectionSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        qs = TemporaryDocumentCollection.objects.none()
+        if is_internal(self.request) or is_customer(self.request):
+            qs = TemporaryDocumentCollection.objects.all()
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return qs
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
         print("create temp doc coll")
