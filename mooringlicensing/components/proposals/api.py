@@ -1911,6 +1911,18 @@ class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all().order_by('id')
     serializer_class = CompanySerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = Company.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            companyownerships = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
+            queryset = Company.objects.filter(Q(companyownership__in=companyownerships))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return Company.objects.none()
+
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def lookup_company_ownership(self, request, *args, **kwargs):
