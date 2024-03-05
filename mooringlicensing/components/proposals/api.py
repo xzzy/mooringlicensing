@@ -1771,6 +1771,17 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
     queryset = VesselOwnership.objects.all().order_by('id')
     serializer_class = VesselOwnershipSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = VesselOwnership.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            queryset = VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return VesselOwnership.objects.none()
+
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
