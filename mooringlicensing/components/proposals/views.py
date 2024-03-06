@@ -180,15 +180,22 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
 class VesselRegistrationDocumentView(APIView):
 
     def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
         file_path = VesselRegistrationDocument.relative_path_to_file(proposal_id, filename)
         file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
-        with open(file_path, 'rb') as f:
-            mimetypes.init()
-            f_name = os.path.basename(file_path)
-            mime_type_guess = mimetypes.guess_type(f_name)
-            if mime_type_guess is not None:
-                response = HttpResponse(f, content_type=mime_type_guess[0])
-            response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+        if allow_access:
+            with open(file_path, 'rb') as f:
+                mimetypes.init()
+                f_name = os.path.basename(file_path)
+                mime_type_guess = mimetypes.guess_type(f_name)
+                if mime_type_guess is not None:
+                    response = HttpResponse(f, content_type=mime_type_guess[0])
+                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
 
         return response
