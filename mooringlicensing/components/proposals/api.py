@@ -986,9 +986,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
-        returned_file_data = []
-
         # retrieve temporarily uploaded documents when the proposal is 'draft'
+        returned_file_data = []
         docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
         docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
         all_the_docs = docs_in_limbo | docs  # Merge two querysets
@@ -1017,13 +1016,34 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_hull_identification_number_document(self, request, *args, **kwargs):
+    # def process_hull_identification_number_document(self, request, *args, **kwargs):
+    def hull_identification_number_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        # retrieve temporarily uploaded documents when the proposal is 'draft'
+        returned_file_data = []
+        docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
+        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
+        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
+        all_the_docs = docs_in_limbo
+
+        for d in all_the_docs:
+            if d._file:
+                returned_file_data.append({
+                    'file': d._file.url,
+                    'id': d.id,
+                    # 'name': d.original_file_name + d.original_file_ext,
+                    'name': 'aho'
+                })
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))

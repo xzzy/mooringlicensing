@@ -4734,26 +4734,20 @@ class VesselOwnership(RevisionedMixin):
 
 
 class VesselRegistrationDocument(Document):
-    def relative_path_to_file(instance, filename):
-        proposal_id = 0
-        if isinstance(instance, VesselRegistrationDocument):
-            # instance is VesselRegistrationDocument object
-            proposal_id = instance.proposal.id
-        elif isinstance(instance, Proposal):
-            # instance is proposal obj
-            proposal_id = instance.id
-        else:
-            # instance is probably ID
-            proposal_id = instance
-
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
         return f'proposal/{proposal_id}/vessel_registration_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
 
     vessel_ownership = models.ForeignKey(VesselOwnership, null=True, blank=True, related_name='vessel_registration_documents', on_delete=models.CASCADE)
     _file = models.FileField(
         null=True,
         max_length=512,
         storage=private_storage,
-        upload_to=relative_path_to_file
+        upload_to=upload_to
     )
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
