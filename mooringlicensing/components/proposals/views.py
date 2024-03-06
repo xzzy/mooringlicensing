@@ -22,7 +22,7 @@ from reversion.models import Version
 from rest_framework.views import APIView
 import logging
 
-from mooringlicensing.settings import BASE_DIR, PRIVATE_MEDIA_DIR_NAME
+from mooringlicensing.settings import BASE_DIR, PRIVATE_MEDIA_DIR_NAME, PRIVATE_MEDIA_STORAGE_LOCATION
 
 logger = logging.getLogger(__name__)
 
@@ -180,9 +180,8 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
 class VesselRegistrationDocumentView(APIView):
 
     def get(self, request,  proposal_id, filename):
-        logger.info(f'{VesselRegistrationDocumentView.__name__} get method is called.')
-
-        file_path = os.path.join(BASE_DIR, f'{PRIVATE_MEDIA_DIR_NAME}/proposal/{proposal_id}/vessel_registration_documents/{filename}')
+        file_path = VesselRegistrationDocument.relative_path_to_file(proposal_id, filename)
+        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
         with open(file_path, 'rb') as f:
             mimetypes.init()

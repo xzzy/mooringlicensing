@@ -980,8 +980,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 original_file_name=original_file_name,
                 original_file_ext=original_file_ext,
             )
-            path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            document._file.save(new_filename, ContentFile(_file.read()))
 
             logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 

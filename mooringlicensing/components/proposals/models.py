@@ -22,8 +22,8 @@ from ledger_api_client.utils import calculate_excl_gst
 # from mooringlicensing.components.payments_ml.utils import get_invoice_payment_status
 # from mooringlicensing.components.main.utils import retrieve_email_user
 # from ledger.settings_base import TIME_ZONE
-from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, BASE_DIR, PRIVATE_MEDIA_DIR_NAME, GROUP_ASSESSOR_MOORING_LICENCE, \
-    GROUP_APPROVER_MOORING_LICENCE
+from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, GROUP_ASSESSOR_MOORING_LICENCE, \
+    GROUP_APPROVER_MOORING_LICENCE, PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 # from ledger_api_client.pdf import create_invoice_pdf_bytes
 from django.db import models, transaction
@@ -87,6 +87,12 @@ logger = logging.getLogger(__name__)
 # logger_for_payment = logging.getLogger('mooringlicensing')
 logger_for_payment = logging.getLogger(__name__)
 
+private_storage = FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
+    # location=os.path.join(BASE_DIR, PRIVATE_MEDIA_DIR_NAME),
+    # base_url=f'/{PRIVATE_MEDIA_DIR_NAME}/'
+    location=PRIVATE_MEDIA_STORAGE_LOCATION,
+    base_url=PRIVATE_MEDIA_BASE_URL,
+)
 
 def update_proposal_doc_filename(instance, filename):
     return '{}/proposals/{}/documents/{}'.format(settings.MEDIA_APP_DIR, instance.proposal.id,filename)
@@ -4728,14 +4734,26 @@ class VesselOwnership(RevisionedMixin):
 
 
 class VesselRegistrationDocument(Document):
+    def relative_path_to_file(instance, filename):
+        proposal_id = 0
+        if isinstance(instance, VesselRegistrationDocument):
+            # instance is VesselRegistrationDocument object
+            proposal_id = instance.proposal.id
+        elif isinstance(instance, Proposal):
+            # instance is proposal obj
+            proposal_id = instance.id
+        else:
+            # instance is probably ID
+            proposal_id = instance
+
+        return f'proposal/{proposal_id}/vessel_registration_documents/{filename}'
+
     vessel_ownership = models.ForeignKey(VesselOwnership, null=True, blank=True, related_name='vessel_registration_documents', on_delete=models.CASCADE)
     _file = models.FileField(
         null=True,
         max_length=512,
-        storage=FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
-            location=os.path.join(BASE_DIR, PRIVATE_MEDIA_DIR_NAME),
-            base_url=f'/{PRIVATE_MEDIA_DIR_NAME}/'
-        )
+        storage=private_storage,
+        upload_to=relative_path_to_file
     )
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
