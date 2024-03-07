@@ -21,6 +21,7 @@ from reversion.models import Version
 
 from rest_framework.views import APIView
 import logging
+from mooringlicensing.components.proposals.utils import get_file_content_http_response
 
 from mooringlicensing.settings import BASE_DIR, PRIVATE_MEDIA_DIR_NAME, PRIVATE_MEDIA_STORAGE_LOCATION
 
@@ -190,13 +191,7 @@ class VesselRegistrationDocumentView(APIView):
         file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
         if allow_access:
-            with open(file_path, 'rb') as f:
-                mimetypes.init()
-                f_name = os.path.basename(file_path)
-                mime_type_guess = mimetypes.guess_type(f_name)
-                if mime_type_guess is not None:
-                    response = HttpResponse(f, content_type=mime_type_guess[0])
-                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+            response = get_file_content_http_response(file_path)
 
         return response
 
@@ -214,13 +209,7 @@ class HullIdentificationNumberDocumentView(APIView):
         file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
         if allow_access:
-            with open(file_path, 'rb') as f:
-                mimetypes.init()
-                f_name = os.path.basename(file_path)
-                mime_type_guess = mimetypes.guess_type(f_name)
-                if mime_type_guess is not None:
-                    response = HttpResponse(f, content_type=mime_type_guess[0])
-                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+            response = get_file_content_http_response(file_path)
 
         return response
 
@@ -238,13 +227,7 @@ class ElectoralRollDocumentView(APIView):
         file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
         if allow_access:
-            with open(file_path, 'rb') as f:
-                mimetypes.init()
-                f_name = os.path.basename(file_path)
-                mime_type_guess = mimetypes.guess_type(f_name)
-                if mime_type_guess is not None:
-                    response = HttpResponse(f, content_type=mime_type_guess[0])
-                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+            response = get_file_content_http_response(file_path)
 
         return response
 
@@ -262,12 +245,6 @@ class InsuranceCertificateDocumentView(APIView):
         file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
         if allow_access:
-            with open(file_path, 'rb') as f:
-                mimetypes.init()
-                f_name = os.path.basename(file_path)
-                mime_type_guess = mimetypes.guess_type(f_name)
-                if mime_type_guess is not None:
-                    response = HttpResponse(f, content_type=mime_type_guess[0])
-                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+            response = get_file_content_http_response(file_path)
 
         return response

@@ -1,8 +1,11 @@
 import datetime
+import mimetypes
+import os
 import re
 from decimal import Decimal
 
 from django.db import transaction
+from django.http import HttpResponse
 # from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
@@ -1097,3 +1100,14 @@ def construct_dict_from_docs(documents):
             logger.error(f'Error raised when returning uploaded file data: ({str(e)})')
 
     return data_to_be_returned
+    
+
+def get_file_content_http_response(file_path):
+    with open(file_path, 'rb') as f:
+        mimetypes.init()
+        f_name = os.path.basename(file_path)
+        mime_type_guess = mimetypes.guess_type(f_name)
+        if mime_type_guess is not None:
+            response = HttpResponse(f, content_type=mime_type_guess[0])
+        response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+        return response
