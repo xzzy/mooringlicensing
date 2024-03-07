@@ -9,11 +9,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
 from mooringlicensing import settings
-from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, Proposal,
+from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, ProofOfIdentityDocument, Proposal,
                                                           HelpPage, AuthorisedUserApplication, Mooring,
-                                                          MooringLicenceApplication, VesselRegistrationDocument
+                                                          MooringLicenceApplication, SignedLicenceAgreementDocument, VesselRegistrationDocument, WrittenProofDocument
                                                           )
-from mooringlicensing.components.approvals.models import Approval
+from mooringlicensing.components.approvals.models import Approval, WaitingListOfferDocument
 from mooringlicensing.components.compliances.models import Compliance
 import json,traceback
 from reversion_compare.views import HistoryCompareDetailView
@@ -240,6 +240,70 @@ class InsuranceCertificateDocumentView(APIView):
 
         if allow_access:
             file_path = InsuranceCertificateDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class WrittenProofDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = WrittenProofDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class SignedLicenceAgreementDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = SignedLicenceAgreementDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class ProofOfIdentityDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = ProofOfIdentityDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class WaitingListOfferDocumentView(APIView):
+
+    def get(self, request,  approval_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = WaitingListOfferDocument.relative_path_to_file(approval_id, filename)
             file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 

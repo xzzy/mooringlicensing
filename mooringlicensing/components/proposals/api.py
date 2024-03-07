@@ -30,7 +30,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
     construct_dict_from_docs, save_proponent_data, update_proposal_applicant, make_ownership_ready,
 )
-from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
@@ -783,13 +783,65 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_mooring_report_document(self, request, *args, **kwargs):
+    # def process_mooring_report_document(self, request, *args, **kwargs):
+    def mooring_report_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = MooringReportDocument.objects.get(
+                # proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                new_filename = filepath.stem + filepath.suffix
+
+            document = MooringReportDocument.objects.create(
+                # proposal=instance,
+                name=filepath.stem + filepath.suffix
+            )
+            instance.mooring_report_documents.add(document)
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
+
+        # returned_file_data = []
+        docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))

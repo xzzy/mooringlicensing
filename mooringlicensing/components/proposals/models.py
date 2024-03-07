@@ -88,8 +88,6 @@ logger = logging.getLogger(__name__)
 logger_for_payment = logging.getLogger(__name__)
 
 private_storage = FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
-    # location=os.path.join(BASE_DIR, PRIVATE_MEDIA_DIR_NAME),
-    # base_url=f'/{PRIVATE_MEDIA_DIR_NAME}/'
     location=PRIVATE_MEDIA_STORAGE_LOCATION,
     base_url=PRIVATE_MEDIA_BASE_URL,
 )
@@ -4891,8 +4889,23 @@ class ElectoralRollDocument(Document):
 
 
 class MooringReportDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/mooring_report_documents/{filename}'
+
+    def upload_to(self, filename):
+        # proposal_id = self.proposal.id
+        proposal = self.proposal_set.first()
+        return self.relative_path_to_file(proposal.id, filename)
+
     # proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide = models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
@@ -4905,7 +4918,22 @@ class MooringReportDocument(Document):
 
 class WrittenProofDocument(Document):
     # proposal = models.ForeignKey(Proposal, related_name='written_proof_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/written_proof_documents/{filename}'
+
+    def upload_to(self, filename):
+        # proposal_id = self.proposal.id
+        proposal = self.proposal_set.first()
+        return self.relative_path_to_file(proposal.id, filename)
+
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide = models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
@@ -4917,8 +4945,23 @@ class WrittenProofDocument(Document):
 
 
 class SignedLicenceAgreementDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/signed_licence_agreement_documents/{filename}'
+
+    def upload_to(self, filename):
+        # proposal_id = self.proposal.id
+        proposal = self.proposal_set.first()
+        return self.relative_path_to_file(proposal.id, filename)
+
     # proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True)
     can_hide = models.BooleanField(default=False)
@@ -4930,8 +4973,22 @@ class SignedLicenceAgreementDocument(Document):
 
 
 class ProofOfIdentityDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/proof_of_identity_documents/{filename}'
+
+    def upload_to(self, filename):
+        # proposal_id = self.proposal.id
+        proposal = self.proposal_set.first()
+        return self.relative_path_to_file(proposal.id, filename)
     # proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255, null=True, blank=True)
     can_delete = models.BooleanField(default=True)
     can_hide = models.BooleanField(default=False)
