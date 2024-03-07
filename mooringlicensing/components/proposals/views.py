@@ -187,10 +187,9 @@ class VesselRegistrationDocumentView(APIView):
         allow_access = True
         ###
 
-        file_path = VesselRegistrationDocument.relative_path_to_file(proposal_id, filename)
-        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
-
         if allow_access:
+            file_path = VesselRegistrationDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 
         return response
@@ -205,10 +204,9 @@ class HullIdentificationNumberDocumentView(APIView):
         allow_access = True
         ###
 
-        file_path = HullIdentificationNumberDocument.relative_path_to_file(proposal_id, filename)
-        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
-
         if allow_access:
+            file_path = HullIdentificationNumberDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 
         return response
@@ -223,10 +221,9 @@ class ElectoralRollDocumentView(APIView):
         allow_access = True
         ###
 
-        file_path = ElectoralRollDocument.relative_path_to_file(proposal_id, filename)
-        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
-
         if allow_access:
+            file_path = ElectoralRollDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 
         return response
@@ -241,10 +238,9 @@ class InsuranceCertificateDocumentView(APIView):
         allow_access = True
         ###
 
-        file_path = InsuranceCertificateDocument.relative_path_to_file(proposal_id, filename)
-        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
-
         if allow_access:
+            file_path = InsuranceCertificateDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 
         return response
