@@ -67,7 +67,7 @@ router.register(r'users', users_api.UserViewSet)
 router.register(r'amendment_request', proposal_api.AmendmentRequestViewSet)
 # router.register(r'back_to_assessor', proposal_api.BackToAssessorViewSet)
 router.register(r'compliance_amendment_request', compliances_api.ComplianceAmendmentRequestViewSet)
-router.register(r'global_settings', main_api.GlobalSettingsViewSet)
+# router.register(r'global_settings', main_api.GlobalSettingsViewSet)
 router.register(r'payment', main_api.PaymentViewSet)
 router.register(r'mooringbays', proposal_api.MooringBayViewSet)
 router.register(r'vessel', proposal_api.VesselViewSet)
@@ -200,7 +200,14 @@ urlpatterns = [
     url(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
 
-    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/hull_identification_number_documents/(?P<filename>.+)$', proposal_views.HullIdentificationNumberDocumentView.as_view(), name='serve_hull_identification_number_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/electoral_roll_documents/(?P<filename>.+)$', proposal_views.ElectoralRollDocumentView.as_view(), name='serve_electoral_roll_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/insurance_certificate_documents/(?P<filename>.+)$', proposal_views.InsuranceCertificateDocumentView.as_view(), name='serve_insurance_certificate_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/written_proof_documents/(?P<filename>.+)$', proposal_views.WrittenProofDocumentView.as_view(), name='serve_written_proof_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/signed_licence_agreement_documents/(?P<filename>.+)$', proposal_views.SignedLicenceAgreementDocumentView.as_view(), name='serve_signed_licence_agreement_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/proof_of_identity_documents/(?P<filename>.+)$', proposal_views.ProofOfIdentityDocumentView.as_view(), name='serve_proof_of_identity_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/approval/(?P<approval_id>\d+)/waiting_list_offer_documents/(?P<filename>.+)$', proposal_views.WaitingListOfferDocumentView.as_view(), name='serve_waiting_list_offer_documents'),
 
     # Intercept the request to update the account details before reaching the ledger_api_client
     url(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),

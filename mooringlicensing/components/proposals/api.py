@@ -28,9 +28,9 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, update_proposal_applicant, make_ownership_ready,
+    construct_dict_from_docs, save_proponent_data, update_proposal_applicant, make_ownership_ready,
 )
-from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
@@ -559,9 +559,9 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
-            filter_query &= Q(site_licensee_email=request.user.email)
+            filter_query &= Q(site_licensee_email__iexact=request.user.email)
         else:
-            filter_query &= ~Q(site_licensee_email=request.user.email)
+            filter_query &= ~Q(site_licensee_email__iexact=request.user.email)
 
         # don't show discarded applications
         if not level == 'internal':
@@ -783,13 +783,65 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_mooring_report_document(self, request, *args, **kwargs):
+    # def process_mooring_report_document(self, request, *args, **kwargs):
+    def mooring_report_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = MooringReportDocument.objects.get(
+                # proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                new_filename = filepath.stem + filepath.suffix
+
+            document = MooringReportDocument.objects.create(
+                # proposal=instance,
+                name=filepath.stem + filepath.suffix
+            )
+            instance.mooring_report_documents.add(document)
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
+
+        # returned_file_data = []
+        docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -977,63 +1029,229 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             document = VesselRegistrationDocument.objects.create(
                 proposal=instance,
+                name=filepath.stem + filepath.suffix,
                 original_file_name=original_file_name,
                 original_file_ext=original_file_ext,
             )
-            path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            document._file.save(new_filename, ContentFile(_file.read()))
 
             logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
-        returned_file_data = []
-
-        # retrieve temporarily uploaded documents when the proposal is 'draft'
         docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
         docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
         all_the_docs = docs_in_limbo | docs  # Merge two querysets
 
-        for d in all_the_docs:
-            if d._file:
-                returned_file_data.append({
-                    'file': d._file.url,
-                    'id': d.id,
-                    'name': d.original_file_name + d.original_file_ext,
-                })
+        returned_file_data = construct_dict_from_docs(all_the_docs)
 
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_electoral_roll_document(self, request, *args, **kwargs):
+    # def process_electoral_roll_document(self, request, *args, **kwargs):
+    def electoral_roll_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = ElectoralRollDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                new_filename = filepath.stem + filepath.suffix
+
+            document = ElectoralRollDocument.objects.create(
+                proposal=instance,
+                name=filepath.stem + filepath.suffix
+            )
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
+
+        # returned_file_data = []
+        docs_in_limbo = instance.electoral_roll_documents.all()  # Files uploaded when vessel_ownership is unknown
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_hull_identification_number_document(self, request, *args, **kwargs):
+    # def process_hull_identification_number_document(self, request, *args, **kwargs):
+    def hull_identification_number_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = HullIdentificationNumberDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+            # original_file_name = filepath.stem
+            # original_file_ext = filepath.suffix
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                # new_filename = unique_id.hex + original_file_ext
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                # new_filename = original_file_name + original_file_ext
+                new_filename = filepath.stem + filepath.suffix
+
+            document = HullIdentificationNumberDocument.objects.create(
+                proposal=instance,
+                name=filepath.stem + filepath.suffix
+                # original_file_name=original_file_name,
+                # original_file_ext=original_file_ext,
+            )
+            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
+
+        # retrieve temporarily uploaded documents when the proposal is 'draft'
+        # returned_file_data = []
+        docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
+        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
+        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_insurance_certificate_document(self, request, *args, **kwargs):
+    # def process_insurance_certificate_document(self, request, *args, **kwargs):
+    def insurance_certificate_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = InsuranceCertificateDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+            # original_file_name = filepath.stem
+            # original_file_ext = filepath.suffix
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                # new_filename = unique_id.hex + original_file_ext
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                # new_filename = original_file_name + original_file_ext
+                new_filename = filepath.stem + filepath.suffix
+
+            document = InsuranceCertificateDocument.objects.create(
+                proposal=instance,
+                name=filepath.stem + filepath.suffix
+                # original_file_name=original_file_name,
+                # original_file_ext=original_file_ext,
+            )
+            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
+
+        # retrieve temporarily uploaded documents when the proposal is 'draft'
+        # returned_file_data = []
+        docs_in_limbo = instance.insurance_certificate_documents.all()  # Files uploaded when vessel_ownership is unknown
+        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
+        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['GET',], detail=True)
     def compare_list(self, request, *args, **kwargs):
@@ -1563,8 +1781,22 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     serializer_class = ProposalRequirementSerializer
 
     def get_queryset(self):
-        qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        return qs
+        # qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
+        # return qs
+        queryset = ProposalRequirement.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
+        elif is_customer(self.request):
+            # queryset = ProposalRequirement.objects.filter(Q(proxy_applicant_id=user.id) | Q(proposal__submitter=user.id))
+            # return queryset
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            queryset = ProposalRequirement.objects.filter(
+                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+            )
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -1624,12 +1856,17 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         from mooringlicensing.components.main.models import ApplicationType
 
-        application_type_code = self.request.query_params.get('application_type_code', '')
-        queries = Q(application_type__isnull=True)
-        if application_type_code:
-            application_type = ApplicationType.objects.get(code=application_type_code)
-            queries |= Q(application_type=application_type)
-        qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
+        qs = ProposalStandardRequirement.objects.none()
+        user = self.request.user
+        if is_internal(self.request) or is_customer(self.request):
+            application_type_code = self.request.query_params.get('application_type_code', '')
+            queries = Q(application_type__isnull=True)
+            if application_type_code:
+                application_type = ApplicationType.objects.get(code=application_type_code)
+                queries |= Q(application_type=application_type)
+            qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -1665,6 +1902,20 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
+
+    def get_queryset(self):
+        queryset = AmendmentRequest.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = AmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            queryset = AmendmentRequest.objects.filter(
+                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+            )
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
@@ -1737,6 +1988,17 @@ class SearchReferenceView(views.APIView):
 class VesselOwnershipViewSet(viewsets.ModelViewSet):
     queryset = VesselOwnership.objects.all().order_by('id')
     serializer_class = VesselOwnershipSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = VesselOwnership.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            queryset = VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return VesselOwnership.objects.none()
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -1867,6 +2129,18 @@ class CompanyViewSet(viewsets.ModelViewSet):
     queryset = Company.objects.all().order_by('id')
     serializer_class = CompanySerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = Company.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            companyownerships = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
+            queryset = Company.objects.filter(Q(companyownership__in=companyownerships))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return Company.objects.none()
+
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def lookup_company_ownership(self, request, *args, **kwargs):
@@ -1893,6 +2167,17 @@ class CompanyViewSet(viewsets.ModelViewSet):
 class CompanyOwnershipViewSet(viewsets.ModelViewSet):
     queryset = CompanyOwnership.objects.all().order_by('id')
     serializer_class = CompanyOwnershipSerializer
+    
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = CompanyOwnership.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            queryset = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return CompanyOwnership.objects.none()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -1923,6 +2208,24 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
 class VesselViewSet(viewsets.ModelViewSet):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
+
+    def get_queryset(self):
+        # return super().get_queryset()
+        queryset = Vessel.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = Vessel.objects.all().order_by('id')
+        elif is_customer(self.request):
+            # user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            # queryset = Vessel.objects.filter(
+            #     Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+            # )
+            owner = Owner.objects.filter(emailuser=user.id)
+            if owner:
+                queryset = owner[0].vessels.all()
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2014,7 +2317,6 @@ class VesselViewSet(viewsets.ModelViewSet):
             # End Save Documents
 
             return Response(serializer.data)
-
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -2141,7 +2443,15 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringBaySerializer
 
     def get_queryset(self):
-        return MooringBay.objects.filter(active=True)
+        # return MooringBay.objects.filter(active=True)
+
+        queryset = MooringBay.objects.none()
+        user = self.request.user
+        if is_internal(self.request) or is_customer(self.request):
+            queryset = MooringBay.objects.filter(active=True)
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @list_route(methods=['GET',], detail=False)
     def lookup(self, request, *args, **kwargs):
@@ -2243,7 +2553,15 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringSerializer
 
     def get_queryset(self):
-        return Mooring.objects.filter(active=True)
+        # return Mooring.objects.filter(active=True)
+
+        queryset = Mooring.objects.none()
+        user = self.request.user
+        if is_internal(self.request) or is_customer(self.request):
+            queryset = Mooring.objects.filter(active=True)
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler

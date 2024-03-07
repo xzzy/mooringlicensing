@@ -49,6 +49,7 @@ from mooringlicensing.components.approvals.email import (
 from mooringlicensing.helpers import is_customer
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
 from ledger_api_client.utils import calculate_excl_gst
+from mooringlicensing.components.proposals.models import private_storage
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -65,8 +66,22 @@ def update_approval_comms_log_filename(instance, filename):
 
 
 class WaitingListOfferDocument(Document):
+    @staticmethod
+    def relative_path_to_file(approval_id, filename):
+        return f'approval/{approval_id}/waiting_list_offer_documents/{filename}'
+
+    def upload_to(self, filename):
+        approval_id = self.approval.id
+        return self.relative_path_to_file(approval_id, filename)
+
     approval = models.ForeignKey('Approval',related_name='waiting_list_offer_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
