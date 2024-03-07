@@ -4809,8 +4809,22 @@ class Company(RevisionedMixin):
 
 
 class InsuranceCertificateDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/insurance_certificate_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
     proposal = models.ForeignKey(Proposal,related_name='insurance_certificate_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
@@ -4849,9 +4863,23 @@ class HullIdentificationNumberDocument(Document):
 
 
 class ElectoralRollDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/electoral_roll_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
     #emailuser = models.ForeignKey(EmailUser,related_name='electoral_roll_documents')
     proposal = models.ForeignKey(Proposal,related_name='electoral_roll_documents', on_delete=models.CASCADE)
-    _file = models.FileField(max_length=512)
+    # _file = models.FileField(max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden

@@ -28,9 +28,9 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    save_proponent_data, update_proposal_applicant, make_ownership_ready,
+    construct_dict_from_docs, save_proponent_data, update_proposal_applicant, make_ownership_ready,
 )
-from mooringlicensing.components.proposals.models import HullIdentificationNumberDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
@@ -981,42 +981,79 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 original_file_name=original_file_name,
                 original_file_ext=original_file_ext,
             )
-            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
             document._file.save(new_filename, ContentFile(_file.read()))
 
             logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
-        # retrieve temporarily uploaded documents when the proposal is 'draft'
-        returned_file_data = []
         docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
         docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
         all_the_docs = docs_in_limbo | docs  # Merge two querysets
 
-        for d in all_the_docs:
-            if d._file:
-                try:
-                    returned_file_data.append({
-                        'file': d._file.url,
-                        'id': d.id,
-                        # 'name': d.original_file_name + d.original_file_ext,
-                        'name': d.name,
-                    })
-                except Exception as e:
-                    logger.error(f'Error raised when returning uploaded file data: ({str(e)})')
+        returned_file_data = construct_dict_from_docs(all_the_docs)
 
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_electoral_roll_document(self, request, *args, **kwargs):
+    # def process_electoral_roll_document(self, request, *args, **kwargs):
+    def electoral_roll_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = ElectoralRollDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                new_filename = filepath.stem + filepath.suffix
+
+            document = ElectoralRollDocument.objects.create(
+                proposal=instance,
+                name=filepath.stem + filepath.suffix
+            )
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
+
+        # returned_file_data = []
+        docs_in_limbo = instance.electoral_roll_documents.all()  # Files uploaded when vessel_ownership is unknown
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -1081,32 +1118,88 @@ class ProposalViewSet(viewsets.ModelViewSet):
             logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
-        returned_file_data = []
+        # returned_file_data = []
         docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
         # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
         # all_the_docs = docs_in_limbo | docs  # Merge two querysets
         all_the_docs = docs_in_limbo
 
-        for d in all_the_docs:
-            if d._file:
-                returned_file_data.append({
-                    'file': d._file.url,
-                    'id': d.id,
-                    'name': d.name,
-                })
+        returned_file_data = construct_dict_from_docs(all_the_docs)
 
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def process_insurance_certificate_document(self, request, *args, **kwargs):
+    # def process_insurance_certificate_document(self, request, *args, **kwargs):
+    def insurance_certificate_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
-        if returned_data:
-            return Response(returned_data)
-        else:
-            return Response()
+        action = request.data.get('action')
+
+        # returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
+        # if returned_data:
+        #     return Response(returned_data)
+        # else:
+        #     return Response()
+
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = InsuranceCertificateDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+            # original_file_name = filepath.stem
+            # original_file_ext = filepath.suffix
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                # new_filename = unique_id.hex + original_file_ext
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                # new_filename = original_file_name + original_file_ext
+                new_filename = filepath.stem + filepath.suffix
+
+            document = InsuranceCertificateDocument.objects.create(
+                proposal=instance,
+                name=filepath.stem + filepath.suffix
+                # original_file_name=original_file_name,
+                # original_file_ext=original_file_ext,
+            )
+            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
+
+        # retrieve temporarily uploaded documents when the proposal is 'draft'
+        # returned_file_data = []
+        docs_in_limbo = instance.insurance_certificate_documents.all()  # Files uploaded when vessel_ownership is unknown
+        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
+        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
+        all_the_docs = docs_in_limbo
+
+        returned_file_data = construct_dict_from_docs(all_the_docs)
+
+        return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['GET',], detail=True)
     def compare_list(self, request, *args, **kwargs):

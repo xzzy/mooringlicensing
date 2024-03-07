@@ -1080,3 +1080,20 @@ def make_ownership_ready(proposal, request):
     proposal.vessel_ownership = vessel_ownership
     proposal.save()
     logger.info(f'New vessel_ownership {vessel_ownership} has been created and linked to {proposal}')
+
+
+def construct_dict_from_docs(documents):
+    data_to_be_returned = []
+
+    for d in documents:
+        try:
+            if d._file:
+                data_to_be_returned.append({
+                    'file': d._file.url,
+                    'id': d.id,
+                    'name': d.name,
+                })
+        except Exception as e:
+            logger.error(f'Error raised when returning uploaded file data: ({str(e)})')
+
+    return data_to_be_returned

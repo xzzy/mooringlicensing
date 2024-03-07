@@ -200,8 +200,10 @@ urlpatterns = [
     url(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
 
-    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
-    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/hull_identification_number_documents/(?P<filename>.+)/$', proposal_views.HullIdentificationNumberDocumentView.as_view(), name='serve_hull_identification_number_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/hull_identification_number_documents/(?P<filename>.+)$', proposal_views.HullIdentificationNumberDocumentView.as_view(), name='serve_hull_identification_number_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/electoral_roll_documents/(?P<filename>.+)$', proposal_views.ElectoralRollDocumentView.as_view(), name='serve_electoral_roll_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/insurance_certificate_documents/(?P<filename>.+)$', proposal_views.InsuranceCertificateDocumentView.as_view(), name='serve_insurance_certificate_documents'),
 
     # Intercept the request to update the account details before reaching the ledger_api_client
     url(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),

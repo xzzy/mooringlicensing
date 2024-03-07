@@ -9,7 +9,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
 from mooringlicensing import settings
-from mooringlicensing.components.proposals.models import (HullIdentificationNumberDocument, Proposal,
+from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, Proposal,
                                                           HelpPage, AuthorisedUserApplication, Mooring,
                                                           MooringLicenceApplication, VesselRegistrationDocument
                                                           )
@@ -211,6 +211,54 @@ class HullIdentificationNumberDocumentView(APIView):
         ###
 
         file_path = HullIdentificationNumberDocument.relative_path_to_file(proposal_id, filename)
+        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+
+        if allow_access:
+            with open(file_path, 'rb') as f:
+                mimetypes.init()
+                f_name = os.path.basename(file_path)
+                mime_type_guess = mimetypes.guess_type(f_name)
+                if mime_type_guess is not None:
+                    response = HttpResponse(f, content_type=mime_type_guess[0])
+                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+
+        return response
+
+
+class ElectoralRollDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        file_path = ElectoralRollDocument.relative_path_to_file(proposal_id, filename)
+        file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+
+        if allow_access:
+            with open(file_path, 'rb') as f:
+                mimetypes.init()
+                f_name = os.path.basename(file_path)
+                mime_type_guess = mimetypes.guess_type(f_name)
+                if mime_type_guess is not None:
+                    response = HttpResponse(f, content_type=mime_type_guess[0])
+                response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+
+        return response
+
+
+class InsuranceCertificateDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        file_path = InsuranceCertificateDocument.relative_path_to_file(proposal_id, filename)
         file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
 
         if allow_access:
