@@ -29,6 +29,7 @@ from rest_framework.renderers import JSONRenderer
 from django.core.cache import cache
 # from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+from mooringlicensing.components.main.decorators import basic_exception_handler
 
 # from ledger.address.models import Country
 # from datetime import datetime, timedelta, date
@@ -88,256 +89,166 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def submit(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
+        with transaction.atomic():
+            instance = self.get_object()
 
-                # Can only modify if Due or Future.
-                if instance.processing_status not in ['due', 'future']:
-                    raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
-                                                      .format(instance.processing_status))
+            # Can only modify if Due or Future.
+            if instance.processing_status not in ['due', 'future']:
+                raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
+                                                    .format(instance.processing_status))
 
-                if instance.proposal.applicant_email != request.user.email:
-                    raise serializers.ValidationError('You are not authorised to modify this application.')
+            if instance.proposal.applicant_email != request.user.email:
+                raise serializers.ValidationError('You are not authorised to modify this application.')
 
-                data = {
-                    'text': request.data.get('detail'),
-                    'num_participants': request.data.get('num_participants')
-                }
+            data = {
+                'text': request.data.get('detail'),
+                'num_participants': request.data.get('num_participants')
+            }
 
-                serializer = SaveComplianceSerializer(instance, data=data)
-                serializer.is_valid(raise_exception=True)
-                instance = serializer.save()
+            serializer = SaveComplianceSerializer(instance, data=data)
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
 
-                if 'num_participants' in request.data:
-                    if request.FILES:
-                        # if num_adults is present instance.submit is executed after payment in das_payment/views.py
-                        for f in request.FILES:
-                            document = instance.documents.create(name=str(request.FILES[f]))
-                            document._file = request.FILES[f]
-                            document.save()
-                else:
-                    instance.submit(request)
+            if 'num_participants' in request.data:
+                if request.FILES:
+                    # if num_adults is present instance.submit is executed after payment in das_payment/views.py
+                    for f in request.FILES:
+                        document = instance.documents.create(name=str(request.FILES[f]))
+                        document._file = request.FILES[f]
+                        document.save()
+            else:
+                instance.submit(request)
 
-                serializer = self.get_serializer(instance)
-                return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            if hasattr(e,'message'):
-                raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.assign_to(request.user,request)
-            serializer = InternalComplianceSerializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.assign_to(request.user,request)
+        serializer = InternalComplianceSerializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
     def delete_document(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            doc=request.data.get('document')
-            instance.delete_document(request, doc)
-            serializer = ComplianceSerializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            if hasattr(e,'message'):
-                raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        doc=request.data.get('document')
+        instance.delete_document(request, doc)
+        serializer = ComplianceSerializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user_id = request.data.get('user_id',None)
+        user = None
+        if not user_id:
+            raise serializers.ValiationError('A user id is required')
         try:
-            instance = self.get_object()
-            user_id = request.data.get('user_id',None)
-            user = None
-            if not user_id:
-                raise serializers.ValiationError('A user id is required')
-            try:
-                user = EmailUser.objects.get(id=user_id)
-            except EmailUser.DoesNotExist:
-                raise serializers.ValidationError('A user with the id passed in does not exist')
-            instance.assign_to(user,request)
-            serializer = InternalComplianceSerializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            user = EmailUser.objects.get(id=user_id)
+        except EmailUser.DoesNotExist:
+            raise serializers.ValidationError('A user with the id passed in does not exist')
+        instance.assign_to(user,request)
+        serializer = InternalComplianceSerializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.unassign(request)
-            serializer = InternalComplianceSerializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.unassign(request)
+        serializer = InternalComplianceSerializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def accept(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.accept(request)
-            serializer = InternalComplianceSerializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        instance.accept(request)
+        serializer = InternalComplianceSerializer(instance)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def amendment_request(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.amendment_requests
-            qs = qs.filter(status = 'requested')
-            serializer = CompAmendmentRequestDisplaySerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.amendment_requests
+        qs = qs.filter(status = 'requested')
+        serializer = CompAmendmentRequestDisplaySerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.action_logs.all()
-            serializer = ComplianceActionSerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.action_logs.all()
+        serializer = ComplianceActionSerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.comms_logs.all()
-            serializer = ComplianceCommsSerializer(qs,many=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        instance = self.get_object()
+        qs = instance.comms_logs.all()
+        serializer = ComplianceCommsSerializer(qs,many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                mutable=request.data._mutable
-                request.data._mutable=True
-                request.data['compliance'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data._mutable=mutable
-                serializer = ComplianceCommsSerializer(data=request.data)
-                serializer.is_valid(raise_exception=True)
-                comms = serializer.save()
-                # Save the files
-                for f in request.FILES:
-                    document = comms.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
-                # End Save Documents
+        with transaction.atomic():
+            instance = self.get_object()
+            mutable=request.data._mutable
+            request.data._mutable=True
+            request.data['compliance'] = u'{}'.format(instance.id)
+            request.data['staff'] = u'{}'.format(request.user.id)
+            request.data._mutable=mutable
+            serializer = ComplianceCommsSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            comms = serializer.save()
+            # Save the files
+            for f in request.FILES:
+                document = comms.documents.create()
+                document.name = str(request.FILES[f])
+                document._file = request.FILES[f]
+                document.save()
+            # End Save Documents
 
-                return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            return Response(serializer.data)
 
 
 class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = ComplianceAmendmentRequest.objects.all()
     serializer_class = ComplianceAmendmentRequestSerializer
 
+    def get_queryset(self):
+        queryset = ComplianceAmendmentRequest.objects.none()
+        user = self.request.user
+        if is_internal(self.request):
+            queryset = ComplianceAmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
+            queryset = ComplianceAmendmentRequest.objects.filter(
+                Q(compliance__proposal__org_applicant_id__in=user_orgs) | Q(compliance__proposal__submitter=user.id)
+            )
+        else:
+            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return queryset
+
+    @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data= request.data)
-            serializer.is_valid(raise_exception = True)
-            instance = serializer.save()
-            instance.generate_amendment(request)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        serializer = self.get_serializer(data= request.data)
+        serializer.is_valid(raise_exception = True)
+        instance = serializer.save()
+        instance.generate_amendment(request)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
 
 class ComplianceAmendmentReasonChoicesView(views.APIView):

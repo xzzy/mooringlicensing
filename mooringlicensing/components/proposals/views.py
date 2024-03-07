@@ -9,11 +9,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
 from mooringlicensing import settings
-from mooringlicensing.components.proposals.models import (Proposal,
+from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, ProofOfIdentityDocument, Proposal,
                                                           HelpPage, AuthorisedUserApplication, Mooring,
-                                                          MooringLicenceApplication, VesselRegistrationDocument
+                                                          MooringLicenceApplication, SignedLicenceAgreementDocument, VesselRegistrationDocument, WrittenProofDocument
                                                           )
-from mooringlicensing.components.approvals.models import Approval
+from mooringlicensing.components.approvals.models import Approval, WaitingListOfferDocument
 from mooringlicensing.components.compliances.models import Compliance
 import json,traceback
 from reversion_compare.views import HistoryCompareDetailView
@@ -21,8 +21,9 @@ from reversion.models import Version
 
 from rest_framework.views import APIView
 import logging
+from mooringlicensing.components.proposals.utils import get_file_content_http_response
 
-from mooringlicensing.settings import BASE_DIR, PRIVATE_MEDIA_DIR_NAME
+from mooringlicensing.settings import BASE_DIR, PRIVATE_MEDIA_DIR_NAME, PRIVATE_MEDIA_STORAGE_LOCATION
 
 logger = logging.getLogger(__name__)
 
@@ -180,16 +181,130 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
 class VesselRegistrationDocumentView(APIView):
 
     def get(self, request,  proposal_id, filename):
-        logger.info(f'{VesselRegistrationDocumentView.__name__} get method is called.')
+        response = None
 
-        file_path = os.path.join(BASE_DIR, f'{PRIVATE_MEDIA_DIR_NAME}/proposal/{proposal_id}/vessel_registration_documents/{filename}')
+        ### Permission rules
+        allow_access = True
+        ###
 
-        with open(file_path, 'rb') as f:
-            mimetypes.init()
-            f_name = os.path.basename(file_path)
-            mime_type_guess = mimetypes.guess_type(f_name)
-            if mime_type_guess is not None:
-                response = HttpResponse(f, content_type=mime_type_guess[0])
-            response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
+        if allow_access:
+            file_path = VesselRegistrationDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+
+class HullIdentificationNumberDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = HullIdentificationNumberDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+
+class ElectoralRollDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = ElectoralRollDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+
+class InsuranceCertificateDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = InsuranceCertificateDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class WrittenProofDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = WrittenProofDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class SignedLicenceAgreementDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = SignedLicenceAgreementDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class ProofOfIdentityDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = ProofOfIdentityDocument.relative_path_to_file(proposal_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+class WaitingListOfferDocumentView(APIView):
+
+    def get(self, request,  approval_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = WaitingListOfferDocument.relative_path_to_file(approval_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
 
         return response

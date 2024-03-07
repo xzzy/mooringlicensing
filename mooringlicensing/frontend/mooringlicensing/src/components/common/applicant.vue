@@ -546,10 +546,11 @@ export default {
             let url = '';
             //if (this.profile && this.profile.id) {
             if (this.proposalId) {
-                url = helpers.add_endpoint_join(
-                    '/api/proposal/',
-                    this.proposalId + '/process_electoral_roll_document/'
-                )
+                //url = helpers.add_endpoint_join(
+                //    '/api/proposal/',
+                //    this.proposalId + '/process_electoral_roll_document/'
+                //)
+                url = '/api/proposal/' + this.proposal.id + '/electoral_roll_document/'
             }
             return url;
         },

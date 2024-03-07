@@ -396,31 +396,34 @@ export default {
         vesselRegoDocumentUrl: function () {
             let url = ''
             if (this.proposal){
+                // Call a function defined in the ProposalViewSet
                 url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
             }
             return url
         },
-        vesselRegistrationDocumentUrl: function () {
-            let url = '';
-            if (this.existingVesselOwnership) {
-                url = helpers.add_endpoint_join(
-                    api_endpoints.vesselownership,
-                    this.vessel.vessel_ownership.id + '/process_vessel_registration_document/'
-                )
-            } else {
-                url = 'temporary_document';
-            }
-            return url;
-        },
+        // vesselRegistrationDocumentUrl: function () {
+        //     let url = '';
+        //     if (this.existingVesselOwnership) {
+        //         url = helpers.add_endpoint_join(
+        //             api_endpoints.vesselownership,
+        //             this.vessel.vessel_ownership.id + '/process_vessel_registration_document/'
+        //         )
+        //     } else {
+        //         url = 'temporary_document';
+        //     }
+        //     return url;
+        // },
         hullIdentificationNumberDocumentUrl: function () {
             let url = '';
             if (this.proposal && this.proposal.id) {
-                url = helpers.add_endpoint_join(
-                    api_endpoints.proposal,
-                    this.proposal.id + '/process_hull_identification_number_document/'
-                )
+                // url = helpers.add_endpoint_join(
+                //     api_endpoints.proposal,
+                //     this.proposal.id + '/process_hull_identification_number_document/'
+                // )
+                // Call a function defined in the ProposalViewSet
+                url = '/api/proposal/' + this.proposal.id + '/hull_identification_number_document/'
             }
-            return url;
+            return url
         },
         companyName: function () {
             if (this.vessel.vessel_ownership.company_ownership && this.vessel.vessel_ownership.company_ownership.company) {

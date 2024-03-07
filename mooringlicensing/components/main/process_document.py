@@ -5,13 +5,21 @@ import os
 from django.core.files.base import ContentFile
 import traceback
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 
 from mooringlicensing.components.proposals.models import (
     ProposalMooringReportDocument, ProposalWrittenProofDocument, ProposalSignedLicenceAgreementDocument,
     ProposalProofOfIdentityDocument
 )
+from mooringlicensing.settings import PRIVATE_MEDIA_BASE_URL, PRIVATE_MEDIA_STORAGE_LOCATION
 
 logger = logging.getLogger(__name__)
+
+# private_storage = FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
+#     location=PRIVATE_MEDIA_STORAGE_LOCATION,
+#     base_url=PRIVATE_MEDIA_BASE_URL,
+# )
+from mooringlicensing.components.proposals.models import private_storage
 
 def process_generic_document(request, instance, document_type=None, *args, **kwargs):
     logger.info(f'Processing document... Data: [{request.data}] ...')
@@ -187,34 +195,43 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         filename = request.data.get('filename')
         _file = request.data.get('_file')
 
-        if document_type == 'electoral_roll_document':
-            document = instance.electoral_roll_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/electoral_roll_documents/{}'
-        elif document_type == 'vessel_registration_document':
-            document = instance.vessel_registration_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
-        elif document_type == 'insurance_certificate_document':
-            document = instance.insurance_certificate_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/insurance_certificate_documents/{}'
-        elif document_type == 'hull_identification_number_document':
-            document = instance.hull_identification_number_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/hull_identification_number_documents/{}'
-        elif document_type == 'mooring_report_document':
+        # if document_type == 'electoral_roll_document':
+        #     document = instance.electoral_roll_documents.get_or_create(input_name=input_name, name=filename)[0]
+        #     path_format_string = '{}/proposals/{}/electoral_roll_documents/{}'
+        # elif document_type == 'vessel_registration_document':
+        #     document = instance.vessel_registration_documents.get_or_create(input_name=input_name, name=filename)[0]
+        #     path_format_string = '{}/proposals/{}/vessel_registration_documents/{}'
+        # elif document_type == 'insurance_certificate_document':
+        #     document = instance.insurance_certificate_documents.get_or_create(input_name=input_name, name=filename)[0]
+        #     path_format_string = '{}/proposals/{}/insurance_certificate_documents/{}'
+        # elif document_type == 'hull_identification_number_document':
+        #     document = instance.hull_identification_number_documents.get_or_create(input_name=input_name, name=filename)[0]
+        #     path_format_string = '{}/proposals/{}/hull_identification_number_documents/{}'
+        # elif document_type == 'mooring_report_document':
+        if document_type == 'mooring_report_document':
             document = instance.mooring_report_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/mooring_report_documents/{}'
+            # path_format_string = '{}/proposals/{}/mooring_report_documents/{}'
+            path_format_string = 'proposal/{}/mooring_report_documents/{}'
         elif document_type == 'written_proof_document':
             document = instance.written_proof_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/written_proof_documents/{}'
+            # path_format_string = '{}/proposals/{}/written_proof_documents/{}'
+            path_format_string = 'proposal/{}/written_proof_documents/{}'
         elif document_type == 'signed_licence_agreement_document':
             document = instance.signed_licence_agreement_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/signed_licence_agreement_documents/{}'
+            # path_format_string = '{}/proposals/{}/signed_licence_agreement_documents/{}'
+            path_format_string = 'proposal/{}/signed_licence_agreement_documents/{}'
         elif document_type == 'proof_of_identity_document':
             document = instance.proof_of_identity_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/proposals/{}/proof_of_identity_documents/{}'
+            # path_format_string = '{}/proposals/{}/proof_of_identity_documents/{}'
+            path_format_string = 'proposal/{}/proof_of_identity_documents/{}'
         elif document_type == 'waiting_list_offer_document':
             document = instance.waiting_list_offer_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = '{}/approvals/{}/waiting_list_offer_documents/{}'
-        path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, filename), ContentFile(_file.read()))
+            # path_format_string = '{}/approvals/{}/waiting_list_offer_documents/{}'
+            path_format_string = 'approval/{}/waiting_list_offer_documents/{}'
+        # path = default_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, filename), ContentFile(_file.read()))
+        # path = private_storage.save(path_format_string.format(settings.MEDIA_APP_DIR, instance.id, filename), ContentFile(_file.read()))
+        path = private_storage.save(path_format_string.format(instance.id, filename), ContentFile(_file.read()))
+        # path = default_storage.save(path_format_string.format(instance.id, filename), ContentFile(_file.read()))
 
     # comms_log doc store save
     elif comms_instance and 'filename' in request.data:
