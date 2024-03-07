@@ -201,6 +201,7 @@ urlpatterns = [
     url(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
 
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/vessel_registration_documents/(?P<filename>.+)/$', proposal_views.VesselRegistrationDocumentView.as_view(), name='serve_vessel_registration_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/hull_identification_number_documents/(?P<filename>.+)/$', proposal_views.HullIdentificationNumberDocumentView.as_view(), name='serve_hull_identification_number_documents'),
 
     # Intercept the request to update the account details before reaching the ledger_api_client
     url(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),

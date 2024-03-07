@@ -30,7 +30,7 @@ from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
     save_proponent_data, update_proposal_applicant, make_ownership_ready,
 )
-from mooringlicensing.components.proposals.models import VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import HullIdentificationNumberDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
@@ -977,6 +977,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             document = VesselRegistrationDocument.objects.create(
                 proposal=instance,
+                name=filepath.stem + filepath.suffix,
                 original_file_name=original_file_name,
                 original_file_ext=original_file_ext,
             )
@@ -994,11 +995,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         for d in all_the_docs:
             if d._file:
-                returned_file_data.append({
-                    'file': d._file.url,
-                    'id': d.id,
-                    'name': d.original_file_name + d.original_file_ext,
-                })
+                try:
+                    returned_file_data.append({
+                        'file': d._file.url,
+                        'id': d.id,
+                        # 'name': d.original_file_name + d.original_file_ext,
+                        'name': d.name,
+                    })
+                except Exception as e:
+                    logger.error(f'Error raised when returning uploaded file data: ({str(e)})')
 
         return Response({'filedata': returned_file_data})
 
@@ -1027,6 +1032,54 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # else:
         #     return Response()
 
+        if action == 'list':
+            pass
+        elif action == 'delete':
+            document_id = request.data.get('document_id')
+            document = HullIdentificationNumberDocument.objects.get(
+                proposal=instance,
+                id=document_id,
+            )
+            if document._file and os.path.isfile(document._file.path):
+                os.remove(document._file.path)
+            if document:
+                # original_file_name = document.original_file_name
+                # original_file_ext = document.original_file_ext
+                original_file_name = document.name
+                document.delete()
+                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
+        elif action == 'cancel':
+            pass
+        elif action == 'save':
+            filename = request.data.get('filename')
+            _file = request.data.get('_file')
+
+            filepath = pathlib.Path(filename)
+            # original_file_name = filepath.stem
+            # original_file_ext = filepath.suffix
+
+            # Calculate a new unique filename
+            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                unique_id = uuid.uuid4()
+                # new_filename = unique_id.hex + original_file_ext
+                new_filename = unique_id.hex + filepath.suffix
+            else:
+                # new_filename = original_file_name + original_file_ext
+                new_filename = filepath.stem + filepath.suffix
+
+            document = HullIdentificationNumberDocument.objects.create(
+                proposal=instance,
+                name=filepath.stem + filepath.suffix
+                # original_file_name=original_file_name,
+                # original_file_ext=original_file_ext,
+            )
+            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
+            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+            document._file.save(new_filename, ContentFile(_file.read()))
+
+            logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
+
         # retrieve temporarily uploaded documents when the proposal is 'draft'
         returned_file_data = []
         docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
@@ -1039,8 +1092,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 returned_file_data.append({
                     'file': d._file.url,
                     'id': d.id,
-                    # 'name': d.original_file_name + d.original_file_ext,
-                    'name': 'aho'
+                    'name': d.name,
                 })
 
         return Response({'filedata': returned_file_data})
