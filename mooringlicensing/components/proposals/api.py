@@ -559,9 +559,9 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
-            filter_query &= Q(site_licensee_email=request.user.email)
+            filter_query &= Q(site_licensee_email__iexact=request.user.email)
         else:
-            filter_query &= ~Q(site_licensee_email=request.user.email)
+            filter_query &= ~Q(site_licensee_email__iexact=request.user.email)
 
         # don't show discarded applications
         if not level == 'internal':
