@@ -108,8 +108,22 @@ class RenewalDocument(Document):
 
 
 class AuthorisedUserSummaryDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/authorised_user_summary_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
     approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    # _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
 
     class Meta:
         app_label = 'mooringlicensing'
