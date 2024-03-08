@@ -59,7 +59,8 @@ def update_waiting_list_offer_doc_filename(instance, filename):
     return '{}/proposals/{}/approvals/{}/waiting_list_offer/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id, instance.id, filename)
 
 def update_approval_doc_filename(instance, filename):
-    return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
+    # return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
+    return 'proposal/{}/approvals/{}'.format(instance.approval.current_proposal.id,filename)
 
 def update_approval_comms_log_filename(instance, filename):
     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
@@ -115,8 +116,25 @@ class AuthorisedUserSummaryDocument(Document):
 
 
 class ApprovalDocument(Document):
-    approval = models.ForeignKey('Approval',related_name='documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/approval_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
+    # def update_approval_doc_filename(instance, filename):
+    #     return 'proposal/{}/approvals/{}'.format(instance.approval.current_proposal.id,filename)
+
+    approval = models.ForeignKey('Approval', related_name='approval_documents', on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
     def delete(self):

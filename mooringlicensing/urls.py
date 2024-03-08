@@ -209,6 +209,8 @@ urlpatterns = [
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/proof_of_identity_documents/(?P<filename>.+)$', proposal_views.ProofOfIdentityDocumentView.as_view(), name='serve_proof_of_identity_documents'),
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/approval/(?P<approval_id>\d+)/waiting_list_offer_documents/(?P<filename>.+)$', proposal_views.WaitingListOfferDocumentView.as_view(), name='serve_waiting_list_offer_documents'),
 
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/approval_documents/(?P<filename>.+)$', proposal_views.ApprovalDocumentView.as_view(), name='serve_approval_documents'),
+
     # Intercept the request to update the account details before reaching the ledger_api_client
     url(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),
 

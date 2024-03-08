@@ -1763,7 +1763,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 approval.generate_doc()
                 send_application_approved_or_declined_email(self, 'approved', request, [sticker_to_be_returned,])
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
-                self.approval.documents.all().update(can_delete=False)
+                self.approval.approval_documents.all().update(can_delete=False)
 
                 # write approval history
                 if self.approval and self.approval.reissued:

@@ -13,7 +13,7 @@ from mooringlicensing.components.proposals.models import (ElectoralRollDocument,
                                                           HelpPage, AuthorisedUserApplication, Mooring,
                                                           MooringLicenceApplication, SignedLicenceAgreementDocument, VesselRegistrationDocument, WrittenProofDocument
                                                           )
-from mooringlicensing.components.approvals.models import Approval, WaitingListOfferDocument
+from mooringlicensing.components.approvals.models import Approval, ApprovalDocument, WaitingListOfferDocument, update_approval_doc_filename
 from mooringlicensing.components.compliances.models import Compliance
 import json,traceback
 from reversion_compare.views import HistoryCompareDetailView
@@ -304,6 +304,23 @@ class WaitingListOfferDocumentView(APIView):
 
         if allow_access:
             file_path = WaitingListOfferDocument.relative_path_to_file(approval_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+
+class ApprovalDocumentView(APIView):
+
+    def get(self, request,  proposal_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = ApprovalDocument.relative_path_to_file(proposal_id, filename)
             file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 
