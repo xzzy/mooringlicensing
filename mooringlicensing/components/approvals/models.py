@@ -94,8 +94,22 @@ class WaitingListOfferDocument(Document):
 
 
 class RenewalDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/renewal_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
     approval = models.ForeignKey('Approval',related_name='renewal_documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    # _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
     def delete(self):
