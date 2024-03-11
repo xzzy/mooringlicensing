@@ -55,15 +55,15 @@ from mooringlicensing.components.proposals.models import private_storage
 logger = logging.getLogger(__name__)
 
 
-# def update_waiting_list_offer_doc_filename(instance, filename):
-#     return '{}/proposals/{}/approvals/{}/waiting_list_offer/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id, instance.id, filename)
+def update_waiting_list_offer_doc_filename(instance, filename):
+    return '{}/proposals/{}/approvals/{}/waiting_list_offer/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id, instance.id, filename)
 
-# def update_approval_doc_filename(instance, filename):
-#     # return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
-#     return 'proposal/{}/approvals/{}'.format(instance.approval.current_proposal.id,filename)
+def update_approval_doc_filename(instance, filename):
+    # return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
+    return 'proposal/{}/approvals/{}'.format(instance.approval.current_proposal.id,filename)
 
-# def update_approval_comms_log_filename(instance, filename):
-#     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
+def update_approval_comms_log_filename(instance, filename):
+    return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
 
 
 class WaitingListOfferDocument(Document):
