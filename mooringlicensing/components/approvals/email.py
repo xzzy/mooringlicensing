@@ -543,8 +543,8 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
             attachments.append(attachment)
 
     # attach DcvPermit
-    if dcv_admission.admissions:
-        dcv_admission_doc = dcv_admission.admissions.first()
+    if dcv_admission.dcv_admission_documents:
+        dcv_admission_doc = dcv_admission.dcv_admission_documents.first()
         if dcv_admission_doc:
             filename = str(dcv_admission_doc)
             content = dcv_admission_doc._file.read()

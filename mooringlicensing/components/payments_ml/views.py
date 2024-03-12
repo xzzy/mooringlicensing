@@ -864,11 +864,11 @@ class DcvAdmissionPDFView(View):
         try:
             dcv_admission = get_object_or_404(DcvAdmission, id=self.kwargs['id'])
             response = HttpResponse(content_type='application/pdf')
-            if dcv_admission.admissions.count() < 1:
+            if dcv_admission.dcv_admission_documents.count() < 1:
                 logger.warning('DcvAdmission: {} does not have any admission document.'.format(dcv_admission))
                 return response
-            elif dcv_admission.admissions.count() == 1:
-                response.write(dcv_admission.admissions.first()._file.read())
+            elif dcv_admission.dcv_admission_documents.count() == 1:
+                response.write(dcv_admission.dcv_admission_documents.first()._file.read())
                 return response
             else:
                 logger.warning('DcvAdmission: {} has more than one admissions.'.format(dcv_admission))

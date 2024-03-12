@@ -1569,7 +1569,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
     def get_admission_urls(self, obj):
         admission_urls = []
-        for admission in obj.admissions.all():
+        for admission in obj.dcv_admission_documents.all():
             admission_urls.append(admission._file.url)
         return admission_urls
 

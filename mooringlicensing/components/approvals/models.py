@@ -2562,7 +2562,7 @@ class DcvAdmission(RevisionedMixin):
 
     def get_admission_urls(self):
         urls = []
-        for admission in self.admissions.all():
+        for admission in self.dcv_admission_documents.all():
             urls.append(admission._file.url)
         return urls
 
@@ -3025,8 +3025,22 @@ def update_dcv_permit_doc_filename(instance, filename):
 
 
 class DcvAdmissionDocument(Document):
-    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
+    @staticmethod
+    def relative_path_to_file(dcv_admission_id, filename):
+        return f'dcv_admission/{dcv_admission_id}/dcv_admission_documents/{filename}'
+
+    def upload_to(self, filename):
+        dcv_admission_id = self.dcv_admission.id
+        return self.relative_path_to_file(dcv_admission_id, filename)
+
+    dcv_admission = models.ForeignKey(DcvAdmission, related_name='dcv_admission_documents', on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
     def delete(self, using=None, keep_parents=False):
@@ -3366,7 +3380,8 @@ reversion.register(ApprovalLogDocument, follow=[])
 reversion.register(ApprovalUserAction, follow=[])
 reversion.register(DcvOrganisation, follow=['dcv_vessels', 'dcvpermit_set'])
 reversion.register(DcvVessel, follow=['dcv_admissions', 'dcv_permits'])
-reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'admissions'])
+# reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'admissions'])
+reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'dcv_admission_documents'])
 reversion.register(DcvAdmissionArrival, follow=['numberofpeople_set'])
 reversion.register(AgeGroup, follow=['numberofpeople_set'])
 reversion.register(AdmissionType, follow=['numberofpeople_set'])
