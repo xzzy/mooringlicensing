@@ -179,7 +179,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
 
     def get_permits(self, obj):
         permit_urls = []
-        for doc in obj.permits.all():
+        for doc in obj.dcv_permit_documents.all():
             permit_urls.append(doc._file.url)
 
     class Meta:

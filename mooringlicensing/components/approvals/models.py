@@ -2925,8 +2925,8 @@ class DcvPermit(RevisionedMixin):
 
     def get_licence_document_as_attachment(self):
         attachment = None
-        if self.permits.count():
-            licence_document = self.permits.first()._file
+        if self.dcv_permit_documents.count():
+            licence_document = self.dcv_permit_documents.first()._file
             if licence_document is not None:
                 file_name = self.licence_document.name
                 attachment = (file_name, licence_document.file.read(), 'application/pdf')
@@ -3053,8 +3053,22 @@ class DcvAdmissionDocument(Document):
 
 
 class DcvPermitDocument(Document):
-    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
+    @staticmethod
+    def relative_path_to_file(dcv_permit_id, filename):
+        return f'dcv_permit/{dcv_permit_id}/dcv_permit_documents/{filename}'
+
+    def upload_to(self, filename):
+        dcv_permit_id = self.dcv_permit.id
+        return self.relative_path_to_file(dcv_permit_id, filename)
+
+    dcv_permit = models.ForeignKey(DcvPermit, related_name='dcv_permit_documents', on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
     def delete(self, using=None, keep_parents=False):
@@ -3386,7 +3400,7 @@ reversion.register(DcvAdmissionArrival, follow=['numberofpeople_set'])
 reversion.register(AgeGroup, follow=['numberofpeople_set'])
 reversion.register(AdmissionType, follow=['numberofpeople_set'])
 reversion.register(NumberOfPeople, follow=[])
-reversion.register(DcvPermit, follow=['permits', 'stickers'])
+reversion.register(DcvPermit, follow=['dcv_permit_documents', 'stickers'])
 reversion.register(DcvAdmissionDocument, follow=[])
 reversion.register(DcvPermitDocument, follow=[])
 reversion.register(Sticker, follow=['mooringonapproval_set', 'approvalhistory_set', 'sticker_action_details'])

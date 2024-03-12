@@ -1782,7 +1782,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 return self
 
-            except:
+            except Exception as e:
                 raise
 
     def refresh(self):

@@ -214,6 +214,7 @@ urlpatterns = [
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/renewal_documents/(?P<filename>.+)$', proposal_views.RenewalDocumentView.as_view(), name='serve_renewal_documents'),
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/proposal/(?P<proposal_id>\d+)/approvals/communications/(?P<filename>.+)$', proposal_views.ApprovalLogDocumentView.as_view(), name='serve_approval_log_documents'),
     url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/dcv_admission/(?P<dcv_admission_id>\d+)/dcv_admission_documents/(?P<filename>.+)$', proposal_views.DcvAdmissionDocumentView.as_view(), name='serve_dcv_admission_documents'),
+    url(r'^' + PRIVATE_MEDIA_DIR_NAME + '/dcv_permit/(?P<dcv_permit_id>\d+)/dcv_permit_documents/(?P<filename>.+)$', proposal_views.DcvPermitDocumentView.as_view(), name='serve_dcv_permit_documents'),
 
     # Intercept the request to update the account details before reaching the ledger_api_client
     url(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),

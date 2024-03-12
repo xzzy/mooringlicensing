@@ -13,7 +13,7 @@ from mooringlicensing.components.proposals.models import (ElectoralRollDocument,
                                                           HelpPage, AuthorisedUserApplication, Mooring,
                                                           MooringLicenceApplication, SignedLicenceAgreementDocument, VesselRegistrationDocument, WrittenProofDocument
                                                           )
-from mooringlicensing.components.approvals.models import Approval, ApprovalDocument, ApprovalLogDocument, AuthorisedUserSummaryDocument, DcvAdmissionDocument, RenewalDocument, WaitingListOfferDocument, update_approval_doc_filename
+from mooringlicensing.components.approvals.models import Approval, ApprovalDocument, ApprovalLogDocument, AuthorisedUserSummaryDocument, DcvAdmissionDocument, DcvPermitDocument, RenewalDocument, WaitingListOfferDocument, update_approval_doc_filename
 from mooringlicensing.components.compliances.models import Compliance
 import json,traceback
 from reversion_compare.views import HistoryCompareDetailView
@@ -389,6 +389,23 @@ class DcvAdmissionDocumentView(APIView):
 
         if allow_access:
             file_path = DcvAdmissionDocument.relative_path_to_file(dcv_admission_id, filename)
+            file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
+            response = get_file_content_http_response(file_path)
+
+        return response
+
+
+class DcvPermitDocumentView(APIView):
+
+    def get(self, request,  dcv_permit_id, filename):
+        response = None
+
+        ### Permission rules
+        allow_access = True
+        ###
+
+        if allow_access:
+            file_path = DcvPermitDocument.relative_path_to_file(dcv_permit_id, filename)
             file_path = os.path.join(PRIVATE_MEDIA_STORAGE_LOCATION, file_path)
             response = get_file_content_http_response(file_path)
 
