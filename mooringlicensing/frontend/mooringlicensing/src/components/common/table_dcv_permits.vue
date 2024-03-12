@@ -140,6 +140,7 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
+                    console.log(full)
                     let links = ''
                     if (full.invoices){
                         for (let invoice of full.invoices){
@@ -149,8 +150,8 @@ export default {
                             }
                         }
                     }
-                    if (full.permits){
-                        for (let permit_url of full.permits){
+                    if (full.dcv_permit_documents){
+                        for (let permit_url of full.dcv_permit_documents){
                             links +=  `<div><a href='${permit_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> Dcv Permit</a></div>`;
                         }
                     }

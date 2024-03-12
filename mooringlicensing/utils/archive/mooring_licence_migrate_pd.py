@@ -2621,7 +2621,7 @@ class MooringLicenceReader():
             approvals = approvals_migrated.filter(migrated=True, current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
 
         for idx, a in enumerate(approvals):
-            if isinstance(a, DcvPermit) and len(a.permits.all())==0:
+            if isinstance(a, DcvPermit) and len(a.dcv_permit_documents.all())==0:
                 a.generate_dcv_permit_doc()
             elif not hasattr(a, 'licence_document') or a.licence_document is None: 
                 a.generate_doc()

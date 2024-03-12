@@ -864,11 +864,11 @@ class DcvAdmissionPDFView(View):
         try:
             dcv_admission = get_object_or_404(DcvAdmission, id=self.kwargs['id'])
             response = HttpResponse(content_type='application/pdf')
-            if dcv_admission.admissions.count() < 1:
+            if dcv_admission.dcv_admission_documents.count() < 1:
                 logger.warning('DcvAdmission: {} does not have any admission document.'.format(dcv_admission))
                 return response
-            elif dcv_admission.admissions.count() == 1:
-                response.write(dcv_admission.admissions.first()._file.read())
+            elif dcv_admission.dcv_admission_documents.count() == 1:
+                response.write(dcv_admission.dcv_admission_documents.first()._file.read())
                 return response
             else:
                 logger.warning('DcvAdmission: {} has more than one admissions.'.format(dcv_admission))
@@ -885,11 +885,11 @@ class DcvPermitPDFView(View):
         try:
             dcv_permit = get_object_or_404(DcvPermit, id=self.kwargs['id'])
             response = HttpResponse(content_type='application/pdf')
-            if dcv_permit.permits.count() < 1:
+            if dcv_permit.dcv_permit_documents.count() < 1:
                 logger.warning('DcvPermit: {} does not have any permit document.'.format(dcv_permit))
                 return response
-            elif dcv_permit.permits.count() == 1:
-                response.write(dcv_permit.permits.first()._file.read())
+            elif dcv_permit.dcv_permit_documents.count() == 1:
+                response.write(dcv_permit.dcv_permit_documents.first()._file.read())
                 return response
             else:
                 logger.warning('DcvPermit: {} has more than one permits.'.format(dcv_permit))

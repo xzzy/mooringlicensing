@@ -1414,7 +1414,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     fee_season = serializers.SerializerMethodField()
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
-    permits = serializers.SerializerMethodField()
+    dcv_permit_documents = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     display_create_sticker_action = serializers.SerializerMethodField()
     vessel_rego = serializers.CharField(source='dcv_vessel.rego_no')
@@ -1434,7 +1434,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'status',
             'fee_invoice_url',
             'invoices',
-            'permits',
+            'dcv_permit_documents',
             'stickers',
             'display_create_sticker_action',
             'vessel_rego',
@@ -1452,7 +1452,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'status',
             'fee_invoice_url',
             'invoices',
-            'permits',
+            'dcv_permit_documents',
             'stickers',
             'display_create_sticker_action',
             'vessel_rego',
@@ -1496,9 +1496,9 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             display = False
         return display
 
-    def get_permits(self, obj):
+    def get_dcv_permit_documents(self, obj):
         permit_urls = []
-        for permit in obj.permits.all():
+        for permit in obj.dcv_permit_documents.all():
             permit_urls.append(permit._file.url)
         return permit_urls
 
@@ -1569,7 +1569,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
     def get_admission_urls(self, obj):
         admission_urls = []
-        for admission in obj.admissions.all():
+        for admission in obj.dcv_admission_documents.all():
             admission_urls.append(admission._file.url)
         return admission_urls
 
