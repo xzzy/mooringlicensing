@@ -516,7 +516,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         wla_list = WaitingListApplication.objects.all()
 
         filter_application_type = request.GET.get('filter_application_type')
-        #import ipdb; ipdb.set_trace()
         if filter_application_type and not filter_application_type.lower() == 'all':
             if filter_application_type == 'mla':
                 filter_query &= Q(id__in=mla_list)
@@ -2266,7 +2265,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
             approval_list.append(mooring.mooring_licence.approval)
 
-        serializer = LookupApprovalSerializer(approval_list, many=True, context={'mooring': mooring})
+        serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)

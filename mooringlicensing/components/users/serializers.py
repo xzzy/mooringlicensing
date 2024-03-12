@@ -273,7 +273,8 @@ class UserSerializer(serializers.ModelSerializer):
         return True if obj.last_name  and obj.first_name else False
 
     def get_address_details(self,obj):
-        return True if obj.residential_address else False
+        #return True if obj.residential_address else False
+        return True
 
     def get_contact_details(self,obj):
         if obj.mobile_number and obj.email:

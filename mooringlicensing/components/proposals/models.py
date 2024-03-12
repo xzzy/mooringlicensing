@@ -4669,7 +4669,7 @@ class VesselOwnership(RevisionedMixin):
             if proposal == originated_proposal:
                 continue
             from mooringlicensing.components.approvals.models import Approval
-            if proposal.approval.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
+            if proposal.approval and proposal.approval.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
                 excludable = False
 
         return excludable
