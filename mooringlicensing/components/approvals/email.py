@@ -482,7 +482,7 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
         attachments.append(attachment)
 
     # attach DcvPermit
-    dcv_permit_doc = dcv_permit.permits.first()
+    dcv_permit_doc = dcv_permit.dcv_permit_documents.first()
     filename = str(dcv_permit_doc)
     content = dcv_permit_doc._file.read()
     mime = mimetypes.guess_type(dcv_permit_doc.filename)[0]
@@ -543,8 +543,8 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
             attachments.append(attachment)
 
     # attach DcvPermit
-    if dcv_admission.admissions:
-        dcv_admission_doc = dcv_admission.admissions.first()
+    if dcv_admission.dcv_admission_documents:
+        dcv_admission_doc = dcv_admission.dcv_admission_documents.first()
         if dcv_admission_doc:
             filename = str(dcv_admission_doc)
             content = dcv_admission_doc._file.read()
