@@ -13,6 +13,7 @@ import string
 import pandas as pd
 import numpy as np
 import requests
+import json
 
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
@@ -60,10 +61,13 @@ logger = logging.getLogger(__name__)
 NL = '\n'
 
 TODAY = datetime.datetime.now(datetime.timezone.utc).date()
-EXPIRY_DATE = datetime.date(2023,8,31)
-START_DATE = datetime.date(2022,9,1)
-DATE_APPLIED = '2022-09-01'
-FEE_SEASON = '2022 - 2023'
+EXPIRY_DATE = datetime.date(2024,8,31)
+START_DATE = datetime.date(2023,9,1)
+DATE_APPLIED = '2023-09-01'
+FEE_SEASON = '2023 - 2024'
+
+#ApplicationType.objects.all().values_list('code')
+#Out[26]: <QuerySet [('wla',), ('aaa',), ('aua',), ('mla',), ('dcvp',), ('dcv',), ('replacement_sticker',), ('mooring_swap',)]>
 
 VESSEL_TYPE_MAPPING = {
     'A': 'Catamaran',
@@ -273,6 +277,17 @@ class MooringLicenceReader():
     from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
     mlr=MooringLicenceReader('PersonDets.txt','MooringDets.txt','VesselDets.txt','UserDets.txt','ApplicationDets.txt','annual_admissions_booking_report.csv',path='/app/shared/clean/clean_22Dec2022/')
 
+
+    CLEAR DB Records:
+        MooringLicenceApplication.objects.all().delete()
+        AuthorisedUserApplication.objects.all().delete()
+        WaitingListApplication.objects.all().delete()
+        DcvPermit.objects.all().delete()
+        AnnualAdmissionApplication.objects.all().delete()
+        Vessel.objects.all().delete()
+        Approval.objects.all().delete()
+        Proposal.objects.all().delete()
+
     """
 
     def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='mooringlicensing/utils/csv/clean/'):
@@ -481,7 +496,6 @@ class MooringLicenceReader():
     def create_proposal_applicant(self, proposal, user, user_row):
         postal_same_as_res = user_row.address==user_row.postal_address or user_row.postal_address==''
 
-        #import ipdb; ipdb.set_trace()
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
            first_name=user_row.first_name,
@@ -499,15 +513,19 @@ class MooringLicenceReader():
            postal_state=user_row.postal_state if not postal_same_as_res else '',
            postal_postcode=user_row.postal_postcode if not postal_same_as_res else '',
 
+           phone_number=self.__get_phone_number(user_row),
+           mobile_number=self.__get_mobile_number(user_row),
+
            email=user.email,
-           phone_number=user.phone_number,
-           mobile_number=user.mobile_number,
         )
 
-        if user.email in self.user_created:
+        #if user.email in self.user_created:
+        #import ipdb; ipdb.set_trace()
+        user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
+        if len(user_dict) > 0:
             # update address, phone details
             url = f'{settings.LEDGER_API_URL}/ledgergw/remote/update-userid/{user.id}/{settings.LEDGER_API_KEY}/'
-            res = requests.post(url, data=create_proposal_applicant_dict(proposal_applicant))
+            res = requests.post(url, data=user_dict)
 
     def create_proposal_applicant_aa(self, proposal, user, user_row):
         postal_same_as_res = True
@@ -516,7 +534,7 @@ class MooringLicenceReader():
            proposal=proposal,
            first_name=user_row.first_name,
            last_name=user_row.last_name,
-           dob=user.dob if user.dob else None,
+           dob=parse(user_row.dob).date() if user_row.dob else None,
 
            residential_line1=user_row.address,
            residential_locality=user_row.suburb,
@@ -525,49 +543,59 @@ class MooringLicenceReader():
 
            postal_same_as_residential=postal_same_as_res,
 
+           phone_number=self.__get_phone_number(user_row),
+           mobile_number=self.__get_mobile_number(user_row),
+
            email=user.email,
-           phone_number=user.phone_number,
-           mobile_number=user.mobile_number,
         )
 
-        if user.email in self.user_created:
+        #if user.email in self.user_created:
+        user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
+        if len(user_dict) > 0:
             # update address, phone details
             url = f'{settings.LEDGER_API_URL}/ledgergw/remote/update-userid/{user.id}/{settings.LEDGER_API_KEY}/'
-            res = requests.post(url, data=create_proposal_applicant_dict(proposal_applicant))
+            res = requests.post(url, data=user_dict)
 
-    def create_proposal_applicant_dict(self, user):
+    def create_proposal_applicant_dict(self, user, applicant):
         ''' user is ProposalApplicant '''
 
-        postal_address = dict(
-           postal_line1=user.postal_address,
-           postal_locality=user.postal_suburb,
-           postal_state=user.postal_state,
-           postal_postcode=user.postal_postcode,
-           postal_same_as_residential=user.postal_same_as_res
-        )
+        payload = {}
+        if not user.postal_address:
+            postal_address = {
+                "postal_line1": applicant.postal_line1,
+                "postal_locality": applicant.postal_locality,
+                "postal_state": applicant.postal_state,
+                "postal_postcode": applicant.postal_postcode,
+                "postal_same_as_residential": applicant.postal_same_as_residential,
+                "postal_country": 'AU',
+            }
+            payload['postal_address'] = json.dumps(postal_address)
 
-        payload = dict(
-            email=user.email,
-            dob=user.dob,
-            phone_number=user.phone_number,
-            mobile_number=user.mobile_number,
+            if not user.postal_same_as_residential:
+                residential_address = {
+                    "residential_line1": applicant.residential_line1,
+                    "residential_locality": applicant.residential_locality,
+                    "residential_state": applicant.residential_state,
+                    "residential_postcode": applicant.residential_postcode,
+                    "residential_country": 'AU',
+                }
+                payload['residential_address'] = json.dumps(residential_address)
 
-            postal_address = json.dumps(postal_address),
-        )
 
-        if not user.postal_same_as_res:
-            residential_address = dict(
-               residential_line1=user.postal_address,
-               residential_locality=user.postal_suburb,
-               residential_state=user.postal_state,
-               residential_postcode=user.postal_postcode,
-            )
-
-            payload['residential_address'] = json.dumps(residential_status)
-
+        if not user.dob:
+            payload['dob'] = applicant.dob.strftime('%d/%m/%Y')
+            
+        if not user.phone_number:
+            payload['phone_number'] = applicant.phone_number
+            
+        if not user.mobile_number:
+            payload['mobile_number'] = applicant.mobile_number
+            
+        #import ipdb; ipdb.set_trace()
         return payload
 
     def create_users(self):
+        #import ipdb; ipdb.set_trace()
         logger.info('Creating DCV users ...')
         df = self.df_dcv.groupby('pers_no').first()
         self._create_users_df(df)
@@ -578,12 +606,12 @@ class MooringLicenceReader():
             df = self.df_authuser.groupby(pers_type).first()
             self._create_users_df(df)
 
-        logger.info('Creating WL users ...')
-        df = self.df_wl.groupby('pers_no').first()
-        self._create_users_df(df)
-
-        logger.info('Creating AA users ...')
-        self._create_users_df_aa(self.df_aa)
+#        logger.info('Creating WL users ...')
+#        df = self.df_wl.groupby('pers_no').first()
+#        self._create_users_df(df)
+#
+#        logger.info('Creating AA users ...')
+#        self._create_users_df_aa(self.df_aa)
 
 
     def _create_users_df(self, df):
@@ -591,8 +619,10 @@ class MooringLicenceReader():
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             #if row.status != 'Vacant':
             try:
-                #if row.name == '207899':
-                #    import ipdb; ipdb.set_trace()
+#                if row.name == '206441':
+#                    import ipdb; ipdb.set_trace()
+#                else:
+#                    continue
 
                 if not row.name :
                     continue
@@ -901,6 +931,124 @@ class MooringLicenceReader():
         print(f'vessels pct_int errors:   {len(self.pct_interest_errors)}')
         print(f'vessels no_ves_rows: {self.no_ves_rows}: Total len({self.no_ves_rows})')
 
+    def create_vessels_wl(self):
+
+        def is_invalid_rego(element: any) -> bool:
+            #If you expect None to be passed:
+            if element is None:
+                return True
+            try:
+                v = int(element)
+                return v==0
+            except ValueError:
+                return False
+
+        def try_except(value):
+            #if pers_no=='213162':
+            #    import ipdb; ipdb.set_trace()
+
+            try:
+                val = float(value)
+            except Exception:
+                val = 0.00
+            return val
+
+        self.dummy_vessels = []
+        self.vessels_au = {} 
+        self.vessels_dcv = {} 
+        #for user_id, pers_no in tqdm(self.pers_ids):
+        #df_wl = self.df_wl[(self.df_wl['vessel_rego']!='0')].groupby('vessel_rego').first()
+        df_wl = self.df_wl.groupby('vessel_rego').first()
+        for index, row in tqdm(df_wl.iterrows(), total=df_wl.shape[0]):
+            try:
+#                if row.pers_no=='212397':
+#                    import ipdb; ipdb.set_trace()
+#                else:
+#                    continue
+#
+                #import ipdb; ipdb.set_trace()
+                rego_no = row.name
+                if is_invalid_rego(rego_no):
+                    # User is on waiting list without a vessel - assign a dummy vessel
+                    rego_no = f'{row.first_name}_{row.last_name}_{row.pers_no}'.lower()
+                    self.dummy_vessels.append(rego_no)
+
+                vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+                user_row = user_row.squeeze() # convert to Pandas Series
+
+                #if not user_row.empty and user_row.pers_no=='000036':
+                #    import ipdb; ipdb.set_trace()
+
+                email = user_row.email.lower().replace(' ','')
+                if not email:
+                    self.no_email.append(user_row.pers_no)
+                    continue
+
+#                if email != 'ftroop351@gmail.com':
+#                    #import ipdb; ipdb.set_trace()
+#                    continue
+
+                users = EmailUser.objects.filter(email=email)
+                if users.count() == 0:
+                    #import ipdb; ipdb.set_trace()
+                    print(f'wl - email not found: {email}')
+ 
+                    self.ml_user_not_found.append(email)
+                    continue
+                else:
+                    user = users[0]
+                    self.user_existing.append(email)
+
+
+                try:
+                    #owner = Owner.objects.get(emailuser_id=user_id)
+                    owner = Owner.objects.get(emailuser=user.id)
+                except ObjectDoesNotExist:
+                    #owner = Owner.objects.create(emailuser_id=user_id)
+                    owner = Owner.objects.create(emailuser=user.id)
+
+                    ves_type = 'other'
+                    vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=100)
+                    if rego_no in self.dummy_vessels:
+                        vessel_ownership.end_date = TODAY
+
+                    try:
+                        vessel_details = VesselDetails.objects.get(vessel=vessel)
+                        vessel_details.vessel_type = ves_type
+                        vessel_details.save()
+                    except MultipleObjectsReturned:
+                        vessel_details = VesselDetails.objects.filter(vessel=vessel)[0]
+                        vessel_details.vessel_type = ves_type
+                        vessel_details.save()
+                    except:
+                        vessel_details = VesselDetails.objects.create(
+                            vessel=vessel,
+                            vessel_type=ves_type,
+                            vessel_name=row.vessel_name,
+                            vessel_length=try_except(row.vessel_length),
+                            vessel_draft=try_except(row.vessel_draft),
+                            vessel_weight=try_except(0.0),
+                            berth_mooring=''
+                        )
+
+                    self.vessels_created.append((row.pers_no, len(c_vessels), c_vessels))
+
+            except Exception as e:
+                self.vessels_errors.append((row.pers_no, str(e)))
+                continue
+
+        print(f'vessels created:  {len(self.vessels_created)}')
+        print(f'vessels errors:   {self.vessels_errors}')
+        print(f'vessels errors:   {len(self.vessels_errors)}')
+
 
     def create_vessels_dict(self):
 
@@ -987,7 +1135,7 @@ class MooringLicenceReader():
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
                 
-#                if row.pers_no == '209552':
+#                if row.pers_no == '206441':
 #                    import ipdb; ipdb.set_trace()
 #                else:
 #                    continue
@@ -1018,6 +1166,10 @@ class MooringLicenceReader():
                 if not email:
                     self.no_email.append(user_row.pers_no)
                     continue
+
+#                if email != 'ftroop351@gmail.com':
+#                    #import ipdb; ipdb.set_trace()
+#                    continue
 
                 users = EmailUser.objects.filter(email=email)
                 if users.count() == 0:
@@ -1285,6 +1437,10 @@ class MooringLicenceReader():
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
             #if row.status != 'Vacant':
             try:
+#                if row.pers_no_l != '206441':
+#                    #import ipdb; ipdb.set_trace()
+#                    continue
+
                 #if row.pers_no_l == '019626':
                 #    print(f"rego_no: {row['vessel_rego']}")
                 #    import ipdb; ipdb.set_trace()
@@ -1297,7 +1453,7 @@ class MooringLicenceReader():
                 #if row.pers_no_u == '210758':
                 #    import ipdb; ipdb.set_trace()
 
-#                if rego_no == 'MB016':
+#                if rego_no=='GV331' and row.mooring_no=='PB008':
 #                    import ipdb; ipdb.set_trace()
 #                else:
 #                    continue
@@ -1351,6 +1507,7 @@ class MooringLicenceReader():
                 vessel_ownership = vessel.vesselownership_set.all()[0]
                 vessel_details = vessel.vesseldetails_set.all()[0]
 
+#                if email_u == 31779:
 #                auth_user = AuthorisedUserApplication.objects.filter(
 #                    site_licensee_email=licensee.email,
 #                    mooring=mooring,
@@ -1361,6 +1518,12 @@ class MooringLicenceReader():
 #                if len(auth_user)>0:
 #                    # already exists
 #                    continue
+
+#                if rego_no=='GV331' and row.mooring_no=='PB008':
+#                    import ipdb; ipdb.set_trace()
+#                else:
+#                    continue
+
 
                 proposal=AuthorisedUserApplication.objects.create(
                     #proposal_type_id=1, # new application
@@ -1405,7 +1568,7 @@ class MooringLicenceReader():
 
                 #import ipdb; ipdb.set_trace()
                 try:
-                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no_l].squeeze() # as Pandas Series
+                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u].squeeze() # as Pandas Series
                 except Exception as e:
                     import ipdb; ipdb.set_trace()
                 self.create_proposal_applicant(proposal, user, user_row)
@@ -1525,8 +1688,8 @@ class MooringLicenceReader():
                 #if row.mooring_no == 'TB999':
                 #    continue
 
-                #if row.pers_no == '213666':
-                #    import ipdb; ipdb.set_trace()
+                if row.pers_no == '206828':
+                    import ipdb; ipdb.set_trace()
 
                 pers_no = row['pers_no']
                 mooring_bay = MooringBay.objects.get(code=row['bay'])
@@ -1592,7 +1755,7 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
+                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
 
@@ -1600,7 +1763,7 @@ class MooringLicenceReader():
                     status=Approval.APPROVAL_STATUS_CURRENT,
                     internal_status=Approval.INTERNAL_STATUS_WAITING,
                     current_proposal=proposal,
-                    issue_date = TODAY,
+                    issue_date = start_date, #TODAY,
                     #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
@@ -1622,7 +1785,7 @@ class MooringLicenceReader():
                 proposal.save()
 
                 try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
@@ -1652,7 +1815,7 @@ class MooringLicenceReader():
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
         date_applied = DATE_APPLIED
-        fee_season = FeeSeason.objects.filter(name=FEE_SEASON)[0]
+        fee_season = FeeSeason.objects.filter(application_type__code='dcvp', name=FEE_SEASON)[0]
 
         errors = []
         vessel_not_found = []
@@ -1815,7 +1978,7 @@ class MooringLicenceReader():
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
         date_applied = DATE_APPLIED
-        fee_season = FeeSeason.objects.filter(name=FEE_SEASON)[0]
+        fee_season = FeeSeason.objects.filter(application_type__code='aaa', name=FEE_SEASON)[0]
 
         errors = []
         vessel_not_found = []

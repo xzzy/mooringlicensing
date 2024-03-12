@@ -431,18 +431,20 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     )
             for moa in moa_set:
                 approval = moa.approval
-                authorised_users.append({
-                    "id": moa.id,
-                    "lodgement_number": approval.lodgement_number,
-                    "vessel_name": (
-                        approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
-                        if approval.current_proposal and approval.current_proposal.vessel_details else ''
-                        ),
-                    "holder": approval.submitter_obj.get_full_name(),
-                    "mobile": approval.submitter_obj.mobile_number,
-                    "email": approval.submitter_obj.email,
-                    "status": approval.get_status_display(),
-                    })
+                if approval and approval.lodgement_number.startswith('AUP'):
+                    authorised_users.append({
+                        "id": moa.id,
+                        "lodgement_number": approval.lodgement_number,
+                        "vessel_name": (
+                            approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
+                            if approval.current_proposal and approval.current_proposal.vessel_details else ''
+                            ),
+                        "holder": approval.submitter_obj.get_full_name(),
+                        #"mobile": approval.submitter_obj.mobile_number,
+                        "mobile": approval.proposal_applicant.mobile_number if approval.proposal_applicant.mobile_number else approval.proposal_applicant.phone_number,
+                        "email": approval.submitter_obj.email,
+                        "status": approval.get_status_display(),
+                        })
         return authorised_users
 
 
@@ -477,7 +479,6 @@ class ApprovalSerializer(serializers.ModelSerializer):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
             for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
-                #import ipdb; ipdb.set_trace()
                 if moa.mooring.mooring_licence is not None:
                     licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter_obj).data
                     moorings.append({
