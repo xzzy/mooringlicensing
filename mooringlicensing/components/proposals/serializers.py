@@ -17,6 +17,7 @@ from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.proposals.models import (
     Proposal,
+    ProposalApplicant,
     ProposalUserAction,
     ProposalLogEntry,
     VesselLogEntry,
@@ -467,12 +468,17 @@ class ListProposalSerializer(BaseProposalSerializer):
         )
 
     def get_submitter(self, obj):
-        if obj.submitter:
-            from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            email_user = retrieve_email_userro(obj.submitter)
-            return EmailUserSerializer(email_user).data
+        #use a ProposalApplicant record if available
+        proposal_applicant = ProposalApplicant.objects.filter(proposal=obj)
+        if proposal_applicant:
+            return ProposalApplicantSerializer(proposal_applicant.first()).data
         else:
-            return ""
+            if obj.submitter:
+                from mooringlicensing.ledger_api_utils import retrieve_email_userro
+                email_user = retrieve_email_userro(obj.submitter)
+                return EmailUserSerializer(email_user).data
+            else:
+                return ""
 
     def get_invoice_links(self, proposal):
         links = ""
@@ -1054,13 +1060,17 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return obj.proposed_issuance_approval
 
     def get_submitter(self, obj):
-        if obj.submitter:
-            from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            email_user = retrieve_email_userro(obj.submitter)
-            # return EmailUserSerializer(email_user).data
-            return UserSerializer(email_user).data
+        #use a ProposalApplicant record if available
+        proposal_applicant = ProposalApplicant.objects.filter(proposal=obj)
+        if proposal_applicant:
+            return ProposalApplicantSerializer(proposal_applicant.first()).data
         else:
-            return ""
+            if obj.submitter:
+                from mooringlicensing.ledger_api_utils import retrieve_email_userro
+                email_user = retrieve_email_userro(obj.submitter)
+                return EmailUserSerializer(email_user).data
+            else:
+                return ""
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
