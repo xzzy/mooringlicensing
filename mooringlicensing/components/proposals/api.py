@@ -533,13 +533,11 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             .filter(
                 Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
             ).values_list("id", flat=True))
-            print("CHECKING EMAIL USERS",email_user_ids)
             #the search also does not accomodate combining first names and last names even with ProposalApplicant - so we will also do that here
             proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
             .filter(
                 Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
             ).values_list("proposal_id", flat=True))
-            print(proposal_applicant_proposals)
             queryset = queryset.filter(Q(id__in=proposal_applicant_proposals)|Q(submitter__in=email_user_ids))
             queryset = queryset.distinct() | super_queryset    
 
