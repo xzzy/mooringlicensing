@@ -317,7 +317,7 @@ export default {
             return {
                 data: "id",
                 orderable: false,
-                searchable: true,
+                searchable: false, //special functionality for searching this field required
                 visible: true,
                 'render': function(row, type, full){
                     if (full.submitter){
