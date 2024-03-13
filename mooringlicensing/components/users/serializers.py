@@ -173,7 +173,9 @@ class EmailUserRoSerializer(serializers.ModelSerializer):
             'phone_number',
             'mobile_number',
         )
+        
 class ProposalApplicantSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApplicant
@@ -181,6 +183,7 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
             'id',
             'last_name',
             'first_name',
+            'full_name',
             'dob',
 
             'residential_line1',
@@ -204,6 +207,9 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
             'phone_number',
             'mobile_number',
         )
+    
+    def get_full_name(self, obj):
+        return obj.get_full_name()
 
 
 class UserSerializer(serializers.ModelSerializer):
