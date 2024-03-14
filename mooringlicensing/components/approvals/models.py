@@ -59,7 +59,8 @@ def update_waiting_list_offer_doc_filename(instance, filename):
     return '{}/proposals/{}/approvals/{}/waiting_list_offer/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id, instance.id, filename)
 
 def update_approval_doc_filename(instance, filename):
-    return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
+    # return '{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, instance.approval.current_proposal.id,filename)
+    return 'proposal/{}/approvals/{}'.format(instance.approval.current_proposal.id,filename)
 
 def update_approval_comms_log_filename(instance, filename):
     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
@@ -93,8 +94,22 @@ class WaitingListOfferDocument(Document):
 
 
 class RenewalDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/renewal_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
     approval = models.ForeignKey('Approval',related_name='renewal_documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    # _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
     def delete(self):
@@ -107,16 +122,47 @@ class RenewalDocument(Document):
 
 
 class AuthorisedUserSummaryDocument(Document):
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/authorised_user_summary_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
     approval = models.ForeignKey('Approval', related_name='authorised_user_summary_documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    # _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
 
     class Meta:
         app_label = 'mooringlicensing'
 
 
 class ApprovalDocument(Document):
-    approval = models.ForeignKey('Approval',related_name='documents', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/approval_documents/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
+    # def update_approval_doc_filename(instance, filename):
+    #     return 'proposal/{}/approvals/{}'.format(instance.approval.current_proposal.id,filename)
+
+    approval = models.ForeignKey('Approval', related_name='approval_documents', on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_approval_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
 
     def delete(self):
@@ -2363,8 +2409,24 @@ class ApprovalLogEntry(CommunicationsLogEntry):
         super(ApprovalLogEntry, self).save(**kwargs)
 
 class ApprovalLogDocument(Document):
-    log_entry = models.ForeignKey('ApprovalLogEntry',related_name='documents', null=True, on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_approval_comms_log_filename, null=True, max_length=512)
+# def update_approval_comms_log_filename(instance, filename):
+#     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
+    @staticmethod
+    def relative_path_to_file(proposal_id, filename):
+        return f'proposal/{proposal_id}/approvals/communications/{filename}'
+
+    def upload_to(self, filename):
+        proposal_id = self.approval.current_proposal.id
+        return self.relative_path_to_file(proposal_id, filename)
+
+    log_entry = models.ForeignKey('ApprovalLogEntry', related_name='documents', null=True, on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_approval_comms_log_filename, null=True, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -2500,7 +2562,7 @@ class DcvAdmission(RevisionedMixin):
 
     def get_admission_urls(self):
         urls = []
-        for admission in self.admissions.all():
+        for admission in self.dcv_admission_documents.all():
             urls.append(admission._file.url)
         return urls
 
@@ -2863,8 +2925,8 @@ class DcvPermit(RevisionedMixin):
 
     def get_licence_document_as_attachment(self):
         attachment = None
-        if self.permits.count():
-            licence_document = self.permits.first()._file
+        if self.dcv_permit_documents.count():
+            licence_document = self.dcv_permit_documents.first()._file
             if licence_document is not None:
                 file_name = self.licence_document.name
                 attachment = (file_name, licence_document.file.read(), 'application/pdf')
@@ -2963,8 +3025,22 @@ def update_dcv_permit_doc_filename(instance, filename):
 
 
 class DcvAdmissionDocument(Document):
-    dcv_admission = models.ForeignKey(DcvAdmission, related_name='admissions', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
+    @staticmethod
+    def relative_path_to_file(dcv_admission_id, filename):
+        return f'dcv_admission/{dcv_admission_id}/dcv_admission_documents/{filename}'
+
+    def upload_to(self, filename):
+        dcv_admission_id = self.dcv_admission.id
+        return self.relative_path_to_file(dcv_admission_id, filename)
+
+    dcv_admission = models.ForeignKey(DcvAdmission, related_name='dcv_admission_documents', on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
     def delete(self, using=None, keep_parents=False):
@@ -2977,8 +3053,22 @@ class DcvAdmissionDocument(Document):
 
 
 class DcvPermitDocument(Document):
-    dcv_permit = models.ForeignKey(DcvPermit, related_name='permits', on_delete=models.CASCADE)
-    _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
+    @staticmethod
+    def relative_path_to_file(dcv_permit_id, filename):
+        return f'dcv_permit/{dcv_permit_id}/dcv_permit_documents/{filename}'
+
+    def upload_to(self, filename):
+        dcv_permit_id = self.dcv_permit.id
+        return self.relative_path_to_file(dcv_permit_id, filename)
+
+    dcv_permit = models.ForeignKey(DcvPermit, related_name='dcv_permit_documents', on_delete=models.CASCADE)
+    # _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
+    _file = models.FileField(
+        null=True,
+        max_length=512,
+        storage=private_storage,
+        upload_to=upload_to
+    )
     can_delete = models.BooleanField(default=False)  # after initial submit prevent document from being deleted
 
     def delete(self, using=None, keep_parents=False):
@@ -3276,8 +3366,10 @@ class StickerActionDetail(models.Model):
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
-    if hasattr(instance, 'documents'):
-        for document in instance.documents.all():
+    #if hasattr(instance, 'documents'):
+    #    for document in instance.documents.all():
+    if hasattr(instance, 'approval_documents'):
+        for document in instance.approval_documents.all():
             try:
                 document.delete()
             except:
@@ -3294,22 +3386,23 @@ reversion.register(VesselOwnershipOnApproval, follow=['approval', 'vessel_owners
 reversion.register(ApprovalHistory, follow=[])
 #reversion.register(Approval, follow=['proposal_set', 'ria_generated_proposal', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
 reversion.register(Approval)
-reversion.register(WaitingListAllocation, follow=['proposal_set', 'ria_generated_proposal', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
-reversion.register(AnnualAdmissionPermit, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
-reversion.register(AuthorisedUserPermit, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
-reversion.register(MooringLicence, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances', 'mooring'])
-reversion.register(PreviewTempApproval, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
+reversion.register(WaitingListAllocation, follow=['proposal_set', 'ria_generated_proposal', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
+reversion.register(AnnualAdmissionPermit, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
+reversion.register(AuthorisedUserPermit, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
+reversion.register(MooringLicence, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances', 'mooring'])
+reversion.register(PreviewTempApproval, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
 reversion.register(ApprovalLogEntry, follow=['documents'])
 reversion.register(ApprovalLogDocument, follow=[])
 reversion.register(ApprovalUserAction, follow=[])
 reversion.register(DcvOrganisation, follow=['dcv_vessels', 'dcvpermit_set'])
 reversion.register(DcvVessel, follow=['dcv_admissions', 'dcv_permits'])
-reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'admissions'])
+# reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'admissions'])
+reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'dcv_admission_documents'])
 reversion.register(DcvAdmissionArrival, follow=['numberofpeople_set'])
 reversion.register(AgeGroup, follow=['numberofpeople_set'])
 reversion.register(AdmissionType, follow=['numberofpeople_set'])
 reversion.register(NumberOfPeople, follow=[])
-reversion.register(DcvPermit, follow=['permits', 'stickers'])
+reversion.register(DcvPermit, follow=['dcv_permit_documents', 'stickers'])
 reversion.register(DcvAdmissionDocument, follow=[])
 reversion.register(DcvPermitDocument, follow=[])
 reversion.register(Sticker, follow=['mooringonapproval_set', 'approvalhistory_set', 'sticker_action_details'])

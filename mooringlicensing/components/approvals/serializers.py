@@ -432,18 +432,20 @@ class ApprovalSerializer(serializers.ModelSerializer):
                     )
             for moa in moa_set:
                 approval = moa.approval
-                authorised_users.append({
-                    "id": moa.id,
-                    "lodgement_number": approval.lodgement_number,
-                    "vessel_name": (
-                        approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
-                        if approval.current_proposal and approval.current_proposal.vessel_details else ''
-                        ),
-                    "holder": approval.current_proposal.proposal_applicant.get_full_name(),
-                    "mobile": approval.current_proposal.proposal_applicant.mobile_number,
-                    "email": approval.current_proposal.proposal_applicant.email,
-                    "status": approval.get_status_display(),
-                    })
+                if approval and approval.lodgement_number.startswith('AUP'):
+                    authorised_users.append({
+                        "id": moa.id,
+                        "lodgement_number": approval.lodgement_number,
+                        "vessel_name": (
+                            approval.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name
+                            if approval.current_proposal and approval.current_proposal.vessel_details else ''
+                            ),
+                        "holder": approval.current_proposal.proposal_applicant.get_full_name(),
+                        #"mobile": approval.current_proposal.proposal_applicant.mobile_number,
+                        "mobile": approval.current_proposal.proposal_applicant.mobile_number if approval.current_proposal.proposal_applicant.mobile_number else approval.current_proposal.proposal_applicant.phone_number,
+                        "email": approval.current_proposal.proposal_applicant.email,
+                        "status": approval.get_status_display(),
+                        })
         return authorised_users
 
 
@@ -478,7 +480,6 @@ class ApprovalSerializer(serializers.ModelSerializer):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
             for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
-                #import ipdb; ipdb.set_trace()
                 if moa.mooring.mooring_licence is not None:
                     licence_holder_data = ProposalApplicantSerializer(moa.mooring.mooring_licence.current_proposal.proposal_applicant).data
                     moorings.append({
@@ -1415,7 +1416,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     fee_season = serializers.SerializerMethodField()
     fee_invoice_url = serializers.SerializerMethodField()
     invoices = serializers.SerializerMethodField()
-    permits = serializers.SerializerMethodField()
+    dcv_permit_documents = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     display_create_sticker_action = serializers.SerializerMethodField()
     vessel_rego = serializers.CharField(source='dcv_vessel.rego_no')
@@ -1435,7 +1436,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'status',
             'fee_invoice_url',
             'invoices',
-            'permits',
+            'dcv_permit_documents',
             'stickers',
             'display_create_sticker_action',
             'vessel_rego',
@@ -1453,7 +1454,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'status',
             'fee_invoice_url',
             'invoices',
-            'permits',
+            'dcv_permit_documents',
             'stickers',
             'display_create_sticker_action',
             'vessel_rego',
@@ -1497,9 +1498,9 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             display = False
         return display
 
-    def get_permits(self, obj):
+    def get_dcv_permit_documents(self, obj):
         permit_urls = []
-        for permit in obj.permits.all():
+        for permit in obj.dcv_permit_documents.all():
             permit_urls.append(permit._file.url)
         return permit_urls
 
@@ -1570,7 +1571,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
     def get_admission_urls(self, obj):
         admission_urls = []
-        for admission in obj.admissions.all():
+        for admission in obj.dcv_admission_documents.all():
             admission_urls.append(admission._file.url)
         return admission_urls
 
