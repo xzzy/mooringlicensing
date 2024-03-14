@@ -39,7 +39,8 @@ from mooringlicensing.components.proposals.models import Proposal, MooringLicenc
 from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
-    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit
+    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
+    private_storage
 )
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
@@ -655,10 +656,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 _file = request.FILES.get('_file')
 
             document = instance.qaofficer_documents.get_or_create(input_name=section, name=filename)[0]
-            path = default_storage.save('{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal_id, filename), ContentFile(_file.read()))
+            path = private_storage.save('{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal_id, filename), ContentFile(_file.read()))
 
             document._file = path
-            document.save()
+            document.save() #TODO: make sure this works
             instance.save(version_comment='Licence ({}): {}'.format(section, filename)) # to allow revision to be added to reversion history
 
         return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete) for d in instance.qaofficer_documents.filter(input_name=section, visible=True) if d._file] )
@@ -729,10 +730,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             comms = serializer.save()
             # Save the files
             for f in request.FILES:
-                document = comms.documents.create()
-                document.name = str(request.FILES[f])
-                document._file = request.FILES[f]
-                document.save()
+                document = comms.documents.create(
+                    name = str(request.FILES[f]),
+                    _file = request.FILES[f]
+                )
             # End Save Documents
 
             return Response(serializer.data)
