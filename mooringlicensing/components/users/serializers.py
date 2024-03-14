@@ -176,6 +176,7 @@ class EmailUserRoSerializer(serializers.ModelSerializer):
         
 class ProposalApplicantSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    ledger_id = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalApplicant
@@ -206,10 +207,18 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
             'email',
             'phone_number',
             'mobile_number',
+
+            'ledger_id',
         )
     
     def get_full_name(self, obj):
         return obj.get_full_name()
+
+    def get_ledger_id(self, obj):
+        try:
+            return obj.proposal.submitter
+        except:
+            return
 
 
 class UserSerializer(serializers.ModelSerializer):
