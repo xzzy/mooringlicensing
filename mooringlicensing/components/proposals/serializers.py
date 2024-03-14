@@ -1776,7 +1776,10 @@ class ListMooringSerializer(serializers.ModelSerializer):
     
     def get_holder(self, obj):
         if obj.mooring_licence:
-            return obj.mooring_licence.submitter_obj.get_full_name()
+            try:
+                return obj.mooring_licence.approval.current_proposal.proposal_applicant.get_full_name()
+            except:
+                return obj.mooring_licence.submitter_obj.get_full_name()
         return 'N/A'
 
     def get_mooring_bay_name(self, obj):

@@ -1208,36 +1208,7 @@ class StickerRenderer(DatatablesRenderer):
 class StickerFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
-        search_term = request.GET.get('search[value]', '')
-
-        # Custom fullname search
-        pattern = re.compile(r'\S\s+')
-        qs_stickers1 = Sticker.objects.none()
-        qs_stickers2 = Sticker.objects.none()
-        if pattern.search(search_term):
-            # Only when the search term has a space after a some text(first_name), then perform custome query because we just want to perform full_name search.
-
-            # Search sticker.approval.submitter by fullname
-            email_user_ids = EmailUser.objects.annotate(
-                custom_term=Concat(
-                    "first_name",
-                    Value(" "),
-                    "last_name",
-                    output_field=CharField(),
-                )
-            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
-            qs_stickers1 = queryset.filter(approval__in=Approval.objects.filter(submitter__in=list(email_user_ids)))
-
-            # Search sticker.approval.current_proposal.proposalapplicant by fullname
-            proposal_applicants = ProposalApplicant.objects.annotate(
-                custom_term=Concat(
-                    "first_name",
-                    Value(" "),
-                    "last_name",
-                    output_field=CharField(),
-                )
-            ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
-            qs_stickers2 = queryset.filter(approval__current_proposal__proposalapplicant__in=proposal_applicants)
+        search_text= request.GET.get('search[value]', '') 
 
         # Filter by approval types (wla, aap, aup, ml)
         filter_approval_type = request.GET.get('filter_approval_type')
@@ -1277,16 +1248,27 @@ class StickerFilterBackend(DatatablesFilterBackend):
         if len(ordering):
             queryset = queryset.order_by(*ordering)
 
+        #re-arranged filter so that: 
+        #1) if the records in ledger and local are different they do not cancel each other out
+        #2) other filters DO override the custom search
         try:
-            queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
+            super_queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
+
+            if search_text:
+                email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                .filter(
+                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("id", flat=True))
+                proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                .filter(
+                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("proposal_id", flat=True))
+                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=email_user_ids))
+                queryset = super_queryset.union(q_set)
         except Exception as e:
             print(e)
         setattr(view, '_datatables_total_count', total_count)
-
-        # Merge with the custom search
-        queryset = queryset.union(qs_stickers1)
-        queryset = queryset.union(qs_stickers2)
-
+        
         return queryset
 
 
