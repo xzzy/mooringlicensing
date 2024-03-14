@@ -159,8 +159,11 @@ class LoginSuccess(TemplateView):
         return response
 
 
-class ManagementCommandsView(LoginRequiredMixin, TemplateView):
+class ManagementCommandsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'mooringlicensing/mgt-commands.html'
+
+    def test_func(self):
+        return is_internal(self.request)
 
     def get(self, request, *args, **kwargs):
         debug = request.GET.get('debug', 'f')
