@@ -419,10 +419,10 @@ class UserViewSet(viewsets.ModelViewSet):
 
                 # for attachment in attachments:
                 for f in request.FILES:
-                    document = eu_entry.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
+                    document = eu_entry.documents.create(
+                    name = str(request.FILES[f]),
+                    _file = request.FILES[f]
+                    )
                 return Response({})
         except serializers.ValidationError:
             print(traceback.print_exc())

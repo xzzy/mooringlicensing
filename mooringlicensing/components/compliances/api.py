@@ -115,9 +115,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 if request.FILES:
                     # if num_adults is present instance.submit is executed after payment in das_payment/views.py
                     for f in request.FILES:
-                        document = instance.documents.create(name=str(request.FILES[f]))
-                        document._file = request.FILES[f]
-                        document.save()
+                        document = instance.documents.create(name=str(request.FILES[f]),_file = request.FILES[f])
             else:
                 instance.submit(request)
 
@@ -214,10 +212,10 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             comms = serializer.save()
             # Save the files
             for f in request.FILES:
-                document = comms.documents.create()
-                document.name = str(request.FILES[f])
-                document._file = request.FILES[f]
-                document.save()
+                document = comms.documents.create(
+                    name = str(request.FILES[f]),
+                    _file = request.FILES[f]
+                )
             # End Save Documents
 
             return Response(serializer.data)
