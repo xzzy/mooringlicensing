@@ -2431,6 +2431,10 @@ class ProposalApplicant(RevisionedMixin):
             return self.residential_postcode
         else:
             return self.postal_postcode
+        
+    def get_full_name(self):
+        full_name = '{} {}'.format(self.first_name, self.last_name)
+        return full_name
 
     def copy_self_to_proposal(self, target_proposal):
         proposal_applicant = ProposalApplicant.objects.create(

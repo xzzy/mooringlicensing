@@ -513,10 +513,33 @@ class VersionableModelViewSetMixin(viewsets.ModelViewSet):
 
 class ProposalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        total_count = queryset.count()
 
+        total_count = queryset.count()
         level = request.GET.get('level', 'external')  # Check where the request comes from
         filter_query = Q()
+
+        try:
+            super_queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view).distinct()
+            
+        except Exception as e:
+            logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
+        setattr(view, '_datatables_total_count', total_count)
+
+        search_text = request.GET.get('search[value]')
+        if search_text:
+            #the search conducted by the superclass only accomodates the ProposalApplicant users
+            #this misses any new draft proposals, which do not yet have a ProposalApplicant record assigned - so we will do that here
+            email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+            .filter(
+                Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+            ).values_list("id", flat=True))
+            #the search also does not accomodate combining first names and last names even with ProposalApplicant - so we will also do that here
+            proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+            .filter(
+                Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+            ).values_list("proposal_id", flat=True))
+            queryset = queryset.filter(Q(id__in=proposal_applicant_proposals)|Q(submitter__in=email_user_ids))
+            queryset = queryset.distinct() | super_queryset    
 
         mla_list = MooringLicenceApplication.objects.all()
         aua_list = AuthorisedUserApplication.objects.all()
@@ -583,12 +606,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
             queryset = queryset.order_by(*ordering)
         else:
             queryset = queryset.order_by('-id')
-
-        try:
-            queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
-        except Exception as e:
-            logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
-        setattr(view, '_datatables_total_count', total_count)
+        
         return queryset
 
 
@@ -2484,24 +2502,25 @@ class MooringFilterBackend(DatatablesFilterBackend):
             queryset = queryset.order_by(*ordering)
 
         try:
-            queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
+            super_queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
 
             # Custom search
-            search_term = request.GET.get('search[value]')  # This has a search term.
-            if search_term:
+            search_text = request.GET.get('search[value]')  # This has a search term.
+            if search_text:
                 # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
                 # User can search by a fullname, too
-                email_user_ids = EmailUser.objects.annotate(
-                    custom_term=Concat(
-                        "first_name",
-                        Value(" "),
-                        "last_name",
-                        output_field=CharField(),
-                    )
-                ).filter(custom_term__icontains=search_term).values_list('id', flat=True)
-                q_set = Mooring.objects.filter(mooring_licence__submitter__in=list(email_user_ids))
+                email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                .filter(
+                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("id", flat=True))
+                proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                .filter(
+                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("proposal_id", flat=True))
 
-                queryset = queryset.union(q_set)
+                q_set = queryset.filter(Q(mooring_licence__approval__current_proposal__id__in=proposal_applicant_proposals)|Q(mooring_licence__submitter__in=email_user_ids))
+
+                queryset = super_queryset.union(q_set)
 
             return queryset
 

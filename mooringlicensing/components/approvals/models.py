@@ -1236,8 +1236,8 @@ class WaitingListAllocation(Approval):
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
                 # 'applicant_name': self.submitter.get_full_name(),
                 # 'applicant_full_name': self.submitter.get_full_name(),
-                'applicant_name': self.submitter_obj.get_full_name(),
-                'applicant_full_name': self.submitter_obj.get_full_name(),
+                'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
+                'applicant_full_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'bay_name': self.current_proposal.preferred_bay.name,
                 'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y'),
                 'position_number': self.wla_order,
@@ -1365,7 +1365,7 @@ class AnnualAdmissionPermit(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': retrieve_email_userro(self.submitter).get_full_name(),
+                'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1584,7 +1584,7 @@ class AuthorisedUserPermit(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
-                'applicant_name': self.submitter_obj.get_full_name(),
+                'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -1997,7 +1997,7 @@ class MooringLicence(Approval):
                 authorised_by = aup.get_authorised_by()
                 authorised_by = authorised_by.upper().replace('_', ' ')
 
-                authorised_person['full_name'] = aup.submitter_obj.get_full_name()
+                authorised_person['full_name'] = aup.current_proposal.proposal_applicant.get_full_name()
                 authorised_person['vessel'] = {
                     'rego_no': aup.current_proposal.vessel_details.vessel.rego_no if aup.current_proposal.vessel_details else '',
                     'vessel_name': aup.current_proposal.vessel_details.vessel_name if aup.current_proposal.vessel_details else '',
@@ -2006,8 +2006,8 @@ class MooringLicence(Approval):
                 }
                 authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
                 authorised_person['authorised_by'] = authorised_by
-                authorised_person['mobile_number'] = aup.submitter_obj.mobile_number
-                authorised_person['email_address'] = aup.submitter_obj.email
+                authorised_person['mobile_number'] = aup.current_proposal.proposal_applicant.mobile_number
+                authorised_person['email_address'] = aup.current_proposal.proposal_applicant.email
                 authorised_persons.append(authorised_person)
 
         today = datetime.datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
@@ -2057,7 +2057,7 @@ class MooringLicence(Approval):
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                'applicant_name': self.submitter_obj.get_full_name(),
+                'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
                 'p_address_suburb': self.postal_address_suburb,
@@ -2924,7 +2924,7 @@ class DcvPermit(RevisionedMixin):
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),
             'public_url': get_public_url(),
-            'submitter_fullname': self.submitter_obj.get_full_name(),
+            'submitter_fullname': self.submitter.get_full_name(),
         }
         return context
 
