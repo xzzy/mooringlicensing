@@ -154,7 +154,7 @@
         </FormSection>
         <FormSection label="Vessel Details" Index="vessel_details">
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Vessel length *</label>
+                <label for="" class="col-sm-3 control-label">Vessel length (m) *</label>
                 <div class="col-sm-2">
                     <input :readonly="readonly" type="number" min="1" class="form-control" id="vessel_length" placeholder=""
                         v-model="vessel.vessel_details.vessel_length" required="" @change="emitVesselLength" />
@@ -168,7 +168,7 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Draft *</label>
+                <label for="" class="col-sm-3 control-label">Draft (m) *</label>
                 <div class="col-sm-2">
                     <input :readonly="readonly" type="number" min="1" class="form-control" id="draft" placeholder=""
                         v-model="vessel.vessel_details.vessel_draft" required="" />
