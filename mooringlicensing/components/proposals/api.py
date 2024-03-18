@@ -108,7 +108,7 @@ from mooringlicensing.components.main.decorators import (
         query_debugger
         )
 from mooringlicensing.components.users.serializers import ProposalApplicantSerializer
-from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal
+from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -1531,6 +1531,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
             is_authorised_to_modify(request, instance)
             
             save_proponent_data(instance, request, self)
+
+            is_applicant_address_set(instance)
+
             return Response()
 
     @detail_route(methods=['GET',], detail=True)
