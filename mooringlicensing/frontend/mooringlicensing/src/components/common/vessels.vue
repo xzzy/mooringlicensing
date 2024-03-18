@@ -707,7 +707,7 @@ export default {
                                 error = e;
                                 console.error(e);
                             } finally {
-                                if (error){
+                                if (error.status == '400'){
                                     //empty the search
                                     var searchValue = "";
                                     var err = "The selected vessel is already listed with RIA under another owner";
