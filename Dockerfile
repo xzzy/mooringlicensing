@@ -29,6 +29,7 @@ RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc bi
 RUN apt-get install --no-install-recommends -y libpq-dev patch libreoffice
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim nano npm sudo
 RUN apt-get install --no-install-recommends -y bzip2 unzip
+RUN apt-get install --no-install-recommends -y graphviz libgraphviz-dev pkg-config
 RUN ln -s /usr/bin/python3 /usr/bin/python 
 RUN apt remove -y libnode-dev
 RUN apt remove -y libnode72
