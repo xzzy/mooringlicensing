@@ -1,7 +1,7 @@
 # from django.core.urlresolvers import reverse
 from django.urls import reverse
 from django.shortcuts import redirect
-from django.utils.http import urlquote_plus
+from urllib.parse import quote_plus
 
 import re
 import datetime
@@ -30,7 +30,7 @@ class FirstTimeNagScreenMiddleware(object):
                 path_logout = reverse('logout')
                 if request.path not in (path_first_time, path_logout):
                     logger.info('redirect')
-                    return redirect(path_first_time + "?next=" + urlquote_plus(request.get_full_path()))
+                    return redirect(path_first_time + "?next=" + quote_plus(request.get_full_path()))
                 else:
                     # We don't want to redirect the suer when the user is accessing the firsttime page or logout page.
                     pass

@@ -57,6 +57,8 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
+from ckeditor.fields import RichTextField
+
 # from ledger.checkout.utils import createCustomBasket
 # from ledger.payments.invoice.utils import CreateInvoiceBasket
 
@@ -5358,7 +5360,7 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
-from ckeditor.fields import RichTextField
+
 class HelpPage(models.Model):
     HELP_TEXT_EXTERNAL = 1
     HELP_TEXT_INTERNAL = 2
