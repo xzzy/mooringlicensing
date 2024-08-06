@@ -37,8 +37,7 @@ from mooringlicensing.utils import are_migrations_running
 from django.urls import path
 
 router = routers.DefaultRouter()
-if settings.DEBUG is not True:
-    router.include_root_view = False
+router.include_root_view = settings.DEBUG
 router.register(r'organisations', org_api.OrganisationViewSet, 'organisations')
 router.register(r'proposal', proposal_api.ProposalViewSet, 'proposal')
 router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet, 'proposal_by_uuid')
