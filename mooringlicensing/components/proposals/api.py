@@ -1896,28 +1896,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(text__icontains=search)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-
-# class BackToAssessorViewSet(viewsets.ModelViewSet):
-#     queryset = BackToAssessor.objects.all()
-#     serializer_class = BackToAssessorSerializer
-#
-#     @basic_exception_handler
-#     def create(self, request, *args, **kwargs):
-#         data = request.data
-#         details = request.data.get('details')
-#         proposal = request.data.get('proposal')
-#         data['details'] = details
-#         data['proposal'] = proposal['id']
-#
-#         serializer = self.get_serializer(data=data)
-#         serializer.is_valid(raise_exception = True)
-#         instance = serializer.save()
-#
-#         instance.generate_amendment(request)
-#         serializer = self.get_serializer(instance)
-#
-#         return Response(serializer.data)
+    
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
     queryset = AmendmentRequest.objects.all()
