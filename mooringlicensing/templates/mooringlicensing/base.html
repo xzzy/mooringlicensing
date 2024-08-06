@@ -6,6 +6,7 @@
 {% load utils %}
 {% is_internal as is_internal_login %}
 {% is_mooringlicensing_admin as is_mooringlicensing_admin_user %}
+{% is_account_management_user as is_account_management_user %}
 {% can_show_tests as show_tests %}
 {% system_maintenance_due as system_maintenance_due %}
 {% system_name_short as short_name %}
@@ -134,16 +135,18 @@
                                                     <li><a  class="dropdown-item" href="{{ LEDGER_UI_URL }}/reports?system_id={{ LEDGER_SYSTEM_ID }} ">Financial Reports</a></li>
                                                     <li><a  class="dropdown-item" href="{{ LEDGER_UI_URL }}/ledger/payments/oracle/payment-totals?system_id={{ LEDGER_SYSTEM_ID }}">Payment Totals</a></li>
                                                     <li><a  class="dropdown-item" href="{{ LEDGER_UI_URL }}/ledger/payments/oracle/failed-transactions?system_id={{ LEDGER_SYSTEM_ID }}">Failed Refunds {% if ledger_totals.total_failed > 0 %}<span class="badge badge-danger">{{ ledger_totals.total_failed }}</span>{% endif %}</li>
-
                                                 {% endif %}
                                                 {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
-                                                {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
+                                                {% if is_account_management_user or request.user.is_superuser %}
                                                     <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
                                                 {% endif %}
                                                 {% if show_tests and request.user.is_superuser %}
                                                     <li><a href="{% url 'test-emails' %}">Test Emails</a></li>
+                                                {% endif %}
+                                                {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
+                                                    <li><a class="dropdown-item" href="/ledger-ui/accounts-management">Accounts Management</a></li>
                                                 {% endif %}
                                                     <li><a class="dropdown-item" href="/ledger-ui/system-accounts">Manage Account</a></li>
                                                 {% if not is_internal_login %}

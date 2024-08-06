@@ -49,6 +49,9 @@ def is_mooringlicensing_admin(request):
     # return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
     return request.user.is_authenticated and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
 
+def is_account_management_user(request):
+    return request.user.is_authenticated and (belongs_to(request.user, settings.GROUP_ACCOUNT_MANAGEMENT_USER))
+
 def in_dbca_domain(request):
     return request.user.is_staff
     # user = request.user

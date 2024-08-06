@@ -20,6 +20,11 @@ def is_mooringlicensing_admin(context):
     return mooringlicensing_helpers.is_mooringlicensing_admin(request)
 
 @register.simple_tag(takes_context=True)
+def is_account_management_user(context):
+    request = context['request']
+    return mooringlicensing_helpers.is_account_management_user(request)
+
+@register.simple_tag(takes_context=True)
 def is_internal(context):
     # checks if user is a departmentuser and logged in via single sign-on
     request = context['request']

@@ -138,12 +138,13 @@ SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'mooringlicensing')
-ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '04:05')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 EMAIL_FROM = DEFAULT_FROM_EMAIL
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
+
+ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 
 BASE_URL=env('BASE_URL')
 
@@ -275,6 +276,7 @@ LOGGING['disable_existing_loggers'] = False  # Without this line, any loggers re
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
+GROUP_ACCOUNT_MANAGEMENT_USER = 'Account Management'
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
 GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
 GROUP_ASSESSOR_WAITING_LIST = 'Mooring Licensing - Assessors: Waiting List'
