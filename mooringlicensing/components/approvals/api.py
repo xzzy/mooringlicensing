@@ -1478,9 +1478,3 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 waiting_list_allocation.set_wla_order()
 
             return Response({"proposal_created": new_proposal.lodgement_number})
-
-
-# class MooringLicenceViewSet(viewsets.ModelViewSet):
-#     queryset = MooringLicence.objects.all().order_by('id')
-#     serializer_class = ApprovalSerializer
-

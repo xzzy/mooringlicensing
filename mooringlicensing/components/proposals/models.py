@@ -31,7 +31,7 @@ from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 # from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError, ObjectDoesNotExist, ImproperlyConfigured
-from django.contrib.postgres.fields.jsonb import JSONField
+from django.db.models import JSONField
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth.models import Group
 from django.utils import timezone
@@ -57,6 +57,8 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
+from ckeditor.fields import RichTextField
+
 # from ledger.checkout.utils import createCustomBasket
 # from ledger.payments.invoice.utils import CreateInvoiceBasket
 
@@ -366,7 +368,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # only for draft status proposals, otherwise retrieve from within vessel_ownership
     dot_name = models.CharField(max_length=200, blank=True, null=True)
     percentage = models.IntegerField(null=True, blank=True)
-    individual_owner = models.NullBooleanField()
+    individual_owner = models.BooleanField(null=True)
     company_ownership_percentage = models.IntegerField(null=True, blank=True)
     company_ownership_name = models.CharField(max_length=200, blank=True, null=True)
     ## Insurance component field
@@ -374,7 +376,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     ## WLA
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True, on_delete=models.SET_NULL)
     ## Electoral Roll component field
-    silent_elector = models.NullBooleanField() # if False, user is on electoral roll
+    silent_elector = models.BooleanField(null=True) # if False, user is on electoral roll
     ## Mooring Authorisation fields mooring_suthorisation_preferences, bay_preferences_numbered, site_licensee_email and mooring
     # AUA
     mooring_authorisation_preference = models.CharField(max_length=20, choices=MOORING_AUTH_PREFERENCES, blank=True)
@@ -2374,7 +2376,7 @@ class ProposalApplicant(RevisionedMixin):
     residential_postcode = models.CharField(max_length=10, blank=True)
 
     # Postal address
-    postal_same_as_residential = models.NullBooleanField(default=False)
+    postal_same_as_residential = models.BooleanField(default=False,null=True)
     postal_line1 = models.CharField('Line 1', max_length=255, blank=True)
     postal_line2 = models.CharField('Line 2', max_length=255, blank=True)
     postal_line3 = models.CharField('Line 3', max_length=255, blank=True)
@@ -2550,7 +2552,7 @@ class StickerPrintingResponse(Document):
     _file = models.FileField(storage=private_storage,upload_to=update_sticker_response_doc_filename, max_length=512)
     sticker_printing_response_email = models.ForeignKey(StickerPrintingResponseEmail, blank=True, null=True, on_delete=models.SET_NULL)
     processed = models.BooleanField(default=False)  # Processed by a cron to update sticker details
-    no_errors_when_process = models.NullBooleanField(default=None)
+    no_errors_when_process = models.BooleanField(null=True, default=None)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -4630,7 +4632,7 @@ class VesselOwnership(RevisionedMixin):
     filtered_objects = VesselOwnershipManager()
     ## Name as shown on DoT registration papers
     dot_name = models.CharField(max_length=200, blank=True, null=True)
-    company_ownerships = models.ManyToManyField(CompanyOwnership, null=True, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
+    company_ownerships = models.ManyToManyField(CompanyOwnership, blank=True, related_name='vessel_ownerships', through=VesselOwnershipCompanyOwnership)
 
     class Meta:
         verbose_name_plural = "Vessel Ownership"
@@ -5358,7 +5360,7 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
-from ckeditor.fields import RichTextField
+
 class HelpPage(models.Model):
     HELP_TEXT_EXTERNAL = 1
     HELP_TEXT_INTERNAL = 2

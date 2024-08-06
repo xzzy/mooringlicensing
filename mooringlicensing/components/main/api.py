@@ -41,12 +41,6 @@ from mooringlicensing.settings import LEDGER_SYSTEM_ID, SYSTEM_NAME
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
-
-# class GlobalSettingsViewSet(viewsets.ReadOnlyModelViewSet):
-#     queryset = GlobalSettings.objects.all().order_by('id')
-#     serializer_class = GlobalSettingsSerializer
-
-
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer

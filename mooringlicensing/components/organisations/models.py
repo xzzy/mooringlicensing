@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 # from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
-from django.contrib.postgres.fields.jsonb import JSONField
+from django.db.models import JSONField
 from django.core.validators import MaxValueValidator, MinValueValidator
 # from ledger.accounts.models import Organisation as ledger_organisation
 # from ledger.accounts.models import EmailUser,RevisionedMixin #,Document

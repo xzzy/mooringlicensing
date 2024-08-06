@@ -15,7 +15,7 @@ from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.db.models import Count
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.contrib.postgres.fields.jsonb import JSONField
+from django.db.models import JSONField
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q

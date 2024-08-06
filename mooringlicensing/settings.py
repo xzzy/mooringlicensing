@@ -11,6 +11,7 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 
 # from ledger.settings_base import *
 from ledger_api_client.settings_base import *
+from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 ROOT_URLCONF = 'mooringlicensing.urls'
 SITE_ID = 1
@@ -60,11 +61,12 @@ INSTALLED_APPS += [
     # 'taggit',
     'rest_framework',
     'rest_framework_datatables',
-    'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
     'ledger_api_client',
     'appmonitor_client',
+    'crispy_bootstrap5',
+    'crispy_forms',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -75,8 +77,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_datatables.renderers.DatatablesRenderer',
     ),
-    # 'DEFAULT_PAGINATION_CLASS': 'datatablefilter.rest_framework.DatatablesPageNumberPagination',
-    # 'PAGE_SIZE': 10,
+    'DEFAULT_PAGINATION_CLASS': 'DatatablesPageNumberPagination',
+    'PAGE_SIZE': 100,
 }
 
 MIDDLEWARE_CLASSES += [
@@ -135,12 +137,13 @@ SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 PUBLIC_URL=env('PUBLIC_URL', SITE_URL)
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', 'no-reply@' + SITE_DOMAIN).lower()
 MEDIA_APP_DIR = env('MEDIA_APP_DIR', 'mooringlicensing')
-ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '04:05')
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 EMAIL_FROM = DEFAULT_FROM_EMAIL
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
+
+ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 
 BASE_URL=env('BASE_URL')
 
@@ -272,6 +275,7 @@ LOGGING['disable_existing_loggers'] = False  # Without this line, any loggers re
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
+GROUP_ACCOUNT_MANAGEMENT_USER = 'Account Management'
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
 GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
 GROUP_ASSESSOR_WAITING_LIST = 'Mooring Licensing - Assessors: Waiting List'
@@ -490,3 +494,5 @@ LEDGER_UI_CARDS_MANAGEMENT = env('LEDGER_UI_CARDS_MANAGEMENT', True)
 SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', 3600)
 CANCELATION_POLICY_URL = env('CANCELATION_POLICY_URL', 'https://ria.wa.gov.au/boating')
 AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED = env('AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED', False)  # RIA doesn't want any auto process triggered when the grace period expired.
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
