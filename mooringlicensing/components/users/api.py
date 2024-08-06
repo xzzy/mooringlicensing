@@ -15,7 +15,7 @@ from django.conf import settings
 # from django.views.decorators.csrf import csrf_exempt
 # from django.utils import timezone
 from django_countries import countries
-from rest_framework import viewsets, serializers, status, generics, views
+from rest_framework import viewsets, serializers, status, generics, views, mixins
 # from rest_framework.decorators import detail_route, list_route,renderer_classes
 from rest_framework.decorators import action as detail_route
 # from rest_framework.decorators import action as list_route
@@ -199,9 +199,10 @@ class UserListFilterView(generics.ListAPIView):
 #         return is_internal(request)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = EmailUser.objects.none()
     serializer_class = UserSerializer
+    lookup_field = "id"
     # permission_classes = [IsOwner | IsInternalUser]
 
     def get_queryset(self):

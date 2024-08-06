@@ -48,7 +48,7 @@ geojson==3.0.1
 unicodecsv==0.14.1
 PyPDF2==1.26.0
 django-extra-fields==0.9
-django-crispy-forms==1.8.1
+django-crispy-forms==2.0
 django-reset-migrations==0.3.1
 django-ckeditor==5.4.0
 djangorestframework-datatables==0.7.0
@@ -81,3 +81,5 @@ click==8.1.7
 numpy==1.26.3
 setuptools==69.0.3
 wheel==0.42.0
+git+https://github.com/dbca-wa/django5-utils-six.git#egg=django5_six
+crispy_bootstrap5==0.7

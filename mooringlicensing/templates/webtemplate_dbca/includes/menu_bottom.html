@@ -1,4 +1,4 @@
 {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
 <li><a class="dropdown-item" href="{% url 'mgt-commands' %}">Management Commands</a></li>
 {% endif %}
-<li><a class="dropdown-item" href="/ledger-ui/accounts">Manage Account</a></li>
+<li><a class="dropdown-item" href="/ledger-ui/system-accounts">Manage Account</a></li>

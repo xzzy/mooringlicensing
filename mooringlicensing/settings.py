@@ -11,6 +11,7 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 
 # from ledger.settings_base import *
 from ledger_api_client.settings_base import *
+from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 ROOT_URLCONF = 'mooringlicensing.urls'
 SITE_ID = 1
@@ -65,6 +66,8 @@ INSTALLED_APPS += [
     'ckeditor',
     'ledger_api_client',
     'appmonitor_client',
+    'crispy_bootstrap5',
+    'crispy_forms',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -75,8 +78,8 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_datatables.renderers.DatatablesRenderer',
     ),
-    # 'DEFAULT_PAGINATION_CLASS': 'datatablefilter.rest_framework.DatatablesPageNumberPagination',
-    # 'PAGE_SIZE': 10,
+    'DEFAULT_PAGINATION_CLASS': 'DatatablesPageNumberPagination',
+    'PAGE_SIZE': 100,
 }
 
 MIDDLEWARE_CLASSES += [
@@ -490,3 +493,5 @@ LEDGER_UI_CARDS_MANAGEMENT = env('LEDGER_UI_CARDS_MANAGEMENT', True)
 SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE', 3600)
 CANCELATION_POLICY_URL = env('CANCELATION_POLICY_URL', 'https://ria.wa.gov.au/boating')
 AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED = env('AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED', False)  # RIA doesn't want any auto process triggered when the grace period expired.
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"
