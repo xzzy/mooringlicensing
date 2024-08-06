@@ -61,7 +61,6 @@ INSTALLED_APPS += [
     # 'taggit',
     'rest_framework',
     'rest_framework_datatables',
-    'rest_framework_gis',
     'reset_migrations',
     'ckeditor',
     'ledger_api_client',

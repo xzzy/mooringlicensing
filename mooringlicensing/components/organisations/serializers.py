@@ -22,7 +22,6 @@ from mooringlicensing.components.organisations.utils import (
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.helpers import is_mooringlicensing_admin 
 from rest_framework import serializers, status
-import rest_framework_gis.serializers as gis_serializers
 
 
 class LedgerOrganisationSerializer(serializers.ModelSerializer):
