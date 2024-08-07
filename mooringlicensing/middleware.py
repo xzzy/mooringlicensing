@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 
+# TODO: rework for system user (use system user values to determine redirect, redirect to sys user page)
 class FirstTimeNagScreenMiddleware(object):
     def __init__(self, get_response):
         self.get_response = get_response

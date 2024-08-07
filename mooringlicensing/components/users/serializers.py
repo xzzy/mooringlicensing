@@ -16,6 +16,7 @@ from mooringlicensing.helpers import is_mooringlicensing_admin, in_dbca_domain
 # from ledger.payments.helpers import is_payment_admin
 from ledger_api_client.helpers import is_payment_admin
 
+# not used TODO remove
 class DocumentSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -34,6 +35,7 @@ class UserAddressSerializer(serializers.ModelSerializer):
             'postcode'
         )
 
+#TODO remove
 class UserSystemSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSystemSettings
@@ -41,6 +43,7 @@ class UserSystemSettingsSerializer(serializers.ModelSerializer):
             'one_row_per_park',
         )
 
+#TODO - status unclear but may need removal (determine how organisations work)
 class UserOrganisationSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='organisation.name')
     abn = serializers.CharField(source='organisation.abn')
@@ -71,7 +74,7 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         email = EmailUserRO.objects.get(id=self.context.get('user_id')).email
         return email
 
-    
+#TODO appears to not be used but might be needed (?)
 class UserForEndorserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -84,7 +87,7 @@ class UserForEndorserSerializer(serializers.ModelSerializer):
             'phone_number',
         )
 
-
+#TODO used by something that needs to be removed...
 class UserFilterSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
 
@@ -101,7 +104,7 @@ class UserFilterSerializer(serializers.ModelSerializer):
     def get_name(self, obj):
         return obj.get_full_name()
 
-
+#TODO decom once system user in place
 class ProposalApplicantForEndorserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -114,6 +117,7 @@ class ProposalApplicantForEndorserSerializer(serializers.ModelSerializer):
             'phone_number',
         )
 
+#TODO decom once system user in place (?)
 class EmailUserRoForEndorserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -126,7 +130,7 @@ class EmailUserRoForEndorserSerializer(serializers.ModelSerializer):
             'phone_number',
         )
 
-
+#TODO decom once system user in place (?)
 class EmailUserRoSerializer(serializers.ModelSerializer):
     residential_line1 = serializers.CharField(source='residential_address.line1')
     residential_line2 = serializers.CharField(source='residential_address.line2')
@@ -174,6 +178,7 @@ class EmailUserRoSerializer(serializers.ModelSerializer):
             'mobile_number',
         )
         
+#NOTE: may still be needed in some capacity but may warrant adjustment
 class ProposalApplicantSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     ledger_id = serializers.SerializerMethodField()
@@ -220,7 +225,7 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
         except:
             return
 
-
+# TODO review usage, determine if needed (as is or at all)
 class UserSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
     postal_address = serializers.SerializerMethodField()
@@ -362,7 +367,7 @@ class UserSerializer(serializers.ModelSerializer):
             return is_mooringlicensing_admin(request)
         return False
 
-
+#TODO remove (or refit?)
 class PersonalSerializer(serializers.ModelSerializer):
     dob = serializers.DateField(format="%d/%m/%Y",input_formats=['%d/%m/%Y'],required=False,allow_null=True)
     class Meta:
@@ -374,6 +379,7 @@ class PersonalSerializer(serializers.ModelSerializer):
             'dob',
         )
 
+#TODO remove (or refit?) after review
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmailUserRO
@@ -396,21 +402,9 @@ class ContactSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError('You must provide a mobile/phone number')
         return obj
 
-# class EmailUserActionSerializer(serializers.ModelSerializer):
-#     who = serializers.CharField(source='who.get_full_name')
-#
-#     class Meta:
-#         model = EmailUserAction
-#         fields = '__all__'
-
-# class EmailUserCommsSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = EmailUserLogEntry
-#         fields = '__all__'
-
-
+#NOTE appear to be implemented, might need a minor rework
 class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
-    # TODO: implement
+    # TODO: implement (?)
     documents = serializers.SerializerMethodField()
     # type = serializers.CharField(source='log_type')
     #
@@ -438,6 +432,7 @@ class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
         )
 
 
+# NOTE unclear what this is supposed to be, can probably be removed
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     # TODO: implement
     pass
@@ -464,7 +459,7 @@ class CommunicationLogEntrySerializer(serializers.ModelSerializer):
 #     def get_documents(self,obj):
 #         return [[d.name,d._file.url] for d in obj.documents.all()]
 
-
+# NOTE: appears to be a save serializer - remove or implement (functionality exists but may be better to use serializer)
 class EmailUserLogEntrySerializer(CommunicationLogEntrySerializer):
     # TODO: implement
 #     documents = serializers.SerializerMethodField()

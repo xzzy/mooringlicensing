@@ -33,6 +33,8 @@ from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.models import ProposalApplicant
 from django.core.paginator import Paginator, EmptyPage
 from mooringlicensing.components.main.decorators import basic_exception_handler
+from rest_framework import filters
+
 # from ledger.address.models import Country
 # from datetime import datetime,timedelta, date
 # from mooringlicensing.components.main.decorators import (
@@ -89,12 +91,16 @@ class GetCountries(views.APIView):
         return Response(data)
 
 
+# NOTE: proposal applicant and email user ro should be replaced with system user - PA is currently the primary preferred reference with EURO being a fallback
+# SU will replace both as a user reference, ideally being necessary to warrant looking up on this system and therefore being the preferred reference without a fallback needed
+# This endpoint may still be used in the context of a PA, but may be reworked to return an SU
 class GetProposalApplicant(views.APIView):
     renderer_classes = [JSONRenderer,]
 
     def get(self, request, proposal_pk, format=None):
         from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
         proposal = Proposal.objects.get(id=proposal_pk)
+
         if (is_customer(self.request) and proposal.submitter == request.user.id) or is_internal(self.request):
             # Holder of this proposal is accessing OR internal user is accessing.
             if proposal.proposal_applicant:
@@ -115,6 +121,7 @@ class GetProposalApplicant(views.APIView):
             return Response(serializer.data)
 
 
+#TODO return system user instead (make sure it is available)
 class GetProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
 
@@ -123,7 +130,7 @@ class GetProfile(views.APIView):
         response = Response(serializer.data)
         return response
 
-
+#TODO rework to use system user (not PA, not EURO) - also make secure...
 class GetPerson(views.APIView):
     renderer_classes = [JSONRenderer,]
 
@@ -169,7 +176,7 @@ class GetPerson(views.APIView):
             })
         return Response()
 
-
+#TODO: remove, not used and not secure...
 class GetSubmitterProfile(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self, request, format=None):
@@ -179,9 +186,10 @@ class GetSubmitterProfile(views.APIView):
         response = Response(serializer.data)
         return response
 
-from rest_framework import filters
+
+#TODO: remove, not used and not secure...
 class UserListFilterView(generics.ListAPIView):
-    """ https://cop-internal.dbca.wa.gov.au/api/filtered_users?search=russell
+    """ /api/filtered_users?search=russell
     """
     queryset = EmailUser.objects.all()
     serializer_class = UserFilterSerializer
@@ -199,6 +207,7 @@ class UserListFilterView(generics.ListAPIView):
 #         return is_internal(request)
 
 
+#TODO rework - use SystemUser only AND readonly
 class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = EmailUser.objects.none()
     serializer_class = UserSerializer
@@ -213,6 +222,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return EmailUser.objects.filter(Q(id=user.id))
         return EmailUser.objects.none()
 
+    #TODO remove
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def update_personal(self, request, *args, **kwargs):
@@ -223,6 +233,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = UserSerializer(instance)
         return Response(serializer.data)
 
+    #TODO remove
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def update_contact(self, request, *args, **kwargs):
@@ -233,6 +244,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = UserSerializer(instance)
         return Response(serializer.data)
 
+    #TODO remove
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def update_address(self, request, *args, **kwargs):
@@ -281,6 +293,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             serializer = UserSerializer(instance)
             return Response(serializer.data)
 
+    #TODO remove
     @detail_route(methods=['POST',], detail=True)
     def update_system_settings(self, request, *args, **kwargs):
         try:
@@ -304,6 +317,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    #TODO remove?
     @detail_route(methods=['POST',], detail=True)
     def upload_id(self, request, *args, **kwargs):
         try:
@@ -328,6 +342,7 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    #TODO remove?
     @detail_route(methods=['GET', ], detail=True)
     def pending_org_requests(self, request, *args, **kwargs):
         try:
