@@ -78,8 +78,7 @@ logger = logging.getLogger(__name__)
 
 
 class GetCountries(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def get(self, request, format=None):
+    def get(self, request):
         data = cache.get('country_list')
         if not data:
             country_list = []

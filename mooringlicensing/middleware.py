@@ -1,16 +1,12 @@
-# from django.core.urlresolvers import reverse
 from django.urls import reverse
 from django.shortcuts import redirect
 from urllib.parse import quote_plus
 
 import re
-import datetime
-
-from django.http import HttpResponseRedirect
-from django.utils import timezone
-#from mooringlicensing.components.bookings.models import ApplicationFee
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
+from ledger_api_client.managed_models import SystemUser, SystemUserAddress
+from django.core.exceptions import ObjectDoesNotExist
 
 import logging
 
@@ -24,17 +20,40 @@ class FirstTimeNagScreenMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.user.is_authenticated and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path and 'static' not in request.path:
-            # if not request.user.first_name or not request.user.last_name:
-            if not request.user.first_name or not request.user.last_name or not request.user.residential_address_id or not request.user.postal_address_id:
-                path_first_time = reverse('system-accounts-firstime')
-                path_logout = reverse('logout')
-                if request.path not in (path_first_time, path_logout):
+        print(request.path)
+        if (request.user.is_authenticated 
+            and request.method == 'GET' 
+            and 'api' not in request.path 
+            and 'admin' not in request.path 
+            and 'static' not in request.path
+            and "/ledger-ui/" not in request.get_full_path()):
+            path_first_time = '/ledger-ui/system-accounts-firsttime'
+            path_logout = reverse('logout')
+            system_user_exists = True
+            try:
+                system_user = SystemUser.objects.get(ledger_id=request.user)
+            except ObjectDoesNotExist:
+                system_user_exists = False
+
+            system_user_addresses = SystemUserAddress.objects.filter(system_user=system_user)
+            residential_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[0][0])
+            postal_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[1][0])
+            #billing_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[2][0])
+
+            if (not system_user_exists or
+                not system_user.legal_first_name or 
+                not system_user.legal_last_name or 
+                not system_user.legal_dob or
+                not residential_address.exists() or 
+                not postal_address.exists() or
+                #not billing_address.exists() or
+                not (system_user.phone_number or system_user.mobile_number)
+                ):
+                # We don't want to redirect the user when the user is accessing the firsttime page or logout page.
+                if request.path not in (path_logout):
                     logger.info('redirect')
                     return redirect(path_first_time + "?next=" + quote_plus(request.get_full_path()))
-                else:
-                    # We don't want to redirect the suer when the user is accessing the firsttime page or logout page.
-                    pass
+                    
         response = self.get_response(request)
         return response
 
