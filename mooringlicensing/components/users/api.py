@@ -29,11 +29,13 @@ from rest_framework.permissions import BasePermission, OR
 from django.core.cache import cache
 # from ledger.accounts.models import EmailUser,Address, Profile, EmailIdentity, EmailUserAction
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.approvals.models import Approval
 from mooringlicensing.components.proposals.models import ProposalApplicant
 from django.core.paginator import Paginator, EmptyPage
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from rest_framework import filters
+from django.core.exceptions import ObjectDoesNotExist
 
 # from ledger.address.models import Country
 # from datetime import datetime,timedelta, date
@@ -47,16 +49,13 @@ from rest_framework import filters
 #                                 )
 from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 from mooringlicensing.components.users.models import EmailUserLogEntry
+from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import (
     EmailUserRoForEndorserSerializer,
     EmailUserRoSerializer,
     ProposalApplicantForEndorserSerializer,
-    UserForEndorserSerializer,
     UserSerializer,
-    UserFilterSerializer,
     UserAddressSerializer,
-    PersonalSerializer,
-    ContactSerializer,
     # EmailUserActionSerializer,
     EmailUserCommsSerializer,
     EmailUserLogEntrySerializer,
@@ -121,90 +120,76 @@ class GetProposalApplicant(views.APIView):
             return Response(serializer.data)
 
 
-#TODO return system user instead (make sure it is available)
 class GetProfile(views.APIView):
-    renderer_classes = [JSONRenderer,]
-
-    def get(self, request, format=None):
-        serializer = UserSerializer(request.user, context={'request':request})
-        response = Response(serializer.data)
-        return response
-
-#TODO rework to use system user (not PA, not EURO) - also make secure...
-class GetPerson(views.APIView):
-    renderer_classes = [JSONRenderer,]
-
-    def get(self, request, format=None):
-        search_term = request.GET.get('search_term', '')
-        page_number = request.GET.get('page_number', 1)
-        items_per_page = 10
-
-        if search_term:
-            my_queryset = ProposalApplicant.objects.annotate(
-                custom_term=Concat(
-                    "first_name",
-                    Value(" "),
-                    "last_name",
-                    Value(" "),
-                    "email",
-                    output_field=CharField(),
-                    )
-                ).distinct("custom_term").order_by("custom_term").filter(custom_term__icontains=search_term)
-            paginator = Paginator(my_queryset, items_per_page)
+    def get(self, request):
+        if request.user.is_authenticated:
             try:
-                current_page = paginator.page(page_number)
-                my_objects = current_page.object_list
-            except EmptyPage:
-                my_objects = []
+                system_user = SystemUser.objects.get(ledger_id=request.user)
+                serializer = UserSerializer(system_user, context={'request':request})
+                response = Response(serializer.data)
+                return response
+            except ObjectDoesNotExist:
+                raise serializers.ValidationError("system user does not exists")
+            except Exception as e:
+                print(e)
+                raise serializers.ValidationError("error")
+        raise serializers.ValidationError("user not authenticated")
 
-            data_transform = []
-            for proposal_applicant in my_objects:
-                if proposal_applicant.dob:
-                    text = '{} {} (DOB: {})'.format(proposal_applicant.first_name, proposal_applicant.last_name, proposal_applicant.dob)
-                else:
-                    text = '{} {}'.format(proposal_applicant.first_name, proposal_applicant.last_name)
 
-                serializer = ProposalApplicantSerializer(proposal_applicant)
-                proposal_applicant_data = serializer.data
-                proposal_applicant_data['text'] = text
-                data_transform.append(proposal_applicant_data)
-            return Response({
-                "results": data_transform,
-                "pagination": {
-                    "more": current_page.has_next()
-                }
-            })
+class GetPerson(views.APIView):
+    def get(self, request):
+        #TODO either reform is_internal or replace this check to use auth groups 
+        #(permission_classes work too when implemented)
+        if is_internal(request): 
+            search_term = request.GET.get('search_term', '')
+            page_number = request.GET.get('page_number', 1)
+            items_per_page = 10
+
+            if search_term:
+                my_queryset = SystemUser.objects.annotate(
+                    custom_term=Concat(
+                        "first_name",
+                        Value(" "),
+                        "last_name",
+                        Value(" "),
+                        "email",
+                        Value(" "),
+                        "legal_first_name",
+                        Value(" "),
+                        "legal_last_name",
+                        output_field=CharField(),
+                        )
+                    ).distinct("custom_term").order_by("custom_term").filter(custom_term__icontains=search_term)
+                paginator = Paginator(my_queryset, items_per_page)
+
+                try:
+                    current_page = paginator.page(page_number)
+                    my_objects = current_page.object_list
+                except EmptyPage:
+                    my_objects = []
+
+                data_transform = []
+                for user in my_objects:
+                    user_name = get_user_name(user)
+                    if user.legal_dob:
+                        text = '{} {} (DOB: {})'.format(user_name["first_name"], user_name["last_name"], user.legal_dob)
+                    else:
+                        text = '{} {}'.format(user_name["first_name"], user_name["last_name"])
+
+                    serializer = UserSerializer(user)
+                    user_data = serializer.data
+                    user_data['text'] = text
+                    data_transform.append(user_data)
+                return Response({
+                    "results": data_transform,
+                    "pagination": {
+                        "more": current_page.has_next()
+                    }
+                })
+        else:
+            raise serializers.ValidationError("unauthorised")
+
         return Response()
-
-#TODO: remove, not used and not secure...
-class GetSubmitterProfile(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def get(self, request, format=None):
-        submitter_id = request.GET.get('submitter_id')
-        submitter = EmailUser.objects.get(id=submitter_id)
-        serializer  = UserSerializer(submitter, context={'request':request})
-        response = Response(serializer.data)
-        return response
-
-
-#TODO: remove, not used and not secure...
-class UserListFilterView(generics.ListAPIView):
-    """ /api/filtered_users?search=russell
-    """
-    queryset = EmailUser.objects.all()
-    serializer_class = UserFilterSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('email', 'first_name', 'last_name')
-
-
-# class IsOwner(BasePermission):
-#     def has_object_permission(self, request, view, obj):
-#         return obj == request.user
-
-
-# class IsInternalUser(BasePermission):
-#     def has_object_permission(self, request, view, obj):
-#         return is_internal(request)
 
 
 #TODO rework - use SystemUser only AND readonly
@@ -221,102 +206,6 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             user = self.request.user
             return EmailUser.objects.filter(Q(id=user.id))
         return EmailUser.objects.none()
-
-    #TODO remove
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def update_personal(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = PersonalSerializer(instance,data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
-        serializer = UserSerializer(instance)
-        return Response(serializer.data)
-
-    #TODO remove
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def update_contact(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ContactSerializer(instance,data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
-        serializer = UserSerializer(instance)
-        return Response(serializer.data)
-
-    #TODO remove
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def update_address(self, request, *args, **kwargs):
-        with transaction.atomic():
-            print(request.data)
-            instance = self.get_object()
-            # residential address
-            residential_serializer = UserAddressSerializer(data=request.data.get('residential_address'))
-            residential_serializer.is_valid(raise_exception=True)
-            residential_address, created = Address.objects.get_or_create(
-                line1 = residential_serializer.validated_data['line1'],
-                locality = residential_serializer.validated_data['locality'],
-                state = residential_serializer.validated_data['state'],
-                country = residential_serializer.validated_data['country'],
-                postcode = residential_serializer.validated_data['postcode'],
-                user = instance
-            )
-            instance.residential_address = residential_address
-            # postal address
-            postal_address_data = request.data.get('postal_address')
-            postal_address = None
-            if request.data.get('postal_same_as_residential'):
-                instance.postal_same_as_residential = True
-                instance.postal_address = residential_address
-            elif postal_address_data and postal_address_data.get('line1'):
-                postal_serializer = UserAddressSerializer(data=postal_address_data)
-                postal_serializer.is_valid(raise_exception=True)
-                postal_address, created = Address.objects.get_or_create(
-                    line1 = postal_serializer.validated_data['line1'],
-                    locality = postal_serializer.validated_data['locality'],
-                    state = postal_serializer.validated_data['state'],
-                    country = postal_serializer.validated_data['country'],
-                    postcode = postal_serializer.validated_data['postcode'],
-                    user = instance
-                )
-                instance.postal_address = postal_address
-                instance.postal_same_as_residential = False
-            else:
-                instance.postal_same_as_residential = False
-            instance.save()
-
-            # Postal address form must be completed or checkbox ticked
-            if not postal_address and not instance.postal_same_as_residential:
-                raise serializers.ValidationError("Postal address not provided")
-
-            serializer = UserSerializer(instance)
-            return Response(serializer.data)
-
-    #TODO remove?
-    @detail_route(methods=['POST',], detail=True)
-    def upload_id(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            instance.upload_identification(request)
-            with transaction.atomic():
-                instance.save()
-
-                # TODO: log user action
-                # instance.log_user_action(EmailUserAction.ACTION_ID_UPDATE.format(
-                # '{} {} ({})'.format(instance.first_name, instance.last_name, instance.email)), request)
-
-            serializer = UserSerializer(instance, partial=True)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
 
     #TODO remove?
     @detail_route(methods=['GET', ], detail=True)
