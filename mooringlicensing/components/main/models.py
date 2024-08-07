@@ -19,15 +19,6 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
     base_url=settings.PRIVATE_MEDIA_BASE_URL,
 )
 
-class UserSystemSettings(models.Model):
-    # user = models.OneToOneField(EmailUser, related_name='system_settings')
-    user = models.IntegerField(unique=True)  # EmailUserRO
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        verbose_name_plural = "User System Settings"
-
-
 # @python_2_unicode_compatible
 class UserAction(models.Model):
     # who = models.ForeignKey(EmailUser, null=False, blank=False)
@@ -461,7 +452,6 @@ class NumberOfDaysSetting(RevisionedMixin):
 
 
 import reversion
-reversion.register(UserSystemSettings, follow=[])
 reversion.register(CommunicationsLogEntry, follow=[])
 reversion.register(ApplicationType, follow=['proposalstandardrequirement_set', 'feeseason_set', 'feeconstructor_set', 'oracle_code_items'])
 reversion.register(GlobalSettings, follow=[])

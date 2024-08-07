@@ -1,11 +1,11 @@
 from django.conf import settings
 # from ledger.accounts.models import EmailUser,Address, Profile,EmailIdentity, EmailUserAction, EmailUserLogEntry, CommunicationsLogEntry
 from ledger_api_client.ledger_models import EmailUserRO, Address
+from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
-from mooringlicensing.components.main.models import UserSystemSettings, Document#, ApplicationType
 from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
 from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
@@ -15,13 +15,6 @@ from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.helpers import is_mooringlicensing_admin, in_dbca_domain
 # from ledger.payments.helpers import is_payment_admin
 from ledger_api_client.helpers import is_payment_admin
-
-# not used TODO remove
-class DocumentSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Document
-        fields = ('id','description','file','name','uploaded_date')
 
 class UserAddressSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,14 +26,6 @@ class UserAddressSerializer(serializers.ModelSerializer):
             'state',
             'country',
             'postcode'
-        )
-
-#TODO remove
-class UserSystemSettingsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = UserSystemSettings
-        fields = (
-            'one_row_per_park',
         )
 
 #TODO - status unclear but may need removal (determine how organisations work)
@@ -225,7 +210,7 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
         except:
             return
 
-# TODO review usage, determine if needed (as is or at all)
+# TODO rework for system user
 class UserSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
     postal_address = serializers.SerializerMethodField()
@@ -237,7 +222,6 @@ class UserSerializer(serializers.ModelSerializer):
     last_name = serializers.SerializerMethodField()
     is_department_user = serializers.SerializerMethodField()
     is_payment_admin = serializers.SerializerMethodField()
-    system_settings= serializers.SerializerMethodField()
     is_payment_admin = serializers.SerializerMethodField()
     is_mooringlicensing_admin = serializers.SerializerMethodField()
     readonly_first_name = serializers.SerializerMethodField()
@@ -263,7 +247,6 @@ class UserSerializer(serializers.ModelSerializer):
             'is_department_user',
             'is_payment_admin',
             'is_staff',
-            'system_settings',
             'is_mooringlicensing_admin',
             'postal_same_as_residential',
             'readonly_first_name',
@@ -351,15 +334,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_is_payment_admin(self, obj):
         return is_payment_admin(obj)
-
-    def get_system_settings(self, obj):
-        try:
-            user_system_settings = obj.system_settings.first()
-            serialized_settings = UserSystemSettingsSerializer(
-                user_system_settings).data
-            return serialized_settings
-        except:
-            return None
 
     def get_is_mooringlicensing_admin(self, obj):
         request = self.context['request'] if self.context else None

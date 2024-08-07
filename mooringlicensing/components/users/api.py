@@ -60,12 +60,12 @@ from mooringlicensing.components.users.serializers import (
     # EmailUserActionSerializer,
     EmailUserCommsSerializer,
     EmailUserLogEntrySerializer,
-    UserSystemSettingsSerializer, ProposalApplicantSerializer,
+    ProposalApplicantSerializer,
 )
 from mooringlicensing.components.organisations.serializers import (
     OrganisationRequestDTSerializer,
 )
-from mooringlicensing.components.main.models import UserSystemSettings
+
 # from mooringlicensing.components.main.process_document import (
 #         process_generic_document,
 #         )
@@ -292,30 +292,6 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             serializer = UserSerializer(instance)
             return Response(serializer.data)
-
-    #TODO remove
-    @detail_route(methods=['POST',], detail=True)
-    def update_system_settings(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            user_setting, created = UserSystemSettings.objects.get_or_create(
-                user = instance
-            )
-            serializer = UserSystemSettingsSerializer(user_setting, data=request.data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            instance = self.get_object()
-            serializer = UserSerializer(instance)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
 
     #TODO remove?
     @detail_route(methods=['POST',], detail=True)
