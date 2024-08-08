@@ -1,48 +1,9 @@
-from django.conf import settings
-from ledger_api_client.ledger_models import EmailUserRO
 from ledger_api_client.managed_models import SystemUser, SystemUserAddress
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
-from mooringlicensing.components.organisations.models import (
-                                    Organisation,
-                                )
 from mooringlicensing.components.proposals.models import ProposalApplicant
-from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
-
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.helpers import in_dbca_domain
-from ledger_api_client.helpers import is_payment_admin
-
-#TODO - status unclear but may need removal (determine how organisations work)
-class UserOrganisationSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='organisation.name')
-    abn = serializers.CharField(source='organisation.abn')
-    email = serializers.SerializerMethodField()
-    is_consultant = serializers.SerializerMethodField(read_only=True)
-    is_admin = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Organisation
-        fields = (
-            'id',
-            'name',
-            'abn',
-            'email',
-            'is_consultant',
-            'is_admin',
-        )
-
-    def get_is_admin(self, obj):
-        user = EmailUserRO.objects.get(id=self.context.get('user_id'))
-        return can_admin_org(obj, user)
-
-    def get_is_consultant(self, obj):
-        user = EmailUserRO.objects.get(id=self.context.get('user_id'))
-        return is_consultant(obj, user)
-
-    def get_email(self, obj):
-        email = EmailUserRO.objects.get(id=self.context.get('user_id')).email
-        return email
 
 class UserForEndorserSerializer(serializers.ModelSerializer):
 
