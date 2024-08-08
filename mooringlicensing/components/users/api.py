@@ -1,44 +1,20 @@
-import traceback
-# import base64
-# import geojson
-# from six.moves.urllib.parse import urlparse
-# from wsgiref.util import FileWrapper
-from django.db.models import Q, Min, CharField, Value
+from django.db.models import Q, CharField, Value
 from django.db.models.functions import Concat
 from django.db import transaction
-# from django.http import HttpResponse
-# from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
 from django.conf import settings
-# from django.contrib import messages
-# from django.views.decorators.http import require_http_methods
-# from django.views.decorators.csrf import csrf_exempt
-# from django.utils import timezone
 from django_countries import countries
-from rest_framework import viewsets, serializers, status, generics, views, mixins
-# from rest_framework.decorators import detail_route, list_route,renderer_classes
+from rest_framework import viewsets, serializers, views
 from rest_framework.decorators import action as detail_route
-# from rest_framework.decorators import action as list_route
 from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from rest_framework.permissions import BasePermission, OR
-# from rest_framework.pagination import PageNumberPagination
-# from datetime import datetime, timedelta
-# from collections import OrderedDict
 from django.core.cache import cache
-# from ledger.accounts.models import EmailUser,Address, Profile, EmailIdentity, EmailUserAction
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
 from ledger_api_client.managed_models import SystemUser
-from mooringlicensing.components.approvals.models import Approval
-from mooringlicensing.components.proposals.models import ProposalApplicant
 from django.core.paginator import Paginator, EmptyPage
-from mooringlicensing.components.main.decorators import basic_exception_handler
-from rest_framework import filters
 from django.core.exceptions import ObjectDoesNotExist
-from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
+from mooringlicensing.components.proposals.models import Proposal
                               
-from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import (
@@ -50,7 +26,6 @@ import logging
 
 from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.ledger_api_utils import retrieve_system_user
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
 
@@ -162,7 +137,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SystemUser.objects.none()
     serializer_class = UserSerializer
     lookup_field = "ledger_id"
-    # permission_classes = [IsOwner | IsInternalUser]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -211,24 +185,3 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception as e:
             print(e)
             raise serializers.ValidationError("error")
-
-    #NOTE: to be either removed or moved elsewhere depending on organisation model requirements
-    #@detail_route(methods=['GET', ], detail=True)
-    #def pending_org_requests(self, request, *args, **kwargs):
-    #    try:
-    #        instance = self.get_object()
-    #        serializer = OrganisationRequestDTSerializer(
-    #            instance.organisationrequest_set.filter(
-    #                status='with_assessor'),
-    #            many=True,
-    #            context={'request': request})
-    #        return Response(serializer.data)
-    #    except serializers.ValidationError:
-    #        print(traceback.print_exc())
-    #        raise
-    #    except ValidationError as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(repr(e.error_dict))
-    #    except Exception as e:
-    #        print(traceback.print_exc())
-    #        raise serializers.ValidationError(str(e))

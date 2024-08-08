@@ -148,15 +148,12 @@ class UserSerializer(serializers.ModelSerializer):
         return False
     
 
-#NOTE appears to be implemented, might need a minor rework
 class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
-    # TODO: implement (?)
+
     documents = serializers.SerializerMethodField()
-    # type = serializers.CharField(source='log_type')
-    #
+
     class Meta:
         model = EmailUserLogEntry
-    #     # fields = '__all__'
         fields = (
             'id',
             'customer',
@@ -169,25 +166,9 @@ class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
             'text',
             'created',
             'staff',
-            # 'emailuser',
             'email_user_id',
             'documents',
         )
         read_only_fields = (
             'customer',
         )
-
-
-# NOTE: appears to be a save serializer - remove or implement (functionality exists but may be better to use serializer)
-class EmailUserLogEntrySerializer(CommunicationLogEntrySerializer):
-    # TODO: implement
-#     documents = serializers.SerializerMethodField()
-    class Meta:
-        model = EmailUserLogEntry
-        fields = '__all__'
-#         read_only_fields = (
-#             'customer',
-#         )
-#
-#     def get_documents(self,obj):
-#         return [[d.name,d._file.url] for d in obj.documents.all()]
