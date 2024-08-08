@@ -191,79 +191,30 @@ class GetPerson(views.APIView):
         return Response()
 
 
-#TODO rework - use SystemUser only AND readonly
-class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
-    queryset = EmailUser.objects.none()
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = SystemUser.objects.none()
     serializer_class = UserSerializer
-    lookup_field = "id"
+    lookup_field = "ledger_id"
     # permission_classes = [IsOwner | IsInternalUser]
 
     def get_queryset(self):
         if is_internal(self.request):
-            return EmailUser.objects.all()
+            return SystemUser.objects.all()
         elif is_customer(self.request):
             user = self.request.user
-            return EmailUser.objects.filter(Q(id=user.id))
-        return EmailUser.objects.none()
-
-    #TODO remove?
-    @detail_route(methods=['GET', ], detail=True)
-    def pending_org_requests(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = OrganisationRequestDTSerializer(
-                instance.organisationrequest_set.filter(
-                    status='with_assessor'),
-                many=True,
-                context={'request': request})
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-    @detail_route(methods=['GET', ], detail=True)
-    def action_log(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            qs = instance.action_logs.all()
-
-            # TODO: return a list of user actions
-            # serializer = EmailUserActionSerializer(qs, many=True)
-            # return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            return SystemUser.objects.filter(Q(ledger_id=user.id))
+        return SystemUser.objects.none()
 
     @detail_route(methods=['GET',], detail=True)
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
-            # qs = instance.comms_logs.all()
             qs = EmailUserLogEntry.objects.filter(email_user_id=instance.id)
-            # qs = EmailUserLogEntry.objects.filter(email_user_id=132848)
             serializer = EmailUserCommsSerializer(qs, many=True)
             return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            print(e)
+            raise serializers.ValidationError("error")
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -271,21 +222,6 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                # mutable=request.data._mutable
-                # request.data._mutable=True
-                # request.data['emailuser'] = u'{}'.format(instance.id)
-                # request.data['staff'] = u'{}'.format(request.user.id)
-                # request.data._mutable=mutable
-                # serializer = EmailUserLogEntrySerializer(data=request.data)
-                # serializer.is_valid(raise_exception=True)
-                # comms = serializer.save()
-                ### Save the files
-                # for f in request.FILES:
-                #     document = comms.documents.create()
-                #     document.name = str(request.FILES[f])
-                #     document._file = request.FILES[f]
-                #     document.save()
-                ### End Save Documents
                 kwargs = {
                     'subject': request.data.get('subject', ''),
                     'text': request.data.get('text', ''),
@@ -305,13 +241,27 @@ class UserViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     _file = request.FILES[f]
                     )
                 return Response({})
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
         except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+            print(e)
+            raise serializers.ValidationError("error")
 
+    #NOTE: to be either removed or moved elsewhere depending on organisation model requirements
+    #@detail_route(methods=['GET', ], detail=True)
+    #def pending_org_requests(self, request, *args, **kwargs):
+    #    try:
+    #        instance = self.get_object()
+    #        serializer = OrganisationRequestDTSerializer(
+    #            instance.organisationrequest_set.filter(
+    #                status='with_assessor'),
+    #            many=True,
+    #            context={'request': request})
+    #        return Response(serializer.data)
+    #    except serializers.ValidationError:
+    #        print(traceback.print_exc())
+    #        raise
+    #    except ValidationError as e:
+    #        print(traceback.print_exc())
+    #        raise serializers.ValidationError(repr(e.error_dict))
+    #    except Exception as e:
+    #        print(traceback.print_exc())
+    #        raise serializers.ValidationError(str(e))

@@ -193,6 +193,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemUser
         fields = (
+            "id",
             "ledger_id",
             "email",
             "first_name",

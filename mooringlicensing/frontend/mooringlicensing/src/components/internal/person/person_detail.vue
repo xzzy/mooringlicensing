@@ -1,6 +1,6 @@
 <template>
     <div class="container" id="personDash">
-        <h4>{{ email_user_header }}</h4>
+        <h4>{{ user_header }}</h4>
         <div class="row">
             <div class="col-md-3">
                 <CommsLogs
@@ -12,13 +12,10 @@
                 />
             </div>
 
-            <div class="col-md-1">
-            </div>
-
             <div class="col-md-8">
                 <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="pills-details-tab" data-toggle="pill" href="#pills-details" role="tab" aria-controls="pills-details" aria-selected="true">
+                        <a class="nav-link active" id="pills-details-tab" data-toggle="pill" href="#pills-details" role="tab" aria-controls="pills-details" aria-selected="true" @clicked="tab_clicked">
                             Details
                         </a>
                     </li>
@@ -35,49 +32,48 @@
                 </ul>
                 <div class="tab-content" id="pills-tabContent">
                     <div class="tab-pane fade" id="pills-details" role="tabpanel" aria-labelledby="pills-details-tab">
-                        <Applicant v-if="email_user"
-                            :email_user="email_user" 
+                        <Applicant v-if="user"
+                            :user="user" 
                             applicantType="SUB" 
                             id="proposalStartApplicant"
-                            :readonly="readonly"
                         />
                     </div>
                     <div class="tab-pane fade" id="pills-approvals" role="tabpanel" aria-labelledby="pills-approvals-tab">
                         <FormSection :formCollapse="false" label="Applications" subtitle="" Index="applications" >
                             <ApplicationsTable 
                                 ref="applications_table"
-                                v-if="email_user"
+                                v-if="user"
                                 level="internal"
-                                :target_email_user_id="email_user.id"
+                                :target_email_user_id="user.ledger_id"
                             />
                         </FormSection>
 
                         <FormSection :formCollapse="false" label="Waiting List" subtitle="" Index="waiting_list" >
                             <WaitingListTable
                                 ref="waiting_list_table"
-                                v-if="email_user"
+                                v-if="user"
                                 level="internal"
                                 :approvalTypeFilter="wlaApprovalTypeFilter"
-                                :target_email_user_id="email_user.id"
+                                :target_email_user_id="user.ledger_id"
                             />
                         </FormSection>
 
                         <FormSection :formCollapse="false" label="Licences and Permits" subtitle="" Index="licences_and_permits" >
                             <LicencesAndPermitsTable
                                 ref="licences_and_permits_table"
-                                v-if="email_user"
+                                v-if="user"
                                 level="internal"
                                 :approvalTypeFilter="allApprovalTypeFilter"
-                                :target_email_user_id="email_user.id"
+                                :target_email_user_id="user.ledger_id"
                             />
                         </FormSection>
 
                         <FormSection :formCollapse="false" label="Compliances" subtitle="" Index="compliances" >
                             <CompliancesTable
                                 ref="compliances_table"
-                                v-if="email_user"
+                                v-if="user"
                                 level="internal"
-                                :target_email_user_id="email_user.id"
+                                :target_email_user_id="user.ledger_id"
                             />
                         </FormSection>
                     </div>
@@ -85,9 +81,9 @@
                         <FormSection :formCollapse="false" label="Vessels" subtitle="" Index="vessels" >
                             <VesselsTable
                                 ref="vessels_table"
-                                v-if="email_user"
+                                v-if="user"
                                 level="internal"
-                                :target_email_user_id="email_user.id"
+                                :target_email_user_id="user.ledger_id"
                             />
                         </FormSection>
                     </div>
@@ -113,7 +109,7 @@ export default {
     data() {
         let vm = this
         return {
-            email_user: null,
+            user: null,
             allApprovalTypeFilter: ['ml', 'aap', 'aup'],
             wlaApprovalTypeFilter: ['wla',],
 
@@ -129,34 +125,32 @@ export default {
         WaitingListTable,
         LicencesAndPermitsTable,
         CompliancesTable,
-        //VesselsDashboard,
         VesselsTable,
         CommsLogs,
     },
     computed: {
-        readonly: function(){
-            return true
-        },
-        email_user_header: function(){
-            if (this.email_user) {
-                if (this.email_user.dob){
-                    return this.email_user.first_name + ' ' + this.email_user.last_name + '(DOB: ' + this.email_user.dob + ')'
+        user_header: function(){
+            if (this.user) {
+                if (this.user.legal_dob){
+                    return this.user.first_name + ' ' + this.user.last_name + '(DOB: ' + this.user.legal_dob + ')'
                 } else {
-                    return this.email_user.first_name + ' ' + this.email_user.last_name
+                    return this.user.first_name + ' ' + this.user.last_name
                 }
             }
             return ''
         }
-    },
-    methods: {
-
     },
     created: async function(){
         console.log(this.$route.params.email_user_id)
         const res = await this.$http.get('/api/users/' + this.$route.params.email_user_id)
 
         if (res.ok) {
-            this.email_user = res.body
+            this.user = res.body
+        }
+    },
+    methods: {
+        tab_clicked: function() {
+            vm.$refs.applications_table.adjust_table_width();
         }
     },
     mounted: function(){

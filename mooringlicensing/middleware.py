@@ -20,7 +20,6 @@ class FirstTimeNagScreenMiddleware(object):
         self.get_response = get_response
 
     def __call__(self, request):
-        print(request.path)
         if (request.user.is_authenticated 
             and request.method == 'GET' 
             and 'api' not in request.path 
