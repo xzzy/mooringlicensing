@@ -36,43 +36,20 @@ from django.core.paginator import Paginator, EmptyPage
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from rest_framework import filters
 from django.core.exceptions import ObjectDoesNotExist
-
-# from ledger.address.models import Country
-# from datetime import datetime,timedelta, date
-# from mooringlicensing.components.main.decorators import (
-#         basic_exception_handler,
-#         timeit,
-#         query_debugger
-#         )
-# from mooringlicensing.components.organisations.models import  (
-#                                     Organisation,
-#                                 )
+from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
+                              
 from mooringlicensing.components.proposals.serializers import EmailUserAppViewSerializer
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import (
-    EmailUserRoForEndorserSerializer,
-    EmailUserRoSerializer,
-    ProposalApplicantForEndorserSerializer,
+    UserForEndorserSerializer,
     UserSerializer,
-    UserAddressSerializer,
-    # EmailUserActionSerializer,
     EmailUserCommsSerializer,
-    EmailUserLogEntrySerializer,
-    ProposalApplicantSerializer,
 )
-from mooringlicensing.components.organisations.serializers import (
-    OrganisationRequestDTSerializer,
-)
-
-# from mooringlicensing.components.main.process_document import (
-#         process_generic_document,
-#         )
-
 import logging
 
 from mooringlicensing.helpers import is_customer, is_internal
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.ledger_api_utils import retrieve_system_user
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
@@ -89,34 +66,24 @@ class GetCountries(views.APIView):
         return Response(data)
 
 
-# NOTE: proposal applicant and email user ro should be replaced with system user - PA is currently the primary preferred reference with EURO being a fallback
-# SU will replace both as a user reference, ideally being necessary to warrant looking up on this system and therefore being the preferred reference without a fallback needed
-# This endpoint may still be used in the context of a PA, but may be reworked to return an SU
-class GetProposalApplicant(views.APIView):
-    renderer_classes = [JSONRenderer,]
-
+class GetProposalApplicantUser(views.APIView):
     def get(self, request, proposal_pk, format=None):
-        from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
-        proposal = Proposal.objects.get(id=proposal_pk)
+        try: 
+            proposal = Proposal.objects.get(id=proposal_pk)
 
-        if (is_customer(self.request) and proposal.submitter == request.user.id) or is_internal(self.request):
-            # Holder of this proposal is accessing OR internal user is accessing.
-            if proposal.proposal_applicant:
-                # When proposal has a proposal_applicant
-                serializer = ProposalApplicantSerializer(proposal.proposal_applicant, context={'request': request})
-            else:
-                submitter = retrieve_email_userro(proposal.submitter)
-                serializer = EmailUserRoSerializer(submitter)
-            return Response(serializer.data)
-        elif is_customer(self.request) and proposal.site_licensee_email == request.user.email:
-            # ML holder is accessing the proposal as an endorser
-            if proposal.proposal_applicant:
-                # When proposal has a proposal_applicant
-                serializer = ProposalApplicantForEndorserSerializer(proposal.proposal_applicant, context={'request': request})
-            else:
-                submitter = retrieve_email_userro(proposal.submitter)
-                serializer = EmailUserRoForEndorserSerializer(submitter)
-            return Response(serializer.data)
+            if (is_customer(self.request) and proposal.submitter == request.user.id) or is_internal(self.request):
+                # Holder of this proposal is accessing OR internal user is accessing.
+                submitter = retrieve_system_user(proposal.submitter)
+                serializer = UserSerializer(submitter)
+                return Response(serializer.data)
+            elif is_customer(self.request) and proposal.site_licensee_email == request.user.email:
+                # ML holder is accessing the proposal as an endorser
+                submitter = retrieve_system_user(proposal.submitter)
+                serializer = UserForEndorserSerializer(submitter)
+                return Response(serializer.data)
+            raise serializers.ValidationError("not authorised to view this user")
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError("proposal does not exist")
 
 
 class GetProfile(views.APIView):

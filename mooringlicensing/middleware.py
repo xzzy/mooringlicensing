@@ -34,10 +34,11 @@ class FirstTimeNagScreenMiddleware(object):
             except ObjectDoesNotExist:
                 system_user_exists = False
 
-            system_user_addresses = SystemUserAddress.objects.filter(system_user=system_user)
-            residential_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[0][0])
-            postal_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[1][0])
-            #billing_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[2][0])
+            if system_user_exists:
+                system_user_addresses = SystemUserAddress.objects.filter(system_user=system_user)
+                residential_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[0][0])
+                postal_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[1][0])
+                #billing_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[2][0])
 
             if (not system_user_exists or
                 not system_user.legal_first_name or 

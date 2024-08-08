@@ -1,19 +1,16 @@
 from django.conf import settings
-# from ledger.accounts.models import EmailUser,Address, Profile,EmailIdentity, EmailUserAction, EmailUserLogEntry, CommunicationsLogEntry
-from ledger_api_client.ledger_models import EmailUserRO, Address
+from ledger_api_client.ledger_models import EmailUserRO
 from ledger_api_client.managed_models import SystemUser, SystemUserAddress
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.organisations.models import (
                                     Organisation,
                                 )
-from mooringlicensing.components.proposals.models import Proposal, ProposalApplicant
+from mooringlicensing.components.proposals.models import ProposalApplicant
 from mooringlicensing.components.organisations.utils import can_admin_org, is_consultant
 from rest_framework import serializers
 
 from mooringlicensing.components.users.models import EmailUserLogEntry
-# from ledger.accounts.utils import in_dbca_domain
-from mooringlicensing.helpers import is_mooringlicensing_admin, in_dbca_domain
-# from ledger.payments.helpers import is_payment_admin
+from mooringlicensing.helpers import in_dbca_domain
 from ledger_api_client.helpers import is_payment_admin
 
 #TODO - status unclear but may need removal (determine how organisations work)
@@ -47,80 +44,34 @@ class UserOrganisationSerializer(serializers.ModelSerializer):
         email = EmailUserRO.objects.get(id=self.context.get('user_id')).email
         return email
 
-#TODO decom once system user in place
-class ProposalApplicantForEndorserSerializer(serializers.ModelSerializer):
+class UserForEndorserSerializer(serializers.ModelSerializer):
+
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
 
     class Meta:
-        model = ProposalApplicant
+        model = SystemUser
         fields = (
-            'id',
+            'ledger_id',
             'last_name',
             'first_name',
-            'email',
-            'phone_number',
-        )
-
-#TODO decom once system user in place (?)
-class EmailUserRoForEndorserSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = EmailUserRO
-        fields = (
-            'id',
-            'last_name',
-            'first_name',
-            'email',
-            'phone_number',
-        )
-
-#TODO decom once system user in place (?)
-class EmailUserRoSerializer(serializers.ModelSerializer):
-    residential_line1 = serializers.CharField(source='residential_address.line1')
-    residential_line2 = serializers.CharField(source='residential_address.line2')
-    residential_line3 = serializers.CharField(source='residential_address.line3')
-    residential_locality = serializers.CharField(source='residential_address.locality')
-    residential_state = serializers.CharField(source='residential_address.state')
-    residential_country = serializers.CharField(source='residential_address.country')
-    residential_postcode = serializers.CharField(source='residential_address.postcode')
-    postal_line1 = serializers.CharField(source='postal_address.line1')
-    postal_line2 = serializers.CharField(source='postal_address.line2')
-    postal_line3 = serializers.CharField(source='postal_address.line3')
-    postal_locality = serializers.CharField(source='postal_address.locality')
-    postal_state = serializers.CharField(source='postal_address.state')
-    postal_country = serializers.CharField(source='postal_address.country')
-    postal_postcode = serializers.CharField(source='postal_address.postcode')
-
-    class Meta:
-        model = EmailUserRO
-        fields = (
-            'id',
-            'last_name',
-            'first_name',
-            'dob',
-
-            'residential_line1',
-            'residential_line2',
-            'residential_line3',
-            'residential_locality',
-            'residential_state',
-            'residential_country',
-            'residential_postcode',
-
-            'postal_same_as_residential',
-
-            'postal_line1',
-            'postal_line2',
-            'postal_line3',
-            'postal_locality',
-            'postal_state',
-            'postal_country',
-            'postal_postcode',
-
             'email',
             'phone_number',
             'mobile_number',
         )
-        
+    
+    def get_first_name(self,obj):
+        if obj.legal_first_name:
+            return obj.legal_first_name
+        else:
+            return obj.first_name
+
+    def get_last_name(self,obj):
+        if obj.legal_first_name:
+            return obj.legal_last_name
+        else:
+            return obj.last_name
+      
 #NOTE: may still be needed in some capacity but may warrant adjustment
 class ProposalApplicantSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
@@ -236,7 +187,7 @@ class UserSerializer(serializers.ModelSerializer):
         return False
     
 
-#NOTE appear to be implemented, might need a minor rework
+#NOTE appears to be implemented, might need a minor rework
 class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
     # TODO: implement (?)
     documents = serializers.SerializerMethodField()

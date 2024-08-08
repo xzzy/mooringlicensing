@@ -78,7 +78,7 @@ router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewS
 
 api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
-    re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicant.as_view(), name='get-proposal-applicant'),
+    re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicantUser.as_view(), name='get-proposal-applicant-user'),
     re_path(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
     re_path(r'^api/filtered_organisations$', org_api.OrganisationListFilterView.as_view(), name='filtered_organisations'),
     re_path(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
