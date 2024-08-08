@@ -1,64 +1,37 @@
 <template>
     <div :class="classCompute" id="userInfo">
       <div class="col-sm-12">
-        <div v-if="showCompletion" class="row">
-            <div class="col-sm-12">
-                <div class="well well-sm">
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <p>
-                                We have detected that this is the first time you have logged into the system.Please take a moment to provide us with your details
-                                (personal details, address details, contact details, and whether you are managing licences for an organisation).
-                                Once completed, click Continue to start using the system.
-                            </p>
-                            <a :disabled="!completedProfile" href="/" class="btn btn-primary pull-right">Continue</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <i v-if="showCompletion && profile.personal_details" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="showCompletion && !profile.personal_details" class="fa fa-times fa-2x pull-left" style="color:red"></i>
-                    <h3 class="panel-title">Personal Details <small>Provide your full legal name</small>
-                        <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pBody">
-                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                    <h3 class="panel-title">Personal Details
+                        <a class="panelClicker" :href="'#'+pBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="pBody">
+                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
                     </h3>
                   </div>
-                  <div class="panel-body collapse in" :id="pBody">
+                  <div class="panel-body collapse" :id="pBody">
                       <form class="form-horizontal" name="personal_form" method="post">
                         <alert v-if="showPersonalError" type="danger" style="color:red"><div v-for="item in errorListPersonal"><strong>{{item}}</strong></div></alert>
                         <div class="form-group">
                           <label for="" class="col-sm-3 control-label">Given name(s)</label>
                           <div class="col-sm-6">
-                              <input :readonly="firstNameReadOnly" type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
+                              <input readonly type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.legal_first_name" required="">
                           </div>
                         </div>
                         <div class="form-group">
                           <label for="" class="col-sm-3 control-label" >Surname</label>
                           <div class="col-sm-6">
-                              <input :readonly="lastNameReadOnly" type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
+                              <input readonly type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.legal_last_name">
                           </div>
                         </div>
                         <div class="row form-group" v-if="!forEndorser">
-                            <label for="" class="col-sm-3 control-label">Date of Birth</label>
-                            <div class="col-sm-3 input-group date" ref="dobDatePicker">
-                                <input :disabled="dobReadOnly" type="text" class="form-control text-left ml-1" placeholder="DD/MM/YYYY" v-model="profile.dob"/>
-                                <span class="input-group-addon">
-                                    <span class="glyphicon glyphicon-calendar ml-1"></span>
-                                </span>
-                            </div>
-                        </div>
-                        <!-- <div class="form-group">
-                          <div v-if="!readonly" class="col-sm-12">
-                              <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
-                              <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
+                            <label for="" class="col-sm-3 control-label" >Date of Birth</label>
+                          <div class="col-sm-6">
+                              <input readonly type="text" class="form-control" id="dob" name="Date of Birth" placeholder="" v-model="profile.legal_dob">
                           </div>
-                        </div> -->
+                        </div>
                        </form>
                   </div>
                 </div>
@@ -69,102 +42,14 @@
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <i v-if="showCompletion && profile.address_details" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="showCompletion && !profile.address_details" class="fa fa-times fa-2x pull-left" style="color:red"></i>
-                    <h3 class="panel-title">Address Details <small>Provide your address details</small>
-                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="false"  data-parent="#userInfo" :aria-controls="adBody">
-                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                    <h3 class="panel-title">Address Details <small>Select address details for this application</small>
+                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true"  data-parent="#userInfo" :aria-controls="adBody">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
                     </h3>
                   </div>
-                  <div v-if="loading.length == 0" class="panel-body collapse" :id="adBody">
-                      <form class="form-horizontal" action="index.html" method="post">
-                        <alert v-if="showAddressError" type="danger" style="color:red"><div v-for="item in errorListAddress"><strong>{{item}}</strong></div></alert>
-                      <div class="address-box">
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Residential Address</label>
-                            <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="line1" name="Street" placeholder="" v-model="profile.residential_line1">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-                            <div class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="locality" name="Town/Suburb" placeholder="" v-model="profile.residential_locality">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">State</label>
-                            <div class="col-sm-3">
-                                <input :readonly="readonly" type="text" class="form-control" id="state" name="State" placeholder="" v-model="profile.residential_state">
-                            </div>
-                            <label for="" class="col-sm-1 control-label">Postcode</label>
-                            <div class="col-sm-2">
-                                <input :readonly="readonly" type="text" class="form-control" id="postcode" name="Postcode" placeholder="" v-model="profile.residential_postcode">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Country</label>
-                            <div class="col-sm-4">
-                                <select :disabled="readonly" class="form-control" id="country" name="Country" v-model="profile.residential_country">
-                                    <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
-                                    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
-                                </select>
-                            </div>
-                          </div>
-                      </div>
-                          <!-- -->
-                      <div class="form-group"/>
-                      <div class="address-box">
-                          <div class="form-group">
-                            <div class="col-sm-3">
-                            </div>
-                            <div class="col-sm-6">
-                              <input :readonly="readonly" type="checkbox" id="postal_same_as_residential" v-model="profile.postal_same_as_residential" @change="togglePostal"/>
-                              <label for="postal_same_as_residential" class="control-label">Same as residential address</label>
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">Postal Address</label>
-                            <div class="col-sm-6">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_line1" name="Street" placeholder="" v-model="profile.postal_line1">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
-                            <div class="col-sm-6">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_locality" name="Town/Suburb" placeholder="" v-model="profile.postal_locality">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label">State</label>
-                            <div class="col-sm-3">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_state" name="State" placeholder="" v-model="profile.postal_state">
-                            </div>
-                            <label for="" class="col-sm-1 control-label">Postcode</label>
-                            <div class="col-sm-2">
-                                <input :readonly="postalAddressReadonly" type="text" class="form-control" id="postal_postcode" name="Postcode" placeholder="" v-model="profile.postal_postcode">
-                            </div>
-                          </div>
-                          <div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Country</label>
-                            <div class="col-sm-4">
-                                <select :disabled="postalAddressReadonly" class="form-control" id="postal_country" name="Country" v-model="profile.postal_country">
-                                    <!--option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option-->
-                                    <option value=""></option>
-                                    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
-                                </select>
-                            </div>
-                          </div>
-                      </div>
-
-                          <!-- <div class="form-group">
-                            <div v-if="!readonly" class="col-sm-12">
-                                <button v-if="!updatingAddress" class="pull-right btn btn-primary" @click.prevent="updateAddressWrapper()">Update</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-                            </div>
-                          </div> -->
-                       </form>
+                  <div class="panel-body collapse in" :id="adBody">
+                      
                   </div>
                 </div>
             </div>
@@ -173,9 +58,7 @@
             <div class="col-sm-12">
                 <div class="panel panel-default">
                   <div class="panel-heading">
-                    <i v-if="showCompletion && profile.contact_details" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="showCompletion && !profile.contact_details" class="fa fa-times fa-2x pull-left" style="color:red"></i>
-                    <h3 class="panel-title">Contact Details <small>Provide your contact details</small>
+                    <h3 class="panel-title">Contact Details
                         <a class="panelClicker" :href="'#'+cBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="cBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                         </a>
@@ -186,34 +69,22 @@
                         <alert v-if="showContactError" type="danger" style="color:red"><div v-for="item in errorListContact"><strong>{{item}}</strong></div></alert>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Phone (work)</label>
-                            <div v-if="profile.is_department_user" class="col-sm-6">
-                               <input :readonly="phoneNumberReadonly || readonly" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
-                            </div>
-                            <div v-else class="col-sm-6">
-                                <input :readonly="readonly || forEndorser" type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
+                            <div class="col-sm-6">
+                               <input readonly type="text" class="form-control" id="phone" name="Phone" placeholder="" v-model="profile.phone_number">
                             </div>
                           </div>
                           <div class="form-group" v-if="!forEndorser">
                             <label for="" class="col-sm-3 control-label" >Mobile</label>
-                            <div v-if="profile.is_department_user" class="col-sm-6">
-                                <input :readonly="mobileNumberReadonly || readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
-                            </div>
-                            <div v-else class="col-sm-6">
-                                <input :readonly="readonly" type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" id="mobile" name="Mobile" placeholder="" v-model="profile.mobile_number">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Email</label>
                             <div class="col-sm-6">
-                                <input :readonly="emailReadOnly" type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
+                                <input readonly type="email" class="form-control" id="email" name="Email" placeholder="" v-model="profile.email">
                             </div>
                           </div>
-                          <!-- <div class="form-group">
-                            <div v-if="!readonly" class="col-sm-12">
-                                <button v-if="!updatingContact" class="pull-right btn btn-primary" @click.prevent="updateContact()">Update</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
-                            </div>
-                          </div> -->
                        </form>
                   </div>
                 </div>
@@ -255,16 +126,6 @@
             </div>
         </FormSection>
         </div>
-<!--
-        <div class="col-sm-12">
-            <div class="well well-sm">
-                <p>
-                    Once completed the form above, click Continue to start using the system.
-                <a :disabled="!completedProfile" href="/" class="btn btn-primary pull-right">Continue</a>
-                </p>
-            </div>
-        </div>
--->
     </div>
 </template>
 
@@ -454,12 +315,6 @@ export default {
         },
         isNewOrgDetails: function() {
             return this.newOrg && this.newOrg.name != '' && this.newOrg.abn != '' ? true: false;
-        },
-        showCompletion: function() {
-            return this.$route.name == 'first-time'
-        },
-        completedProfile: function(){
-            return this.profile.contact_details && this.profile.personal_details && this.profile.address_details;
         },
     },
     methods: {

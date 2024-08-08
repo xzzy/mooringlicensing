@@ -372,8 +372,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         )
 
     def get_allowed_assessors(self, obj):
-        request = self.context['request']
-        if request and is_internal(request):
+        if 'request' in self.context and is_internal(self.context['request']):
             email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
             system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
             serializer = UserSerializer(system_users, many=True)

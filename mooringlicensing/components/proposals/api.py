@@ -667,9 +667,8 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
             qs = AnnualAdmissionApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AnnualAdmissionApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            queryset = AnnualAdmissionApplication.objects.filter(submitter=user.id)
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AnnualAdmissionApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
@@ -1684,6 +1683,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
+    #TODO remove
     def update_personal(self, request, *args, **kwargs):
         with transaction.atomic():
             proposal = self.get_object()
@@ -1710,6 +1710,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
+    #TODO remove
     def update_contact(self, request, *args, **kwargs):
         with transaction.atomic():
             proposal = self.get_object()
@@ -1732,6 +1733,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
+    #TODO either remove or change how it works 
+    #(can only change while in draft, and only the address selection not the actual values)
     def update_address(self, request, *args, **kwargs):
         with transaction.atomic():
             proposal = self.get_object()
