@@ -24,7 +24,7 @@
                             Approvals
                         </a>
                     </li>
-                    <li class="nav-item">
+                    <li v-if="user" class="nav-item">
                         <a class="nav-link" id="pills-vessels-tab" data-toggle="pill" href="#pills-vessels" role="tab" aria-controls="pills-vessels" aria-selected="false">
                             Vessels
                         </a>
@@ -77,11 +77,10 @@
                             />
                         </FormSection>
                     </div>
-                    <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
+                    <div v-if="user" class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                         <FormSection :formCollapse="false" label="Vessels" subtitle="" Index="vessels" >
                             <VesselsTable
                                 ref="vessels_table"
-                                v-if="user"
                                 level="internal"
                                 :target_email_user_id="user.ledger_id"
                             />
@@ -141,9 +140,7 @@ export default {
         }
     },
     created: async function(){
-        console.log(this.$route.params.email_user_id)
         const res = await this.$http.get('/api/users/' + this.$route.params.email_user_id)
-
         if (res.ok) {
             this.user = res.body
         }

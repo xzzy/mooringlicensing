@@ -114,6 +114,7 @@ from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 from reversion.models import Version
 from copy import deepcopy
+from django.core.exceptions import ObjectDoesNotExist
 
 import logging
 from mooringlicensing.ledger_api_utils import MyUserForLedgerAPI, update_account_details_in_ledger
@@ -2201,21 +2202,14 @@ class VesselViewSet(viewsets.ModelViewSet):
     serializer_class = VesselSerializer
 
     def get_queryset(self):
-        # return super().get_queryset()
         queryset = Vessel.objects.none()
         user = self.request.user
         if is_internal(self.request):
             queryset = Vessel.objects.all().order_by('id')
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
-            # queryset = Vessel.objects.filter(
-            #     Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
-            # )
             owner = Owner.objects.filter(emailuser=user.id)
             if owner:
                 queryset = owner[0].vessels.all()
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @detail_route(methods=['POST',], detail=True)
@@ -2363,37 +2357,39 @@ class VesselViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',], detail=False)
     def list_internal(self, request, *args, **kwargs):
-        search_text = request.GET.get('search[value]', '')
 
-        owner_qs = None
+        search_text = request.GET.get('search[value]', '')
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
         if target_email_user_id:
-            target_user = EmailUser.objects.get(id=target_email_user_id)
-            owner_qs = Owner.objects.filter(emailuser=target_user.id)
-
-        if owner_qs:
-            owner = owner_qs[0]
-            vessel_ownership_list = owner.vesselownership_set.all()
-
-            # rewrite following for vessel_ownership_list
-            if search_text:
-                search_text = search_text.lower()
-                search_text_vessel_ownership_ids = []
-                matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
-                for vo in vessel_ownership_list:
-                    vd = vo.vessel.latest_vessel_details
-                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
-                            search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                            vd.vessel_type in matching_vessel_type_choices or
-                            search_text in vo.end_date.strftime('%d/%m/%Y')
-                    ):
-                        search_text_vessel_ownership_ids.append(vo.id)
-                vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
-
-            serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
-            return Response(serializer.data)
+            try:
+                owner = Owner.objects.get(emailuser=target_email_user_id)
+            except ObjectDoesNotExist:
+                raise serializers.ValidationError("user does not exist with provided email user id")
+            except:
+                raise serializers.ValidationError("error")
         else:
-            return Response([])
+            raise serializers.ValidationError("no email user id provided")
+
+        vessel_ownership_list = owner.vesselownership_set.all()
+
+        # TODO review - rewrite following for vessel_ownership_list
+        if search_text:
+            search_text = search_text.lower()
+            search_text_vessel_ownership_ids = []
+            matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
+            for vo in vessel_ownership_list:
+                vd = vo.vessel.latest_vessel_details
+                if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
+                        search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
+                        vd.vessel_type in matching_vessel_type_choices or
+                        search_text in vo.end_date.strftime('%d/%m/%Y')
+                ):
+                    search_text_vessel_ownership_ids.append(vo.id)
+            vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+
+        serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
+        return Response(serializer.data)
+
 
     @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):

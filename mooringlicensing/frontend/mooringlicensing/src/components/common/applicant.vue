@@ -228,10 +228,6 @@ export default {
         proposalId: {
             type: Number,
         },
-        proposal: {
-            type: Object,
-            default: {},
-        },
     },
     data: function () {
         let vm = this;
@@ -258,7 +254,7 @@ export default {
         electoralRollDocumentUrl: function () {
             let url = '';
             if (this.proposalId) {
-                url = '/api/proposal/' + this.proposal.id + '/electoral_roll_document/'
+                url = '/api/proposal/' + this.proposalId + '/electoral_roll_document/'
             }
             return url;
         },

@@ -11,7 +11,6 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 
 # from ledger.settings_base import *
 from ledger_api_client.settings_base import *
-from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 ROOT_URLCONF = 'mooringlicensing.urls'
 SITE_ID = 1
@@ -72,12 +71,12 @@ INSTALLED_APPS += [
 ADD_REVERSION_ADMIN=True
 
 REST_FRAMEWORK = {
-    'DEFAULT_RENDERER_CLASSES': (
+    'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
         'rest_framework_datatables.renderers.DatatablesRenderer',
-    ),
-    'DEFAULT_PAGINATION_CLASS': 'DatatablesPageNumberPagination',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
 }
 
