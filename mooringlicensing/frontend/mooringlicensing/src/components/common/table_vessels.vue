@@ -63,121 +63,63 @@ export default {
             // Datatable settings
             datatable_headers: ['Name', 'Registration', 'Length', 'Draft', 'Type', 'Owner', 'Sale date', 'Action'],
             datatable_options: {
-                autoWidth: false,
+                autoWidth: true,
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
-                //serverSide: true,
                 searching: true,
                 ajax: {
                     "url": api_endpoints.vessel_internal_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        /*
-                        d.filter_application_type = vm.filterApplicationType;
-                        d.filter_application_status = vm.filterApplicationStatus;
-                        */
-                    }
                 },
                 dom: 'lBfrtip',
-                buttons:[
-                    //{
-                    //    extend: 'excel',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                ],
+                buttons:[],
                 columns: [
                     {
                         data: "vessel_details.vessel_name",
                         orderable: false,
                         searchable: false,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.id
-                        }
-                        */
                     },
                     {
                         data: "vessel_details.rego_no",
                         orderable: true,
                         searchable: true,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.lodgement_number
-                        }
-                        */
                     },
                     {
                         data: "vessel_details.vessel_length",
                         orderable: true,
                         searchable: true,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.application_type_dict.description
-                        }
-                        */
                     },
                     {
                         data: "vessel_details.vessel_draft",
                         orderable: true,
                         searchable: true,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.proposal_type.description
-                        }
-                        */
                     },
                     {
                         data: "vessel_details.vessel_type",
                         orderable: true,
                         searchable: true,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.customer_status
-                        }
-                        */
                     },
                     {
                         data: "owner_name",
                         orderable: true,
                         searchable: true,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.customer_status
-                        }
-                        */
                     },
                     {
                         data: "sale_date",
                         orderable: true,
                         searchable: true,
                         visible: true,
-                        /*
-                        'render': function(row, type, full){
-                            return full.customer_status
-                        }
-                        */
                     },
 
                     {
-                        //data: "vessel_details.vessel_id",
                         data: "id",
                         orderable: true,
                         searchable: true,
@@ -199,9 +141,6 @@ export default {
                     },
                 ],
                 processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                },
             },
         }
     },
@@ -218,6 +157,16 @@ export default {
         },
     },
     methods: {
+        adjust_vessel_table: function() {
+            let vm = this;
+            setTimeout(function () {
+                vm.adjust_table_width();
+            }, 200);
+        },
+        adjust_table_width: function() {
+            let vm = this;
+            vm.$refs.vessels_datatable.vmDataTable.columns.adjust().responsive.recalc();
+        },
         closeModal: function() {
             this.uuid++;
         },

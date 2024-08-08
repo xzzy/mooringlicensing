@@ -15,7 +15,7 @@
             <div class="col-md-8">
                 <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
                     <li class="nav-item">
-                        <a class="nav-link active" id="pills-details-tab" data-toggle="pill" href="#pills-details" role="tab" aria-controls="pills-details" aria-selected="true" @clicked="tab_clicked">
+                        <a class="nav-link active" id="pills-details-tab" data-toggle="pill" href="#pills-details" role="tab" aria-controls="pills-details" aria-selected="true" @click="tab_clicked()">
                             Details
                         </a>
                     </li>
@@ -25,7 +25,7 @@
                         </a>
                     </li>
                     <li v-if="user" class="nav-item">
-                        <a class="nav-link" id="pills-vessels-tab" data-toggle="pill" href="#pills-vessels" role="tab" aria-controls="pills-vessels" aria-selected="false">
+                        <a class="nav-link" id="pills-vessels-tab" data-toggle="pill" href="#pills-vessels" role="tab" aria-controls="pills-vessels" aria-selected="false" @click="tab_clicked()">
                             Vessels
                         </a>
                     </li>
@@ -33,6 +33,7 @@
                 <div class="tab-content" id="pills-tabContent">
                     <div class="tab-pane fade" id="pills-details" role="tabpanel" aria-labelledby="pills-details-tab">
                         <Applicant v-if="user"
+                            ref="applicant_table"
                             :user="user" 
                             applicantType="SUB" 
                             id="proposalStartApplicant"
@@ -78,7 +79,7 @@
                         </FormSection>
                     </div>
                     <div v-if="user" class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
-                        <FormSection :formCollapse="false" label="Vessels" subtitle="" Index="vessels" >
+                        <FormSection :formCollapse="false" label="Vessels" subtitle="" Index="vessels" @click="tab_clicked()">
                             <VesselsTable
                                 ref="vessels_table"
                                 level="internal"
@@ -147,7 +148,9 @@ export default {
     },
     methods: {
         tab_clicked: function() {
-            vm.$refs.applications_table.adjust_table_width();
+            let vm = this;
+            vm.$refs.applicant_table.adjust_address_tables();
+            vm.$refs.vessels_table.adjust_vessel_table();
         }
     },
     mounted: function(){

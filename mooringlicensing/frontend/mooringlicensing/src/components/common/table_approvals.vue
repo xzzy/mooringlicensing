@@ -1105,7 +1105,7 @@ export default {
             }
             // Mooring bays
             const mooringBayRes = await this.$http.get(api_endpoints.mooring_bays);
-            for (let b of mooringBayRes.body) {
+            for (let b of mooringBayRes.body.results) {
                 this.mooringBays.push(b);
             }
             /*

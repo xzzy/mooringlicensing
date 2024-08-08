@@ -305,16 +305,17 @@ export default {
             let vm = this;
             setTimeout(function () {
                 vm.adjust_table_width();
-            }, 100);
+            }, 200);
         },
         adjust_table_width: function() {
-            this.$refs.residential_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
-            this.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            console.log("????????")
+            let vm = this;
+            vm.$refs.residential_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
         },
         datatable_options: function(address_type){
             let vm = this;
             let data = [];
-            console.log(address_type)
             if (address_type == "residential") {
                 if (this.proposalId) {
                     //TODO
