@@ -14,34 +14,6 @@ from ledger_api_client import utils
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 
-#TODO review usage, potentially remove
-class EmailUserSerializer(serializers.ModelSerializer):
-    fullname = serializers.SerializerMethodField()
-    # text = serializers.SerializerMethodField()
-    # email = serializers.SerializerMethodField()
-
-    class Meta:
-        model = EmailUserRO
-        fields = (
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-            "title",
-            "organisation",
-            "fullname",
-            # "text",
-        )
-    # def get_email(self, obj):
-    #     return ''
-
-    def get_fullname(self, obj):
-        return "{} {}".format(obj.first_name, obj.last_name)
-
-    def get_text(self, obj):
-        return self.get_fullname(obj)
-
-
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=EmailUserRO.objects.all(),required=False)
     documents = serializers.SerializerMethodField()

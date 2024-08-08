@@ -9,7 +9,7 @@ from mooringlicensing.components.proposals.serializers import ProposalRequiremen
 from rest_framework import serializers
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
-
+from mooringlicensing.helpers import is_internal
 
 class ComplianceSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='proposal.title')
@@ -62,9 +62,14 @@ class ComplianceSerializer(serializers.ModelSerializer):
         )
 
     def get_allowed_assessors(self, obj):
-        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
-        serializer = UserSerializer(system_users, many=True)
-        return serializer.data
+        request = self.context['request']
+        if request and is_internal(request):
+            email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            serializer = UserSerializer(system_users, many=True)
+            return serializer.data
+        else:
+            return None
 
     def get_documents(self,obj):
         return [[d.name,d._file.url,d.can_delete,d.id] for d in obj.documents.all()]
@@ -146,9 +151,14 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
         )
 
     def get_allowed_assessors(self, obj):
-        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
-        serializer = UserSerializer(system_users, many=True)
-        return serializer.data
+        request = self.context['request']
+        if request and is_internal(request):
+            email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            serializer = UserSerializer(system_users, many=True)
+            return serializer.data
+        else:
+            return None
 
     def get_documents(self,obj):
         return [[d.name,d._file.url,d.can_delete,d.id] for d in obj.documents.all()]

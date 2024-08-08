@@ -12,11 +12,15 @@ def get_user_name(user):
     """
         return legal first name and legal last name over first name and last name if they exist
     """
-    names = {"first_name":user.first_name,"last_name":user.last_name}
-    if user.legal_first_name:
-        names["first_name"] = user.legal_first_name
-    if user.legal_last_name:
-        names["last_name"] = user.legal_last_name
+    try:
+        names = {"first_name":user.first_name,"last_name":user.last_name}
+        if user.legal_first_name:
+            names["first_name"] = user.legal_first_name
+        if user.legal_last_name:
+            names["last_name"] = user.legal_last_name
+        names["full_name"] = names["first_name"] + " " + names["last_name"] 
+    except:
+        names = {"first_name":"unavailable","last_name":"unavailable","full_name":"unavailable"}
 
     return names
 

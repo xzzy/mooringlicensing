@@ -49,6 +49,7 @@ from mooringlicensing.components.approvals.models import (
     AuthorisedUserPermit, Approval
 )
 from mooringlicensing.components.users.serializers import UserSerializer
+from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_SWAP_MOORINGS
 import traceback
@@ -350,10 +351,15 @@ def save_proponent_data(instance, request, viewset):
         save_proponent_data_mla(instance, request, viewset)
 
     # Save request.user details in a JSONField not to overwrite the details of it.
-    serializer = UserSerializer(request.user, context={'request':request})
-    if instance:
-        instance.personal_details = serializer.data
-        instance.save()
+    try:
+        user = SystemUser.objects.get(ledger_id=request.user)
+        serializer = UserSerializer(user, context={'request':request})
+        if instance:
+            instance.personal_details = serializer.data
+            instance.save()
+    except Exception as e:
+        print(e)
+        raise serializers.ValidationError("error")
 
 
 def save_proponent_data_aaa(instance, request, viewset):

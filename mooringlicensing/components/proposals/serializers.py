@@ -271,9 +271,15 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             return ''
 
     def get_allowed_assessors(self, obj):
-        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
-        serializer = UserSerializer(system_users, many=True)
-        return serializer.data
+        request = self.context['request']
+        if request and is_internal(request):
+            email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            serializer = UserSerializer(system_users, many=True)
+            return serializer.data
+        else:
+            return None
+
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
@@ -918,7 +924,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    # submitter = UserSerializer()
     submitter = serializers.SerializerMethodField()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
@@ -1051,9 +1056,14 @@ class InternalProposalSerializer(BaseProposalSerializer):
         )
 
     def get_allowed_assessors(self, obj):
-        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
-        serializer = UserSerializer(system_users, many=True)
-        return serializer.data
+        request = self.context['request']
+        if request and is_internal(request):
+            email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            serializer = UserSerializer(system_users, many=True)
+            return serializer.data
+        else:
+            return None
 
     def get_proposed_issuance_approval(self, obj):
         if obj.proposed_issuance_approval and obj.proposed_issuance_approval.get('mooring_bay_id', None):
@@ -1069,8 +1079,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
             return ProposalApplicantSerializer(proposal_applicant.first()).data
         else:
             if obj.submitter:    
-                email_user = retrieve_system_user(obj.submitter)
-                return UserSerializer(email_user).data
+                user = retrieve_system_user(obj.submitter)
+                return UserSerializer(user).data
             else:
                 return ""
 
@@ -1250,11 +1260,13 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return True  # What is this for?
 
     def get_current_assessor(self,obj):
-        return {
-            'id': self.context['request'].user.id,
-            'name': self.context['request'].user.get_full_name(),
-            'email': self.context['request'].user.email
-        }
+        request = self.context['request']
+        if request and is_internal(request):
+            return {
+                'id': self.context['request'].user.id,
+                'name': self.context['request'].user.get_full_name(),
+                'email': self.context['request'].user.email
+            }
 
     def get_assessor_data(self,obj):
         return obj.assessor_data

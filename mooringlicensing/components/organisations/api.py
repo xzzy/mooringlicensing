@@ -56,7 +56,6 @@ from mooringlicensing.components.organisations.serializers import (
                                         OrganisationActionSerializer,
                                         OrganisationRequestCommsSerializer,
                                         OrganisationCommsSerializer,
-                                        OrganisationUnlinkUserSerializer,
                                         OrgUserAcceptSerializer,
                                         MyOrganisationsSerializer,
                                         OrganisationCheckExistSerializer,

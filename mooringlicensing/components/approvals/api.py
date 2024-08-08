@@ -62,6 +62,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer, StickerForDcvSaveSerializer,
 )
+from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -533,13 +534,14 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         for moa in instance.mooringonapproval_set.all():
             licence_holder_data = {}
             if moa.mooring.mooring_licence:
-                licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter_obj).data
+                licence_holder_data = SystemUser.objects.get(ledger_id=moa.mooring.mooring_licence.submitter_obj)
+            user_details = get_user_name(licence_holder_data)
             moorings.append({
                 "id": moa.id,
                 "mooring_name": moa.mooring.name,
-                "licensee": licence_holder_data.get('full_name') if licensee else '',
-                "mobile": licence_holder_data.get('mobile_number') if licensee else '',
-                "email": licence_holder_data.get('email') if licensee else '',
+                "licensee": user_details["full_name"],
+                "mobile": licence_holder_data.mobile_number,
+                "email": licence_holder_data.email,
                 })
         return Response(moorings)
 

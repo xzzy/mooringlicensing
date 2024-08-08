@@ -4,11 +4,10 @@ from datetime import datetime
 from mooringlicensing.settings import TIME_ZONE
 
 from django.conf import settings
-# from ledger.accounts.models import EmailUser
-# from ledger.payments.models import Invoice
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.ledger_models import Invoice
 from ledger_api_client.managed_models import SystemUser
 from django.db.models import Q, Min, Count
+from mooringlicensing.helpers import is_internal
 
 from mooringlicensing.components.main import serializers
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer, \
@@ -290,7 +289,6 @@ class WaitingListAllocationSerializer(serializers.ModelSerializer):
 
 
 class ApprovalSerializer(serializers.ModelSerializer):
-    # submitter = UserSerializer()
     submitter = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
@@ -374,12 +372,17 @@ class ApprovalSerializer(serializers.ModelSerializer):
         )
 
     def get_allowed_assessors(self, obj):
-        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
-        serializer = UserSerializer(system_users, many=True)
-        return serializer.data
+        request = self.context['request']
+        if request and is_internal(request):
+            email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            serializer = UserSerializer(system_users, many=True)
+            return serializer.data
+        else:
+            return None
 
     def get_submitter(self, obj):
-        serializer = UserSerializer(obj.submitter_obj)
+        serializer = UserSerializer(retrieve_system_user(obj.submitter))
         return serializer.data
 
     def get_mooring_licence_mooring(self, obj):
