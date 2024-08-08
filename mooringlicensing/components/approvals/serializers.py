@@ -7,6 +7,7 @@ from django.conf import settings
 # from ledger.accounts.models import EmailUser
 # from ledger.payments.models import Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.managed_models import SystemUser
 from django.db.models import Q, Min, Count
 
 from mooringlicensing.components.main import serializers
@@ -28,8 +29,7 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.components.organisations.models import (
     Organisation
 )
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
-    EmailUserSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
     MooringSimpleSerializer, \
     ProposalApplicantSerializer  # EmailUserAppViewSerializer
@@ -37,7 +37,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_system_user, get_invoice_payment_status
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -321,7 +321,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
 
@@ -372,6 +372,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'licence_document',
             'is_approver',
         )
+
+    def get_allowed_assessors(self, obj):
+        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
+        serializer = UserSerializer(system_users, many=True)
+        return serializer.data
 
     def get_submitter(self, obj):
         serializer = UserSerializer(obj.submitter_obj)
@@ -1238,7 +1243,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_user_detail(self, obj):
-        serializer = EmailUserSerializer(retrieve_email_userro(obj.user))
+        serializer = UserSerializer(retrieve_system_user(obj.user))
         return serializer.data
 
 

@@ -14,6 +14,7 @@ from ledger_api_client import utils
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 
+#TODO review usage, potentially remove
 class EmailUserSerializer(serializers.ModelSerializer):
     fullname = serializers.SerializerMethodField()
     # text = serializers.SerializerMethodField()

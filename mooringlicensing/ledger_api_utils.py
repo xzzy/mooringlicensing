@@ -1,11 +1,10 @@
 from ledger_api_client import utils
 from ledger_api_client.ledger_models import EmailUserRO
+from ledger_api_client.managed_models import SystemUser
 from ledger_api_client import api
 from io import StringIO
 import json
 import logging
-
-from mooringlicensing import settings
 from mooringlicensing.components.main.decorators import basic_exception_handler
 
 logger = logging.getLogger(__name__)
@@ -18,6 +17,12 @@ def retrieve_email_userro(email_user_id):
     except Exception as e:
         print(e)
 
+@basic_exception_handler
+def retrieve_system_user(email_user_id):
+    try:
+        return SystemUser.objects.get(ledger_id=email_user_id)
+    except Exception as e:
+        print(e)
 
 def get_invoice_payment_status(invoice_id):
     try:

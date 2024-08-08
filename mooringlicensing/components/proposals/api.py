@@ -80,7 +80,7 @@ from mooringlicensing.components.proposals.serializers import (
     VesselSerializer,
     VesselDetailsSerializer,
     VesselOwnershipSerializer,
-    MooringBaySerializer, EmailUserSerializer, ProposedDeclineSerializer,
+    MooringBaySerializer, ProposedDeclineSerializer,
     CompanyOwnershipSerializer,
     CompanySerializer,
     SaveVesselOwnershipSaleDateSerializer,
@@ -410,14 +410,6 @@ class GetPaymentSystemId(views.APIView):
 
     def get(self, request, format=None):
         return Response({'payment_system_id': PAYMENT_SYSTEM_ID})
-
-
-# class GetApplicantsDict(views.APIView):
-#     renderer_classes = [JSONRenderer, ]
-#
-#     def get(self, request, format=None):
-#         applicants = EmailUser.objects.filter(mooringlicensing_proposals__in=Proposal.objects.all()).order_by('first_name', 'last_name').distinct()
-#         return Response(EmailUserSerializer(applicants, many=True).data)
 
 
 class GetApplicationTypeDict(views.APIView):

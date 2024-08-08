@@ -39,13 +39,14 @@ from mooringlicensing.components.proposals.models import (
 )
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
-    EmailUserSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
+from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.users.serializers import UserAddressSerializer
 from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
+from mooringlicensing.ledger_api_utils import retrieve_system_user
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -142,9 +143,7 @@ class MooringSimpleSerializer(serializers.ModelSerializer):
 class BaseProposalSerializer(serializers.ModelSerializer):
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
-    # allowed_assessors = EmailUserSerializer(many=True)
     allowed_assessors = serializers.SerializerMethodField()
-    # submitter = EmailUserSerializer()
     get_history = serializers.ReadOnlyField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
@@ -272,7 +271,8 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             return ''
 
     def get_allowed_assessors(self, obj):
-        serializer = EmailUserSerializer(obj.allowed_assessors, many=True)
+        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
+        serializer = UserSerializer(system_users, many=True)
         return serializer.data
 
     def get_vessel_on_proposal(self, obj):
@@ -395,7 +395,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
 
 class ListProposalSerializer(BaseProposalSerializer):
-    # submitter = EmailUserSerializer()
     submitter = serializers.SerializerMethodField(read_only=True)
     applicant = serializers.CharField(read_only=True)
     processing_status = serializers.SerializerMethodField()
@@ -473,10 +472,9 @@ class ListProposalSerializer(BaseProposalSerializer):
         if proposal_applicant:
             return ProposalApplicantSerializer(proposal_applicant.first()).data
         else:
-            if obj.submitter:
-                from mooringlicensing.ledger_api_utils import retrieve_email_userro
-                email_user = retrieve_email_userro(obj.submitter)
-                return EmailUserSerializer(email_user).data
+            if obj.submitter:             
+                user = retrieve_system_user(obj.submitter)
+                return UserSerializer(user).data
             else:
                 return ""
 
@@ -926,7 +924,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     assessor_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
     approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
@@ -1052,6 +1050,11 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'requirements',
         )
 
+    def get_allowed_assessors(self, obj):
+        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
+        serializer = UserSerializer(system_users, many=True)
+        return serializer.data
+
     def get_proposed_issuance_approval(self, obj):
         if obj.proposed_issuance_approval and obj.proposed_issuance_approval.get('mooring_bay_id', None):
             # Add bay_name when possible to display on the frontend
@@ -1065,10 +1068,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
         if proposal_applicant:
             return ProposalApplicantSerializer(proposal_applicant.first()).data
         else:
-            if obj.submitter:
-                from mooringlicensing.ledger_api_utils import retrieve_email_userro
-                email_user = retrieve_email_userro(obj.submitter)
-                return EmailUserSerializer(email_user).data
+            if obj.submitter:    
+                email_user = retrieve_system_user(obj.submitter)
+                return UserSerializer(email_user).data
             else:
                 return ""
 
@@ -1500,7 +1502,11 @@ class ListVesselOwnershipSerializer(serializers.ModelSerializer):
                 )
 
     def get_emailuser(self, obj):
-        serializer = EmailUserSerializer(obj.owner.emailuser_obj)
+        try:
+            system_user = SystemUser.objects.get(ledger_id=obj.owner.emailuser_obj)
+            serializer = UserSerializer(system_user)
+        except:
+            return ""
         return serializer.data
 
     def get_vessel_details(self, obj):

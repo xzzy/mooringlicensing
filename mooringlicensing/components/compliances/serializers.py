@@ -1,10 +1,10 @@
 # from django.utils import timezone
 # from ledger.accounts.models import EmailUser,Address
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.compliances.models import (
     Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
 )
-from mooringlicensing.components.main.serializers import EmailUserSerializer
+from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
 from rest_framework import serializers
 
@@ -19,14 +19,13 @@ class ComplianceSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField(read_only=True)
-    allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
     assigned_to = serializers.SerializerMethodField(read_only=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
     application_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
-
 
     class Meta:
         model = Compliance
@@ -61,6 +60,11 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'application_type_dict',
 
         )
+
+    def get_allowed_assessors(self, obj):
+        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
+        serializer = UserSerializer(system_users, many=True)
+        return serializer.data
 
     def get_documents(self,obj):
         return [[d.name,d._file.url,d.can_delete,d.id] for d in obj.documents.all()]
@@ -106,7 +110,7 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField(read_only=True)
-    allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = UserSerializer(many=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
 
@@ -140,6 +144,11 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
             'fee_invoice_reference',
             'fee_paid',
         )
+
+    def get_allowed_assessors(self, obj):
+        system_users = SystemUser.objects.filter(ledger_id__in=obj.allowed_assessors)
+        serializer = UserSerializer(system_users, many=True)
+        return serializer.data
 
     def get_documents(self,obj):
         return [[d.name,d._file.url,d.can_delete,d.id] for d in obj.documents.all()]

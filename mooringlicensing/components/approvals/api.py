@@ -25,6 +25,7 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from ledger_api_client.settings_base import TIME_ZONE
 from datetime import datetime
 from collections import OrderedDict
+from ledger_api_client.managed_models import SystemUser
 
 from django.core.cache import cache
 from mooringlicensing import forms
@@ -58,8 +59,7 @@ from mooringlicensing.components.approvals.serializers import (
     DcvOrganisationSerializer,
     DcvVesselSerializer,
     ListDcvPermitSerializer,
-    ListDcvAdmissionSerializer,
-    EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
+    ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer, StickerForDcvSaveSerializer,
 )
 from mooringlicensing.components.users.serializers import UserSerializer
@@ -517,11 +517,11 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET'], detail=False)
     def holder_list(self, request, *args, **kwargs):
+        #TODO review - tidy this up
         holder_list = self.get_queryset().values_list('submitter__id', flat=True)
-        print(holder_list)
         distinct_holder_list = list(dict.fromkeys(holder_list))
-        print(distinct_holder_list)
-        serializer = EmailUserSerializer(EmailUser.objects.filter(id__in=distinct_holder_list), many=True)
+        system_users = SystemUser.objects.filter(ledger_id__id__in=distinct_holder_list)
+        serializer = UserSerializer(system_users, many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET'], detail=True)
