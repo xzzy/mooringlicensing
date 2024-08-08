@@ -55,14 +55,14 @@
                   </div>
                   <div v-else>
                     <Applicant
-                        :email_user="proposal.submitter"
+                        :user="proposal.submitter"
                         :applicantType="proposal.applicant_type"
                         id="proposalStartApplicant"
                         :readonly="readonly"
                         :showElectoralRoll="showElectoralRoll"
                         :storedSilentElector="silentElector"
                         :proposalId="proposal.id"
-                        :proposal="proposal"
+                        :proposalApplicant="proposal.proposal_applicant"
                     />
                   </div>
               </div>

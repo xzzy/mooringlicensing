@@ -56,7 +56,25 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-12">
+            <div v-if="proposalId && proposalApplicant" class="col-md-12">
+                <div class="row">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Address Details
+                                <a class="panelClicker" :href="'#' + addressBody" data-toggle="collapse"
+                                    data-parent="#userInfo" expanded="false" :aria-controls="addressBody"
+                                    @click="adjust_address_tables">
+                                    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                </a>
+                            </h3>
+                        </div>
+                        <div class="panel-body panel-collapse collapse" :id="addressBody"> 
+                        PROPOSAL APPLICANT ADDRESSES HERE...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="col-md-12">
                 <div class="row">
                     <div class="panel panel-default">
                         <div class="panel-heading">
@@ -228,6 +246,9 @@ export default {
         proposalId: {
             type: Number,
         },
+        proposalApplicant: {
+            type: Object,
+        },
     },
     data: function () {
         let vm = this;
@@ -261,7 +282,7 @@ export default {
         customerLabel: function () {
             let label = 'User';
             if (this.proposalId) {
-                let label = 'Applicant';
+                label = 'Applicant';
                 if (this.customerType && this.customerType === 'holder') {
                     label = 'Holder';
                 }
@@ -308,7 +329,6 @@ export default {
             }, 200);
         },
         adjust_table_width: function() {
-            console.log("????????")
             let vm = this;
             vm.$refs.residential_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
             vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
@@ -317,19 +337,9 @@ export default {
             let vm = this;
             let data = [];
             if (address_type == "residential") {
-                if (this.proposalId) {
-                    //TODO
-                    data = [];
-                } else {
-                    data = vm.user.residential_address_list;
-                }
+                data = vm.user.residential_address_list;
             } else if (address_type == "postal") {
-                if (this.proposalId) {
-                    //TODO
-                    data = [];
-                } else {
-                    data = vm.user.postal_address_list;
-                }
+                data = vm.user.postal_address_list;
             }
             return {
                 searching: false,

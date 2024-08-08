@@ -134,7 +134,7 @@ import draggable from 'vuedraggable';
                         this.mooringBays.push(bay);
                     }
                 } else {
-                    for (let bay of response.body) {
+                    for (let bay of response.body.results) {
                         this.mooringBays.push(bay);
                     }
                 }
