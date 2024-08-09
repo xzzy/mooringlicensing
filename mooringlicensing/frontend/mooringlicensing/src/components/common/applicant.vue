@@ -69,7 +69,86 @@
                             </h3>
                         </div>
                         <div class="panel-body panel-collapse collapse" :id="addressBody"> 
-                        PROPOSAL APPLICANT ADDRESSES HERE...
+                            <form class="form-horizontal">
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >
+                                        <strong>
+                                        Residential Address
+                                        </strong>
+                                    </label>
+                                </div>
+                                <div class="row">
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Street</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.residential_line1">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.residential_locality">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >State</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.residential_state">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Postcode</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.residential_postcode">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Country</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.residential_country">
+                                    </div>
+                                </div> 
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >
+                                        <strong>
+                                        Postal Address
+                                        </strong>
+                                    </label>
+                                </div>
+                                <div class="row">
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Street</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.postal_line1">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.postal_locality">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >State</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.postal_state">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Postcode</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.postal_postcode">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="" class="col-sm-3 control-label" >Country</label>
+                                    <div class="col-sm-6">
+                                        <input readonly type="text" class="form-control" v-model="proposalApplicant.postal_country">
+                                    </div>
+                                </div> 
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
