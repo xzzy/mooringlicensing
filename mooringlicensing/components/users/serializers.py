@@ -85,6 +85,7 @@ class UserAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = SystemUserAddress
         fields = (
+            'id',
             'line1',
             'line2',
             'line3',
