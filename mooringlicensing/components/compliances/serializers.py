@@ -114,7 +114,7 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField(read_only=True)
-    allowed_assessors = UserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
 
