@@ -47,7 +47,7 @@ class FirstTimeNagScreenMiddleware(object):
                 not residential_address.exists() or 
                 not postal_address.exists() or
                 #not billing_address.exists() or
-                not (system_user.phone_number or system_user.mobile_number)
+                not system_user.mobile_number
                 ):
                 # We don't want to redirect the user when the user is accessing the firsttime page or logout page.
                 if request.path not in (path_logout):

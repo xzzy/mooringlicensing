@@ -12,7 +12,7 @@
                     </h3>
                   </div>
                   <div class="panel-body collapse" :id="pBody">
-                      <form class="form-horizontal" name="personal_form" method="post">
+                      <form class="form-horizontal">
                         <div class="form-group">
                           <label for="" class="col-sm-3 control-label">Given name(s)</label>
                           <div class="col-sm-6">
@@ -40,53 +40,128 @@
         <div class="row" v-if="!forEndorser">
             <div class="col-sm-12">
                 <div class="panel panel-default">
-                  <div class="panel-heading">
-                    <h3 class="panel-title">Address Details <small>Select address details for this application</small>
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Address Details <small>Select address details for this application</small>
                         <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true" data-parent="#userInfo" :aria-controls="adBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
-                    </h3>
-                  </div>
-                  <div v-if="!readonly" class="panel-body collapse in" :id="adBody">
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <strong>
-                            Residential Address
-                            </strong>
-                        </div>
+                        </h3>
                     </div>
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <datatable
-                                ref="residential_address_datatable"
-                                :id="residential_address_datatable_id"
-                                :dtOptions="residential_address_datatable_options"
-                                :dtHeaders="address_datatable_headers"
-                                :key="residential_address_table_key"
-                            />
+                    <div v-if="!readonly" class="panel-body collapse in" :id="adBody">
+                        <form class="form-horizontal">
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >
+                                <strong>
+                                Residential Address
+                                </strong>
+                            </label>
+                            <div class="col-sm-6">
+                            <select v-model="residential_address" class="form-control">
+                                <option selected disabled hidden value>Select residential address...</option>
+                                <option v-for="option in profile.residential_address_list" :value="option">
+                                    {{ option.line1 }}, {{ option.locality }}, {{ option.state }}, {{ option.postcode }}, {{ option.country }}
+                                </option>
+                            </select>
+                            </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <strong>
-                            Postal Address
-                            </strong>
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >
+                                <strong>
+                                Postal Address
+                                </strong>
+                            </label>
+                            <div class="col-sm-6">
+                            <select v-model="postal_address" class="form-control">
+                                <option selected disabled hidden value>Select postal address...</option>
+                                <option v-for="option in profile.postal_address_list" :value="option">
+                                    {{ option.line1 }}, {{ option.locality }}, {{ option.state }}, {{ option.postcode }}, {{ option.country }}
+                                </option>
+                            </select>
+                            </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-12">
-                            <datatable
-                                ref="postal_address_datatable"
-                                :id="postal_address_datatable_id"
-                                :dtOptions="postal_address_datatable_options"
-                                :dtHeaders="address_datatable_headers"
-                                :key="postal_address_table_key"
-                            />
-                        </div>
-                    </div>
+                    </form>
                   </div>
                   <div v-else class="panel-body collapse in" :id="adBody">
-                    PROPOSAL APPLICANT ADDRESSES HERE...
+                    <form class="form-horizontal">
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >
+                                <strong>
+                                Residential Address
+                                </strong>
+                            </label>
+                        </div>
+                        <div class="row">
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Street</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_line1">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_locality">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >State</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_state">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Postcode</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_postcode">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Country</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_country">
+                            </div>
+                          </div> 
+                        </div>
+                        <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >
+                                <strong>
+                                Postal Address
+                                </strong>
+                            </label>
+                        </div>
+                        <div class="row">
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Street</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_line1">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_locality">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >State</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_state">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Postcode</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_postcode">
+                            </div>
+                          </div>
+                          <div class="form-group">
+                            <label for="" class="col-sm-3 control-label" >Country</label>
+                            <div class="col-sm-6">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_country">
+                            </div>
+                          </div> 
+                        </div>
+                    </form>
                   </div>
                 </div>
             </div>
@@ -102,7 +177,7 @@
                     </h3>
                   </div>
                   <div class="panel-body collapse" :id="cBody">
-                      <form class="form-horizontal" action="index.html" method="post">
+                      <form class="form-horizontal">
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Phone (work)</label>
                             <div class="col-sm-6">
@@ -180,6 +255,9 @@ export default {
         proposalId: {
             type: Number,
         },
+        proposal: {
+            type: Object,
+        },
         submitterId: {
             type: Number,
         },
@@ -223,6 +301,8 @@ export default {
             postal_address_table_key: 0,
             selected_residential_id: null,
             selected_postal_id: null,
+            residential_address: "",
+            postal_address:"",
         }
     },
     components: {
@@ -230,6 +310,14 @@ export default {
         FileField,
         alert,
         datatable,
+    },
+    watch: {
+        residential_address: function() {
+            this.profile.residential_address = this.residential_address;
+        },
+        postal_address: function() {
+            this.profile.postal_address = this.postal_address;
+        }
     },
     computed: {
         electoralRollDocumentUrl: function() {
@@ -242,38 +330,6 @@ export default {
         classCompute:function(){
           return this.isApplication? 'row' : 'container';
         },
-
-        residential_address_datatable_options: function() {
-            return this.datatable_options("residential");
-        },
-        postal_address_datatable_options: function() {
-            return this.datatable_options("postal");
-        },
-        column_street: function(){
-            return {
-                data: "line1",
-            }
-        },
-        column_locality: function(){
-            return {
-                data: "locality",
-            }
-        },
-        column_state: function(){
-            return {
-                data: "state",
-            }
-        },
-        column_postcode: function(){
-            return {
-                data: "postcode",
-            }
-        },
-        column_country: function(){
-            return {
-                data: "country",
-            }
-        },
         uploadedFileName: function() {
             return this.uploadedFile != null ? this.uploadedFile.name: '';
         },
@@ -282,63 +338,6 @@ export default {
         },
     },
     methods: {
-        adjust_table_width: function() {
-            let vm = this;
-            vm.$refs.residential_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
-            vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
-        },
-
-        datatable_options: function(address_type){
-            let vm = this;
-            let data = [];
-            let columns = [
-                vm.column_street,
-                vm.column_locality,
-                vm.column_state,
-                vm.column_postcode,
-                vm.column_country,
-            ];
-            if (address_type == "residential") {
-                data = vm.profile.residential_address_list;
-                columns.push(
-                    {
-                        data: "id",
-                        mRender:function (data,type,full){
-                            if (vm.selected_residential_id !== null && vm.selected_residential_id == full.id) {
-                                return `<input id='${full.id}' type="radio" data-residential-radio='${full.id}' checked>`
-                            } else {
-                                return `<input id='${full.id}' type="radio" data-residential-radio='${full.id}'>`
-                            }
-                        }
-                    }
-                );
-            } else if (address_type == "postal") {
-                data = vm.profile.postal_address_list;
-                columns.push(
-                    {
-                        data: "id",
-                        mRender:function (data,type,full){
-                            if (vm.selected_postal_id !== null && vm.selected_postal_id == full.id) {
-                                return `<input id='${full.id}' type="radio" data-postal-radio='${full.id}' checked>`
-                            } else {
-                                return `<input id='${full.id}' type="radio" data-postal-radio='${full.id}'>`
-                            }
-                        }
-                    }
-                );
-            }
-            return {
-                searching: false,
-                autoWidth: true,
-                responsive: true,
-                data: data,
-                dom: 'lBfrtip',
-                buttons: [],
-                columns: columns,
-                processing: true,
-            }
-        },
-
         readFile: function() {
             let vm = this;
             let _file = null;
@@ -352,39 +351,7 @@ export default {
                 _file = input.files[0];
             }
             vm.uploadedFile = _file;
-        },
-        addEventListeners:function (){
-            let vm=this;
-            vm.$refs.residential_address_datatable.vmDataTable.on('change', 'input[data-residential-radio]', function(e) {
-                e.preventDefault();
-                var id = $(this).attr('data-residential-radio');
-                vm.selected_residential_id = id;
-
-                vm.profile.residential_address_list.forEach(addr=> {
-                    let radio = vm.$refs.residential_address_datatable.vmDataTable.$("#"+addr.id);
-                    if (radio.attr('data-residential-radio') != $(this).attr('data-residential-radio')) {
-                        radio.prop('checked', false);
-                    } else {
-                        vm.profile.residential_address = addr;
-                    }
-                });
-            });
-            vm.$refs.postal_address_datatable.vmDataTable.on('change', 'input[data-postal-radio]', function(e) {
-                e.preventDefault();
-                var id = $(this).attr('data-postal-radio');
-                vm.selected_postal_id = id;          
-
-                vm.profile.postal_address_list.forEach(addr=> {
-                    let radio = vm.$refs.postal_address_datatable.vmDataTable.$("#"+addr.id);
-                    if (radio.attr('data-postal-radio') != $(this).attr('data-postal-radio')) {
-                        radio.prop('checked', false);
-                    } else {
-                        vm.profile.postal_address = addr;
-                    }
-                });
-            });
-        },
-        
+        },       
         toggleSection: function (e) {
             let el = e.target;
             let chev = null;
@@ -400,26 +367,49 @@ export default {
             response = await Vue.http.get(api_endpoints.profile + '/' + this.proposalId)
             this.profile = Object.assign(response.body)
 
-            if (this.profile.residential_address_list.length > 0){
-                this.profile.residential_address = Object.assign(this.profile.residential_address_list[0])
-                this.selected_residential_id = this.profile.residential_address.id;
+            if (this.proposal.proposal_applicant) {
+                this.profile.residential_address_list.forEach(addr => {
+                    if (
+                        addr.line1 === this.proposal.proposal_applicant.residential_line1 &&
+                        addr.locality === this.proposal.proposal_applicant.residential_locality &&
+                        addr.state === this.proposal.proposal_applicant.residential_state &&
+                        addr.country === this.proposal.proposal_applicant.residential_country &&
+                        addr.postcode === this.proposal.proposal_applicant.residential_postcode
+                    ) {
+                        this.residential_address = Object.assign(addr)
+                    }
+                });
+            } else if (this.profile.residential_address_list.length == 1){
+                this.residential_address = Object.assign(this.profile.residential_address_list[0])
+            } else {
+                this.residential_address = "";
             }
-            if (this.profile.postal_address_list.length > 0){
-                this.profile.postal_address = Object.assign(this.profile.postal_address_list[0])
-                this.selected_postal_id = this.profile.postal_address.id;
+            if (this.proposal.proposal_applicant) {
+                this.profile.postal_address_list.forEach(addr => {
+                    if (
+                        addr.line1 === this.proposal.proposal_applicant.postal_line1 &&
+                        addr.locality === this.proposal.proposal_applicant.postal_locality &&
+                        addr.state === this.proposal.proposal_applicant.postal_state &&
+                        addr.country === this.proposal.proposal_applicant.postal_country &&
+                        addr.postcode === this.proposal.proposal_applicant.postal_postcode
+                    ) {
+                        this.postal_address = Object.assign(addr)
+                    }
+                });
+            } else if (this.profile.postal_address_list.length  == 1){
+                this.postal_address = Object.assign(this.profile.postal_address_list[0])
+            } else {
+                this.postal_address = "";
             }
             if (this.profile.legal_dob) {
                 this.profile.legal_dob = moment(this.profile.legal_dob).format('DD/MM/YYYY')
             }
-            this.residential_address_table_key++;
-            this.postal_address_table_key++;      
         },
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.profile).then((response) => {
             next(vm => {
                 vm.profile = Object.assign(response.body);
-                this.addEventListeners();
             });           
         },(error) => {
             console.log(error);
@@ -431,7 +421,8 @@ export default {
         await this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
         await this.$nextTick(() => {
             this.$emit('profile-fetched', this.profile);
-            this.addEventListeners();
+            this.residential_address_table_key++;
+            this.postal_address_table_key++;
         });
         $('.panelClicker[data-toggle="collapse"]').on('click', function () {
             var chev = $(this).children()[0];

@@ -11,7 +11,7 @@ import pytz
 from django.db.models import Q, CharField, Value
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from rest_framework import viewsets, serializers, status, views
+from rest_framework import viewsets, serializers, status, views, mixins
 # from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.decorators import renderer_classes
 from rest_framework.decorators import action as detail_route
@@ -117,7 +117,6 @@ from copy import deepcopy
 from django.core.exceptions import ObjectDoesNotExist
 
 import logging
-from mooringlicensing.ledger_api_utils import MyUserForLedgerAPI, update_account_details_in_ledger
 
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
     PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
@@ -913,7 +912,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         return Response()
 
 
-class ProposalViewSet(viewsets.ModelViewSet):
+class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
     lookup_field = 'id'
@@ -1506,7 +1505,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             # Make sure the submitter is the same as the applicant.
             is_authorised_to_modify(request, instance)
-
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))
 
@@ -1521,9 +1519,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
-            
             save_proponent_data(instance, request, self)
-
             is_applicant_address_set(instance)
 
             return Response()
@@ -1654,21 +1650,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if hasattr(e,'message'):
                 raise serializers.ValidationError(e.message)
 
-    def create(self, request, *args, **kwargs):
-        raise NotImplementedError("Parent objects should not be created directly")
-
-    def update(self, request, *args, **kwargs):
-        try:
-            http_status = status.HTTP_200_OK
-            instance = self.get_object()
-
-            serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
-            return Response(serializer.data)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
     @basic_exception_handler
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1680,116 +1661,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             instance.destroy(request, *args, **kwargs)
 
         return Response()
-
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    #TODO remove
-    def update_personal(self, request, *args, **kwargs):
-        with transaction.atomic():
-            proposal = self.get_object()
-            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-            data = {}
-            dob = request.data.get('dob', '')
-            dob = datetime.strptime(dob, '%d/%m/%Y').date() if dob else dob
-            data['first_name'] = request.data.get('first_name')
-            data['last_name'] = request.data.get('last_name')
-            data['dob'] = dob
-
-            serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            logger.info(f'Personal details of the proposal: {proposal} have been updated with the data: {data}')
-
-            # format dob for ledger
-            data['dob'] = dob.strftime('%d/%m/%Y')
-
-            ## Update the ledger
-            ret = update_account_details_in_ledger(request, data)
-
-            return Response(serializer.data)
-
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    #TODO remove
-    def update_contact(self, request, *args, **kwargs):
-        with transaction.atomic():
-            proposal = self.get_object()
-            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-            data = {}
-            if request.data.get('mobile_number', ''):
-                data['mobile_number'] = request.data.get('mobile_number')
-            if request.data.get('phone_number', ''):
-                data['phone_number'] = request.data.get('phone_number')
-
-            serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            logger.info(f'Contact details of the proposal: {proposal} have been updated with the data: {data}')
-
-            ## Update the ledger
-            ret = update_account_details_in_ledger(request, data)
-
-            return Response(serializer.data)
-
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    #TODO either remove or change how it works 
-    #(can only change while in draft, and only the address selection not the actual values)
-    def update_address(self, request, *args, **kwargs):
-        with transaction.atomic():
-            proposal = self.get_object()
-            proposal_applicant = ProposalApplicant.objects.get(proposal=proposal)
-            data = {}
-            if 'residential_line1' in request.data:
-                data['residential_line1'] = request.data.get('residential_line1')
-            if 'residential_locality' in request.data:
-                data['residential_locality'] = request.data.get('residential_locality')
-            if 'residential_state' in request.data:
-                data['residential_state'] = request.data.get('residential_state')
-            if 'residential_postcode' in request.data:
-                data['residential_postcode'] = request.data.get('residential_postcode')
-            if 'residential_country' in request.data:
-                data['residential_country'] = request.data.get('residential_country')
-            if request.data.get('postal_same_as_residential'):
-                data['postal_same_as_residential'] = True
-                data['postal_line1'] = ''
-                data['postal_locality'] = ''
-                data['postal_state'] = ''
-                data['postal_postcode'] = ''
-                data['postal_country'] = data['residential_country']
-            else:
-                data['postal_same_as_residential'] = False
-                if 'postal_line1' in request.data:
-                    data['postal_line1'] = request.data.get('postal_line1')
-                if 'postal_locality' in request.data:
-                    data['postal_locality'] = request.data.get('postal_locality')
-                if 'postal_state' in request.data:
-                    data['postal_state'] = request.data.get('postal_state')
-                if 'postal_postcode' in request.data:
-                    data['postal_postcode'] = request.data.get('postal_postcode')
-                if 'postal_country' in request.data:
-                    data['postal_country'] = request.data.get('postal_country')
-
-            serializer = ProposalApplicantSerializer(proposal_applicant, data=data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            logger.info(f'Address details of the proposal: {proposal} have been updated with the data: {data}')
-
-            # Construct data for ledger
-            data_for_ledger = {
-                'residential_address': {}, 
-                'postal_address': {}
-            }
-            for key, value in data.items():
-                if 'postal' in key:
-                    data_for_ledger['postal_address'][key] = value
-                elif 'residential' in key:
-                    data_for_ledger['residential_address'][key] = value
-
-            ## Update the ledger
-            ret = update_account_details_in_ledger(request, data_for_ledger)
-
-            return Response(serializer.data)
 
 
 class ProposalRequirementViewSet(viewsets.ModelViewSet):

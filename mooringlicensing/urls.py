@@ -210,8 +210,9 @@ urlpatterns = [
     #re_path(r'^' + PRIVATE_MEDIA_DIR_NAME + '/dcv_admission/(?P<dcv_admission_id>\d+)/dcv_admission_documents/(?P<filename>.+)$', proposal_views.DcvAdmissionDocumentView.as_view(), name='serve_dcv_admission_documents'),
     #re_path(r'^' + PRIVATE_MEDIA_DIR_NAME + '/dcv_permit/(?P<dcv_permit_id>\d+)/dcv_permit_documents/(?P<filename>.+)$', proposal_views.DcvPermitDocumentView.as_view(), name='serve_dcv_permit_documents'),
 
+    #TODO remove
     # Intercept the request to update the account details before reaching the ledger_api_client
-    re_path(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),
+    # re_path(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),
 
 ] + ledger_patterns #+ media_serv_patterns
 

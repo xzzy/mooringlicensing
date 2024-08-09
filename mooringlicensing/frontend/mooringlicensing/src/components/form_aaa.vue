@@ -44,6 +44,7 @@
                         @profile-fetched="populateProfile"
                         :showElectoralRoll="showElectoralRoll"
                         :proposalId="proposal.id"
+                        :proposal="proposal"
                         :readonly="readonly"
                         :submitterId="submitterId"
                         :is_internal=is_internal

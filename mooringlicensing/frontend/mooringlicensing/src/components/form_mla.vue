@@ -48,6 +48,7 @@
                         :showElectoralRoll="showElectoralRoll"
                         :storedSilentElector="silentElector"
                         :proposalId="proposal.id"
+                        :proposal="proposal"
                         :readonly="readonly"
                         :submitterId="submitterId"
                         :is_internal=is_internal
