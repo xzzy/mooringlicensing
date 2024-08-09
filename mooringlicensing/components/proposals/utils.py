@@ -49,6 +49,7 @@ from mooringlicensing.components.approvals.models import (
     AuthorisedUserPermit, Approval
 )
 from mooringlicensing.components.users.serializers import UserSerializer
+from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_SWAP_MOORINGS
 import traceback
@@ -350,10 +351,15 @@ def save_proponent_data(instance, request, viewset):
         save_proponent_data_mla(instance, request, viewset)
 
     # Save request.user details in a JSONField not to overwrite the details of it.
-    serializer = UserSerializer(request.user, context={'request':request})
-    if instance:
-        instance.personal_details = serializer.data
-        instance.save()
+    try:
+        user = SystemUser.objects.get(ledger_id=request.user)
+        serializer = UserSerializer(user, context={'request':request})
+        if instance:
+            instance.personal_details = serializer.data
+            instance.save()
+    except Exception as e:
+        print(e)
+        raise serializers.ValidationError("error")
 
 
 def save_proponent_data_aaa(instance, request, viewset):
@@ -380,9 +386,8 @@ def save_proponent_data_aaa(instance, request, viewset):
     instance = serializer.save()
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
+    update_proposal_applicant(instance.child_obj, request)
     if viewset.action == 'submit':
-        update_proposal_applicant(instance.child_obj, request)
-
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
@@ -415,9 +420,8 @@ def save_proponent_data_wla(instance, request, viewset):
     instance = serializer.save()
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
+    update_proposal_applicant(instance.child_obj, request)
     if viewset.action == 'submit':
-        update_proposal_applicant(instance.child_obj, request)
-
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
@@ -452,9 +456,8 @@ def save_proponent_data_mla(instance, request, viewset):
     serializer.save()
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
+    update_proposal_applicant(instance.child_obj, request)
     if viewset.action == 'submit':
-        update_proposal_applicant(instance.child_obj, request)
-
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
 
@@ -484,9 +487,8 @@ def save_proponent_data_aua(instance, request, viewset):
     serializer.save()
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
+    update_proposal_applicant(instance.child_obj, request)
     if viewset.action == 'submit':
-        update_proposal_applicant(instance.child_obj, request)
-
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
 
@@ -1012,6 +1014,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
 
 
 def update_proposal_applicant(proposal, request):
+
     proposal_applicant, created = ProposalApplicant.objects.get_or_create(proposal=proposal)
     if created:
         logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the proposal: [{proposal}].')
@@ -1021,61 +1024,37 @@ def update_proposal_applicant(proposal, request):
 
     # Copy data from the application
     if proposal_applicant_data:
-        proposal_applicant.first_name = proposal_applicant_data['first_name']
-        proposal_applicant.last_name = proposal_applicant_data['last_name']
-        # correct_date = datetime.datetime.strptime(proposal_applicant_data['dob'], "%d/%m/%Y").strftime("%Y-%m-%d")
-        correct_date = datetime.datetime.strptime(proposal_applicant_data['dob'], '%d/%m/%Y').date()
+        proposal_applicant.first_name = proposal_applicant_data['legal_first_name']
+        proposal_applicant.last_name = proposal_applicant_data['legal_last_name']
+        correct_date = datetime.datetime.strptime(proposal_applicant_data['legal_dob'], '%d/%m/%Y').date()
         proposal_applicant.dob = correct_date
  
-        proposal_applicant.residential_line1 = proposal_applicant_data['residential_line1']
-        proposal_applicant.residential_line2 = proposal_applicant_data['residential_line2']
-        proposal_applicant.residential_line3 = proposal_applicant_data['residential_line3']
-        proposal_applicant.residential_locality = proposal_applicant_data['residential_locality']
-        proposal_applicant.residential_state = proposal_applicant_data['residential_state']
-        proposal_applicant.residential_country = proposal_applicant_data['residential_country']
-        proposal_applicant.residential_postcode = proposal_applicant_data['residential_postcode']
+        if 'residential_address' in proposal_applicant_data:
+            proposal_applicant.residential_line1 = proposal_applicant_data['residential_address']['line1']
+            proposal_applicant.residential_line2 = proposal_applicant_data['residential_address']['line2']
+            proposal_applicant.residential_line3 = proposal_applicant_data['residential_address']['line3']
+            proposal_applicant.residential_locality = proposal_applicant_data['residential_address']['locality']
+            proposal_applicant.residential_state = proposal_applicant_data['residential_address']['state']
+            proposal_applicant.residential_country = proposal_applicant_data['residential_address']['country']
+            proposal_applicant.residential_postcode = proposal_applicant_data['residential_address']['postcode']
 
-        proposal_applicant.postal_same_as_residential = proposal_applicant_data['postal_same_as_residential']
-        proposal_applicant.postal_line1 = proposal_applicant_data['postal_line1']
-        proposal_applicant.postal_line2 = proposal_applicant_data['postal_line2']
-        proposal_applicant.postal_line3 = proposal_applicant_data['postal_line3']
-        proposal_applicant.postal_locality = proposal_applicant_data['postal_locality']
-        proposal_applicant.postal_state = proposal_applicant_data['postal_state']
-        proposal_applicant.postal_country = proposal_applicant_data['postal_country']
-        proposal_applicant.postal_postcode = proposal_applicant_data['postal_postcode']
+        #proposal_applicant.postal_same_as_residential = proposal_applicant_data['postal_same_as_residential']
+
+        if 'postal_address' in proposal_applicant_data:
+            proposal_applicant.postal_line1 = proposal_applicant_data['postal_address']['line1']
+            proposal_applicant.postal_line2 = proposal_applicant_data['postal_address']['line2']
+            proposal_applicant.postal_line3 = proposal_applicant_data['postal_address']['line3']
+            proposal_applicant.postal_locality = proposal_applicant_data['postal_address']['locality']
+            proposal_applicant.postal_state = proposal_applicant_data['postal_address']['state']
+            proposal_applicant.postal_country = proposal_applicant_data['postal_address']['country']
+            proposal_applicant.postal_postcode = proposal_applicant_data['postal_address']['postcode']
 
         proposal_applicant.email = proposal_applicant_data['email']
         proposal_applicant.phone_number = proposal_applicant_data['phone_number']
         proposal_applicant.mobile_number = proposal_applicant_data['mobile_number']
-    else:
-        # Copy data from the EmailUserRO 
-        proposal_applicant.first_name = request.user.first_name
-        proposal_applicant.last_name = request.user.last_name
-        proposal_applicant.dob = request.user.dob
 
-        proposal_applicant.residential_line1 = request.user.residential_address.line1
-        proposal_applicant.residential_line2 = request.user.residential_address.line2
-        proposal_applicant.residential_line3 = request.user.residential_address.line3
-        proposal_applicant.residential_locality = request.user.residential_address.locality
-        proposal_applicant.residential_state = request.user.residential_address.state
-        proposal_applicant.residential_country = request.user.residential_address.country
-        proposal_applicant.residential_postcode = request.user.residential_address.postcode
-
-        proposal_applicant.postal_same_as_residential = request.user.postal_same_as_residential
-        proposal_applicant.postal_line1 = request.user.postal_address.line1
-        proposal_applicant.postal_line2 = request.user.postal_address.line2
-        proposal_applicant.postal_line3 = request.user.postal_address.line3
-        proposal_applicant.postal_locality = request.user.postal_address.locality
-        proposal_applicant.postal_state = request.user.postal_address.state
-        proposal_applicant.postal_country = request.user.postal_address.country
-        proposal_applicant.postal_postcode = request.user.postal_address.postcode
-
-        proposal_applicant.email = request.user.email
-        proposal_applicant.phone_number = request.user.phone_number
-        proposal_applicant.mobile_number = request.user.mobile_number
-
-    proposal_applicant.save()
-    logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated.')
+        proposal_applicant.save()
+        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated.')
 
 
 def make_ownership_ready(proposal, request):

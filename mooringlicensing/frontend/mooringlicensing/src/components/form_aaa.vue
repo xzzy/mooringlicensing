@@ -44,6 +44,7 @@
                         @profile-fetched="populateProfile"
                         :showElectoralRoll="showElectoralRoll"
                         :proposalId="proposal.id"
+                        :proposal="proposal"
                         :readonly="readonly"
                         :submitterId="submitterId"
                         :is_internal=is_internal
@@ -51,11 +52,12 @@
                   </div>
                   <div v-else>
                     <Applicant
-                        :email_user="proposal.submitter" 
+                        :user="proposal.submitter" 
                         :applicantType="proposal.applicant_type" 
                         id="proposalStartApplicant"
                         :readonly="readonly"
-                        :proposal="proposal"
+                        :proposalId="proposal.id"
+                        :proposalApplicant="proposal.proposal_applicant"
                     />
                   </div>
               </div>

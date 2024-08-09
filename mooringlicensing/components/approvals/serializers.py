@@ -4,10 +4,10 @@ from datetime import datetime
 from mooringlicensing.settings import TIME_ZONE
 
 from django.conf import settings
-# from ledger.accounts.models import EmailUser
-# from ledger.payments.models import Invoice
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.ledger_models import Invoice
+from ledger_api_client.managed_models import SystemUser
 from django.db.models import Q, Min, Count
+from mooringlicensing.helpers import is_internal
 
 from mooringlicensing.components.main import serializers
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer, \
@@ -28,8 +28,7 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.components.organisations.models import (
     Organisation
 )
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer, \
-    EmailUserSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
     MooringSimpleSerializer, \
     ProposalApplicantSerializer  # EmailUserAppViewSerializer
@@ -37,7 +36,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_system_user, get_invoice_payment_status
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -290,7 +289,6 @@ class WaitingListAllocationSerializer(serializers.ModelSerializer):
 
 
 class ApprovalSerializer(serializers.ModelSerializer):
-    # submitter = UserSerializer()
     submitter = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
@@ -321,7 +319,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     can_action = serializers.SerializerMethodField()
     can_reinstate = serializers.SerializerMethodField()
     amend_or_renew = serializers.SerializerMethodField()
-    allowed_assessors = EmailUserSerializer(many=True)
+    allowed_assessors = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
 
@@ -373,8 +371,17 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'is_approver',
         )
 
+    def get_allowed_assessors(self, obj):
+        if 'request' in self.context and is_internal(self.context['request']):
+            email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            serializer = UserSerializer(system_users, many=True)
+            return serializer.data
+        else:
+            return None
+
     def get_submitter(self, obj):
-        serializer = UserSerializer(obj.submitter_obj)
+        serializer = UserSerializer(retrieve_system_user(obj.submitter))
         return serializer.data
 
     def get_mooring_licence_mooring(self, obj):
@@ -1238,7 +1245,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
         )
 
     def get_user_detail(self, obj):
-        serializer = EmailUserSerializer(retrieve_email_userro(obj.user))
+        serializer = UserSerializer(retrieve_system_user(obj.user))
         return serializer.data
 
 

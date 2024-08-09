@@ -37,8 +37,7 @@ from mooringlicensing.utils import are_migrations_running
 from django.urls import path
 
 router = routers.DefaultRouter()
-if settings.DEBUG is not True:
-    router.include_root_view = False
+router.include_root_view = settings.DEBUG
 router.register(r'organisations', org_api.OrganisationViewSet, 'organisations')
 router.register(r'proposal', proposal_api.ProposalViewSet, 'proposal')
 router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet, 'proposal_by_uuid')
@@ -79,16 +78,13 @@ router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewS
 
 api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
-    re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicant.as_view(), name='get-proposal-applicant'),
+    re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicantUser.as_view(), name='get-proposal-applicant-user'),
     re_path(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
-    re_path(r'^api/submitter_profile$', users_api.GetSubmitterProfile.as_view(), name='get-submitter-profile'),
-    re_path(r'^api/filtered_users$', users_api.UserListFilterView.as_view(), name='filtered_users'),
     re_path(r'^api/filtered_organisations$', org_api.OrganisationListFilterView.as_view(), name='filtered_organisations'),
     re_path(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
     re_path(r'^api/application_types$', proposal_api.GetApplicationTypeDescriptions.as_view(), name='get-application-type-descriptions'),
     re_path(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
     re_path(r'^api/application_categories_dict$', proposal_api.GetApplicationCategoryDict.as_view(), name='get-application-category-dict'),
-    # re_path(r'^api/applicants_dict$', proposal_api.GetApplicantsDict.as_view(), name='get-applicants-dict'),
     re_path(r'^api/payment_system_id$', proposal_api.GetPaymentSystemId.as_view(), name='get-payment-system-id'),
     re_path(r'^api/fee_item_sticker_replacement$', proposal_api.GetStickerReplacementFeeItem.as_view(), name='get-sticker-replacement-fee-item'),
     re_path(r'^api/vessel_rego_nos$', proposal_api.GetVesselRegoNos.as_view(), name='get-vessel_rego-nos'),
@@ -214,8 +210,9 @@ urlpatterns = [
     #re_path(r'^' + PRIVATE_MEDIA_DIR_NAME + '/dcv_admission/(?P<dcv_admission_id>\d+)/dcv_admission_documents/(?P<filename>.+)$', proposal_views.DcvAdmissionDocumentView.as_view(), name='serve_dcv_admission_documents'),
     #re_path(r'^' + PRIVATE_MEDIA_DIR_NAME + '/dcv_permit/(?P<dcv_permit_id>\d+)/dcv_permit_documents/(?P<filename>.+)$', proposal_views.DcvPermitDocumentView.as_view(), name='serve_dcv_permit_documents'),
 
+    #TODO remove
     # Intercept the request to update the account details before reaching the ledger_api_client
-    re_path(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),
+    # re_path(r'^ledger-ui/api/update-account-details/(?P<user_id>[0-9]+)/', update_personal_details, name='update-account-details'),
 
 ] + ledger_patterns #+ media_serv_patterns
 

@@ -50,12 +50,13 @@
             <div class="row">
                 <div v-if="approval && approval.submitter">
                     <Applicant
-                        :email_user="approval.submitter" 
+                        :user="approval.submitter" 
                         applicantType="SUB" 
                         id="approvalSubmitterDetails"
                         :readonly="true"
                         customerType="holder"
-                        :proposal="approval.current_proposal"
+                        :proposalId="approval.current_proposal.id"
+                        :proposalApplicant="approval.current_proposal.proposal_applicant"
                     />
                 </div>
             </div>

@@ -25,6 +25,7 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from ledger_api_client.settings_base import TIME_ZONE
 from datetime import datetime
 from collections import OrderedDict
+from ledger_api_client.managed_models import SystemUser
 
 from django.core.cache import cache
 from mooringlicensing import forms
@@ -58,10 +59,10 @@ from mooringlicensing.components.approvals.serializers import (
     DcvOrganisationSerializer,
     DcvVesselSerializer,
     ListDcvPermitSerializer,
-    ListDcvAdmissionSerializer,
-    EmailUserSerializer, StickerSerializer, StickerActionDetailSerializer,
+    ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer, StickerForDcvSaveSerializer,
 )
+from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
@@ -517,11 +518,11 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET'], detail=False)
     def holder_list(self, request, *args, **kwargs):
+        #TODO review - tidy this up
         holder_list = self.get_queryset().values_list('submitter__id', flat=True)
-        print(holder_list)
         distinct_holder_list = list(dict.fromkeys(holder_list))
-        print(distinct_holder_list)
-        serializer = EmailUserSerializer(EmailUser.objects.filter(id__in=distinct_holder_list), many=True)
+        system_users = SystemUser.objects.filter(ledger_id__id__in=distinct_holder_list)
+        serializer = UserSerializer(system_users, many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET'], detail=True)
@@ -533,13 +534,14 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         for moa in instance.mooringonapproval_set.all():
             licence_holder_data = {}
             if moa.mooring.mooring_licence:
-                licence_holder_data = UserSerializer(moa.mooring.mooring_licence.submitter_obj).data
+                licence_holder_data = SystemUser.objects.get(ledger_id=moa.mooring.mooring_licence.submitter_obj)
+            user_details = get_user_name(licence_holder_data)
             moorings.append({
                 "id": moa.id,
                 "mooring_name": moa.mooring.name,
-                "licensee": licence_holder_data.get('full_name') if licensee else '',
-                "mobile": licence_holder_data.get('mobile_number') if licensee else '',
-                "email": licence_holder_data.get('email') if licensee else '',
+                "licensee": user_details["full_name"],
+                "mobile": licence_holder_data.mobile_number,
+                "email": licence_holder_data.email,
                 })
         return Response(moorings)
 
