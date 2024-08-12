@@ -19,22 +19,21 @@ def belongs_to(user, group_name):
     :param group_name:
     :return:
     """
+    print("GROUP NAME", group_name)
     belongs_to_value = cache.get(
         "User-belongs_to" + str(user.id) + "group_name:" + group_name
     )
-    # if belongs_to_value:
-    #     logger.info(f'From Cache - User-belongs_to: {str(user.id)}, group_name: {group_name}')
     if belongs_to_value is None:
-    #     belongs_to_value = user.groups().filter(name=group_name).exists()
         belongs_to_value = False
-        system_group = ledger_api_client.managed_models.SystemGroup.objects.get(name=group_name)
-        if user.id in system_group.get_system_group_member_ids():
-            belongs_to_value = True
-        cache.set(
-            "User-belongs_to" + str(user.id) + "group_name:" + group_name,
-            belongs_to_value,
-            3600,
-        )
+        system_group = ledger_api_client.managed_models.SystemGroup.objects.filter(name=group_name)
+        if system_group.exists():
+            if user.id in system_group.first().get_system_group_member_ids():
+                belongs_to_value = True
+            cache.set(
+                "User-belongs_to" + str(user.id) + "group_name:" + group_name,
+                belongs_to_value,
+                3600,
+            )
     return belongs_to_value
 
 def is_model_backend(request):
