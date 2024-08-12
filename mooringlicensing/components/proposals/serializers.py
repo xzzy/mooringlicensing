@@ -1057,7 +1057,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_allowed_assessors(self, obj):
         if 'request' in self.context and is_internal(self.context['request']):
             email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
+            print("EMAIL USER IDS",email_user_ids)
             system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
+            print(system_users.count())
             serializer = UserSerializer(system_users, many=True)
             return serializer.data
         else:
