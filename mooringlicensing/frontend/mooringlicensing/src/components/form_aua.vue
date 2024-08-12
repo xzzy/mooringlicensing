@@ -40,7 +40,6 @@
             </ul>
             <div class="tab-content" id="pills-tabContent">
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
-                  <div v-if="is_external">
                     <Profile
                         :isApplication="true"
                         v-if="applicantType == 'SUB'"
@@ -54,17 +53,6 @@
                         :forEndorser="forEndorser"
                         :is_internal=is_internal
                     />
-                  </div>
-                  <div v-else>
-                    <Applicant
-                        :user="proposal.submitter"
-                        :applicantType="proposal.applicant_type"
-                        id="proposalStartApplicant"
-                        :readonly="readonly"
-                        :proposalId="proposal.id"
-                        :proposalApplicant="proposal.proposal_applicant"
-                    />
-                  </div>
               </div>
               <div class="tab-pane fade" id="pills-vessels" role="tabpanel" aria-labelledby="pills-vessels-tab">
                   <div v-if="proposal">

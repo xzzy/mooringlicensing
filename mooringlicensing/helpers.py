@@ -81,11 +81,12 @@ def is_internal(request):
 def is_authorised_to_modify(request, instance):
     authorised = True
 
-    if is_customer(request):
-        # the status of the application must be DRAFT for customer to modify
-        authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_DRAFT, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]
-        # the applicant and submitter must be the same
-        authorised &= request.user.email == instance.applicant_email
+    #if is_customer(request):
+    # the status of the application must be DRAFT for customer to modify
+    #TODO investigate why the (now) commented out statuses were in the below list (needed or mistake?)
+    authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_DRAFT] #, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]
+    # the applicant and submitter must be the same
+    authorised &= request.user.email == instance.applicant_email
 
     if not authorised:
         logger.warning(f'User: [{request.user}] is not authorised to modify this proposal: [{instance}].  Raise an error.')

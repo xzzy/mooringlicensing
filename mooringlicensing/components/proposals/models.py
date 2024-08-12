@@ -1236,6 +1236,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             return False
 
+    def has_approver_mode(self,user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
+
+        status_without_approver = [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DRAFT]
+        if self.processing_status in status_without_approver:
+            return False
+        else:
+            if self.assigned_officer:
+                if self.assigned_officer == user:
+                    return self.child_obj.is_approver(user)
+                else:
+                    return False
+            else:
+                return self.child_obj.is_approver(user)
+
     def has_assessor_mode(self,user):
         # status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
         if isinstance(user, EmailUserRO):

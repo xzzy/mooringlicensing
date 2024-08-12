@@ -1507,6 +1507,16 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))
+        
+    @detail_route(methods=['post'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def internal_save(self, request, *args, **kwargs):
+        with transaction.atomic():
+            instance = self.get_object()
+
+            save_proponent_data(instance,request,self)
+            return redirect(reverse('internal'))
 
     @detail_route(methods=['post'], detail=True)
     @renderer_classes((JSONRenderer,))

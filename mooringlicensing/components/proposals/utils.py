@@ -350,16 +350,17 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
-    # Save request.user details in a JSONField not to overwrite the details of it.
-    try:
-        user = SystemUser.objects.get(ledger_id=request.user)
-        serializer = UserSerializer(user, context={'request':request})
-        if instance:
-            instance.personal_details = serializer.data
-            instance.save()
-    except Exception as e:
-        print(e)
-        raise serializers.ValidationError("error")
+    if instance.submitter == request.user:
+        # Save request.user details in a JSONField not to overwrite the details of it.
+        try:
+            user = SystemUser.objects.get(ledger_id=request.user)
+            serializer = UserSerializer(user, context={'request':request})
+            if instance:
+                instance.personal_details = serializer.data
+                instance.save()
+        except Exception as e:
+            print(e)
+            raise serializers.ValidationError("error")
 
 
 def save_proponent_data_aaa(instance, request, viewset):

@@ -68,6 +68,7 @@
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
                         :key="computedProposalId"
+                        @profile-fetched="populateProfile"
                     />
 
                     <AnnualAdmissionApplication
@@ -80,6 +81,7 @@
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
+                        @profile-fetched="populateProfile"
                     />
                     <AuthorisedUserApplication
                         v-if="proposal && proposal.application_type_dict.code==='aua'"
@@ -90,6 +92,7 @@
                         ref="authorised_user_application"
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
+                        @profile-fetched="populateProfile"
                     />
                     <MooringLicenceApplication
                         v-if="proposal && proposal.application_type_dict.code==='mla'"
@@ -101,6 +104,7 @@
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
                         :submitterId="proposal.submitter.id"
+                        @profile-fetched="populateProfile"
                     />
                 </template>
                 <template v-if="display_requirements">
@@ -142,6 +146,26 @@
             ref="back_to_assessor"
             :proposal="proposal"
         />
+
+        <div class="row" style="margin-bottom: 50px">
+            <div  class="container">
+                <div class="row" style="margin-bottom: 50px">
+                    <div class="navbar navbar-fixed-bottom"  style="background-color: #f5f5f5;">
+                        <div class="navbar-inner">
+                            <div v-if="!readonly" class="container">
+                                <p class="pull-right" style="margin-top:5px">
+                                    <button v-if="savingProposal" type="button" class="btn btn-primary" disabled>
+                                        Save&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                    </button>
+                                    <input v-else type="button" @click.prevent="save" 
+                                        class="btn btn-primary" value="Save Proposal"/>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -172,6 +196,8 @@ export default {
     data: function() {
         let vm = this;
         return {
+            profile: {},
+            savingProposal: false,
             detailsBody: 'detailsBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
             contactsBody: 'contactsBody'+vm._uid,
@@ -318,6 +344,9 @@ export default {
             return show;
         },
         readonly: function() {
+            if (this.proposal.assessor_mode.has_assessor_mode || this.proposal.approver_mode.has_approver_mode) {
+                return false
+            }
             return true
         },
         contactsURL: function(){
@@ -371,7 +400,109 @@ export default {
                     this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
-        
+        save: async function() {
+            console.log("saving as assessor/approver");
+            let vm = this;
+            vm.savingProposal=true;
+
+            let payload = {
+                proposal: {},
+                vessel: {},
+                profile: {},
+            }
+
+            // WLA
+            if (this.$refs.waiting_list_application) {
+                payload.proposal.auto_approve = this.autoApprove;
+                if (this.$refs.waiting_list_application.$refs.vessels) {
+                    payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
+                    payload.proposal.temporary_document_collection_id = this.$refs.waiting_list_application.$refs.vessels.temporary_document_collection_id;
+                    payload.proposal.keep_existing_vessel = this.$refs.waiting_list_application.keepCurrentVessel;
+                }
+                if (typeof(this.$refs.waiting_list_application.$refs.profile.silentElector) === 'boolean') {
+                    payload.proposal.silent_elector = this.$refs.waiting_list_application.$refs.profile.silentElector;
+                }
+                if (this.$refs.waiting_list_application.$refs.mooring && this.$refs.waiting_list_application.$refs.mooring.selectedMooring) {
+                    payload.proposal.preferred_bay_id = this.$refs.waiting_list_application.$refs.mooring.selectedMooring;
+                }
+            // AAA
+            } else if (this.$refs.annual_admission_application) {
+                payload.proposal.auto_approve = this.autoApprove;
+                if (this.$refs.annual_admission_application.$refs.vessels) {
+                    payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
+                    payload.proposal.temporary_document_collection_id = this.$refs.annual_admission_application.$refs.vessels.temporary_document_collection_id;
+                    payload.proposal.keep_existing_vessel = this.$refs.annual_admission_application.keepCurrentVessel;
+                }
+                if (this.$refs.annual_admission_application.$refs.insurance.selectedOption) {
+                    // modify if additional proposal attributes required
+                    payload.proposal.insurance_choice = this.$refs.annual_admission_application.$refs.insurance.selectedOption;
+                }
+            // AUA
+            } else if (this.$refs.authorised_user_application) {
+                payload.proposal.auto_approve = this.autoApprove;
+                if (this.$refs.authorised_user_application.$refs.vessels) {
+                    payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
+                    payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
+                    payload.proposal.keep_existing_vessel = this.$refs.authorised_user_application.keepCurrentVessel;
+                }
+                if (this.$refs.authorised_user_application.$refs.insurance.selectedOption) {
+                    // modify if additional proposal attributes required
+                    payload.proposal.insurance_choice = this.$refs.authorised_user_application.$refs.insurance.selectedOption;
+                }
+                if (this.$refs.authorised_user_application.$refs.mooring_authorisation) {
+                    payload.proposal.keep_existing_mooring =
+                        !this.$refs.authorised_user_application.$refs.mooring_authorisation.changeMooring;
+                    if (this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference) {
+                        payload.proposal.mooring_authorisation_preference =
+                            this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringAuthPreference;
+                    }
+                    if (payload.proposal.mooring_authorisation_preference === 'ria') {
+                        payload.proposal.bay_preferences_numbered =
+                            this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
+                    } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') {
+                        payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
+                        payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
+                    }
+                }
+            // MLA
+            } else if (this.$refs.mooring_licence_application) {
+                payload.proposal.auto_approve = this.autoApprove;
+                if (this.$refs.mooring_licence_application.$refs.vessels) {
+                    payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
+                    payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;
+                    payload.proposal.temporary_document_collection_id = this.$refs.mooring_licence_application.$refs.vessels.temporary_document_collection_id;
+                    payload.proposal.keep_existing_vessel = this.$refs.mooring_licence_application.keepCurrentVessel;
+                }
+                if (typeof(this.$refs.mooring_licence_application.$refs.profile.silentElector) === 'boolean') {
+                    payload.proposal.silent_elector = this.$refs.mooring_licence_application.$refs.profile.silentElector;
+                }
+                if (this.$refs.mooring_licence_application.$refs.insurance.selectedOption) {
+                    payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
+                }
+            }
+            payload.profile = this.profile
+            const res = await vm.$http.post(
+                `/api/proposal/${this.proposal.id}/internal_save.json`, 
+                payload
+            );
+            if (res.ok) {
+                    swal(
+                        'Saved',
+                        'Your application has been saved',
+                        'success'
+                    );
+                vm.savingProposal=false;
+                return res;
+            } else {
+                swal({
+                    title: "Please fix following errors before saving",
+                    text: err.bodyText,
+                    type:'error'
+                });
+                vm.savingProposal=false;
+            }
+
+        },
         canLimitedAction: function(){
 
             //return false  // TODO: implement this.  This is just temporary solution
@@ -415,6 +546,9 @@ export default {
         },
     },
     methods: {
+        populateProfile: function(profile) {
+            this.profile = profile
+        },
         fetchSiteLicenseeMooring: async function() {
             console.log('%cin fetchSiteLicenseeMooring', 'color:#f33;')
             if (this.proposal.mooring_id){

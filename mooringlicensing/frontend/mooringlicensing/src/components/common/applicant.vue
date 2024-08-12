@@ -409,8 +409,12 @@ export default {
         },
         adjust_table_width: function() {
             let vm = this;
-            vm.$refs.residential_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
-            vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            if (vm.$refs.residential_address_datatable !== undefined) {
+                vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            }
+            if (vm.$refs.residential_address_datatable !== undefined) {
+                vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            }
         },
         datatable_options: function(address_type){
             let vm = this;

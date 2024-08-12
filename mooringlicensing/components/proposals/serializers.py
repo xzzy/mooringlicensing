@@ -926,6 +926,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     submitter = serializers.SerializerMethodField()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
+    approver_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
     allowed_assessors = serializers.SerializerMethodField()
@@ -980,6 +981,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'documents_url',
                 'assessor_mode',
+                'approver_mode',
                 'current_assessor',
                 'assessor_data',
                 'comment_data',
@@ -1057,9 +1059,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_allowed_assessors(self, obj):
         if 'request' in self.context and is_internal(self.context['request']):
             email_user_ids = list(obj.allowed_assessors.values_list("id",flat=True))
-            print("EMAIL USER IDS",email_user_ids)
             system_users = SystemUser.objects.filter(ledger_id__id__in=email_user_ids)
-            print(system_users.count())
             serializer = UserSerializer(system_users, many=True)
             return serializer.data
         else:
@@ -1243,14 +1243,20 @@ class InternalProposalSerializer(BaseProposalSerializer):
             return obj.approval_level_document
 
     def get_assessor_mode(self,obj):
-        # TODO check if the proposal has been accepted or declined
         request = self.context['request']
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
         return {
-            'assessor_mode': True,
             'has_assessor_mode': obj.has_assessor_mode(user),
             'assessor_can_assess': obj.can_assess(user),
-            'assessor_level': 'assessor',
+        }
+    
+    #TODO clean up auth check functions - remove redundant checks and rename to make more sense
+    def get_approver_mode(self,obj):
+        request = self.context['request']
+        user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+        return {
+            'has_approver_mode': obj.has_approver_mode(user),
+            'approver_can_approve': obj.can_assess(user),
         }
 
     def get_readonly(self,obj):
