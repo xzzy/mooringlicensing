@@ -808,6 +808,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         except:
             raise serializers.ValidationError("proposal type does not exist")
 
+        #TODO add a check to ensure user can create a WLA
+
         obj = WaitingListApplication.objects.create(
                 submitter=request.user.id,
                 proposal_type=proposal_type
