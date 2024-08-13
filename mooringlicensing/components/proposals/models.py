@@ -2072,7 +2072,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def proposal_applicant(self):
-        proposal_applicant = ProposalApplicant.objects.filter(proposal=self).order_by('updated_at').last()
+        try:
+            proposal_applicant = ProposalApplicant.objects.get(proposal=self)
+        except:
+            proposal_applicant = None
         return proposal_applicant
 
     def renew_approval(self,request):
@@ -2360,7 +2363,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 
 class ProposalApplicant(RevisionedMixin):
-    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
+    #TODO: ideally this should be reference by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
+    proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
 
     # Name, etc
     first_name = models.CharField(max_length=128, blank=True, verbose_name='Given name(s)')

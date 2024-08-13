@@ -1021,6 +1021,19 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     return fee_amount_adjusted
 
 
+def create_proposal_applicant(proposal, system_user):
+    try:
+        proposal_applicant = ProposalApplicant.create(proposal=proposal)
+        logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the proposal: [{proposal}].')
+        proposal_applicant.first_name = system_user.legal_first_name
+        proposal_applicant.last_name = system_user.legal_last_name
+        proposal_applicant.email = system_user.email
+        proposal_applicant.phone_number = system_user.phone_number
+        proposal_applicant.mobile_number = system_user.mobile_number
+        proposal_applicant.save()
+    except:
+        raise serializers.ValidationError("proposal applicant has no associated system user account")
+
 def update_proposal_applicant(proposal, request):
 
     proposal_applicant, created = ProposalApplicant.objects.get_or_create(proposal=proposal)
