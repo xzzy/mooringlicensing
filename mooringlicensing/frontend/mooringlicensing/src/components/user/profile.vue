@@ -81,7 +81,7 @@
                         </div>
                     </form>
                   </div>
-                  <div v-else class="panel-body collapse in" :id="adBody">
+                  <div v-else-if="proposal.proposal_applicant" class="panel-body collapse in" :id="adBody">
                     <form class="form-horizontal">
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >
@@ -369,7 +369,7 @@ export default {
 
             if (this.profile.residential_address_list !== undefined)
             {
-                if (this.proposal.proposal_applicant) {
+                if (this.proposal.proposal_applicant !== null) {
                     this.profile.residential_address_list.forEach(addr => {
                         if (
                             addr.line1 === this.proposal.proposal_applicant.residential_line1 &&
@@ -383,14 +383,14 @@ export default {
                     });
                 } else if (this.profile.residential_address_list.length == 1){
                     this.residential_address = Object.assign(this.profile.residential_address_list[0])
-                } else {
-                    this.residential_address = "";
-                }
+                } 
+            } else {
+                this.residential_address = "";
             }
 
             if (this.profile.postal_address_list !== undefined)
             {
-                if (this.proposal.proposal_applicant) {
+                if (this.proposal.proposal_applicant !== null) {
                     this.profile.postal_address_list.forEach(addr => {
                         if (
                             addr.line1 === this.proposal.proposal_applicant.postal_line1 &&
@@ -404,12 +404,13 @@ export default {
                     });
                 } else if (this.profile.postal_address_list.length  == 1){
                     this.postal_address = Object.assign(this.profile.postal_address_list[0])
-                } else {
+                } 
+            }   else {
                     this.postal_address = "";
-                }
-                if (this.profile.legal_dob) {
-                    this.profile.legal_dob = moment(this.profile.legal_dob).format('DD/MM/YYYY')
-                }
+            }
+
+            if (this.profile.legal_dob !== null && this.profile.legal_dob !== "") {
+                this.profile.legal_dob = moment(this.profile.legal_dob).format('DD/MM/YYYY')
             }
         },
     },

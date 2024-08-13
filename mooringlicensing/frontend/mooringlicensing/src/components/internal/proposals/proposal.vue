@@ -361,12 +361,13 @@ export default {
         isFinalised: function(){
             return this.proposal.processing_status == 'Declined' || this.proposal.processing_status == 'Approved';
         },
-        canAssess: function(){
-            return true  // TODO: Implement correctly.  May not be needed though
-
-            //return this.proposal && this.proposal.assessor_mode.assessor_can_assess ? true : false;
+        canAssess: function(){ //TODO consider renaming
+            return this.hasAssessorMode || this.hasApproverMode;
         },
         hasAssessorMode:function(){
+            return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
+        },
+        hasApproverMode:function(){
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
         },
         canAction: function(){
@@ -400,6 +401,49 @@ export default {
                     this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
+        canLimitedAction: function(){
+
+            //return false  // TODO: implement this.  This is just temporary solution
+
+            if (this.proposal.processing_status == 'With Approver'){
+                return
+                    this.proposal
+                    && (
+                        this.proposal.processing_status == 'With Assessor' ||
+                        //this.proposal.processing_status == 'With Referral' ||
+                        this.proposal.processing_status == 'With Assessor (Requirements)'
+                    )
+                    && !this.isFinalised && !this.proposal.can_user_edit
+                    && (
+                        this.proposal.current_assessor.id == this.proposal.assigned_approver ||
+                        this.proposal.assigned_approver == null
+                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+            }
+            else{
+                return
+                    this.proposal
+                    && (
+                        this.proposal.processing_status == 'With Assessor' ||
+                        //this.proposal.processing_status == 'With Referral' ||
+                        this.proposal.processing_status == 'With Assessor (Requirements)'
+                    ) && !this.isFinalised && !this.proposal.can_user_edit
+                    && (
+                        this.proposal.current_assessor.id == this.proposal.assigned_officer ||
+                        this.proposal.assigned_officer == null
+                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
+            }
+        },
+        canSeeSubmission: function(){
+            return this.proposal && (this.proposal.processing_status != 'With Assessor (Requirements)' && this.proposal.processing_status != 'With Approver' && !this.isFinalised)
+        },
+        isApprovalLevelDocument: function(){
+            return this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null ? true : false;
+        },
+        applicant_email:function(){
+            return this.proposal && this.proposal.applicant && this.proposal.applicant.email ? this.proposal.applicant.email : '';
+        },
+    },
+    methods: {
         save: async function() {
             console.log("saving as assessor/approver");
             let vm = this;
@@ -476,72 +520,27 @@ export default {
                     payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
                 }
             }
+
             payload.profile = this.profile
-            const res = await vm.$http.post(
+            vm.$http.post(
                 `/api/proposal/${this.proposal.id}/internal_save.json`, 
-                payload
-            );
-            if (res.ok) {
-                    swal(
-                        'Saved',
-                        'Your application has been saved',
-                        'success'
-                    );
-                vm.savingProposal=false;
-                return res;
-            } else {
-                swal({
-                    title: "Please fix following errors before saving",
-                    text: err.bodyText,
-                    type:'error'
-                });
-                vm.savingProposal=false;
-            }
-
+                payload, {}
+            ).then((res)=>{
+                        swal(
+                            'Saved',
+                            'Your application has been saved',
+                            'success'
+                        );
+                    vm.savingProposal=false;
+                },(err)=>{
+                    swal({
+                        title: "Please fix following errors before saving",
+                        text: err.bodyText,
+                        type:'error'
+                    });
+                    vm.savingProposal=false;     
+            })
         },
-        canLimitedAction: function(){
-
-            //return false  // TODO: implement this.  This is just temporary solution
-
-            if (this.proposal.processing_status == 'With Approver'){
-                return
-                    this.proposal
-                    && (
-                        this.proposal.processing_status == 'With Assessor' ||
-                        //this.proposal.processing_status == 'With Referral' ||
-                        this.proposal.processing_status == 'With Assessor (Requirements)'
-                    )
-                    && !this.isFinalised && !this.proposal.can_user_edit
-                    && (
-                        this.proposal.current_assessor.id == this.proposal.assigned_approver ||
-                        this.proposal.assigned_approver == null
-                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
-            }
-            else{
-                return
-                    this.proposal
-                    && (
-                        this.proposal.processing_status == 'With Assessor' ||
-                        //this.proposal.processing_status == 'With Referral' ||
-                        this.proposal.processing_status == 'With Assessor (Requirements)'
-                    ) && !this.isFinalised && !this.proposal.can_user_edit
-                    && (
-                        this.proposal.current_assessor.id == this.proposal.assigned_officer ||
-                        this.proposal.assigned_officer == null
-                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
-            }
-        },
-        canSeeSubmission: function(){
-            return this.proposal && (this.proposal.processing_status != 'With Assessor (Requirements)' && this.proposal.processing_status != 'With Approver' && !this.isFinalised)
-        },
-        isApprovalLevelDocument: function(){
-            return this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null ? true : false;
-        },
-        applicant_email:function(){
-            return this.proposal && this.proposal.applicant && this.proposal.applicant.email ? this.proposal.applicant.email : '';
-        },
-    },
-    methods: {
         populateProfile: function(profile) {
             this.profile = profile
         },

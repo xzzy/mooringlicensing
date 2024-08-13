@@ -1029,7 +1029,10 @@ def update_proposal_applicant(proposal, request):
     if proposal_applicant_data:
         proposal_applicant.first_name = proposal_applicant_data['legal_first_name']
         proposal_applicant.last_name = proposal_applicant_data['legal_last_name']
-        correct_date = datetime.datetime.strptime(proposal_applicant_data['legal_dob'], '%d/%m/%Y').date()
+        try:
+            correct_date = datetime.datetime.strptime(proposal_applicant_data['legal_dob'], '%d/%m/%Y').date()
+        except:
+            raise serializers.ValidationError("Incorrect date format for legal date of birth - please update this user's profile")
         proposal_applicant.dob = correct_date
  
         if 'residential_address' in proposal_applicant_data:
