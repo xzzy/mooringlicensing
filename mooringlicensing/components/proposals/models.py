@@ -1214,7 +1214,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return self.child_obj.is_approver(user)
 
     def can_assess(self, user):
-        if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS]:
+        if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS,Proposal.PROCESSING_STATUS_DRAFT]:
             return self.child_obj.is_assessor(user)
         elif self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_PRINTING_STICKER]:
             return self.child_obj.is_approver(user)
@@ -1242,7 +1242,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if isinstance(user, EmailUserRO):
             user = user.id
 
-        status_without_assessor = [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DRAFT]
+        status_without_assessor = [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED]
         if self.processing_status in status_without_assessor:
             return False
         else:

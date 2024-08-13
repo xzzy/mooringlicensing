@@ -18,7 +18,7 @@
                                 <div v-if="!proposalApplicant" class="form-group">
                                     <label for="" class="col-sm-3 control-label"></label>
                                     <div class="col-sm-6">
-                                        <b>To update this account please <a class="btn btn-primary" target="_blank" href="">click here</a></b>
+                                        <b>To update this account please <a class="btn btn-primary" target="_blank" :href="'/ledger-ui/accounts-management/'+user.id+'/change/'">click here</a></b>
                                     </div>
                                 </div>
 
