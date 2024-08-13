@@ -9,7 +9,6 @@ import mooringlicensing
 # import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.components.approvals.views import DcvAdmissionFormView
-from mooringlicensing.components.main.utils import update_personal_details
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \

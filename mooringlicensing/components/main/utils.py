@@ -535,39 +535,3 @@ def reorder_wla(target_bay):
         w.save()
         logger.info(f'Allocation order: [{w.wla_order}] has been set to the WaitingListAllocation: [{w}].')
         place += 1
-
-#TODO remove this
-def update_personal_details(request, user_id):
-    """
-    Update the ledger and the proposal_applicant(s) of all the applications of this user with 'draft' status
-    """
-    data = json.loads(request.body.decode())
-    payload = data.get('payload', None)
-    
-    # Format data to use ProposalApplicantSerializer to save
-    dob = payload.get('dob', None)
-    if dob:
-        dob = datetime.strptime(dob, '%d/%m/%Y')
-        payload['dob'] = dob.strftime('%Y-%m-%d')
-    residential_address = payload.get('residential_address', None)
-    if residential_address:
-        payload.update(residential_address)
-    postal_address = payload.get('postal_address', None)
-    if postal_address:
-        payload.update(postal_address)
-
-    # Update the ledger
-    ret = api.update_account_details(request, user_id)
-
-    ret_content = json.loads(ret.content.decode())
-    if ret_content.get('status', None) == 200 and payload:
-        # Personal details have successfully updated the ledger.
-        # Now we want to update the proposal_applicant of all of this user's proposals with 'draft' status
-        proposals = Proposal.objects.filter(submitter=user_id, processing_status=Proposal.PROCESSING_STATUS_DRAFT)
-        for proposal in proposals:
-            serializer = ProposalApplicantSerializer(proposal.proposal_applicant, data=payload)
-            serializer.is_valid(raise_exception=True)
-            proposal_applicant = serializer.save()
-            logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated with the data: [{payload}].')
-
-    return ret
