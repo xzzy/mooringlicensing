@@ -413,7 +413,6 @@ export default {
 
             // WLA
             if (this.$refs.waiting_list_application) {
-                payload.proposal.auto_approve = this.autoApprove;
                 if (this.$refs.waiting_list_application.$refs.vessels) {
                     payload.vessel = Object.assign({}, this.$refs.waiting_list_application.$refs.vessels.vessel);
                     payload.proposal.temporary_document_collection_id = this.$refs.waiting_list_application.$refs.vessels.temporary_document_collection_id;
@@ -427,7 +426,6 @@ export default {
                 }
             // AAA
             } else if (this.$refs.annual_admission_application) {
-                payload.proposal.auto_approve = this.autoApprove;
                 if (this.$refs.annual_admission_application.$refs.vessels) {
                     payload.vessel = Object.assign({}, this.$refs.annual_admission_application.$refs.vessels.vessel);
                     payload.proposal.temporary_document_collection_id = this.$refs.annual_admission_application.$refs.vessels.temporary_document_collection_id;
@@ -439,7 +437,6 @@ export default {
                 }
             // AUA
             } else if (this.$refs.authorised_user_application) {
-                payload.proposal.auto_approve = this.autoApprove;
                 if (this.$refs.authorised_user_application.$refs.vessels) {
                     payload.vessel = Object.assign({}, this.$refs.authorised_user_application.$refs.vessels.vessel);
                     payload.proposal.temporary_document_collection_id = this.$refs.authorised_user_application.$refs.vessels.temporary_document_collection_id;
@@ -466,7 +463,6 @@ export default {
                 }
             // MLA
             } else if (this.$refs.mooring_licence_application) {
-                payload.proposal.auto_approve = this.autoApprove;
                 if (this.$refs.mooring_licence_application.$refs.vessels) {
                     payload.vessel = Object.assign({}, this.$refs.mooring_licence_application.$refs.vessels.vessel);
                     payload.vessel.readonly = this.$refs.mooring_licence_application.$refs.vessels.readonly;

@@ -693,7 +693,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 'silent_elector',
                 'temporary_document_collection_id',
                 'keep_existing_vessel',
-                'auto_approve',
+                'auto_approve', #TODO: if auto approve is supposed to be strictly based on other values we should NOT let the client set it
                 )
         read_only_fields=('id',)
 

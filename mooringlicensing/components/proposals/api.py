@@ -1512,11 +1512,12 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def internal_save(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
+        if (is_internal(request)): #TODO: better auth, using groups/permissions
+            with transaction.atomic():
+                instance = self.get_object()
 
-            save_proponent_data(instance,request,self)
-            return redirect(reverse('internal'))
+                save_proponent_data(instance,request,self)
+                return redirect(reverse('internal'))
 
     @detail_route(methods=['post'], detail=True)
     @renderer_classes((JSONRenderer,))
