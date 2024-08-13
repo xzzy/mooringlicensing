@@ -8,9 +8,7 @@ from decimal import Decimal
 from math import ceil
 
 from django.conf import settings
-# from ledger.accounts.models import EmailUser,Address
-# from ledger.payments.invoice.models import Invoice
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, Address
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
 
 from mooringlicensing.components.main.models import ApplicationType
 # from mooringlicensing.components.main.utils import retrieve_email_user
@@ -50,24 +48,6 @@ from mooringlicensing.ledger_api_utils import retrieve_system_user
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
-
-
-class EmailUserAppViewSerializer(serializers.ModelSerializer):
-    residential_address = UserAddressSerializer()
-
-    class Meta:
-        model = EmailUser
-        fields = ('id',
-                  'email',
-                  'first_name',
-                  'last_name',
-                  'dob',
-                  'title',
-                  'organisation',
-                  'residential_address',
-                  'email',
-                  'phone_number',
-                  'mobile_number',)
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):

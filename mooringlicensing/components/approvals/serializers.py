@@ -31,7 +31,7 @@ from mooringlicensing.components.organisations.models import (
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
     MooringSimpleSerializer, \
-    ProposalApplicantSerializer  # EmailUserAppViewSerializer
+    ProposalApplicantSerializer
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist

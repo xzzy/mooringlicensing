@@ -12,7 +12,6 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
 )
 
 class EmailUserLogEntry(CommunicationsLogEntry):
-    # emailuser = models.ForeignKey(EmailUser, related_name='comms_logs')
     email_user_id = models.IntegerField(null=True, blank=True)
 
     def __init__(self, *args, **kwargs):

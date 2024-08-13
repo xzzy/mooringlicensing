@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from mooringlicensing.components.compliances.models import Compliance
-from ledger.accounts.models import EmailUser
+from ledger_api_client.models import EmailUser
 
 import logging
 
@@ -19,7 +19,7 @@ class Command(BaseCommand):
         try:
             user = EmailUser.objects.get(email=settings.CRON_EMAIL)
         except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
+            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='') #TODO: is this allowed?
 
         errors = []
         updates = []

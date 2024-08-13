@@ -19,7 +19,6 @@ from rest_framework.decorators import action as list_route
 from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
-# from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 # from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE
@@ -363,9 +362,8 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
             # Custom search
             search_text= request.data.get('search[value]')  # This has a search term.
+            #TODO: fix search
             if search_text:
-            # if re.search(r'\s{1,}', search_term):
-                # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
                 # User can search by a fullname, too
                 email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(
@@ -816,7 +814,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                             if this_user:
                                 new_user = this_user.first()
                             else:
-                                new_user = EmailUser.objects.create(email=email_address, first_name=skipper)
+                                new_user = EmailUser.objects.create(email=email_address, first_name=skipper) #TODO review this - is this allowed?
                             submitter = new_user
                         else:
                             raise forms.ValidationError('Please fill the skipper field')
@@ -1257,6 +1255,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
         try:
             super_queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
 
+            #TODO: fix search
             if search_text:
                 email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(

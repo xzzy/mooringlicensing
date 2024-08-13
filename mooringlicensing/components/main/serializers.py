@@ -6,8 +6,6 @@ from mooringlicensing.components.main.models import (
         CommunicationsLogEntry,
         GlobalSettings, TemporaryDocumentCollection,
         )
-# from ledger.payments.invoice.models import Invoice
-# from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from ledger_api_client import utils
 

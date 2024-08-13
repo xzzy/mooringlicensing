@@ -38,9 +38,7 @@ from django.utils import timezone
 # from django.conf import settings
 # from django.core.urlresolvers import reverse
 from django.urls import reverse
-# from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO, BaseAddress
-# from ledger.payments.invoice.models import Invoice
+from ledger_api_client.ledger_models import EmailUserRO
 from ledger_api_client.ledger_models import Invoice
 from mooringlicensing import exceptions, settings
 from mooringlicensing.components.organisations.models import Organisation

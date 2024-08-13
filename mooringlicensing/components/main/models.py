@@ -6,7 +6,6 @@ import os
 from django.db import models
 # from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
-# from ledger.accounts.models import EmailUser, RevisionedMixin
 from datetime import datetime
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
@@ -21,7 +20,6 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
 
 # @python_2_unicode_compatible
 class UserAction(models.Model):
-    # who = models.ForeignKey(EmailUser, null=False, blank=False)
     who = models.IntegerField(null=True, blank=True)  # EmailUserRO
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)

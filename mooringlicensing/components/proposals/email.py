@@ -2,8 +2,6 @@ import logging
 import mimetypes
 import pytz
 import requests
-# from ledger.accounts.models import EmailUser
-# from ledger.payments.invoice.models import Invoice
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
@@ -35,7 +33,7 @@ def log_proposal_email(msg, proposal, sender, attachments=[]):
     try:
         sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
     except:
-        sender_user = EmailUser.objects.create(email=sender, password='')
+        sender_user = EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
 
     _log_proposal_email(msg, proposal, sender=sender_user, attachments=attachments)
     if proposal.org_applicant:
@@ -305,7 +303,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
     attachments = []
@@ -641,7 +639,7 @@ def send_approval_renewal_email_notification(approval):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
     attachments = []

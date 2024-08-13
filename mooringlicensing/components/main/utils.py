@@ -3,7 +3,6 @@ from io import BytesIO
 
 from ledger_api_client import api
 from ledger_api_client.settings_base import TIME_ZONE
-from ledger_api_client.ledger_models import EmailUserRO
 from django.utils import timezone
 from confy import env
 

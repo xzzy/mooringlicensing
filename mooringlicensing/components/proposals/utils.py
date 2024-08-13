@@ -6,7 +6,6 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.http import HttpResponse
-# from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
 from mooringlicensing import settings
@@ -162,6 +161,7 @@ class AssessorDataSearch(object):
         for k in post_data:
             if re.match(item,k):
                 values.append({k:post_data[k]})
+        #TODO: fix search
         if values:
             for v in values:
                 for k,v in v.items():

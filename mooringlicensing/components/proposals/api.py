@@ -21,8 +21,7 @@ from rest_framework.renderers import JSONRenderer
 from datetime import datetime
 # from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE, LOGGING
-# from ledger.accounts.models import EmailUser, Address
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
@@ -518,6 +517,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_total_count', total_count)
 
         search_text = request.GET.get('search[value]')
+        #TODO: fix search
         if search_text:
             #the search conducted by the superclass only accomodates the ProposalApplicant users
             #this misses any new draft proposals, which do not yet have a ProposalApplicant record assigned - so we will do that here
@@ -2360,6 +2360,7 @@ class MooringFilterBackend(DatatablesFilterBackend):
             super_queryset = super(MooringFilterBackend, self).filter_queryset(request, queryset, view)
 
             # Custom search
+            #TODO: fix search
             search_text = request.GET.get('search[value]')  # This has a search term.
             if search_text:
                 # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)

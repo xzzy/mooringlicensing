@@ -28,7 +28,6 @@ from rest_framework.renderers import JSONRenderer
 # from datetime import datetime, timedelta
 # from collections import OrderedDict
 from django.core.cache import cache
-# from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from mooringlicensing.components.main.decorators import basic_exception_handler
 
@@ -296,6 +295,7 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
             super_queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
 
             # Custom search 
+            #TODO: fix search
             search_text = request.GET.get('search[value]')  # This has a search term.
             if search_text:
                 email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))

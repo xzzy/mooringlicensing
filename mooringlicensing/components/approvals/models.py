@@ -23,9 +23,8 @@ from django.db.models import Q
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, GROUP_DCV_PERMIT_ADMIN, PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL
-# from ledger.accounts.models import EmailUser, RevisionedMixin
 # from ledger.payments.invoice.models import Invoice
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, EmailUserRO
+from ledger_api_client.ledger_models import Invoice, EmailUserRO
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.emails.utils import get_public_url
@@ -329,10 +328,8 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField(blank=True, null=True)
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
-    # submitter = models.ForeignKey(EmailUser, on_delete=models.CASCADE, blank=True, null=True, related_name='mooringlicensing_approvals')
     submitter = models.IntegerField(blank=True, null=True)
     org_applicant = models.ForeignKey(Organisation, on_delete=models.CASCADE, blank=True, null=True, related_name='org_approvals')
-    # proxy_applicant = models.ForeignKey(EmailUser, on_delete=models.CASCADE, blank=True, null=True, related_name='proxy_approvals')
     proxy_applicant = models.IntegerField(blank=True, null=True)
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
@@ -781,6 +778,7 @@ class Approval(RevisionedMixin):
             logger.warning(f'Current proposal of the approval: [{self}] not found.')
             return None
 
+    #TODO review - when would this isinstance check be required? (same for is_approver)
     def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
             user = user.id
@@ -2464,7 +2462,6 @@ class ApprovalUserAction(UserAction):
             what=str(action)
         )
 
-    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.CASCADE)
     who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
@@ -3359,7 +3356,6 @@ class StickerActionDetail(models.Model):
     date_of_lost_sticker = models.DateField(blank=True, null=True)
     date_of_returned_sticker = models.DateField(blank=True, null=True)
     action = models.CharField(max_length=50, null=True, blank=True)
-    # user = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
     user = models.IntegerField(null=True, blank=True)
     sticker_action_fee = models.ForeignKey(StickerActionFee, null=True, blank=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
     waive_the_fee = models.BooleanField(default=False)

@@ -15,7 +15,6 @@ from datetime import timedelta
 # from ledger.payments.pdf import create_invoice_pdf_bytes
 from mooringlicensing import settings
 from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
-# from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 from mooringlicensing.components.emails.utils import get_user_as_email_user, get_public_url, make_http_https
 from mooringlicensing.components.users.models import EmailUserLogEntry
@@ -147,7 +146,7 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            EmailUser.objects.create(email=sender, password='')
+            EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
             sender_user = EmailUser.objects.get(email__icontains=sender)
 
         _log_approval_email(msg, approval, sender=sender_user)
@@ -193,7 +192,7 @@ def send_approval_expire_email_notification(approval):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            EmailUser.objects.create(email=sender, password='')
+            EmailUser.objects.create(email=sender, password='') #TODO is this allowed?
             sender_user = EmailUser.objects.get(email__icontains=sender)
 
         _log_approval_email(msg, approval, sender=sender_user)
@@ -228,7 +227,7 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
 
@@ -273,7 +272,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
 
     to_address = approval.submitter_obj.email
@@ -590,7 +589,7 @@ def send_approval_cancel_email_notification(approval):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
@@ -641,7 +640,7 @@ def send_approval_suspend_email_notification(approval, request=None):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
@@ -694,7 +693,7 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
+        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
         sender_user = EmailUser.objects.get(email__icontains=sender)
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:

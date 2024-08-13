@@ -25,7 +25,6 @@ def get_user_name(user):
     return names
 
 def _log_user_email(email_message, target_email_user, customer, sender=None, attachments=[]):
-    # from ledger.accounts.models import EmailUserLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
