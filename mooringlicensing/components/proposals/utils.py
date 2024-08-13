@@ -6,13 +6,13 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.http import HttpResponse
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
 from mooringlicensing import settings
 import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
+from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.proposals.models import (
     VesselOwnershipCompanyOwnership,
     WaitingListApplication,
@@ -161,7 +161,6 @@ class AssessorDataSearch(object):
         for k in post_data:
             if re.match(item,k):
                 values.append({k:post_data[k]})
-        #TODO: fix search
         if values:
             for v in values:
                 for k,v in v.items():
@@ -171,10 +170,16 @@ class AssessorDataSearch(object):
                         ref_parts = parts[1].split('Referral-')
                         if len(ref_parts) > 1:
                             # Referrals
+                            try:
+                                system_user = SystemUser.objects.get(email=ref_parts[1].lower())
+                                names = get_user_name(system_user)
+                                full_name = names["full_name"]
+                            except:
+                                full_name = "unavailable"
                             res['referrals'].append({
                                 'value':v,
                                 'email':ref_parts[1],
-                                'full_name': EmailUser.objects.get(email=ref_parts[1].lower()).get_full_name()
+                                'full_name': full_name,
                             })
                         elif k.split('-')[-1].lower() == 'assessor':
                             # Assessor

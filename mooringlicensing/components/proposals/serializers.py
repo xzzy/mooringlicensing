@@ -8,7 +8,7 @@ from decimal import Decimal
 from math import ceil
 
 from django.conf import settings
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.ledger_models import Invoice
 
 from mooringlicensing.components.main.models import ApplicationType
 # from mooringlicensing.components.main.utils import retrieve_email_user

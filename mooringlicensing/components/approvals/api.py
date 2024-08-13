@@ -362,19 +362,19 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
             # Custom search
             search_text= request.data.get('search[value]')  # This has a search term.
-            #TODO: fix search
             if search_text:
                 # User can search by a fullname, too
-                email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
                 .filter(
-                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
-                ).values_list("id", flat=True))
+                    Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("ledger_id", flat=True))
+
                 proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
 
-                q_set = queryset.filter(Q(current_proposal__id__in=proposal_applicant_proposals)|Q(current_proposal__submitter__in=email_user_ids))
+                q_set = queryset.filter(Q(current_proposal__id__in=proposal_applicant_proposals)|Q(current_proposal__submitter__in=system_user_ids))
 
                 queryset = super_queryset.union(q_set)
         except Exception as e:
@@ -1254,8 +1254,6 @@ class StickerFilterBackend(DatatablesFilterBackend):
         #2) other filters DO override the custom search
         try:
             super_queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
-
-            #TODO: fix search
             if search_text:
                 email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(

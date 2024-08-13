@@ -328,14 +328,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     lodgement_date = models.DateTimeField(blank=True, null=True)
 
-    # proxy_applicant = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proxy', on_delete=models.SET_NULL) # not currently used by ML
     proxy_applicant = models.IntegerField(blank=True, null=True) # not currently used by ML
-    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals', on_delete=models.SET_NULL)
     submitter = models.IntegerField(blank=True, null=True)
 
-    # assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_assigned', on_delete=models.SET_NULL)
     assigned_officer = models.IntegerField(blank=True, null=True)
-    # assigned_approver = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_proposals_approvals', on_delete=models.SET_NULL)
     assigned_approver = models.IntegerField(blank=True, null=True)
     processing_status = models.CharField('Processing Status', max_length=40, choices=PROCESSING_STATUS_CHOICES,
                                          default=PROCESSING_STATUS_CHOICES[0][0])
@@ -4787,7 +4783,6 @@ class VesselRegistrationDocument(Document):
         return ret_str
 
 class Owner(RevisionedMixin):
-    # emailuser = models.OneToOneField(EmailUser, on_delete=models.CASCADE)
     emailuser = models.IntegerField(unique=True)  # unique=True keeps the OneToOne relation
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
@@ -4889,7 +4884,6 @@ class ElectoralRollDocument(Document):
         proposal_id = self.proposal.id
         return self.relative_path_to_file(proposal_id, filename)
 
-    #emailuser = models.ForeignKey(EmailUser,related_name='electoral_roll_documents')
     proposal = models.ForeignKey(Proposal,related_name='electoral_roll_documents', on_delete=models.CASCADE)
     # _file = models.FileField(max_length=512)
     _file = models.FileField(
@@ -5023,7 +5017,6 @@ class ProposalRequest(models.Model):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set', on_delete=models.CASCADE)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
-    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
     officer = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
@@ -5102,7 +5095,6 @@ class AmendmentRequest(ProposalRequest):
 
 class ProposalDeclinedDetails(models.Model):
     proposal = models.OneToOneField(Proposal, null=True, on_delete=models.SET_NULL)
-    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
     officer = models.IntegerField(null=True, blank=True)
     reason = models.TextField(blank=True)
     cc_email = models.TextField(null=True)
@@ -5208,7 +5200,6 @@ class ProposalUserAction(UserAction):
             what=str(action)
         )
 
-    # who = models.ForeignKey(EmailUser, null=True, blank=True, on_delete=models.SET_NULL)
     who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
