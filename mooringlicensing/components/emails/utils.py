@@ -6,8 +6,7 @@ def get_user_as_email_user(sender):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
     return sender_user
 
 

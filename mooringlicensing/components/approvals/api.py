@@ -25,6 +25,7 @@ from ledger_api_client.settings_base import TIME_ZONE
 from datetime import datetime
 from collections import OrderedDict
 from ledger_api_client.managed_models import SystemUser
+from ledger_api_client.utils import get_or_create
 
 from django.core.cache import cache
 from mooringlicensing import forms
@@ -34,8 +35,7 @@ from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.models import FeePeriod, FeeSeason, FeeConstructor
 from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
     DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
-from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring, \
-    ProposalApplicant  #, ApplicationType
+from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring, ProposalApplicant
 from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
@@ -814,7 +814,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                             if this_user:
                                 new_user = this_user.first()
                             else:
-                                new_user = EmailUser.objects.create(email=email_address, first_name=skipper) #TODO review this - is this allowed?
+                                new_user = get_or_create('email_address')
                             submitter = new_user
                         else:
                             raise forms.ValidationError('Please fill the skipper field')
@@ -1255,15 +1255,15 @@ class StickerFilterBackend(DatatablesFilterBackend):
         try:
             super_queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
             if search_text:
-                email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
                 .filter(
-                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
-                ).values_list("id", flat=True))
+                    Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("ledger_id", flat=True))
                 proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
-                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=email_user_ids))
+                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=system_user_ids))
                 queryset = super_queryset.union(q_set)
         except Exception as e:
             print(e)

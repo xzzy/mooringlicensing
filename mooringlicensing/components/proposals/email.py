@@ -33,7 +33,7 @@ def log_proposal_email(msg, proposal, sender, attachments=[]):
     try:
         sender_user = sender if isinstance(sender, EmailUser) else EmailUser.objects.get(email__icontains=sender)
     except:
-        sender_user = EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
+        sender_user = None
 
     _log_proposal_email(msg, proposal, sender=sender_user, attachments=attachments)
     if proposal.org_applicant:
@@ -303,8 +303,7 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
 
     attachments = []
     if waiting_list_allocation.waiting_list_offer_documents.all():
@@ -639,8 +638,7 @@ def send_approval_renewal_email_notification(approval):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
 
     attachments = []
     attachment = approval.get_licence_document_as_attachment()

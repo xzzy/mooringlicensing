@@ -76,46 +76,6 @@ class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
         self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
 
 
-# def send_auth_user_no_moorings_notification(approval):
-#     email = AuthorisedUserNoMooringsNotificationEmail(approval)
-#     proposal = approval.current_proposal
-#
-#     url=settings.SITE_URL if settings.SITE_URL else ''
-#     url += reverse('external')
-#
-#     if "-internal" in url:
-#         # remove '-internal'. This email is for external submitters
-#         url = ''.join(url.split('-internal'))
-#
-#     context = {
-#         'recipient': approval.submitter_obj,
-#         'public_url': get_public_url(),
-#         'approval': approval,
-#         'proposal': proposal,
-#         'url': make_http_https(url),
-#     }
-#     all_ccs = []
-#     if proposal.org_applicant and proposal.org_applicant.email:
-#         cc_list = proposal.org_applicant.email
-#         if cc_list:
-#             all_ccs = [cc_list]
-#     msg = email.send(proposal.submitter_obj.email, cc=all_ccs, context=context)
-#     if msg:
-#         sender = settings.DEFAULT_FROM_EMAIL
-#         try:
-#             sender_user = EmailUser.objects.get(email__icontains=sender)
-#         except:
-#             EmailUser.objects.create(email=sender, password='')
-#             sender_user = EmailUser.objects.get(email__icontains=sender)
-#
-#         _log_approval_email(msg, approval, sender=sender_user)
-#         #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
-#         if approval.org_applicant:
-#             _log_org_email(msg, approval.org_applicant, proposal.submitter_obj, sender=sender_user)
-#         else:
-#             _log_user_email(msg, approval.submitter_obj, proposal.submitter_obj, sender=sender_user)
-
-
 def send_auth_user_mooring_removed_notification(approval, mooring_licence):
     email = AuthorisedUserMooringRemovedNotificationEmail(approval)
     proposal = approval.current_proposal
@@ -146,8 +106,7 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-            sender_user = EmailUser.objects.get(email__icontains=sender)
+            sender_user = None
 
         _log_approval_email(msg, approval, sender=sender_user)
         #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
@@ -192,8 +151,7 @@ def send_approval_expire_email_notification(approval):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            EmailUser.objects.create(email=sender, password='') #TODO is this allowed?
-            sender_user = EmailUser.objects.get(email__icontains=sender)
+            sender_user = None
 
         _log_approval_email(msg, approval, sender=sender_user)
         #_log_org_email(msg, approval.applicant, proposal.submitter, sender=sender_user)
@@ -227,8 +185,7 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
 
 
     #approver_group = ProposalApproverGroup.objects.all().first()
@@ -272,8 +229,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
 
     to_address = approval.submitter_obj.email
     all_ccs = []
@@ -589,8 +545,7 @@ def send_approval_cancel_email_notification(approval):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
         cc_list = proposal.org_applicant.email
@@ -640,8 +595,7 @@ def send_approval_suspend_email_notification(approval, request=None):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
         cc_list = proposal.org_applicant.email
@@ -693,8 +647,7 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
     all_ccs = []
     if proposal.org_applicant and proposal.org_applicant.email:
         cc_list = proposal.org_applicant.email

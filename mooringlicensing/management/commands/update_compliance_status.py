@@ -27,11 +27,6 @@ class Command(BaseCommand):
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         compare_date = today + datetime.timedelta(days=days_setting.number_of_days)
 
-        try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-        except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='') #TODO: is this allowed?
-
         errors = []
         updates = []
         logger.info('Running command {}'.format(__name__))
@@ -61,7 +56,7 @@ class Command(BaseCommand):
                 c.processing_status = Compliance.PROCESSING_STATUS_DUE
                 c.customer_status = Compliance.CUSTOMER_STATUS_DUE
                 c.save()
-                ComplianceUserAction.log_action(c, ComplianceUserAction.ACTION_STATUS_CHANGE.format(c.id), user)
+                ComplianceUserAction.log_action(c, ComplianceUserAction.ACTION_STATUS_CHANGE.format(c.id))
                 logger.info('updated Compliance {} status to {}'.format(c.id, c.processing_status))
                 updates.append(c.lodgement_number)
             except Exception as e:
@@ -80,7 +75,7 @@ class Command(BaseCommand):
                 c.processing_status = Compliance.PROCESSING_STATUS_OVERDUE
                 c.customer_status = Compliance.CUSTOMER_STATUS_OVERDUE
                 c.save()
-                ComplianceUserAction.log_action(c, ComplianceUserAction.ACTION_STATUS_CHANGE.format(c.id), user)
+                ComplianceUserAction.log_action(c, ComplianceUserAction.ACTION_STATUS_CHANGE.format(c.id), None)
                 logger.info('updated Compliance {} status to {}'.format(c.id, c.processing_status))
                 updates.append(c.lodgement_number)
             except Exception as e:

@@ -184,15 +184,6 @@ class ProposalType(RevisionedMixin):
         app_label = 'mooringlicensing'
 
 
-# class ProposalApplicantDetails(models.Model):
-#     '''
-#     This model is for storing the historical applicant details
-#     '''
-#     details = models.JSONField(blank=True, null=True)
-#
-#     class Meta:
-#         app_label = 'mooringlicensing'
-
 class ProposalProofOfIdentityDocument(models.Model):
     proof_of_identity_document = models.ForeignKey('ProofOfIdentityDocument', on_delete=models.CASCADE)
     proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE)

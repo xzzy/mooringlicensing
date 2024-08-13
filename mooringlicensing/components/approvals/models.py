@@ -907,7 +907,7 @@ class Approval(RevisionedMixin):
         else:
             return ApprovalUserAction.log_action(self, action)
 
-    def expire_approval(self, user):
+    def expire_approval(self, user=None):
         with transaction.atomic():
             try:
                 today = timezone.localtime(timezone.now()).date()

@@ -28,11 +28,6 @@ class Command(BaseCommand):
     help = 'Change the status of Approvals to Expired / Surrender/ Cancelled/ Suspended.'
 
     def handle(self, *args, **options):
-        try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-        except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password = '') #TODO: is this allowed?
-
         errors = []
         updates = []
         today = timezone.localtime(timezone.now()).date()
@@ -46,7 +41,7 @@ class Command(BaseCommand):
         approvals = Approval.objects.filter(queries)
         for approval in approvals:
             try:
-                approval.expire_approval(user)
+                approval.expire_approval()
                 # a.save()  # Saved in the above function...?
                 logger.info('Updated Approval {} status to {}'.format(approval.id, approval.status))
                 updates.append(approval.lodgement_number)

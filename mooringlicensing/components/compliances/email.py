@@ -133,7 +133,8 @@ def send_reminder_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True) #TODO: is this allowed?
+            sender_user = None
+
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -162,7 +163,8 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='') #TODO: is this allowed?
+            sender_user = None
+
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -198,7 +200,8 @@ def send_due_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True) #TODO: is this allowed?
+            sender_user = None
+
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -228,7 +231,7 @@ def send_internal_due_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True) #TODO: is this allowed?
+            sender_user = None
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)

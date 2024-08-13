@@ -21,7 +21,6 @@ from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
     Proposal,
-    ProposalApplicant,
     StickerPrintingBatch
 )
 from mooringlicensing.components.main.decorators import query_debugger
@@ -537,6 +536,7 @@ def reorder_wla(target_bay):
         logger.info(f'Allocation order: [{w.wla_order}] has been set to the WaitingListAllocation: [{w}].')
         place += 1
 
+#TODO remove this
 def update_personal_details(request, user_id):
     """
     Update the ledger and the proposal_applicant(s) of all the applications of this user with 'draft' status

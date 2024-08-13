@@ -217,7 +217,7 @@ class Compliance(RevisionedMixin):
             self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
             send_compliance_accept_email_notification(self,request)
 
-    def send_reminder(self, user):
+    def send_reminder(self, user=None):
         with transaction.atomic():
             try:
                 if self.processing_status == Compliance.PROCESSING_STATUS_DUE and self.reminder_sent is False:

@@ -16,10 +16,6 @@ class Command(BaseCommand):
     help = 'Send notification emails for compliances which has past due dates, and also reminder notification emails for those that are within the daterange prior to due_date (eg. within 14 days of due date)'
 
     def handle(self, *args, **options):
-        try:
-            user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-        except:
-            user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='') #TODO: is this allowed?
 
         errors = []
         updates = []
@@ -28,7 +24,7 @@ class Command(BaseCommand):
 
         for c in Compliance.objects.filter(processing_status=Compliance.PROCESSING_STATUS_DUE):
             try:
-                c.send_reminder(user)
+                c.send_reminder()
                 c.save()
                 updates.append(c.lodgement_number)
             except Exception as e:
