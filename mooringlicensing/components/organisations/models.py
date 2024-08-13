@@ -8,8 +8,6 @@ from django.db.models.signals import pre_delete
 from django.core.exceptions import ValidationError
 from django.db.models import JSONField
 from django.core.validators import MaxValueValidator, MinValueValidator
-# from ledger.accounts.models import Organisation as ledger_organisation
-# from ledger.accounts.models import EmailUser,RevisionedMixin #,Document
 from mooringlicensing.components.main.models import UserAction,CommunicationsLogEntry, Document
 from mooringlicensing.components.organisations.utils import random_generator, can_admin_org, has_atleast_one_admin
 from mooringlicensing.components.organisations.emails import (
@@ -41,7 +39,6 @@ class Organisation(models.Model):
     # organisation = models.ForeignKey(ledger_organisation)
     organisation = models.IntegerField()  # Ledger Organisation
     # TODO: business logic related to delegate changes.
-    # delegates = models.ManyToManyField(EmailUser, blank=True, through='UserDelegation', related_name='mooringlicensing_organisations')
     delegates = ArrayField(models.IntegerField(), blank=True)  # EmailUserRO
     #pin_one = models.CharField(max_length=50,blank=True)
     #pin_two = models.CharField(max_length=50,blank=True)
@@ -529,7 +526,6 @@ class OrganisationContact(models.Model):
 
 class UserDelegation(models.Model):
     organisation = models.ForeignKey(Organisation, on_delete=models.CASCADE)
-    # user = models.ForeignKey(EmailUser)
     user = models.IntegerField()  # EmailUserRO
 
     class Meta:
@@ -618,9 +614,7 @@ class OrganisationRequest(models.Model):
     )
     name = models.CharField(max_length=128)
     abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
-    # requester = models.ForeignKey(EmailUser)
     requester = models.IntegerField()  # EmailUserRO
-    # assigned_officer = models.ForeignKey(EmailUser, blank=True, null=True, related_name='org_request_assignee')
     assigned_officer = models.IntegerField(null=True, blank=True)  # EmailUserRO
     identification = models.FileField(storage=private_storage,upload_to='organisation/requests/%Y/%m/%d', max_length=512, null=True, blank=True)
     status = models.CharField(max_length=100,choices=STATUS_CHOICES, default="with_assessor")
@@ -723,8 +717,6 @@ class OrganisationRequest(models.Model):
         return OrganisationRequestUserAction.log_action(self, action, request.user)
 
 class OrganisationAccessGroup(models.Model):
-    # site = models.OneToOneField(Site, default='1')
-    # members = models.ManyToManyField(EmailUser)
     members = ArrayField(models.IntegerField(), blank=True)  # EmailUserRO
 
     def __str__(self):
@@ -735,7 +727,6 @@ class OrganisationAccessGroup(models.Model):
         all_members = []
         all_members.extend(self.members.all())
         member_ids = [m.id for m in self.members.all()]
-        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
         return all_members
 
     @property
@@ -771,7 +762,6 @@ class OrganisationRequestUserAction(UserAction):
 
 class OrganisationRequestDeclinedDetails(models.Model):
     request = models.ForeignKey(OrganisationRequest, on_delete=models.CASCADE)
-    # officer = models.ForeignKey(EmailUser, null=False)
     officer = models.IntegerField(null=False, blank=False)  # EmailUserRO
     reason = models.TextField(blank=True)
 

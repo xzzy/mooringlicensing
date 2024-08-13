@@ -5,8 +5,7 @@ from django.db import models,transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.conf import settings
-# from ledger.accounts.models import EmailUser, RevisionedMixin
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice
+from ledger_api_client.ledger_models import Invoice
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,  # Region,
     UserAction,
@@ -75,11 +74,9 @@ class Compliance(RevisionedMixin):
     num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
     processing_status = models.CharField(choices=PROCESSING_STATUS_CHOICES,max_length=20)
     customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20)
-    # assigned_to = models.ForeignKey(EmailUser, related_name='mooringlicensing_compliance_assignments', null=True, blank=True, on_delete=models.SET_NULL)
     assigned_to = models.IntegerField( null=True, blank=True)
     requirement = models.ForeignKey(ProposalRequirement, blank=True, null=True, related_name='compliance_requirement', on_delete=models.SET_NULL)
     lodgement_date = models.DateTimeField(blank=True, null=True)
-    # submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='mooringlicensing_compliances', on_delete=models.SET_NULL)
     submitter = models.IntegerField(blank=True, null=True)
     reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
@@ -220,7 +217,7 @@ class Compliance(RevisionedMixin):
             self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
             send_compliance_accept_email_notification(self,request)
 
-    def send_reminder(self, user):
+    def send_reminder(self, user=None):
         with transaction.atomic():
             try:
                 if self.processing_status == Compliance.PROCESSING_STATUS_DUE and self.reminder_sent is False:
@@ -323,7 +320,6 @@ class CompRequest(models.Model):
     compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
-    # officer = models.ForeignKey(EmailUser, null=True, on_delete=models.SET_NULL)
     officer = models.IntegerField(null=True, blank=True)
 
     class Meta:

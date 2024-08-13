@@ -7,7 +7,6 @@ from django.urls import reverse
 from django.conf import settings
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
-# from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 #from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -134,7 +133,8 @@ def send_reminder_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True)
+            sender_user = None
+
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -163,7 +163,8 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='')
+            sender_user = None
+
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -199,7 +200,8 @@ def send_due_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True)
+            sender_user = None
+
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)
@@ -229,7 +231,7 @@ def send_internal_due_email_notification(compliance, is_test=False):
         try:
             sender_user = EmailUser.objects.get(email__icontains=sender)
         except:
-            sender_user = EmailUser.objects.create(email=sender, password='', is_staff=True)
+            sender_user = None
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender_user)

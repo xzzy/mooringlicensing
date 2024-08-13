@@ -1,5 +1,4 @@
 # from django.utils import timezone
-# from ledger.accounts.models import EmailUser,Address
 from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.compliances.models import (
     Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason

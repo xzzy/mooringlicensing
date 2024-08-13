@@ -21,8 +21,7 @@ from rest_framework.renderers import JSONRenderer
 from datetime import datetime
 # from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE, LOGGING
-# from ledger.accounts.models import EmailUser, Address
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Address
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
@@ -35,6 +34,7 @@ from mooringlicensing.components.proposals.models import ElectoralRollDocument, 
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
+from ledger_api_client.managed_models import SystemUser
 
 from django.core.cache import cache
 from django.urls import reverse
@@ -107,7 +107,6 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
-from mooringlicensing.components.users.serializers import ProposalApplicantSerializer
 from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -521,16 +520,16 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if search_text:
             #the search conducted by the superclass only accomodates the ProposalApplicant users
             #this misses any new draft proposals, which do not yet have a ProposalApplicant record assigned - so we will do that here
-            email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+            system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
             .filter(
-                Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
-            ).values_list("id", flat=True))
+                Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+            ).values_list("ledger_id", flat=True))
             #the search also does not accomodate combining first names and last names even with ProposalApplicant - so we will also do that here
             proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
             .filter(
                 Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
             ).values_list("proposal_id", flat=True))
-            queryset = queryset.filter(Q(id__in=proposal_applicant_proposals)|Q(submitter__in=email_user_ids))
+            queryset = queryset.filter(Q(id__in=proposal_applicant_proposals)|Q(submitter__in=system_user_ids))
             queryset = queryset.distinct() | super_queryset    
 
         mla_list = MooringLicenceApplication.objects.all()
@@ -1507,6 +1506,17 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))
+        
+    @detail_route(methods=['post'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def internal_save(self, request, *args, **kwargs):
+        if (is_internal(request)): #TODO: better auth, using groups/permissions
+            with transaction.atomic():
+                instance = self.get_object()
+
+                save_proponent_data(instance,request,self)
+                return redirect(reverse('internal'))
 
     @detail_route(methods=['post'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -2351,18 +2361,17 @@ class MooringFilterBackend(DatatablesFilterBackend):
             # Custom search
             search_text = request.GET.get('search[value]')  # This has a search term.
             if search_text:
-                # email_user_ids = EmailUser.objects.filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term)).values_list('id', flat=True)
                 # User can search by a fullname, too
-                email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
                 .filter(
-                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
-                ).values_list("id", flat=True))
+                    Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("ledger_id", flat=True))
                 proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
 
-                q_set = queryset.filter(Q(mooring_licence__approval__current_proposal__id__in=proposal_applicant_proposals)|Q(mooring_licence__submitter__in=email_user_ids))
+                q_set = queryset.filter(Q(mooring_licence__approval__current_proposal__id__in=proposal_applicant_proposals)|Q(mooring_licence__submitter__in=system_user_ids))
 
                 queryset = super_queryset.union(q_set)
 

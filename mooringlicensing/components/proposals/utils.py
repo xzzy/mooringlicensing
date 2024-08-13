@@ -6,14 +6,13 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.http import HttpResponse
-# from ledger.accounts.models import EmailUser
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
 from mooringlicensing import settings
 import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
 from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
+from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.proposals.models import (
     VesselOwnershipCompanyOwnership,
     WaitingListApplication,
@@ -171,10 +170,16 @@ class AssessorDataSearch(object):
                         ref_parts = parts[1].split('Referral-')
                         if len(ref_parts) > 1:
                             # Referrals
+                            try:
+                                system_user = SystemUser.objects.get(email=ref_parts[1].lower())
+                                names = get_user_name(system_user)
+                                full_name = names["full_name"]
+                            except:
+                                full_name = "unavailable"
                             res['referrals'].append({
                                 'value':v,
                                 'email':ref_parts[1],
-                                'full_name': EmailUser.objects.get(email=ref_parts[1].lower()).get_full_name()
+                                'full_name': full_name,
                             })
                         elif k.split('-')[-1].lower() == 'assessor':
                             # Assessor
@@ -350,16 +355,17 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
-    # Save request.user details in a JSONField not to overwrite the details of it.
-    try:
-        user = SystemUser.objects.get(ledger_id=request.user)
-        serializer = UserSerializer(user, context={'request':request})
-        if instance:
-            instance.personal_details = serializer.data
-            instance.save()
-    except Exception as e:
-        print(e)
-        raise serializers.ValidationError("error")
+    if instance.submitter == request.user:
+        # Save request.user details in a JSONField not to overwrite the details of it.
+        try:
+            user = SystemUser.objects.get(ledger_id=request.user)
+            serializer = UserSerializer(user, context={'request':request})
+            if instance:
+                instance.personal_details = serializer.data
+                instance.save()
+        except Exception as e:
+            print(e)
+            raise serializers.ValidationError("error")
 
 
 def save_proponent_data_aaa(instance, request, viewset):
@@ -469,7 +475,9 @@ def save_proponent_data_aua(instance, request, viewset):
     if vessel_data:
         if viewset.action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        elif (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or
+              instance.has_assessor_mode(request.user) or 
+              instance.has_approver_mode(request.user)):
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -1026,7 +1034,10 @@ def update_proposal_applicant(proposal, request):
     if proposal_applicant_data:
         proposal_applicant.first_name = proposal_applicant_data['legal_first_name']
         proposal_applicant.last_name = proposal_applicant_data['legal_last_name']
-        correct_date = datetime.datetime.strptime(proposal_applicant_data['legal_dob'], '%d/%m/%Y').date()
+        try:
+            correct_date = datetime.datetime.strptime(proposal_applicant_data['legal_dob'], '%d/%m/%Y').date()
+        except:
+            raise serializers.ValidationError("Incorrect date format for legal date of birth - please update this user's profile")
         proposal_applicant.dob = correct_date
  
         if 'residential_address' in proposal_applicant_data:

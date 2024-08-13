@@ -28,9 +28,9 @@ from rest_framework.renderers import JSONRenderer
 # from datetime import datetime, timedelta
 # from collections import OrderedDict
 from django.core.cache import cache
-# from ledger.accounts.models import EmailUser, Address
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from mooringlicensing.components.main.decorators import basic_exception_handler
+from ledger_api_client.managed_models import SystemUser
 
 # from ledger.address.models import Country
 # from datetime import datetime, timedelta, date
@@ -298,15 +298,15 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
             # Custom search 
             search_text = request.GET.get('search[value]')  # This has a search term.
             if search_text:
-                email_user_ids = list(EmailUser.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
                 .filter(
-                    Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
-                ).values_list("id", flat=True))
+                    Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+                ).values_list("ledger_id", flat=True))
                 proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
-                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__current_proposal__submitter__in=email_user_ids))
+                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__current_proposal__submitter__in=system_user_ids))
 
                 queryset = super_queryset.union(q_set)
             return queryset

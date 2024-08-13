@@ -8,9 +8,7 @@ from decimal import Decimal
 from math import ceil
 
 from django.conf import settings
-# from ledger.accounts.models import EmailUser,Address
-# from ledger.payments.invoice.models import Invoice
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, Address
+from ledger_api_client.ledger_models import Invoice
 
 from mooringlicensing.components.main.models import ApplicationType
 # from mooringlicensing.components.main.utils import retrieve_email_user
@@ -50,24 +48,6 @@ from mooringlicensing.ledger_api_utils import retrieve_system_user
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
-
-
-class EmailUserAppViewSerializer(serializers.ModelSerializer):
-    residential_address = UserAddressSerializer()
-
-    class Meta:
-        model = EmailUser
-        fields = ('id',
-                  'email',
-                  'first_name',
-                  'last_name',
-                  'dob',
-                  'title',
-                  'organisation',
-                  'residential_address',
-                  'email',
-                  'phone_number',
-                  'mobile_number',)
 
 
 class ProposalTypeSerializer(serializers.ModelSerializer):
@@ -693,7 +673,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 'silent_elector',
                 'temporary_document_collection_id',
                 'keep_existing_vessel',
-                'auto_approve',
+                'auto_approve', #TODO: if auto approve is supposed to be strictly based on other values we should NOT let the client set it
                 )
         read_only_fields=('id',)
 
@@ -926,6 +906,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     submitter = serializers.SerializerMethodField()
     proposaldeclineddetails = ProposalDeclinedDetailsSerializer()
     assessor_mode = serializers.SerializerMethodField()
+    approver_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
     allowed_assessors = serializers.SerializerMethodField()
@@ -980,6 +961,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'can_user_view',
                 'documents_url',
                 'assessor_mode',
+                'approver_mode',
                 'current_assessor',
                 'assessor_data',
                 'comment_data',
@@ -1241,14 +1223,20 @@ class InternalProposalSerializer(BaseProposalSerializer):
             return obj.approval_level_document
 
     def get_assessor_mode(self,obj):
-        # TODO check if the proposal has been accepted or declined
         request = self.context['request']
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
         return {
-            'assessor_mode': True,
             'has_assessor_mode': obj.has_assessor_mode(user),
             'assessor_can_assess': obj.can_assess(user),
-            'assessor_level': 'assessor',
+        }
+    
+    #TODO clean up auth check functions - remove redundant checks and rename to make more sense
+    def get_approver_mode(self,obj):
+        request = self.context['request']
+        user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
+        return {
+            'has_approver_mode': obj.has_approver_mode(user),
+            'approver_can_approve': obj.can_assess(user),
         }
 
     def get_readonly(self,obj):

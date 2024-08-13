@@ -1,5 +1,4 @@
 from django.conf import settings
-# from ledger.accounts.models import EmailUser
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
 
@@ -7,8 +6,7 @@ def get_user_as_email_user(sender):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
     except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = None
     return sender_user
 
 

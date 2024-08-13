@@ -13,7 +13,15 @@
                             </h3>
                         </div>
                         <div class="panel-body panel-collapse collapse in" :id="detailsBody">
+
                             <form class="form-horizontal">
+                                <div v-if="!proposalApplicant" class="form-group">
+                                    <label for="" class="col-sm-3 control-label"></label>
+                                    <div class="col-sm-6">
+                                        <b>To update this account please <a class="btn btn-primary" target="_blank" :href="'/ledger-ui/accounts-management/'+user.id+'/change/'">click here</a></b>
+                                    </div>
+                                </div>
+
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 control-label">Given Name(s)</label>
                                     <div class="col-sm-6">
@@ -409,8 +417,12 @@ export default {
         },
         adjust_table_width: function() {
             let vm = this;
-            vm.$refs.residential_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
-            vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            if (vm.$refs.residential_address_datatable !== undefined) {
+                vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            }
+            if (vm.$refs.residential_address_datatable !== undefined) {
+                vm.$refs.postal_address_datatable.vmDataTable.columns.adjust().responsive.recalc();
+            }
         },
         datatable_options: function(address_type){
             let vm = this;

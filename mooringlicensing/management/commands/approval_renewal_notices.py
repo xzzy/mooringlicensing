@@ -11,8 +11,6 @@ from mooringlicensing.components.approvals.models import (
     MooringLicence,
     DcvPermit, ApprovalUserAction,
 )
-# from ledger.accounts.models import EmailUser
-from ledger_api_client.ledger_models import EmailUserRO
 from datetime import timedelta
 from mooringlicensing.components.proposals.email import send_approval_renewal_email_notification
 
@@ -91,13 +89,6 @@ class Command(BaseCommand):
                 errors.append(err_msg)
 
     def handle(self, *args, **options):
-        try:
-            # user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-            user = EmailUserRO.objects.get(email=settings.CRON_EMAIL)
-        except:
-            # user = EmailUser.objects.create(email=settings.CRON_EMAIL, password='')
-            user = EmailUserRO.objects.create(email=settings.CRON_EMAIL, password='')
-
         updates, errors = [], []
 
         self.perform_per_type(CODE_DAYS_FOR_RENEWAL_WLA, WaitingListAllocation, updates, errors)

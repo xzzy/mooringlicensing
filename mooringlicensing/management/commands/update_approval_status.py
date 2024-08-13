@@ -8,8 +8,7 @@ from mooringlicensing.components.approvals.models import (
     ApprovalUserAction, WaitingListAllocation,
 )
 from mooringlicensing.components.proposals.models import ProposalUserAction
-# from ledger.accounts.models import EmailUser
-from ledger_api_client.ledger_models import EmailUserRO
+from ledger_api_client.models import EmailUser
 import datetime
 from mooringlicensing.components.approvals.email import (
     send_approval_cancel_email_notification,
@@ -29,13 +28,6 @@ class Command(BaseCommand):
     help = 'Change the status of Approvals to Expired / Surrender/ Cancelled/ Suspended.'
 
     def handle(self, *args, **options):
-        try:
-            # user = EmailUser.objects.get(email=settings.CRON_EMAIL)
-            user = EmailUserRO.objects.get(email=settings.CRON_EMAIL)
-        except:
-            # user = EmailUser.objects.create(email=settings.CRON_EMAIL, password = '')
-            user = EmailUserRO.objects.create(email=settings.CRON_EMAIL, password = '')
-
         errors = []
         updates = []
         today = timezone.localtime(timezone.now()).date()
@@ -49,7 +41,7 @@ class Command(BaseCommand):
         approvals = Approval.objects.filter(queries)
         for approval in approvals:
             try:
-                approval.expire_approval(user)
+                approval.expire_approval()
                 # a.save()  # Saved in the above function...?
                 logger.info('Updated Approval {} status to {}'.format(approval.id, approval.status))
                 updates.append(approval.lodgement_number)

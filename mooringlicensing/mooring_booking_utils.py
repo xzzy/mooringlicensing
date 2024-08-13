@@ -1459,7 +1459,6 @@ def booking_success(basket, booking, context_processor):
             #Calculate Admissions and create object
             if booking.admission_payment:
                  ad_booking = AdmissionsBooking.objects.get(pk=booking.admission_payment.pk)
-                 #if request.user.__class__.__name__ == 'EmailUser':
                  ad_booking.created_by = booking.created_by
                  ad_booking.booking_type=1
                  print("MLINE 8.02", datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
@@ -1630,8 +1629,6 @@ def booking_admission_success(basket, booking, context_processor):
              logger.info('{} finished temporary booking {}, creating new AdmissionBookingInvoice with reference {}'.format('User {} with id {}'.format(booking.customer.get_full_name(),booking.customer.id) if booking.customer else 'An anonymous user',booking.id, invoice_ref))
              # FIXME: replace with server side notify_url callback
              admissionsInvoice = AdmissionsBookingInvoice.objects.get_or_create(admissions_booking=booking, invoice_reference=invoice_ref)
-             #if request.user.__class__.__name__ == 'EmailUser':
-             #    booking.created_by = request.user
 
              # set booking to be permanent fixture
              booking.booking_type = 1  # internet booking

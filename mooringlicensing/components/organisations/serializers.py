@@ -1,5 +1,4 @@
 from django.conf import settings
-# from ledger.accounts.models import EmailUser,OrganisationAddress
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from mooringlicensing.components.organisations.models import (
                                 Organisation,
@@ -86,20 +85,9 @@ class OrganisationAddressSerializer(serializers.ModelSerializer):
     #         'postcode'
     #     )
 
-class DelegateSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source='get_full_name')
-    class Meta:
-        model = EmailUser
-        fields = (
-            'id',
-            'name',
-            'email',
-        )
-
 class OrganisationSerializer(serializers.ModelSerializer):
     address = OrganisationAddressSerializer(read_only=True)
     pins = serializers.SerializerMethodField(read_only=True)
-    #delegates = DelegateSerializer(many=True, read_only=True)
     delegates = serializers.SerializerMethodField(read_only=True)
     organisation = LedgerOrganisationSerializer()
     trading_name = serializers.SerializerMethodField(read_only=True)
@@ -141,9 +129,6 @@ class OrganisationSerializer(serializers.ModelSerializer):
         return obj.licence_discount
 
     def get_delegates(self, obj):
-        """
-        Default DelegateSerializer does not include whether the user is an organisation admin, so adding it here
-        """
         delegates = []
         for user in obj.delegates.all():
             admin_qs = obj.contacts.filter(organisation__organisation_id=obj.organisation_id, email=user.email, is_admin=True, user_role='organisation_admin') #.values_list('is_admin',flat=True)
