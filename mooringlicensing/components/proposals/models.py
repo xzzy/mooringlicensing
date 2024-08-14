@@ -2363,6 +2363,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 
 class ProposalApplicant(RevisionedMixin):
+    email_user_id = models.IntegerField(null=True, blank=True)
     #TODO: ideally this should be reference by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
     proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
 
