@@ -2368,28 +2368,28 @@ class ProposalApplicant(RevisionedMixin):
     proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="proposal_applicant")
 
     # Name, etc
-    first_name = models.CharField(max_length=128, blank=True, verbose_name='Given name(s)')
-    last_name = models.CharField(max_length=128, blank=True)
+    first_name = models.CharField(max_length=128, null=True, blank=True, verbose_name='Given name(s)')
+    last_name = models.CharField(max_length=128, null=True, blank=True)
     dob = models.DateField(auto_now=False, auto_now_add=False, null=True, blank=True, verbose_name="date of birth", help_text='')
 
     # Residential address
-    residential_line1 = models.CharField('Line 1', max_length=255, blank=True)
-    residential_line2 = models.CharField('Line 2', max_length=255, blank=True)
-    residential_line3 = models.CharField('Line 3', max_length=255, blank=True)
-    residential_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
-    residential_state = models.CharField(max_length=255, default='WA', blank=True)
-    residential_country = CountryField(default='AU', blank=True)
-    residential_postcode = models.CharField(max_length=10, blank=True)
+    residential_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
+    residential_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
+    residential_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
+    residential_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
+    residential_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
+    residential_country = CountryField(default='AU', null=True, blank=True)
+    residential_postcode = models.CharField(max_length=10, null=True, blank=True)
 
     # Postal address
     postal_same_as_residential = models.BooleanField(default=False,null=True)
-    postal_line1 = models.CharField('Line 1', max_length=255, blank=True)
-    postal_line2 = models.CharField('Line 2', max_length=255, blank=True)
-    postal_line3 = models.CharField('Line 3', max_length=255, blank=True)
+    postal_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
+    postal_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
+    postal_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
     postal_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
-    postal_state = models.CharField(max_length=255, default='WA', blank=True)
-    postal_country = CountryField(default='AU', blank=True)
-    postal_postcode = models.CharField(max_length=10, blank=True)
+    postal_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
+    postal_country = CountryField(default='AU', null=True, blank=True)
+    postal_postcode = models.CharField(max_length=10, null=True, blank=True)
 
     # Contact
     email = models.EmailField(null=True, blank=True,)
