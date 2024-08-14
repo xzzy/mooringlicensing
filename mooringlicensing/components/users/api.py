@@ -45,7 +45,6 @@ class GetProposalApplicantUser(views.APIView):
     def get(self, request, proposal_pk, format=None):
         try: 
             proposal = Proposal.objects.get(id=proposal_pk)
-
             if (is_customer(self.request) and proposal.proposal_applicant and proposal.proposal_applicant.email_user_id == request.user.id) or is_internal(self.request):
                 # Holder of this proposal is accessing OR internal user is accessing.
                 applicant = retrieve_system_user(proposal.proposal_applicant.email_user_id)

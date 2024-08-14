@@ -1025,7 +1025,8 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
 def create_proposal_applicant(proposal, system_user):
     proposal_applicant = ProposalApplicant.objects.create(proposal=proposal)
     logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the proposal: [{proposal}].')
-    proposal_applicant.email_user_id = system_user.ledger_id
+    if (system_user.ledger_id):
+        proposal_applicant.email_user_id = system_user.ledger_id.id
     proposal_applicant.first_name = system_user.legal_first_name
     proposal_applicant.last_name = system_user.legal_last_name
     proposal_applicant.email = system_user.email
