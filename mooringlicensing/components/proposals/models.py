@@ -2070,14 +2070,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    @property
-    def proposal_applicant(self):
-        try:
-            proposal_applicant = ProposalApplicant.objects.get(proposal=self)
-        except:
-            proposal_applicant = None
-        return proposal_applicant
-
     def renew_approval(self,request):
         with transaction.atomic():
             previous_proposal = self
@@ -2365,7 +2357,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
     #TODO: ideally this should be reference by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
-    proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
+    proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="proposal_applicant")
 
     # Name, etc
     first_name = models.CharField(max_length=128, blank=True, verbose_name='Given name(s)')
