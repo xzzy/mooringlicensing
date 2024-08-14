@@ -42,6 +42,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
     private_storage
 )
+from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
         )
@@ -228,17 +229,7 @@ class GetWlaAllowed(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.proposals.models import WaitingListApplication
-        wla_allowed = True
-        # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
-        rule1 = WaitingListApplication.get_intermediate_proposals(request.user.id)
-        rule2 = WaitingListAllocation.get_intermediate_approvals(request.user.id)
-        rule3 = MooringLicenceApplication.get_intermediate_proposals(request.user.id)
-        rule4 = MooringLicence.get_valid_approvals(request.user.id)
-
-        if rule1 or rule2 or rule3 or rule4:
-            wla_allowed = False
-
+        wla_allowed = get_wla_allowed(request.user)
         return Response({"wla_allowed": wla_allowed})
 
 

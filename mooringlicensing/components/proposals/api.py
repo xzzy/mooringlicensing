@@ -107,6 +107,7 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
+from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -808,7 +809,9 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         except:
             raise serializers.ValidationError("proposal type does not exist")
 
-        #TODO add a check to ensure user can create a WLA
+        wla_allowed = get_wla_allowed(request.user)
+        if not wla_allowed:
+            raise serializers.ValidationError("user not permitted to create WLA at this time")
 
         obj = WaitingListApplication.objects.create(
                 submitter=request.user.id,
