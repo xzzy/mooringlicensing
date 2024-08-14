@@ -90,6 +90,13 @@ class Compliance(RevisionedMixin):
         return retrieve_email_userro(self.submitter) if self.submitter else None
     
     @property
+    def holder_id(self):
+        if self.proposal and self.proposal.proposal_applicant:
+            return self.proposal.proposal_applicant.email_user_id
+        else:
+            return None
+
+    @property
     def holder_obj(self):
         return retrieve_email_userro(
             self.proposal.proposal_applicant.email_user_id
