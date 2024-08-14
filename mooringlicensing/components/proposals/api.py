@@ -2146,55 +2146,58 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        # return Response({})
-        vessel = self.get_object()
-        booking_date_str = request.data.get("selected_date")
-        booking_date = None
-        if booking_date_str:
-            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
-            booking_date = booking_date.strftime('%Y-%m-%d')
-        else:
-            booking_date = datetime.now().strftime('%Y-%m-%d')
-        data = get_bookings(booking_date, vessel.rego_no.upper())
-        data = get_bookings(booking_date=booking_date, rego_no=vessel.rego_no.upper(), mooring_id=None)
-        return Response(data)
+        if is_internal(request):
+            vessel = self.get_object()
+            booking_date_str = request.data.get("selected_date")
+            booking_date = None
+            if booking_date_str:
+                booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+                booking_date = booking_date.strftime('%Y-%m-%d')
+            else:
+                booking_date = datetime.now().strftime('%Y-%m-%d')
+            data = get_bookings(booking_date, vessel.rego_no.upper())
+            data = get_bookings(booking_date=booking_date, rego_no=vessel.rego_no.upper(), mooring_id=None)
+            return Response(data)
+        raise serializers.ValidationError("not authorised to view related bookings")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        selected_date_str = request.data.get("selected_date")
-        selected_date = None
-        if selected_date_str:
-            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        approval_list = []
-        vd_set = VesselDetails.objects.filter(vessel=vessel)
-        if selected_date:
-            for vd in vd_set:
-                for prop in vd.proposal_set.all():
-                    if (
-                        prop.approval and 
-                        selected_date >= prop.approval.start_date and
-                        selected_date <= prop.approval.expiry_date and
-                        # ensure vessel has not been sold
-                        prop.vessel_ownership and not prop.vessel_ownership.end_date
-                    ):
-                        if prop.approval not in approval_list:
-                            approval_list.append(prop.approval)
-        else:
-            for vd in vd_set:
-                for prop in vd.proposal_set.all():
-                    if (
-                        prop.approval and 
-                        prop.approval.status == 'current' and
-                        # ensure vessel has not been sold
-                        prop.vessel_ownership and not prop.vessel_ownership.end_date
-                    ):
-                        if prop.approval not in approval_list:
-                            approval_list.append(prop.approval)
+        if is_internal(request):
+            vessel = self.get_object()
+            selected_date_str = request.data.get("selected_date")
+            selected_date = None
+            if selected_date_str:
+                selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+            approval_list = []
+            vd_set = VesselDetails.objects.filter(vessel=vessel)
+            if selected_date:
+                for vd in vd_set:
+                    for prop in vd.proposal_set.all():
+                        if (
+                            prop.approval and 
+                            selected_date >= prop.approval.start_date and
+                            selected_date <= prop.approval.expiry_date and
+                            # ensure vessel has not been sold
+                            prop.vessel_ownership and not prop.vessel_ownership.end_date
+                        ):
+                            if prop.approval not in approval_list:
+                                approval_list.append(prop.approval)
+            else:
+                for vd in vd_set:
+                    for prop in vd.proposal_set.all():
+                        if (
+                            prop.approval and 
+                            prop.approval.status == 'current' and
+                            # ensure vessel has not been sold
+                            prop.vessel_ownership and not prop.vessel_ownership.end_date
+                        ):
+                            if prop.approval not in approval_list:
+                                approval_list.append(prop.approval)
 
-        serializer = LookupApprovalSerializer(approval_list, many=True)
-        return Response(serializer.data)
+            serializer = LookupApprovalSerializer(approval_list, many=True)
+            return Response(serializer.data)
+        raise serializers.ValidationError("not authorised to view related approvals")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -2484,34 +2487,39 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        mooring = self.get_object()
-        booking_date_str = request.data.get("selected_date")
-        booking_date = None
-        if booking_date_str:
-            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
-            booking_date = booking_date.strftime('%Y-%m-%d')
-        else:
-            booking_date = datetime.now().strftime('%Y-%m-%d')
-        data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
-        return Response(data)
+        if is_internal(request):
+            mooring = self.get_object()
+            booking_date_str = request.data.get("selected_date")
+            booking_date = None
+            if booking_date_str:
+                booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+                booking_date = booking_date.strftime('%Y-%m-%d')
+            else:
+                booking_date = datetime.now().strftime('%Y-%m-%d')
+            data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
+            return Response(data)
+        raise serializers.ValidationError("not authorised to view related bookings")
+
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
-        mooring = self.get_object()
-        selected_date_str = request.data.get("selected_date")
-        selected_date = None
-        if selected_date_str:
-            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        if selected_date:
-            approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
-        else:
-            approval_list = [approval for approval in mooring.approval_set.filter(status=Approval.APPROVAL_STATUS_CURRENT)]
-        if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
-            approval_list.append(mooring.mooring_licence.approval)
+        if is_internal(request):
+            mooring = self.get_object()
+            selected_date_str = request.data.get("selected_date")
+            selected_date = None
+            if selected_date_str:
+                selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+            if selected_date:
+                approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
+            else:
+                approval_list = [approval for approval in mooring.approval_set.filter(status=Approval.APPROVAL_STATUS_CURRENT)]
+            if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
+                approval_list.append(mooring.mooring_licence.approval)
 
-        serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
-        return Response(serializer.data)
+            serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
+            return Response(serializer.data)
+        raise serializers.ValidationError("not authorised to view related approvals")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
