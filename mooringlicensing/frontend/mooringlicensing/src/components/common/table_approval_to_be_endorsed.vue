@@ -131,7 +131,7 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.submitter.first_name + ' ' + full.submitter.last_name
+                            return full.applicant.legal_first_name + ' ' + full.applicant.legal_last_name
                         }
                     },
                     {

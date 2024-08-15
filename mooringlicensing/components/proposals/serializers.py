@@ -367,14 +367,20 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         return ret_list
 
     def get_invoices(self, obj):
-        ret_list = []
-        invoice_references = [item.invoice_reference for item in obj.application_fees.all()]
-        invoices = Invoice.objects.filter(reference__in=invoice_references)
-        if not invoices:
-            return ''
-        else:
-            serializer = InvoiceSerializer(invoices, many=True)
-            return serializer.data
+        if ('request' in self.context and 
+        (
+            is_internal(self.context['request']) or
+            (obj.proposal_applicant and obj.proposal_applicant.email_user_id == self.context['request'].user.id)
+        )):
+            ret_list = []
+            invoice_references = [item.invoice_reference for item in obj.application_fees.all()]
+            invoices = Invoice.objects.filter(reference__in=invoice_references)
+            if not invoices:
+                return ''
+            else:
+                serializer = InvoiceSerializer(invoices, many=True)
+                return serializer.data
+        return ''
 
 
 class ListProposalSerializer(BaseProposalSerializer):
@@ -467,27 +473,32 @@ class ListProposalSerializer(BaseProposalSerializer):
 
     def get_invoice_links(self, proposal):
         links = ""
-        # pdf
-        for invoice in proposal.invoices_display():
-            # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
-            #     invoice.reference, invoice.reference)
-            # api_key = settings.LEDGER_API_KEY
-            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
-            # url = get_invoice_url(invoice.reference)
-            url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
-            links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
-        if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
-            # paid invoices url
-            invoices_str=''
-            for inv in proposal.invoices_display():
-                payment_status = get_invoice_payment_status(inv.id)
-                if payment_status == 'paid':
-                    invoices_str += 'invoice_no={}&'.format(inv.reference)
-            if invoices_str:
-                invoices_str = invoices_str[:-1]
-                links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
-                # refund url
-                # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
+        if ('request' in self.context and 
+        (
+            is_internal(self.context['request']) or
+            (proposal.proposal_applicant and proposal.proposal_applicant.email_user_id == self.context['request'].user.id)
+        )):
+            # pdf
+            for invoice in proposal.invoices_display():
+                # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
+                #     invoice.reference, invoice.reference)
+                # api_key = settings.LEDGER_API_KEY
+                # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
+                # url = get_invoice_url(invoice.reference)
+                url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+                links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
+            if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
+                # paid invoices url
+                invoices_str=''
+                for inv in proposal.invoices_display():
+                    payment_status = get_invoice_payment_status(inv.id)
+                    if payment_status == 'paid':
+                        invoices_str += 'invoice_no={}&'.format(inv.reference)
+                if invoices_str:
+                    invoices_str = invoices_str[:-1]
+                    links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
+                    # refund url
+                    # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
         return links
 
     def get_can_view_payment_details(self, proposal):
@@ -533,13 +544,6 @@ class ListProposalSerializer(BaseProposalSerializer):
                 return True
         return False
 
-
-# class ProposalSerializerForEndorser(serializers.ModelSerializer):
-#     class Meta:
-#         model = Proposal
-#         fields = (
-#             'id',
-#         )
 
 class ProposalForEndorserSerializer(BaseProposalSerializer):
     for_endorser = serializers.SerializerMethodField()

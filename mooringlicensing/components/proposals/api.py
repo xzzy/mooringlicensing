@@ -1576,6 +1576,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance, request, self)
+
+            instance = self.get_object()
             is_applicant_address_set(instance)
 
             return Response()

@@ -290,6 +290,7 @@ class WaitingListAllocationSerializer(serializers.ModelSerializer):
 
 class ApprovalSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField()
+    applicant = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
@@ -328,6 +329,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'submitter',
+            'applicant',
             'lodgement_number',
             'status',
             'internal_status',
@@ -381,8 +383,16 @@ class ApprovalSerializer(serializers.ModelSerializer):
             return None
 
     def get_submitter(self, obj):
-        serializer = UserSerializer(retrieve_system_user(obj.submitter))
-        return serializer.data
+        if 'request' in self.context and is_internal(self.context['request']):
+            serializer = UserSerializer(retrieve_system_user(obj.submitter))
+            return serializer.data
+        return None
+    
+    def get_applicant(self, obj):
+        if obj.proposal_applicant:
+            serializer = UserSerializer(retrieve_system_user(obj.proposal_applicant.email_user_id))
+            return serializer.data
+        return None
 
     def get_mooring_licence_mooring(self, obj):
         if type(obj.child_obj) == MooringLicence:

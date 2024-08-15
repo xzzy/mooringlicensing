@@ -114,6 +114,16 @@ def update_vessel_comms_log_filename(instance, filename):
 def update_mooring_comms_log_filename(instance, filename):
     return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
 
+#copied from helpers
+def is_applicant_postal_address_set(instance):
+
+    applicant = instance.proposal_applicant
+    #postal same as residential OR postal address
+    return applicant and (applicant.postal_line1 and
+        applicant.postal_locality and
+        applicant.postal_state and
+        applicant.postal_country and 
+        applicant.postal_postcode)
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents', on_delete=models.CASCADE)
@@ -1614,7 +1624,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise exceptions.ProposalNotAuthorized()
                     if not self.auto_approve and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
-                    if not self.applicant_address:
+                    if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                     if self.application_fees.count() < 1 and not self.migrated:
@@ -1780,7 +1790,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise exceptions.ProposalNotAuthorized()
                     if request and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
-                    if not self.applicant_address:
+                    if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 ## update proposed_issuance_approval

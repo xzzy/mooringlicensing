@@ -38,7 +38,6 @@
                 ref="waiting_list_application"
                 :showElectoralRoll="showElectoralRoll"
                 :readonly="readonly"
-                :submitterId="submitterId"
                 @updateAutoApprove="updateAutoApprove"
                 @updateSubmitText="updateSubmitText"
                 @vesselChanged="updateVesselChanged"
@@ -55,7 +54,6 @@
                 ref="annual_admission_application"
                 :showElectoralRoll="showElectoralRoll"
                 :readonly="readonly"
-                :submitterId="submitterId"
                 @updateAutoApprove="updateAutoApprove"
                 @updateSubmitText="updateSubmitText"
                 @vesselChanged="updateVesselChanged"
@@ -69,7 +67,6 @@
                 :is_external="true"
                 ref="authorised_user_application"
                 :readonly="readonly"
-                :submitterId="submitterId"
                 @updateSubmitText="updateSubmitText"
                 @updateAutoApprove="updateAutoApprove"
                 @vesselChanged="updateVesselChanged"
@@ -85,7 +82,6 @@
                 ref="mooring_licence_application"
                 :showElectoralRoll="showElectoralRoll"
                 :readonly="readonly"
-                :submitterId="submitterId"
                 @updateSubmitText="updateSubmitText"
                 @updateAutoApprove="updateAutoApprove"
                 @vesselChanged="updateVesselChanged"
@@ -249,13 +245,6 @@ export default {
               text = "No relevant details have been detected in this amendment application";
           }
           return text;
-      },
-      submitterId: function() {
-          let submitter = null;
-          if (this.proposal && this.proposal.submitter && this.proposal.submitter.id) {
-              submitter = this.proposal.submitter.id;
-          }
-          return submitter;
       },
       readonly: function() {
           let returnVal = true;

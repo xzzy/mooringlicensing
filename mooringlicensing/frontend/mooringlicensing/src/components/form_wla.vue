@@ -64,6 +64,7 @@
                     </div>
                     <Vessels 
                         :proposal="proposal" 
+                        :profile="profile"
                         :id="'proposalStartVessels' + uuid"
                         :key="'proposalStartVessels' + uuid" 
                         :keep_current_vessel="keepCurrentVessel" 
