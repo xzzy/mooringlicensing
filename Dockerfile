@@ -27,7 +27,7 @@ ENV NODE_MAJOR=20
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata cron rsyslog gunicorn virtualenv
+RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata rsyslog gunicorn virtualenv
 RUN apt-get install --no-install-recommends -y libpq-dev patch libreoffice
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim nano npm sudo
 RUN apt-get install --no-install-recommends -y bzip2 unzip
@@ -52,14 +52,10 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get install -y nodejs
 
 # Install nodejs
-COPY cron /etc/cron.d/dockercron
+COPY python-cron ./
 COPY startup.sh pre_startup.sh /
 COPY ./timezone /etc/timezone
-RUN chmod 0644 /etc/cron.d/dockercron && \
-    crontab /etc/cron.d/dockercron && \
-    touch /var/log/cron.log && \
-    service cron start && \
-    chmod 755 /startup.sh && \
+RUN chmod 755 /startup.sh && \
     chmod +s /startup.sh && \
     chmod 755 /pre_startup.sh && \
     chmod +s /pre_startup.sh && \
@@ -128,16 +124,6 @@ RUN python manage_ml.py collectstatic --noinput
 RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
 
-#COPY cron /etc/cron.d/dockercron
-# COPY startup.sh pre_startup.sh /
-# Cron start
-#RUN service rsyslog start
-#RUN chmod 0644 /etc/cron.d/dockercron
-#RUN crontab /etc/cron.d/dockercron
-
-#RUN service cron start
-#RUN chmod 755 /startup.sh
-# cron end
 
 # IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
 # 1. will create dir, if it does not already exist
