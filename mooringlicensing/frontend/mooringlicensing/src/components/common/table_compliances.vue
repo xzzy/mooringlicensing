@@ -197,14 +197,14 @@ export default {
             }
             return headers;
         },
-        approvalSubmitterColumn: function() {
+        approvalHolderColumn: function() {
             return {
                         data: "id",
                         orderable: false,
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.approval_submitter;
+                            return full.approval_holder;
                         },
                         // name: 'proposal__proposalapplicant__first_name'
                     }
@@ -356,7 +356,7 @@ export default {
                     this.lodgementNumberColumn,
                     this.approvalTypeColumn,
                     this.licenceNumberColumn,
-                    this.approvalSubmitterColumn,
+                    this.approvalHolderColumn,
                     //this.conditionColumn,
                     this.statusColumn,
                     this.dueDateColumn,

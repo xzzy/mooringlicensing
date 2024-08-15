@@ -567,7 +567,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         filter_applicant_id = request.GET.get('filter_applicant')
         if filter_applicant_id and not filter_applicant_id.lower() == 'all':
-            filter_query &= Q(submitter__id=filter_applicant_id)
+            filter_query &= Q(proposal_applicant__email_user_id=filter_applicant_id)
 
         # Filter by endorsement
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
@@ -630,14 +630,15 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                 # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
                 user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
-                all = all.filter(Q(org_applicant__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
+                all = all.filter(Q(org_applicant__in=user_orgs) | 
+                        Q(proposal_applicant__email_user_id=target_user.id) | 
+                        Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
-            # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            # user_orgs = [org.id for org in orgs]
-            # qs = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
-            qs = all.filter(Q(org_applicant__in=orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
+            qs = all.filter(Q(org_applicant__in=orgs) | 
+                    Q(proposal_applicant__email_user_id=request_user.id) | 
+                    Q(site_licensee_email=request_user.email))
             return qs
         return Proposal.objects.none()
 
@@ -666,7 +667,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
             qs = AnnualAdmissionApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AnnualAdmissionApplication.objects.filter(submitter=user.id)
+            queryset = AnnualAdmissionApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         return AnnualAdmissionApplication.objects.none()
 
@@ -707,7 +708,8 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
             qs = AuthorisedUserApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
+            Q(proposal_applicant__email_user_id=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AuthorisedUserApplication.objects.none()
@@ -747,7 +749,8 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
             qs = MooringLicenceApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
+            Q(proposal_applicant__email_user_id=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
@@ -792,8 +795,9 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
             qs = WaitingListApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            # queryset = WaitingListApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
-            queryset = WaitingListApplication.objects.filter(Q(proxy_applicant=user.id) | Q(submitter=user.id))
+            queryset = WaitingListApplication.objects.filter(
+                Q(proxy_applicant=user.id) | 
+                Q(proposal_applicant__email_user_id=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListApplication.objects.none()
@@ -937,7 +941,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
 
-        # Make sure the submitter is the same as the applicant.
         is_authorised_to_modify(request, instance)
 
         errors = []
@@ -991,11 +994,10 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             qs = Proposal.objects.all()
             return qs
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            # queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = Proposal.objects.filter(
-                Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
+                Q(org_applicant_id__in=user_orgs) | 
+                Q(proposal_applicant__email_user_id=request_user.id)
             ).exclude(migrated=True)
 
             # For the endoser to view the endosee's proposal
@@ -1548,8 +1550,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     def draft(self, request, *args, **kwargs):
         with transaction.atomic():
             instance = self.get_object()
-
-            # Make sure the submitter is the same as the applicant.
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))
@@ -1574,7 +1574,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             logger.info(f'Proposal: [{instance}] has been submitted by the user: [{request.user}].')
 
-            # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance, request, self)
             is_applicant_address_set(instance)
@@ -1732,11 +1731,10 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
         elif is_customer(self.request):
-            # queryset = ProposalRequirement.objects.filter(Q(proxy_applicant_id=user.id) | Q(proposal__submitter=user.id))
-            # return queryset
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = ProposalRequirement.objects.filter(
-                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+                Q(proposal__org_applicant_id__in=user_orgs) | 
+                Q(proposal_applicant__email_user_id=user.id)
             )
         else:
             logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -1834,7 +1832,8 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = AmendmentRequest.objects.filter(
-                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+                Q(proposal__org_applicant_id__in=user_orgs) | 
+                Q(proposal_applicant__email_user_id=user.id)
             )
         else:
             logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))

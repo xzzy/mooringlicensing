@@ -89,7 +89,10 @@ class RefundOracleView(views.APIView):
                 money_to_json = json.loads(money_to)
                 bpoint_trans_split_json = json.loads(bpoint_trans_split)
                 failed_refund = False
-     
+                booking_user = None
+                if booking.proposal_applicant:
+                    booking_user = booking.proposal_applicant.email_user_id
+
                 json_obj = {'found': False, 'code': money_from, 'money_to': money_to, 'failed_refund': failed_refund}
     
                 lines = []
@@ -120,8 +123,9 @@ class RefundOracleView(views.APIView):
                                  'line_status': 1
                                  })
 
+                    
 
-                    order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking.submitter, system_invoice=True)
+                    order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking_user, system_invoice=True)
                     new_invoice = Invoice.objects.get(order_number=order.number)
                     update_payments(new_invoice.reference) 
                     #order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking.customer)
@@ -169,7 +173,8 @@ class RefundOracleView(views.APIView):
                                     "oracle_code":str(settings.UNALLOCATED_ORACLE_CODE), 
                                     'line_status': 1
                                     })
-                            order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking.submitter, system_invoice=False)
+
+                            order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking_user, system_invoice=False)
                             new_invoice = Invoice.objects.get(order_number=order.number)
 
                             if refund:
@@ -205,7 +210,7 @@ class RefundOracleView(views.APIView):
                             "oracle_code":mt['oracle-code'], 
                             'line_status': 1
                             })
-                    order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking.submitter, system_invoice=False)
+                    order = utils.allocate_refund_to_invoice(request, booking, lines, invoice_text=None, internal=False, order_total='0.00',user=booking_user, system_invoice=False)
                     new_invoice = Invoice.objects.get(order_number=order.number)
                     update_payments(new_invoice.reference)
 

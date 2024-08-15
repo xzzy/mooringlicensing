@@ -102,7 +102,7 @@
                     </form>
                 </div>
             </div>
-            <!--p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p-->
+            <!-- TODO fix or remove for good p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p-->
 
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i
@@ -520,6 +520,7 @@ export default {
         },
     },
     methods: {
+        //TODO FIX or REMOVE
         preview: function () {
             let vm = this;
             let formData = new FormData(vm.form)

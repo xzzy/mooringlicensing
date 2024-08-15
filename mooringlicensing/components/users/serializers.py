@@ -76,7 +76,7 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
 
     def get_ledger_id(self, obj):
         try:
-            return obj.proposal.submitter
+            return obj.proposal.proposal_applicant.email_user_id
         except:
             return
 
