@@ -66,7 +66,6 @@
                         ref="waiting_list_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         :key="computedProposalId"
                         @profile-fetched="populateProfile"
                     />
@@ -80,7 +79,6 @@
                         ref="annual_admission_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         @profile-fetched="populateProfile"
                     />
                     <AuthorisedUserApplication
@@ -91,7 +89,6 @@
                         :is_internal="true"
                         ref="authorised_user_application"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         @profile-fetched="populateProfile"
                     />
                     <MooringLicenceApplication
@@ -103,7 +100,6 @@
                         ref="mooring_licence_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         @profile-fetched="populateProfile"
                     />
                 </template>
