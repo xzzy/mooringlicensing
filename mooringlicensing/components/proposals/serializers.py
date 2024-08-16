@@ -168,7 +168,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'processing_status',
                 'applicant_type',
                 'applicant',
-                'submitter',
                 'assigned_officer',
                 'get_history',
                 'lodgement_date',
@@ -185,7 +184,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'allowed_assessors',
                 'pending_amendment_request',
                 'is_amendment_proposal',
-                'applicant_details',
                 'fee_paid',
                 'invoices',
                 ## vessel fields
@@ -369,19 +367,25 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         return ret_list
 
     def get_invoices(self, obj):
-        ret_list = []
-        invoice_references = [item.invoice_reference for item in obj.application_fees.all()]
-        invoices = Invoice.objects.filter(reference__in=invoice_references)
-        if not invoices:
-            return ''
-        else:
-            serializer = InvoiceSerializer(invoices, many=True)
-            return serializer.data
+        if ('request' in self.context and 
+        (
+            is_internal(self.context['request']) or
+            (obj.proposal_applicant and obj.proposal_applicant.email_user_id == self.context['request'].user.id)
+        )):
+            ret_list = []
+            invoice_references = [item.invoice_reference for item in obj.application_fees.all()]
+            invoices = Invoice.objects.filter(reference__in=invoice_references)
+            if not invoices:
+                return ''
+            else:
+                serializer = InvoiceSerializer(invoices, many=True)
+                return serializer.data
+        return ''
 
 
 class ListProposalSerializer(BaseProposalSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
-    applicant = serializers.CharField(read_only=True)
+    applicant = serializers.SerializerMethodField(read_only=True)
     processing_status = serializers.SerializerMethodField()
     customer_status = serializers.SerializerMethodField()
     assigned_officer = serializers.SerializerMethodField()
@@ -432,6 +436,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             'customer_status',
             'application_type_dict',
             'processing_status',
+            'applicant',
             'submitter',
             'assigned_officer',
             'assigned_approver',
@@ -452,40 +457,48 @@ class ListProposalSerializer(BaseProposalSerializer):
         )
 
     def get_submitter(self, obj):
-        #use a ProposalApplicant record if available
-        proposal_applicant = ProposalApplicant.objects.filter(proposal=obj)
-        if proposal_applicant:
-            return ProposalApplicantSerializer(proposal_applicant.first()).data
+        request = self.context.get("request")
+        if obj.submitter and is_internal(request):             
+            user = retrieve_system_user(obj.submitter)
+            return UserSerializer(user).data
         else:
-            if obj.submitter:             
-                user = retrieve_system_user(obj.submitter)
-                return UserSerializer(user).data
-            else:
-                return ""
+            return ""
+        
+    def get_applicant(self, obj):
+        if obj.proposal_applicant:
+            user = retrieve_system_user(obj.proposal_applicant.email_user_id)
+            return UserSerializer(user).data
+        else:
+            return ""
 
     def get_invoice_links(self, proposal):
         links = ""
-        # pdf
-        for invoice in proposal.invoices_display():
-            # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
-            #     invoice.reference, invoice.reference)
-            # api_key = settings.LEDGER_API_KEY
-            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
-            # url = get_invoice_url(invoice.reference)
-            url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
-            links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
-        if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
-            # paid invoices url
-            invoices_str=''
-            for inv in proposal.invoices_display():
-                payment_status = get_invoice_payment_status(inv.id)
-                if payment_status == 'paid':
-                    invoices_str += 'invoice_no={}&'.format(inv.reference)
-            if invoices_str:
-                invoices_str = invoices_str[:-1]
-                links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
-                # refund url
-                # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
+        if ('request' in self.context and 
+        (
+            is_internal(self.context['request']) or
+            (proposal.proposal_applicant and proposal.proposal_applicant.email_user_id == self.context['request'].user.id)
+        )):
+            # pdf
+            for invoice in proposal.invoices_display():
+                # links += "<div><a href='/payments/invoice-pdf/{}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{}</a></div>".format(
+                #     invoice.reference, invoice.reference)
+                # api_key = settings.LEDGER_API_KEY
+                # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + settings.LEDGER_API_KEY + '/' + invoice.reference
+                # url = get_invoice_url(invoice.reference)
+                url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+                links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
+            if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
+                # paid invoices url
+                invoices_str=''
+                for inv in proposal.invoices_display():
+                    payment_status = get_invoice_payment_status(inv.id)
+                    if payment_status == 'paid':
+                        invoices_str += 'invoice_no={}&'.format(inv.reference)
+                if invoices_str:
+                    invoices_str = invoices_str[:-1]
+                    links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
+                    # refund url
+                    # links += "<div><a href='/proposal-payment-history-refund/{}' target='_blank'>Refund Payment</a></div>".format(proposal.id)
         return links
 
     def get_can_view_payment_details(self, proposal):
@@ -532,13 +545,6 @@ class ListProposalSerializer(BaseProposalSerializer):
         return False
 
 
-# class ProposalSerializerForEndorser(serializers.ModelSerializer):
-#     class Meta:
-#         model = Proposal
-#         fields = (
-#             'id',
-#         )
-
 class ProposalForEndorserSerializer(BaseProposalSerializer):
     for_endorser = serializers.SerializerMethodField()
     readonly = serializers.SerializerMethodField()
@@ -549,7 +555,6 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'id',
             'for_endorser',
             'readonly',
-
             'application_type_code',
             'application_type_text',
             'approval_type_text',
@@ -561,7 +566,6 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'processing_status',
             'applicant_type',
             'applicant',
-            'submitter',
             'assigned_officer',
             'get_history',
             'lodgement_date',
@@ -578,29 +582,14 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'allowed_assessors',
             'pending_amendment_request',
             'is_amendment_proposal',
-            'applicant_details',
-            # 'fee_paid',
-            # 'invoices',
-            ## vessel fields
-            # 'rego_no',
-            # 'vessel_id',
-            # 'vessel_details_id',
-            # 'vessel_ownership_id',
             'vessel_type',
-            # 'vessel_name',
             'vessel_length',
             'vessel_draft',
             'vessel_beam',
             'vessel_weight',
             'berth_mooring',
             'dot_name',
-            # 'percentage',
-            # 'editable_vessel_details',
-            # 'individual_owner',
             'insurance_choice',
-            # 'preferred_bay_id',
-            # 'silent_elector',
-            # 'bay_preferences_numbered',
             'site_licensee_email',
             'mooring_id',
             'mooring_authorisation_preference',
@@ -614,10 +603,8 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'approval_vessel_rego_no',
             'waiting_list_application_id',
             'authorised_user_moorings_str',
-            # 'temporary_document_collection_id',
             'previous_application_vessel_details_obj',
             'previous_application_vessel_ownership_obj',
-            # 'max_vessel_length_with_no_payment',
             'keep_existing_mooring',
             'keep_existing_vessel',
             'approval_reissued',
@@ -852,7 +839,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                         # check that the site_licensee_email matches the Mooring Licence holder
                         if mooring_id and Mooring.objects.get(id=mooring_id):
                             mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                            if not mooring_licence or mooring_licence.submitter_obj.email.lower().strip() != site_licensee_email.lower().strip():
+                            if not mooring_licence or mooring_licence.applicant_obj.email.lower().strip() != site_licensee_email.lower().strip():
                                 custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
@@ -967,7 +954,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'comment_data',
                 'allowed_assessors',
                 'proposed_issuance_approval',
-                # 'proposed_issuance_approval2',
                 'proposed_decline_status',
                 'proposaldeclineddetails',
                 'permit',
@@ -975,7 +961,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'lodgement_sequence',
                 'can_officer_process',
                 'proposal_type',
-                'applicant_details',
                 'fee_invoice_url',
                 'fee_paid',
                 'requirements_completed',
@@ -1001,7 +986,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'authorised_user_moorings_str',
                 'keep_existing_mooring',
                 'keep_existing_vessel',
-                # draft status
                 'rego_no',
                 'vessel_id',
                 'vessel_details_id',
@@ -1015,7 +999,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'berth_mooring',
                 'dot_name',
                 'percentage',
-                #'editable_vessel_details',
                 'individual_owner',
                 'company_ownership_name',
                 'company_ownership_percentage',
@@ -1053,16 +1036,11 @@ class InternalProposalSerializer(BaseProposalSerializer):
         return obj.proposed_issuance_approval
 
     def get_submitter(self, obj):
-        #use a ProposalApplicant record if available
-        proposal_applicant = ProposalApplicant.objects.filter(proposal=obj)
-        if proposal_applicant:
-            return ProposalApplicantSerializer(proposal_applicant.first()).data
+        if obj.submitter:    
+            user = retrieve_system_user(obj.submitter)
+            return UserSerializer(user).data
         else:
-            if obj.submitter:    
-                user = retrieve_system_user(obj.submitter)
-                return UserSerializer(user).data
-            else:
-                return ""
+            return ""
 
     def get_vessel_on_proposal(self, obj):
         return obj.vessel_on_proposal()
@@ -1782,7 +1760,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
             try:
                 return obj.mooring_licence.approval.current_proposal.proposal_applicant.get_full_name()
             except:
-                return obj.mooring_licence.submitter_obj.get_full_name()
+                return 'N/A'
         return 'N/A'
 
     def get_mooring_bay_name(self, obj):

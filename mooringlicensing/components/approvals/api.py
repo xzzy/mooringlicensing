@@ -42,6 +42,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
     private_storage
 )
+from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
         process_generic_document, 
         )
@@ -228,17 +229,7 @@ class GetWlaAllowed(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.proposals.models import WaitingListApplication
-        wla_allowed = True
-        # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
-        rule1 = WaitingListApplication.get_intermediate_proposals(request.user.id)
-        rule2 = WaitingListAllocation.get_intermediate_approvals(request.user.id)
-        rule3 = MooringLicenceApplication.get_intermediate_proposals(request.user.id)
-        rule4 = MooringLicence.get_valid_approvals(request.user.id)
-
-        if rule1 or rule2 or rule3 or rule4:
-            wla_allowed = False
-
+        wla_allowed = get_wla_allowed(request.user)
         return Response({"wla_allowed": wla_allowed})
 
 
@@ -260,7 +251,10 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
         user_org_ids = OrganisationContact.objects.filter(email=user.email).values_list('organisation_id', flat=True)
 
         now = datetime.now().date()
-        approval_qs =  Approval.objects.filter(Q(proxy_applicant=user) | Q(org_applicant_id__in=user_org_ids) | Q(submitter_id=user))
+        approval_qs =  Approval.objects.filter(
+            Q(proxy_applicant=user) | 
+            Q(org_applicant_id__in=user_org_ids) | 
+            Q(current_proposal__proposal_applicant__email_user_id=user.id))
         approval_qs =  approval_qs.exclude(current_proposal__application_type__name='E Class')
         approval_qs =  approval_qs.exclude(expiry_date__lt=now)
         approval_qs =  approval_qs.exclude(replaced_by__isnull=False) # get lastest licence, ignore the amended
@@ -288,11 +282,13 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         filter_mooring_bay_id = request.data.get('filter_mooring_bay_id')
         if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
             filter_query &= Q(current_proposal__preferred_bay__id=filter_mooring_bay_id)
+
         # holder id filter
         # filter_holder_id = request.GET.get('filter_holder_id')
         filter_holder_id = request.data.get('filter_holder_id')
         if filter_holder_id and not filter_holder_id.lower() == 'all':
-            filter_query &= Q(submitter__id=filter_holder_id)
+            filter_query &= Q(current_proposal__proposal_applicant__email_user_id=filter_holder_id)
+
         # max vessel length
         # max_vessel_length = request.GET.get('max_vessel_length')
         max_vessel_length = request.data.get('max_vessel_length')
@@ -401,16 +397,15 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        # exclude_approval_id = self.request.GET.get('exclude_approval_id', 0)
-
         all = Approval.objects.all()
-        # all = Approval.objects.all().exclude(id=exclude_approval_id)  # We may need to exclude the approvals created from the Waiting List Application
 
         if is_internal(self.request):
             target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                all = all.filter(Q(submitter=target_user.id))
+                all = all.filter(
+                    Q(current_proposal__proposal_applicant__email_user_id=target_user.id)
+                )
 
             for_swap_moorings_modal = self.request.GET.get('for_swap_moorings_modal', 'false')
             for_swap_moorings_modal = True if for_swap_moorings_modal.lower() in ['true', 'yes', 'y', ] else False
@@ -422,7 +417,9 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             logger.debug(f'{all.count()}')
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(submitter=request_user.id))
+            qs = all.filter(
+                Q(current_proposal__proposal_applicant__email_user_id=request_user.id)
+            )
             return qs
         return Approval.objects.none()
 
@@ -451,10 +448,11 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Approval.objects.all()
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
-            # queryset =  Approval.objects.filter(Q(org_applicant_id__in = user_orgs) | Q(submitter = self.request.user))
             user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
-            queryset =  Approval.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter = self.request.user.id))
+            queryset =  Approval.objects.filter(
+                Q(org_applicant__in=user_orgs) | 
+                Q(current_proposal__proposal_applicant__email_user_id=self.request.user.id)
+                )
             return queryset
         return Approval.objects.none()
 
@@ -481,7 +479,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def existing_licences(self, request, *args, **kwargs):
         existing_licences = []
         l_list = Approval.objects.filter(
-            submitter=request.user.id,
+            current_proposal__proposal_applicant__email_user_id=request.user.id,
             status__in=[Approval.APPROVAL_STATUS_CURRENT,],
         )
         for l in l_list:
@@ -516,8 +514,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET'], detail=False)
     def holder_list(self, request, *args, **kwargs):
-        #TODO review - tidy this up
-        holder_list = self.get_queryset().values_list('submitter__id', flat=True)
+
+        holder_list = self.get_queryset().values_list('current_proposal__proposal_applicant__email_user_id', flat=True)
         distinct_holder_list = list(dict.fromkeys(holder_list))
         system_users = SystemUser.objects.filter(ledger_id__id__in=distinct_holder_list)
         serializer = UserSerializer(system_users, many=True)
@@ -532,7 +530,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         for moa in instance.mooringonapproval_set.all():
             licence_holder_data = {}
             if moa.mooring.mooring_licence:
-                licence_holder_data = SystemUser.objects.get(ledger_id=moa.mooring.mooring_licence.submitter_obj)
+                licence_holder_data = SystemUser.objects.get(ledger_id=moa.mooring.mooring_licence.current_proposal.email_user_id)
             user_details = get_user_name(licence_holder_data)
             moorings.append({
                 "id": moa.id,
@@ -749,6 +747,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             qs = DcvAdmission.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
+            #TODO applicant vs submitter?
             queryset = DcvAdmission.objects.filter(Q(submitter=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -891,6 +890,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
             qs = DcvPermit.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
+            #TODO applicant vs submitter
             queryset = DcvPermit.objects.filter(Q(submitter=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -1108,6 +1108,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
             qs = DcvVessel.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
+            #TODO applicant vs submitter
             queryset = DcvVessel.objects.filter(Q(dcv_permits__in=DcvPermit.objects.filter(Q(submitter=user.id))))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -1425,12 +1426,10 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             qs = WaitingListAllocation.objects.all()
             return qs
         elif is_customer(self.request):
-            # queryset = WaitingListAllocation.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
             user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
-            queryset =  WaitingListAllocation.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter=self.request.user.id))
+            queryset =  WaitingListAllocation.objects.filter(Q(org_applicant__in=user_orgs) | 
+                Q(current_proposal__proposal_applicant__email_user_id=self.request.user.id))
             return queryset
-            # user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
-            # queryset =  Approval.objects.filter(Q(org_applicant__in=user_orgs) | Q(submitter = self.request.user.id))
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListAllocation.objects.none()
 
@@ -1449,7 +1448,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             new_proposal = None
             if allocated_mooring:
                 new_proposal = MooringLicenceApplication.objects.create(
-                    submitter=waiting_list_allocation.submitter,
+                    submitter=request.user, #the user that had created the application, not the applicant
                     proposal_type=proposal_type,
                     allocated_mooring=allocated_mooring,
                     waiting_list_allocation=waiting_list_allocation,

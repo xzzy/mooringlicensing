@@ -48,9 +48,9 @@
         <div class="col-md-1"></div>
         <div class="col-md-8">
             <div class="row">
-                <div v-if="approval && approval.submitter">
+                <div v-if="approval && approval.applicant">
                     <Applicant
-                        :user="approval.submitter" 
+                        :user="approval.applicant" 
                         applicantType="SUB" 
                         id="approvalSubmitterDetails"
                         :readonly="true"
@@ -118,10 +118,10 @@
                   </div>
                 </div>
             </div>
-            <div class="row" v-if="approval && approval.submitter && approval.current_proposal && annualAdmissionPermit">
+            <div class="row" v-if="approval && approval.applicant && approval.current_proposal && annualAdmissionPermit">
                   <Vessels
                   :proposal="approval.current_proposal"
-                  :profile="approval.submitter"
+                  :profile="approval.applicant"
                   id="approvalVessel"
                   ref="vessel"
                   :readonly="true"
@@ -357,7 +357,7 @@ export default {
       const response = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.$route.params.approval_id));
       this.approval = Object.assign({}, response.body);
       this.approval.applicant_id = response.body.applicant_id;
-      if (this.approval.submitter.postal_address == null){ this.approval.submitter.postal_address = {}; }
+
       await this.$nextTick(() => {
           if (this.approval && this.approval.id && this.authorisedUserPermit) {
               this.constructMooringsTable();

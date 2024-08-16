@@ -18,6 +18,7 @@ from mooringlicensing.components.proposals.models import (
         )
 from mooringlicensing.components.compliances.models import Compliance
 from django.core.management import call_command
+from django.db.models import Q
 import os
 import mimetypes
 
@@ -196,14 +197,18 @@ def is_authorised_to_access_proposal_document(request,document_id):
         return True
     elif is_customer(request):
         user = request.user
-        return Proposal.objects.filter(id=document_id).filter(submitter=user.id).exists()
+        return Proposal.objects.filter(id=document_id).filter(
+            Q(proposal_applicant__email_user_id=user.id)
+        ).exists()
     
 def is_authorised_to_access_approval_document(request,document_id):
     if is_internal(request):
         return True
     elif is_customer(request):
         user = request.user
-        return Approval.objects.filter(id=document_id).filter(submitter=user.id).exists()
+        return Approval.objects.filter(id=document_id).filter(
+            Q(current_proposal__proposal_applicant__email_user_id=user.id)
+        ).exists()
     
 def is_authorised_to_access_dcv_admission_document(request,document_id):
     if is_internal(request):
@@ -217,6 +222,7 @@ def is_authorised_to_access_dcv_permit_document(request,document_id):
         return True
     elif is_customer(request):
         user = request.user
+        #TODO applicant vs submitter
         return DcvPermit.objects.filter(id=document_id).filter(submitter=user.id).exists()
     
 def get_file_path_id(check_str,file_path):

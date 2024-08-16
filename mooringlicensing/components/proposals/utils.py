@@ -49,6 +49,7 @@ from mooringlicensing.components.approvals.models import (
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from ledger_api_client.managed_models import SystemUser
+from ledger_api_client.ledger_models import EmailUserRO
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_SWAP_MOORINGS
 import traceback
@@ -355,7 +356,7 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
-    if instance.submitter == request.user:
+    if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user:
         # Save request.user details in a JSONField not to overwrite the details of it.
         try:
             user = SystemUser.objects.get(ledger_id=request.user)
@@ -1021,6 +1022,18 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
     return fee_amount_adjusted
 
 
+def create_proposal_applicant(proposal, system_user):
+    proposal_applicant = ProposalApplicant.objects.create(proposal=proposal)
+    logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the proposal: [{proposal}].')
+    if (system_user.ledger_id):
+        proposal_applicant.email_user_id = system_user.ledger_id.id
+    proposal_applicant.first_name = system_user.legal_first_name
+    proposal_applicant.last_name = system_user.legal_last_name
+    proposal_applicant.email = system_user.email
+    proposal_applicant.phone_number = system_user.phone_number
+    proposal_applicant.mobile_number = system_user.mobile_number
+    proposal_applicant.save()
+
 def update_proposal_applicant(proposal, request):
 
     proposal_applicant, created = ProposalApplicant.objects.get_or_create(proposal=proposal)
@@ -1061,6 +1074,13 @@ def update_proposal_applicant(proposal, request):
             proposal_applicant.postal_postcode = proposal_applicant_data['postal_address']['postcode']
 
         proposal_applicant.email = proposal_applicant_data['email']
+        try:
+            if proposal_applicant.email:
+                email_user = EmailUserRO.objects.get(email=proposal_applicant.email)
+                proposal_applicant.email_user_id = email_user.id
+        except:
+            proposal_applicant.email_user_id = None
+        
         proposal_applicant.phone_number = proposal_applicant_data['phone_number']
         proposal_applicant.mobile_number = proposal_applicant_data['mobile_number']
 

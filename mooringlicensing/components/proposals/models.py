@@ -16,6 +16,7 @@ import django_countries
 import pytz
 import uuid
 from mooringlicensing.components.approvals.email import send_aup_revoked_due_to_mooring_swap_email
+from mooringlicensing.ledger_api_utils import retrieve_system_user
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 from ledger_api_client.utils import calculate_excl_gst
@@ -113,6 +114,16 @@ def update_vessel_comms_log_filename(instance, filename):
 def update_mooring_comms_log_filename(instance, filename):
     return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
 
+#copied from helpers
+def is_applicant_postal_address_set(instance):
+
+    applicant = instance.proposal_applicant
+    #postal same as residential OR postal address
+    return applicant and (applicant.postal_line1 and
+        applicant.postal_locality and
+        applicant.postal_state and
+        applicant.postal_country and 
+        applicant.postal_postcode)
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents', on_delete=models.CASCADE)
@@ -528,6 +539,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def submitter_obj(self):
         return retrieve_email_userro(self.submitter) if self.submitter else None
+    
+    @property
+    def applicant_obj(self):
+        return retrieve_email_userro(
+            self.proposal_applicant.email_user_id
+        ) if (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id
+        ) else None
 
     def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length, max_amount_paid):
         """
@@ -981,70 +1000,33 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant(self):
-        from mooringlicensing.ledger_api_utils import retrieve_email_userro
-
         if self.org_applicant:
             return self.org_applicant.organisation.name
         elif self.proxy_applicant:
-            applicant = retrieve_email_userro(self.proxy_applicant)
-            return "{} {}".format(
-                applicant.first_name,
-                applicant.last_name)
-        else:
-            applicant = retrieve_email_userro(self.submitter)
-            return "{} {}".format(
-                applicant.first_name,
-                applicant.last_name)
+            applicant = retrieve_system_user(self.proxy_applicant)
+            if applicant:
+                return "{} {}".format(
+                    applicant.legal_first_name,
+                    applicant.last_name)
+        elif self.proposal_applicant:
+            applicant = retrieve_system_user(self.proposal_applicant.email_user_id)
+            if applicant:
+                return "{} {}".format(
+                    applicant.legal_first_name,
+                    applicant.legal_last_name)
+        return ""
 
     @property
     def applicant_email(self):
-        from mooringlicensing.ledger_api_utils import retrieve_email_userro
 
         if self.org_applicant and hasattr(self.org_applicant.organisation, 'email') and self.org_applicant.organisation.email:
             return self.org_applicant.organisation.email
         elif self.proxy_applicant:
             applicant = retrieve_email_userro(self.proxy_applicant)
             return applicant.email
-        else:
-            # return self.submitter.email
-            from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            return retrieve_email_userro(self.submitter).email
-
-    @property
-    def applicant_details(self):
-        from mooringlicensing.ledger_api_utils import retrieve_email_userro
-
-        if self.org_applicant:
-            return '{} \n{}'.format(
-                self.org_applicant.organisation.name,
-                self.org_applicant.address)
-        elif self.proxy_applicant:
-            applicant = retrieve_email_userro(self.proxy_applicant)
-            return "{} {}\n{}".format(
-                applicant.first_name,
-                applicant.last_name,
-                applicant.addresses.all().first())
-        else:
-            applicant = retrieve_email_userro(self.submitter)
-            test = applicant.addresses.all()
-            return "{} {}\n{}".format(
-                applicant.first_name,
-                applicant.last_name,
-                # applicant.addresses.all().first())
-                applicant.residential_address)
-
-    @property
-    def applicant_address(self):
-        from mooringlicensing.ledger_api_utils import retrieve_email_userro
-
-        if self.org_applicant:
-            return self.org_applicant.address
-        elif self.proxy_applicant:
-            applicant = retrieve_email_userro(self.proxy_applicant)
-            return applicant.residential_address
-        else:
-            applicant = retrieve_email_userro(self.submitter)
-            return applicant.residential_address
+        elif self.proposal_applicant:
+            return self.proposal_applicant.email
+        return ""
 
     @property
     def applicant_id(self):
@@ -1052,8 +1034,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.org_applicant.id
         elif self.proxy_applicant:
             return self.proxy_applicant.id
-        else:
-            return self.submitter.id
+        elif self.proposal_applicant:
+            return self.proposal_applicant.email_user_id
+        return None
 
     @property
     def applicant_type(self):
@@ -1594,6 +1577,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
+    #TODO fix and implement - or remove
     def preview_approval(self,request,details):
         from mooringlicensing.components.approvals.models import PreviewTempApproval
         with transaction.atomic():
@@ -1602,8 +1586,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     raise ValidationError('Licence preview only available when processing status is with_approver. Current status {}'.format(self.processing_status))
                 if not self.can_assess(request.user):
                     raise exceptions.ProposalNotAuthorized()
-                if not self.applicant_address:
-                    raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,] else None # renewals/amendments keep same licence number
                 preview_approval = PreviewTempApproval.objects.create(
@@ -1644,7 +1626,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise exceptions.ProposalNotAuthorized()
                     if not self.auto_approve and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
-                    if not self.applicant_address:
+                    if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                     if self.application_fees.count() < 1 and not self.migrated:
@@ -1810,7 +1792,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise exceptions.ProposalNotAuthorized()
                     if request and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_APPROVER,):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
-                    if not self.applicant_address:
+                    if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
                 ## update proposed_issuance_approval
@@ -1901,7 +1883,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             logger.info(f'basket_params: {basket_params}')
 
                             from ledger_api_client.utils import create_basket_session, process_create_future_invoice
-                            basket_hash = create_basket_session(request, self.submitter, basket_params)
+                            basket_hash = create_basket_session(request, self.proposal_applicant.email_user_id, basket_params)
 
                             application_fee = ApplicationFee.objects.create(
                                 proposal=self,
@@ -2069,11 +2051,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 return proposal
             except:
                 raise
-
-    @property
-    def proposal_applicant(self):
-        proposal_applicant = ProposalApplicant.objects.filter(proposal=self).order_by('updated_at').last()
-        return proposal_applicant
 
     def renew_approval(self,request):
         with transaction.atomic():
@@ -2360,7 +2337,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 
 class ProposalApplicant(RevisionedMixin):
-    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL)
+    email_user_id = models.IntegerField(null=True, blank=True)
+    #TODO: ideally this should be reference by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
+    proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="proposal_applicant")
 
     # Name, etc
     first_name = models.CharField(max_length=128, null=True, blank=True, verbose_name='Given name(s)')
@@ -2650,14 +2629,16 @@ class WaitingListApplication(Proposal):
             # )
             logger.error(msg)
             raise serializers.ValidationError(msg)
-        # Person can have only one WLA, Waiting Liast application, Mooring Licence and Mooring Licence application
+        # Person can have only one WLA, Waiting List application, Mooring Licence, and Mooring Licence application
         elif (
-                WaitingListApplication.get_intermediate_proposals(self.submitter).exclude(id=self.id) or
-                WaitingListAllocation.get_intermediate_approvals(self.submitter).exclude(approval=self.approval) or
-                MooringLicenceApplication.get_intermediate_proposals(self.submitter) or
-                MooringLicence.get_valid_approvals(self.submitter)
+                self.proposal_applicant and (
+                    WaitingListApplication.get_intermediate_proposals(self.proposal_applicant.email_user_id).exclude(id=self.id) or
+                    WaitingListAllocation.get_intermediate_approvals(self.proposal_applicant.email_user_id).exclude(approval=self.approval) or
+                    MooringLicenceApplication.get_intermediate_proposals(self.proposal_applicant.email_user_id) or
+                    MooringLicence.get_valid_approvals(self.proposal_applicant.email_user_id)
+                )
             ):
-            msg = "Person can have only one WLA, Waiting List application, Mooring Site Licence and Mooring Site Licence application"
+            msg = "Person can have only one WLA, Waiting List application, Mooring Site Licence, and Mooring Site Licence application"
             logger.error(msg)
             raise serializers.ValidationError(msg)
     
@@ -2681,7 +2662,7 @@ class WaitingListApplication(Proposal):
 
     @staticmethod
     def get_intermediate_proposals(email_user_id):
-        proposals = WaitingListApplication.objects.filter(submitter=email_user_id).exclude(processing_status__in=[
+        proposals = WaitingListApplication.objects.filter(proposal_applicant__email_user_id=email_user_id).exclude(processing_status__in=[
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_DISCARDED,
@@ -3334,7 +3315,7 @@ class AuthorisedUserApplication(Proposal):
 
     def send_emails_after_payment_success(self, request):
         # ret_value = send_submit_email_notification(request, self)
-        # TODO: Send payment success email to the submitter (applicant)
+        # TODO: Send payment success email to the applicant
         return True
 
     def get_mooring_authorisation_preference(self):
@@ -3682,7 +3663,7 @@ class MooringLicenceApplication(Proposal):
 
     @staticmethod
     def get_intermediate_proposals(email_user_id):
-        proposals = MooringLicenceApplication.objects.filter(submitter=email_user_id).exclude(processing_status__in=[
+        proposals = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=email_user_id).exclude(processing_status__in=[
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_DISCARDED,])
@@ -5385,7 +5366,7 @@ reversion.register(RequirementDocument, follow=[])
 reversion.register(ProposalType, follow=['proposal_set',])
 # TODO: fix this to improve performance
 #reversion.register(Proposal, follow=['documents', 'succeeding_proposals', 'comms_logs', 'companyownership_set', 'insurance_certificate_documents', 'hull_identification_number_documents', 'electoral_roll_documents', 'mooring_report_documents', 'written_proof_documents', 'signed_licence_agreement_documents', 'proof_of_identity_documents', 'proposalrequest_set', 'proposaldeclineddetails', 'action_logs', 'requirements', 'application_fees', 'approval_history_records', 'approvals', 'sticker_set', 'compliances'])
-reversion.register(Proposal, follow=['proposalapplicant_set'])
+reversion.register(Proposal, follow=['proposal_applicant'])
 reversion.register(ProposalApplicant)
 reversion.register(StickerPrintingContact, follow=[])
 reversion.register(StickerPrintingBatch, follow=['sticker_set'])

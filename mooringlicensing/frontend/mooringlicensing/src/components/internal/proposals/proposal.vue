@@ -66,7 +66,6 @@
                         ref="waiting_list_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         :key="computedProposalId"
                         @profile-fetched="populateProfile"
                     />
@@ -80,7 +79,6 @@
                         ref="annual_admission_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         @profile-fetched="populateProfile"
                     />
                     <AuthorisedUserApplication
@@ -91,7 +89,6 @@
                         :is_internal="true"
                         ref="authorised_user_application"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         @profile-fetched="populateProfile"
                     />
                     <MooringLicenceApplication
@@ -103,7 +100,6 @@
                         ref="mooring_licence_application"
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
-                        :submitterId="proposal.submitter.id"
                         @profile-fetched="populateProfile"
                     />
                 </template>
@@ -567,6 +563,7 @@ export default {
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
+        //TODO implement or remove
         checkAssessorData: function(){
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
 
@@ -813,7 +810,6 @@ export default {
 
             let vm = this;
             if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
-                vm.checkAssessorData();
                 let formData = new FormData(vm.form);
                 let data = {'status': status, 'approver_comment': vm.approver_comment}
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')), JSON.stringify(data),{

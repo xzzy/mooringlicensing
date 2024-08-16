@@ -386,7 +386,7 @@ export default {
         },
         profileFullName: function () {
             if (this.profile) {
-                return this.profile.first_name + ' ' + this.profile.last_name;
+                return this.profile.legal_first_name + ' ' + this.profile.legal_last_name;
             }
             return ''
         },

@@ -320,8 +320,8 @@ export default {
                 searchable: false, //special functionality for searching this field required
                 visible: true,
                 'render': function(row, type, full){
-                    if (full.submitter){
-                        return `${full.submitter.first_name} ${full.submitter.last_name}`
+                    if (full.applicant){
+                        return `${full.applicant.first_name} ${full.applicant.last_name}`
                     }
                     return ''
                 },

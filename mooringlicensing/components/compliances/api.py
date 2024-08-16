@@ -66,22 +66,11 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
             user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
-            # queryset =  Compliance.objects.filter( Q(proposal__org_applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
-            queryset =  Compliance.objects.filter(Q(proposal__org_applicant__in=user_orgs) | Q(proposal__submitter=self.request.user.id)).exclude(processing_status='discarded')
+            queryset =  Compliance.objects.filter(
+                Q(proposal__org_applicant__in=user_orgs) | 
+                Q(proposal__proposal_applicant__email_user_id=self.request.user.id)).exclude(processing_status='discarded')
             return queryset
         return Compliance.objects.none()
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        # Filter by org
-        org_id = request.GET.get('org_id',None)
-        if org_id:
-            queryset = queryset.filter(proposal__org_applicant_id=org_id)
-        submitter_id = request.GET.get('submitter_id', None)
-        if submitter_id:
-            queryset = queryset.filter(proposal__submitter_id=submitter_id)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     def internal_compliance(self, request, *args, **kwargs):
@@ -235,10 +224,9 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = ComplianceAmendmentRequest.objects.filter(
-                Q(compliance__proposal__org_applicant_id__in=user_orgs) | Q(compliance__proposal__submitter=user.id)
+                Q(compliance__proposal__org_applicant_id__in=user_orgs) | 
+                Q(compliance__proposal__proposal_applicant__email_user_id=user.id)
             )
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @basic_exception_handler
@@ -316,17 +304,9 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ComplianceRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
-
-
 class CompliancePaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ComplianceRenderer,)
     queryset = Compliance.objects.none()
     serializer_class = ListComplianceSerializer
     search_fields = ['lodgement_number', ]
@@ -341,11 +321,11 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                qs = Compliance.objects.filter(Q(approval__submitter=target_user.id))
+                qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=target_user.id))
             else:
                 qs = Compliance.objects.all()
         elif is_customer(self.request):
-            qs = Compliance.objects.filter(Q(approval__submitter=request_user.id)).exclude(processing_status="discarded")
+            qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded")
 
         return qs
 

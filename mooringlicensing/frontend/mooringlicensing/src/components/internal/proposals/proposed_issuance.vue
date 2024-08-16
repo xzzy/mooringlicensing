@@ -91,6 +91,7 @@
                             </div>
                             <div class="form-group">
                                 <div class="row">
+                                    <!--TODO remove?-->
                                     <!--div class="col-sm-12">
                                         <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
                                         <label v-else class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}}.</label>
@@ -102,7 +103,7 @@
                     </form>
                 </div>
             </div>
-            <!--p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p-->
+            <!-- TODO fix or remove for good p v-if="can_preview">Click <a href="#" @click.prevent="preview">here</a> to preview the approval letter.</p-->
 
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i
@@ -150,7 +151,7 @@ export default {
             type: Boolean,
             required: true
         },
-        submitter_email: {
+        submitter_email: { //TODO remove if not needed...
             type: String,
             required: true
         },
@@ -520,6 +521,7 @@ export default {
         },
     },
     methods: {
+        //TODO FIX or REMOVE
         preview: function () {
             let vm = this;
             let formData = new FormData(vm.form)

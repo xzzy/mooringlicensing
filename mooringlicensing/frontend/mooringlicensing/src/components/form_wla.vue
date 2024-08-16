@@ -50,7 +50,6 @@
                         :proposalId="proposal.id"
                         :proposal="proposal"
                         :readonly="readonly"
-                        :submitterId="submitterId"
                         :is_internal=is_internal
                     />
                 </div>
@@ -65,7 +64,7 @@
                     </div>
                     <Vessels 
                         :proposal="proposal" 
-                        :profile="profileVar" 
+                        :profile="profile"
                         :id="'proposalStartVessels' + uuid"
                         :key="'proposalStartVessels' + uuid" 
                         :keep_current_vessel="keepCurrentVessel" 
@@ -109,9 +108,6 @@ export default {
         show_application_title: {
             type: Boolean,
             default: true,
-        },
-        submitterId: {
-            type: Number,
         },
         canEditActivities: {
             type: Boolean,
@@ -185,13 +181,6 @@ export default {
                 readonly = false
             }
             return readonly
-        },
-        profileVar: function () {
-            if (this.is_external) {
-                return this.profile;
-            } else if (this.proposal) {
-                return this.proposal.submitter;
-            }
         },
         silentElector: function () {
             if (this.proposal) {

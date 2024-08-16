@@ -27,7 +27,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    construct_dict_from_docs, save_proponent_data, update_proposal_applicant, make_ownership_ready,
+    construct_dict_from_docs, save_proponent_data, create_proposal_applicant,
 )
 from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -107,6 +107,7 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
+from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -566,7 +567,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         filter_applicant_id = request.GET.get('filter_applicant')
         if filter_applicant_id and not filter_applicant_id.lower() == 'all':
-            filter_query &= Q(submitter__id=filter_applicant_id)
+            filter_query &= Q(proposal_applicant__email_user_id=filter_applicant_id)
 
         # Filter by endorsement
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
@@ -629,14 +630,15 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                 # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
                 user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
-                all = all.filter(Q(org_applicant__in=user_orgs) | Q(submitter=target_user.id) | Q(site_licensee_email=target_user.email))
+                all = all.filter(Q(org_applicant__in=user_orgs) | 
+                        Q(proposal_applicant__email_user_id=target_user.id) | 
+                        Q(site_licensee_email=target_user.email))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
-            # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            # user_orgs = [org.id for org in orgs]
-            # qs = all.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
-            qs = all.filter(Q(org_applicant__in=orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
+            qs = all.filter(Q(org_applicant__in=orgs) | 
+                    Q(proposal_applicant__email_user_id=request_user.id) | 
+                    Q(site_licensee_email=request_user.email))
             return qs
         return Proposal.objects.none()
 
@@ -665,12 +667,21 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
             qs = AnnualAdmissionApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AnnualAdmissionApplication.objects.filter(submitter=user.id)
+            queryset = AnnualAdmissionApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         return AnnualAdmissionApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+
+        try:
+            system_user = SystemUser.objects.get(ledger_id=request.user)
+        except:
+            raise serializers.ValidationError("system user does not exist")
+        
+        try:
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        except:
+            raise serializers.ValidationError("proposal type does not exist")
 
         obj = AnnualAdmissionApplication.objects.create(
                 submitter=request.user.id,
@@ -680,6 +691,9 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
         obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
 
         serialized_obj = ProposalSerializer(obj.proposal)
+        
+        create_proposal_applicant(obj, system_user)
+
         return Response(serialized_obj.data)
 
 
@@ -694,13 +708,22 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
             qs = AuthorisedUserApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
+            Q(proposal_applicant__email_user_id=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AuthorisedUserApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        try:
+            system_user = SystemUser.objects.get(ledger_id=request.user)
+        except:
+            raise serializers.ValidationError("system user does not exist")
+        
+        try:
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        except:
+            raise serializers.ValidationError("proposal type does not exist")
 
         obj = AuthorisedUserApplication.objects.create(
                 submitter=request.user.id,
@@ -708,6 +731,8 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Authorised User Permit Application: [{obj}] has been created by the user: [{request.user}].')
         obj.log_user_action(f'Authorised User Permit Application: {obj.lodgement_number} has been created.', request)
+
+        create_proposal_applicant(obj, system_user)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -724,13 +749,22 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
             qs = MooringLicenceApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
+            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
+            Q(proposal_applicant__email_user_id=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        try:
+            system_user = SystemUser.objects.get(ledger_id=request.user)
+        except:
+            raise serializers.ValidationError("system user does not exist")
+        
+        try:
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        except:
+            raise serializers.ValidationError("proposal type does not exist")
         mooring_id = request.data.get('mooring_id')
         mooring=None
         if mooring_id:
@@ -743,6 +777,8 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
                 )
         logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
         obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
+
+        create_proposal_applicant(obj, system_user)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -759,14 +795,27 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
             qs = WaitingListApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            # queryset = WaitingListApplication.objects.filter(Q(proxy_applicant_id=user.id) | Q(submitter=user.id))
-            queryset = WaitingListApplication.objects.filter(Q(proxy_applicant=user.id) | Q(submitter=user.id))
+            queryset = WaitingListApplication.objects.filter(
+                Q(proxy_applicant=user.id) | 
+                Q(proposal_applicant__email_user_id=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        try:
+            system_user = SystemUser.objects.get(ledger_id=request.user)
+        except:
+            raise serializers.ValidationError("system user does not exist")
+        
+        try:
+            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+        except:
+            raise serializers.ValidationError("proposal type does not exist")
+
+        wla_allowed = get_wla_allowed(request.user)
+        if not wla_allowed:
+            raise serializers.ValidationError("user not permitted to create WLA at this time")
 
         obj = WaitingListApplication.objects.create(
                 submitter=request.user.id,
@@ -775,6 +824,8 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
         logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
         obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)
+
+        create_proposal_applicant(obj, system_user)
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
@@ -890,7 +941,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
 
-        # Make sure the submitter is the same as the applicant.
         is_authorised_to_modify(request, instance)
 
         errors = []
@@ -944,11 +994,10 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             qs = Proposal.objects.all()
             return qs
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in request_user.mooringlicensing_organisations.all()]
-            # queryset = Proposal.objects.filter(Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id) | Q(site_licensee_email=request_user.email))
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = Proposal.objects.filter(
-                Q(org_applicant_id__in=user_orgs) | Q(submitter=request_user.id)
+                Q(org_applicant_id__in=user_orgs) | 
+                Q(proposal_applicant__email_user_id=request_user.id)
             ).exclude(migrated=True)
 
             # For the endoser to view the endosee's proposal
@@ -1501,8 +1550,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     def draft(self, request, *args, **kwargs):
         with transaction.atomic():
             instance = self.get_object()
-
-            # Make sure the submitter is the same as the applicant.
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance,request,self)
             return redirect(reverse('external'))
@@ -1527,9 +1574,10 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             logger.info(f'Proposal: [{instance}] has been submitted by the user: [{request.user}].')
 
-            # Ensure status is draft and submitter is same as applicant.
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance, request, self)
+
+            instance = self.get_object()
             is_applicant_address_set(instance)
 
             return Response()
@@ -1685,11 +1733,10 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
         elif is_customer(self.request):
-            # queryset = ProposalRequirement.objects.filter(Q(proxy_applicant_id=user.id) | Q(proposal__submitter=user.id))
-            # return queryset
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = ProposalRequirement.objects.filter(
-                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+                Q(proposal__org_applicant_id__in=user_orgs) | 
+                Q(proposal_applicant__email_user_id=user.id)
             )
         else:
             logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -1787,7 +1834,8 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = AmendmentRequest.objects.filter(
-                Q(proposal__org_applicant_id__in=user_orgs) | Q(proposal__submitter=user.id)
+                Q(proposal__org_applicant_id__in=user_orgs) | 
+                Q(proposal_applicant__email_user_id=user.id)
             )
         else:
             logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
@@ -2099,55 +2147,58 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        # return Response({})
-        vessel = self.get_object()
-        booking_date_str = request.data.get("selected_date")
-        booking_date = None
-        if booking_date_str:
-            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
-            booking_date = booking_date.strftime('%Y-%m-%d')
-        else:
-            booking_date = datetime.now().strftime('%Y-%m-%d')
-        data = get_bookings(booking_date, vessel.rego_no.upper())
-        data = get_bookings(booking_date=booking_date, rego_no=vessel.rego_no.upper(), mooring_id=None)
-        return Response(data)
+        if is_internal(request):
+            vessel = self.get_object()
+            booking_date_str = request.data.get("selected_date")
+            booking_date = None
+            if booking_date_str:
+                booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+                booking_date = booking_date.strftime('%Y-%m-%d')
+            else:
+                booking_date = datetime.now().strftime('%Y-%m-%d')
+            data = get_bookings(booking_date, vessel.rego_no.upper())
+            data = get_bookings(booking_date=booking_date, rego_no=vessel.rego_no.upper(), mooring_id=None)
+            return Response(data)
+        raise serializers.ValidationError("not authorised to view related bookings")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        selected_date_str = request.data.get("selected_date")
-        selected_date = None
-        if selected_date_str:
-            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        approval_list = []
-        vd_set = VesselDetails.objects.filter(vessel=vessel)
-        if selected_date:
-            for vd in vd_set:
-                for prop in vd.proposal_set.all():
-                    if (
-                        prop.approval and 
-                        selected_date >= prop.approval.start_date and
-                        selected_date <= prop.approval.expiry_date and
-                        # ensure vessel has not been sold
-                        prop.vessel_ownership and not prop.vessel_ownership.end_date
-                    ):
-                        if prop.approval not in approval_list:
-                            approval_list.append(prop.approval)
-        else:
-            for vd in vd_set:
-                for prop in vd.proposal_set.all():
-                    if (
-                        prop.approval and 
-                        prop.approval.status == 'current' and
-                        # ensure vessel has not been sold
-                        prop.vessel_ownership and not prop.vessel_ownership.end_date
-                    ):
-                        if prop.approval not in approval_list:
-                            approval_list.append(prop.approval)
+        if is_internal(request):
+            vessel = self.get_object()
+            selected_date_str = request.data.get("selected_date")
+            selected_date = None
+            if selected_date_str:
+                selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+            approval_list = []
+            vd_set = VesselDetails.objects.filter(vessel=vessel)
+            if selected_date:
+                for vd in vd_set:
+                    for prop in vd.proposal_set.all():
+                        if (
+                            prop.approval and 
+                            selected_date >= prop.approval.start_date and
+                            selected_date <= prop.approval.expiry_date and
+                            # ensure vessel has not been sold
+                            prop.vessel_ownership and not prop.vessel_ownership.end_date
+                        ):
+                            if prop.approval not in approval_list:
+                                approval_list.append(prop.approval)
+            else:
+                for vd in vd_set:
+                    for prop in vd.proposal_set.all():
+                        if (
+                            prop.approval and 
+                            prop.approval.status == 'current' and
+                            # ensure vessel has not been sold
+                            prop.vessel_ownership and not prop.vessel_ownership.end_date
+                        ):
+                            if prop.approval not in approval_list:
+                                approval_list.append(prop.approval)
 
-        serializer = LookupApprovalSerializer(approval_list, many=True)
-        return Response(serializer.data)
+            serializer = LookupApprovalSerializer(approval_list, many=True)
+            return Response(serializer.data)
+        raise serializers.ValidationError("not authorised to view related approvals")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -2437,34 +2488,39 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
-        mooring = self.get_object()
-        booking_date_str = request.data.get("selected_date")
-        booking_date = None
-        if booking_date_str:
-            booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
-            booking_date = booking_date.strftime('%Y-%m-%d')
-        else:
-            booking_date = datetime.now().strftime('%Y-%m-%d')
-        data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
-        return Response(data)
+        if is_internal(request):
+            mooring = self.get_object()
+            booking_date_str = request.data.get("selected_date")
+            booking_date = None
+            if booking_date_str:
+                booking_date = datetime.strptime(booking_date_str, '%d/%m/%Y').date()
+                booking_date = booking_date.strftime('%Y-%m-%d')
+            else:
+                booking_date = datetime.now().strftime('%Y-%m-%d')
+            data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
+            return Response(data)
+        raise serializers.ValidationError("not authorised to view related bookings")
+
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
-        mooring = self.get_object()
-        selected_date_str = request.data.get("selected_date")
-        selected_date = None
-        if selected_date_str:
-            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        if selected_date:
-            approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
-        else:
-            approval_list = [approval for approval in mooring.approval_set.filter(status=Approval.APPROVAL_STATUS_CURRENT)]
-        if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
-            approval_list.append(mooring.mooring_licence.approval)
+        if is_internal(request):
+            mooring = self.get_object()
+            selected_date_str = request.data.get("selected_date")
+            selected_date = None
+            if selected_date_str:
+                selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
+            if selected_date:
+                approval_list = [approval for approval in mooring.approval_set.filter(start_date__lte=selected_date, expiry_date__gte=selected_date)]
+            else:
+                approval_list = [approval for approval in mooring.approval_set.filter(status=Approval.APPROVAL_STATUS_CURRENT)]
+            if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
+                approval_list.append(mooring.mooring_licence.approval)
 
-        serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
-        return Response(serializer.data)
+            serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
+            return Response(serializer.data)
+        raise serializers.ValidationError("not authorised to view related approvals")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler

@@ -34,7 +34,6 @@ module.exports = {
     fee_item_sticker_replacement: "/api/fee_item_sticker_replacement",
 
     profile: '/api/profile',
-    submitter_profile: '/api/submitter_profile',
     organisations: '/api/organisations.json',
     filtered_organisations: '/api/filtered_organisations',
     organisation_requests: '/api/organisation_requests.json',

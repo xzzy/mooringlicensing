@@ -290,6 +290,7 @@ class WaitingListAllocationSerializer(serializers.ModelSerializer):
 
 class ApprovalSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField()
+    applicant = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
     licence_document = serializers.CharField(source='licence_document._file.url')
     renewal_document = serializers.SerializerMethodField(read_only=True)
@@ -328,6 +329,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'submitter',
+            'applicant',
             'lodgement_number',
             'status',
             'internal_status',
@@ -381,8 +383,16 @@ class ApprovalSerializer(serializers.ModelSerializer):
             return None
 
     def get_submitter(self, obj):
-        serializer = UserSerializer(retrieve_system_user(obj.submitter))
-        return serializer.data
+        if 'request' in self.context and is_internal(self.context['request']):
+            serializer = UserSerializer(retrieve_system_user(obj.submitter))
+            return serializer.data
+        return None
+    
+    def get_applicant(self, obj):
+        if obj.proposal_applicant:
+            serializer = UserSerializer(retrieve_system_user(obj.proposal_applicant.email_user_id))
+            return serializer.data
+        return None
 
     def get_mooring_licence_mooring(self, obj):
         if type(obj.child_obj) == MooringLicence:
@@ -625,10 +635,6 @@ class ApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_holder(self, obj):
-        # submitter = ''
-        # if obj.submitter:
-        #     submitter = obj.submitter_obj.get_full_name()
-        # return submitter
         return obj.applicant
 
     def get_issue_date_str(self, obj):
@@ -1081,14 +1087,13 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_holder(self, obj):
         holder_str = ''
-        if obj.submitter:
+        if obj.current_proposal and obj.current_proposal.proposal_applicant:
             items = []
             try:
-                #from mooringlicensing.ledger_api_utils import retrieve_email_userro
                 items.append(f'{obj.current_proposal.proposal_applicant.first_name} {obj.current_proposal.proposal_applicant.last_name}')
-                if obj.submitter_obj.mobile_number:
+                if obj.current_proposal.proposal_applicant.mobile_number:
                     items.append('<span class="glyphicon glyphicon-phone"></span> ' + obj.current_proposal.proposal_applicant.mobile_number)
-                if obj.submitter_obj.phone_number:
+                if obj.current_proposal.proposal_applicant.phone_number:
                     items.append('<span class="glyphicon glyphicon-earphone"></span> ' + obj.current_proposal.proposal_applicant.phone_number)
                 items.append(obj.current_proposal.proposal_applicant.email)
             except Exception as e:
@@ -1652,7 +1657,7 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
         return obj.approval.get_status_display()
 
     def get_holder(self, obj):
-        return obj.approval.submitter_obj.get_full_name()
+        return obj.approval.current_proposal.proposal_applicant.get_full_name()
 
     def get_sticker_numbers(self, obj):
         numbers = ""

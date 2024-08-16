@@ -15,7 +15,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
     holder = serializers.CharField(source='proposal.applicant')
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField(read_only=True)
     allowed_assessors = serializers.SerializerMethodField()
@@ -81,8 +80,11 @@ class ComplianceSerializer(serializers.ModelSerializer):
         return None
 
     def get_submitter(self,obj):
-        if obj.submitter:
-            return obj.submitter_obj.get_full_name()
+        if obj.submitter and 'request' in self.context:
+            if self.context['request'].user and obj.submitter == self.context['request'].user.id:
+                return obj.submitter_obj.get_full_name()
+            elif is_internal(self.context['request']):
+                return obj.submitter_obj.get_full_name()
         return None
 
     def get_application_type_code(self, obj):
@@ -110,7 +112,6 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
     holder = serializers.CharField(source='proposal.applicant')
     processing_status = serializers.SerializerMethodField(read_only=True)
     customer_status = serializers.SerializerMethodField(read_only=True)
-    submitter = serializers.SerializerMethodField(read_only=True)
     documents = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField(read_only=True)
     allowed_assessors = serializers.SerializerMethodField()
@@ -232,7 +233,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
     approval_number = serializers.SerializerMethodField()
     requirement = ProposalRequirementSerializer()
     approval_type = serializers.SerializerMethodField()
-    approval_submitter = serializers.SerializerMethodField()
+    approval_holder = serializers.SerializerMethodField()
     assigned_to_name = serializers.SerializerMethodField()
     due_date_display = serializers.SerializerMethodField()
 
@@ -245,7 +246,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             'approval_number',
             'requirement',
             'approval_type',
-            'approval_submitter',
+            'approval_holder',
             'assigned_to_name',
             'can_process',
             'due_date_display',
@@ -258,7 +259,7 @@ class ListComplianceSerializer(serializers.ModelSerializer):
             'approval_number',
             'requirement',
             'approval_type',
-            'approval_submitter',
+            'approval_holder',
             'assigned_to_name',
             'can_process',
             'due_date_display',
@@ -286,15 +287,16 @@ class ListComplianceSerializer(serializers.ModelSerializer):
         if obj.approval.child_obj:
             return obj.approval.child_obj.description
 
-    def get_approval_submitter(self, obj):
+    def get_approval_holder(self, obj):
         try:
             return obj.approval.current_proposal.proposal_applicant.get_full_name()
         except:
-            return obj.approval.current_proposal.submitter_obj.get_full_name()
+            return ""
 
     def get_assigned_to_name(self, obj):
+        request = self.context.get('request')
         assigned_to = ''
-        if obj.assigned_to:
+        if is_internal(request) and obj.assigned_to:
             assigned_to = obj.assigned_to.get_full_name()
         return assigned_to
 

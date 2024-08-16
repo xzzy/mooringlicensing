@@ -15,7 +15,7 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
-            'submitter',
+            'submitter', #TODO applicant vs submitter
             'skipper',
             'contact_number',
             'dcv_vessel_id',
@@ -131,7 +131,7 @@ class DcvPermitSimpleSerializer(serializers.ModelSerializer):
             if obj.dcv_organisation:
                 return obj.dcv_organisation.name
             else:
-                return obj.submitter_obj.get_full_name() + ' (P)'
+                return obj.submitter_obj.get_full_name() + ' (P)' #TODO applicant vs submitter
         except:
             return ''
 
@@ -187,7 +187,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
-            'submitter',
+            'submitter', #TODO applicant vs submitter
             'lodgement_datetime',
             'dcv_vessel_id',
             'dcv_organisation_id',

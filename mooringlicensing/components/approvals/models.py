@@ -382,6 +382,14 @@ class Approval(RevisionedMixin):
     @property
     def submitter_obj(self):
         return retrieve_email_userro(self.submitter) if self.submitter else None
+    
+    @property
+    def applicant_obj(self):
+        return retrieve_email_userro(
+            self.proposal_applicant.email_user_id
+        ) if (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id
+        ) else None
 
     def get_max_fee_item(self, fee_season, vessel_details=None):
         max_fee_item = None
@@ -404,14 +412,6 @@ class Approval(RevisionedMixin):
                 file_name = self.licence_document.name
                 attachment = (file_name, licence_document.file.read(), 'application/pdf')
         return attachment
-
-    @property
-    def postal_address_obj(self):
-        if self.submitter_obj.postal_same_as_residential:
-            address_obj = self.submitter_obj.residential_address
-        else:
-            address_obj = self.submitter_obj.postal_address
-        return address_obj
 
     @property
     def proposal_applicant(self):
@@ -641,21 +641,6 @@ class Approval(RevisionedMixin):
 
     @property
     def applicant(self):
-        # if self.org_applicant:
-        #     return self.org_applicant.organisation.name
-        # elif self.proxy_applicant:
-        #     applicant = retrieve_email_userro(self.proxy_applicant)
-        #     return "{} {}".format(
-        #         applicant.first_name,
-        #         applicant.last_name)
-        # else:
-        #     try:
-        #         submitter = retrieve_email_userro(self.submitter)
-        #         return "{} {}".format(
-        #             submitter.first_name,
-        #             submitter.last_name)
-        #     except:
-        #         return "Applicant Not Set"
         applicant = ''
         try:
             if self.current_proposal and self.current_proposal.proposal_applicant:
@@ -689,10 +674,8 @@ class Approval(RevisionedMixin):
         if self.org_applicant:
             return self.org_applicant.id
         elif self.proxy_applicant:
-            # return self.proxy_applicant.id
             return self.proxy_applicant
         else:
-            # return self.submitter.id
             return self.submitter
 
     @property
@@ -1193,7 +1176,9 @@ class WaitingListAllocation(Approval):
 
     @staticmethod
     def get_intermediate_approvals(email_user_id):
-        approvals = WaitingListAllocation.objects.filter(submitter=email_user_id).exclude(status__in=[
+        approvals = WaitingListAllocation.objects.filter(
+            current_proposal__proposal_applicant__email_user_id=email_user_id
+        ).exclude(status__in=[
             Approval.APPROVAL_STATUS_CANCELLED,
             Approval.APPROVAL_STATUS_EXPIRED,
             Approval.APPROVAL_STATUS_SURRENDERED,
@@ -1225,15 +1210,10 @@ class WaitingListAllocation(Approval):
                 vessel_length = ''
                 vessel_draft = ''
 
-            # Return context for the licence/permit document
-            from mooringlicensing.ledger_api_utils import retrieve_email_userro
-            # submitter = retrieve_email_userro(self.submitter)
             context = {
                 'approval': self,
                 'application': self.current_proposal,
                 'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-                # 'applicant_name': self.submitter.get_full_name(),
-                # 'applicant_full_name': self.submitter.get_full_name(),
                 'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'applicant_full_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'bay_name': self.current_proposal.preferred_bay.name,
@@ -1553,13 +1533,13 @@ class AuthorisedUserPermit(Approval):
                 m = {}
                 # calculate phone number(s)
                 numbers = []
-                if mooring.mooring_licence.submitter_obj.mobile_number:
-                    numbers.append(mooring.mooring_licence.submitter_obj.mobile_number)
-                elif mooring.mooring_licence.submitter_obj.phone_number:
-                    numbers.append(mooring.mooring_licence.submitter_obj.phone_number)
+                if mooring.mooring_licence.proposal_applicant.mobile_number:
+                    numbers.append(mooring.mooring_licence.proposal_applicant.mobile_number)
+                elif mooring.mooring_licence.proposal_applicant.phone_number:
+                    numbers.append(mooring.mooring_licence.proposal_applicant.phone_number)
                 m['name'] = mooring.name
-                m['licensee_full_name'] = mooring.mooring_licence.submitter_obj.get_full_name()
-                m['licensee_email'] = mooring.mooring_licence.submitter_obj.email
+                m['licensee_full_name'] = mooring.mooring_licence.proposal_applicant.get_full_name()
+                m['licensee_email'] = mooring.mooring_licence.proposal_applicant.email
                 m['licensee_phone'] = ', '.join(numbers)
                 moorings.append(m)
 
@@ -1880,7 +1860,7 @@ class MooringLicence(Approval):
     def _create_new_swap_moorings_application(self, request, new_mooring):
         new_proposal = self.current_proposal.clone_proposal_with_status_reset()
         new_proposal.proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_SWAP_MOORINGS)
-        new_proposal.submitter = self.current_proposal.submitter
+        new_proposal.submitter = request.user.id
         new_proposal.previous_application = self.current_proposal
         new_proposal.keep_existing_vessel = True
         new_proposal.allocated_mooring = new_mooring  # Swap moorings here
@@ -1972,7 +1952,7 @@ class MooringLicence(Approval):
 
     @staticmethod
     def get_valid_approvals(email_user_id):
-        approvals = MooringLicence.objects.filter(submitter=email_user_id).filter(status__in=[
+        approvals = MooringLicence.objects.filter(current_proposal__proposal_applicant__email_user_id=email_user_id).filter(status__in=[
             Approval.APPROVAL_STATUS_CURRENT,
             Approval.APPROVAL_STATUS_SUSPENDED,])
         return approvals
@@ -2014,7 +1994,7 @@ class MooringLicence(Approval):
             'approval': self,
             'application': self.current_proposal,
             'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-            'applicant_first_name': retrieve_email_userro(self.submitter).first_name,
+            'applicant_first_name': retrieve_email_userro(self.proposal_applicant.email_user_id).first_name if (self.proposal_applicant and self.proposal_applicant.email_user_id) else "",
             'mooring_name': self.mooring.name,
             'authorised_persons': authorised_persons,
             'public_url': get_public_url(),
@@ -2495,6 +2475,7 @@ class DcvVessel(RevisionedMixin):
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
+    #TODO applicant vs submitter?
     submitter = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
@@ -2748,6 +2729,7 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
+    #TODO applicant vs submitter
     submitter = models.IntegerField(blank=True, null=True)
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
@@ -2906,6 +2888,7 @@ class DcvPermit(RevisionedMixin):
                 ret_value = self.submitter_obj.residential_address.postcode
         return ret_value
 
+    #TODO does a DCV permit *need* an address associated with it? can it be the ledger address or should it specified?
     def get_context_for_licence_permit(self):
         context = {
             'lodgement_number': self.lodgement_number,
@@ -3288,51 +3271,30 @@ class Sticker(models.Model):
 
     @property
     def first_name(self):
-        # if self.approval and self.approval.submitter:
-        #     return self.approval.submitter_obj.first_name
-        # return '---'
         return self.approval.postal_first_name
 
     @property
     def last_name(self):
-        # if self.approval and self.approval.submitter:
-        #     return self.approval.submitter_obj.last_name
-        # return '---'
         return self.approval.postal_last_name
 
     @property
     def postal_address_line1(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.line1
-        # return '---'
         return self.approval.postal_address_line1
 
     @property
     def postal_address_line2(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.line2
-        # return '---'
         return self.approval.postal_address_line2
 
     @property
     def postal_address_state(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.state
-        # return '---'
         return self.approval.postal_address_state
 
     @property
     def postal_address_suburb(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.locality
-        # return '---'
         return self.approval.postal_address_suburb
 
     @property
     def postal_address_postcode(self):
-        # if self.approval and self.approval.submitter and self.approval.submitter_obj.postal_address:
-        #     return self.approval.submitter_obj.postal_address.postcode
-        # return '---'
         return self.approval.postal_address_postcode
 
     @property

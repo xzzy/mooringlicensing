@@ -12,7 +12,7 @@
                 <div>
                     <strong>Fee for your application {{proposal.lodgement_number}} has been already paid.</strong>
 
-                    {% if request.user == submitter or request.user.is_staff %}
+                    {% if request.user == applicant or request.user.is_staff %}
                         {% if request.user.is_authenticated %}
                             {% if invoice.amount %}
                                 <div class="row" style="margin-top:2em;">
@@ -33,7 +33,7 @@
         </div>
 
         <div class="row"><div class="col-sm-12" style="margin-top: 1em">
-            {% if request.user == submitter or request.user.is_staff %}
+            {% if request.user == applicant or request.user.is_staff %}
                 {% if request.user.is_authenticated %}
                     <div class="row">
                         <div class="col-sm-12">

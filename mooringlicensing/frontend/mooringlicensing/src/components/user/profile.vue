@@ -258,9 +258,6 @@ export default {
         proposal: {
             type: Object,
         },
-        submitterId: {
-            type: Number,
-        },
         isApplication:{
                 type: Boolean,
                 default: false
