@@ -1,4 +1,3 @@
-# from django.utils import timezone
 from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.compliances.models import (
     Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
@@ -7,7 +6,8 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
 from rest_framework import serializers
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro
+from mooringlicensing.components.users.utils import get_user_name
+from mooringlicensing.ledger_api_utils import retrieve_system_user
 from mooringlicensing.helpers import is_internal
 
 class ComplianceSerializer(serializers.ModelSerializer):
@@ -18,7 +18,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
     documents = serializers.SerializerMethodField()
     submitter = serializers.SerializerMethodField(read_only=True)
     allowed_assessors = serializers.SerializerMethodField()
-    assigned_to = serializers.SerializerMethodField(read_only=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
     application_type_code = serializers.SerializerMethodField()
@@ -36,7 +35,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'title',
             'text',
             'holder',
-            'assigned_to',
             'approval',
             'documents',
             'requirement',
@@ -56,7 +54,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'application_type_code',
             'application_type_text',
             'application_type_dict',
-
         )
 
     def get_allowed_assessors(self, obj):
@@ -73,11 +70,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
 
     def get_approval_lodgement_number(self,obj):
         return obj.approval.lodgement_number
-
-    def get_assigned_to(self,obj):
-        if obj.assigned_to:
-            return obj.assigned_to.get_full_name()
-        return None
 
     def get_submitter(self,obj):
         if obj.submitter and 'request' in self.context:
@@ -117,7 +109,7 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
     allowed_assessors = serializers.SerializerMethodField()
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
-
+    assigned_to = serializers.SerializerMethodField()
 
     class Meta:
         model = Compliance
@@ -148,6 +140,13 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
             'fee_invoice_reference',
             'fee_paid',
         )
+
+    def get_assigned_to(self, obj):
+        request = self.context.get('request')
+        assigned_to = None
+        if is_internal(request) and obj.assigned_to:
+            return obj.assigned_to
+        return assigned_to
 
     def get_allowed_assessors(self, obj):
         if 'request' in self.context and is_internal(self.context['request']):
@@ -187,7 +186,6 @@ class SaveComplianceSerializer(serializers.ModelSerializer):
         )
 
 class ComplianceActionSerializer(serializers.ModelSerializer):
-    # who = serializers.CharField(source='who.get_full_name')
     who = serializers.SerializerMethodField()
     class Meta:
         model = ComplianceUserAction
@@ -297,6 +295,9 @@ class ListComplianceSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         assigned_to = ''
         if is_internal(request) and obj.assigned_to:
-            assigned_to = obj.assigned_to.get_full_name()
+            system_user = retrieve_system_user(obj.assigned_to)
+            if system_user:
+                user_name = get_user_name(system_user)
+                assigned_to = user_name["full_name"]
         return assigned_to
 

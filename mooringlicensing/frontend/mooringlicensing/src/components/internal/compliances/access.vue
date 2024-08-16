@@ -49,9 +49,11 @@
                                     <select v-show="isLoading" class="form-control">
                                         <option value="">Loading...</option>
                                     </select>
-                                    <select @change="assignTo" :disabled="canViewonly || !check_assessor()" v-if="!isLoading" class="form-control" v-model="compliance.assigned_to">
-                                        <option value="null">Unassigned</option>
-                                        <option v-for="member in compliance.allowed_assessors" :value="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                    <select @change="assignTo" 
+                                    :disabled="canViewonly || !check_assessor()" 
+                                    v-if="!isLoading" class="form-control" 
+                                    v-model="compliance.assigned_to">
+                                        <option v-for="member in compliance.allowed_assessors" :value="member.ledger_id">{{member.legal_first_name}} {{member.legal_last_name}}</option>
                                     </select>
                                     <a v-if="!canViewonly && check_assessor()" @click.prevent="assignMyself()" class="actionBtn pull-right">Assign to me</a>
                                 </div>
@@ -183,7 +185,7 @@ export default {
     },
     assignTo: function(){
         let vm = this;
-        if ( vm.compliance.assigned_to != 'null'){
+        if ( vm.compliance.assigned_to !== null && vm.compliance.assigned_to !== undefined){
             let data = {'user_id': vm.compliance.assigned_to};
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.compliances,(vm.compliance.id+'/assign_to')),JSON.stringify(data),{
                 emulateJSON:true
@@ -194,7 +196,7 @@ export default {
             });
             
         }
-        else{
+        else if (vm.compliance.assigned_to !== undefined) {
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.compliances,(vm.compliance.id+'/unassign')))
             .then((response) => {
                 console.log(response);

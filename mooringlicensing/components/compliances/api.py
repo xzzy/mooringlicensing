@@ -118,7 +118,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     def assign_request_user(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.assign_to(request.user,request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
@@ -143,7 +143,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         except EmailUser.DoesNotExist:
             raise serializers.ValidationError('A user with the id passed in does not exist')
         instance.assign_to(user,request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -151,7 +151,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     def unassign(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.unassign(request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)

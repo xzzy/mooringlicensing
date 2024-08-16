@@ -212,9 +212,9 @@ class Compliance(RevisionedMixin):
                 raise ValidationError('Document not found')
 
 
-    def assign_to(self, user,request):
+    def assign_to(self, user, request):
         with transaction.atomic():
-            self.assigned_to = user
+            self.assigned_to = user.id
             self.save()
             self.log_user_action(ComplianceUserAction.ACTION_ASSIGN_TO.format(user.get_full_name()),request)
 
