@@ -91,6 +91,7 @@
                             </div>
                             <div class="form-group">
                                 <div class="row">
+                                    <!--TODO remove?-->
                                     <!--div class="col-sm-12">
                                         <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
                                         <label v-else class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}}.</label>
@@ -150,7 +151,7 @@ export default {
             type: Boolean,
             required: true
         },
-        submitter_email: {
+        submitter_email: { //TODO remove if not needed...
             type: String,
             required: true
         },

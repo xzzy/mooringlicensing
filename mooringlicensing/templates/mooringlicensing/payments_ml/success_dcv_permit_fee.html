@@ -5,7 +5,7 @@
         <div class="well">
             <div class="row"><div class="col-sm-12">
                 <h2>Success!</h2>
-                <strong>A confirmation email has been sent to {{ submitter }}. </strong>
+                <strong>A confirmation email has been sent to {{ submitter }}. </strong> <!--TODO applicant vs submitter-->
             </div></div>
             <br/>
 
@@ -27,6 +27,7 @@
                     <br/>
                     {% include "mooringlicensing/payments_ml/last_line_incorrect_info.html" %}
 <!--                    <span>If there is any missing information, Rottnest Island Authority (RIA) may assign this application back to you to complete. In that case you will be notified by email.</span>-->
+                    <!--TODO applicant vs submitter-->
                     {% if request.user == submitter or request.user.is_staff %}
                     {% if request.user.is_authenticated %}
                     <div class="row" style="margin-top:2em;">
@@ -47,6 +48,7 @@
         </div>
 
         <div class="row"><div class="col-sm-12" style="margin-top: 1em">
+            <!--TODO applicant vs submitter-->
             {% if request.user == submitter or request.user.is_staff %}
                 {% if request.user.is_authenticated %}
                     <div class="row">

@@ -360,10 +360,11 @@ class StickerReplacementFeeSuccessView(TemplateView):
             # invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
             # invoice_pdf = requests.get(url=url)
+            #TODO applicant vs submitter
             submitter = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
 
             context = {
-                'submitter': submitter,
+                'submitter': submitter, #TODO applicant vs submitter
                 'fee_invoice': sticker_action_fee,
                 'invoice': invoice,
                 'invoice_url': invoice_url,
@@ -659,7 +660,7 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
         context = {
             'proposal': proposal,
-            'submitter': proposal.applicant_obj,
+            'applicant': proposal.applicant_obj,
             'application_fee': application_fee,
             'invoice': invoice,
         }
@@ -823,7 +824,7 @@ class ApplicationFeeSuccessView(TemplateView):
         try:
             application_fee = ApplicationFee.objects.get(uuid=uuid)
             proposal = application_fee.proposal
-            submitter = proposal.applicant_obj
+            applicant = proposal.applicant_obj
             if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
                 #proposal.auto_approve_check(request)
                 if proposal.auto_approve:
@@ -834,7 +835,7 @@ class ApplicationFeeSuccessView(TemplateView):
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
             context = {
                 'proposal': proposal,
-                'submitter': submitter,
+                'applicant': applicant,
                 'fee_invoice': application_fee,
                 'is_wla_or_aaa': wla_or_aaa,
                 'invoice': invoice,

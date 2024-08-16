@@ -1,7 +1,7 @@
 <template id="proposal_approval">
     <div>
         <div v-if="displayApprovedMsg" class="col-md-12 alert alert-success">
-            <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
+            <p>The approval has been issued and has been emailed to {{ proposal.proposal_applicant.email }}</p>
             <p>Expiry date: {{ approvalExpiryDate }}</p>
             <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
         </div>
@@ -10,13 +10,13 @@
             <p>Status: Awaiting Payment</p>
         </div>
         <div v-if="displayApprovedAwaitingStickerMsg" class="col-md-12 alert alert-success">
-            <p>The approval has been issued and has been emailed to {{ proposal.submitter.email }}</p>
+            <p>The approval has been issued and has been emailed to {{ proposal.proposal_applicant.email }}</p>
             <p>Status: Awaiting Sticker</p>
             <p>Expiry date: {{ approvalExpiryDate }}</p>
             <p>Permit: <a target="_blank" :href="proposal.permit">approval.pdf</a></p>
         </div>
         <div v-if="displayDeclinedMsg" class="col-md-12 alert alert-warning">
-            <p>The proposal was declined. The decision was emailed to {{ proposal.submitter.email }}</p>
+            <p>The proposal was declined. The decision was emailed to {{ proposal.proposal_applicant.email }}</p>
         </div>
 
         <div class="panel panel-default">
@@ -111,7 +111,7 @@ export default {
     computed:{
         decisionTitle: function(){
             if (this.isFinalised){
-                return 'Dicision'
+                return 'Decision'
             } else {
                 return 'Proposed decision'
             }
