@@ -337,7 +337,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         #result_page = self.paginator.paginate_queryset(qs, request)
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)
