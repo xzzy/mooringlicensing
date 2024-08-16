@@ -165,7 +165,9 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
 
     def get_submitter(self,obj):
         if obj.submitter:
-            return obj.submitter_obj.get_full_name()
+            system_user = retrieve_system_user(obj.submitter_obj)
+            get_user_name(system_user)["full_name"]
+            return get_user_name(system_user)["full_name"]
         return None
 
     def get_processing_status(self, obj):

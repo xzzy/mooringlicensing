@@ -53,21 +53,18 @@
 
         <div class="row"><div class="col-sm-12" style="margin-top: 1em">
             {% if request.user == applicant or request.user.is_staff %}
-                {% if request.user.is_authenticated %}
+                {% if request.user.is_staff %}
+                <div class="row">
+                    <div class="col-sm-12">
+                        <a href="{% url 'internal' %}" class="pull-right btn btn-info btn-lg">Return to Applications</a>
+                    </div>
+                </div>
+                {% elif request.user.is_authenticated %}
                     <div class="row">
                         <div class="col-sm-12">
                             <a href="{% url 'external' %}" class="pull-right btn btn-info btn-lg">Return to Dashboard</a>
                         </div>
                     </div>
-            <!--
-                    <span>
-                        <div>Invoice: <a href="{% url 'invoice-pdf' fee_invoice.invoice_reference %}" target="_blank"><i style='color:red;' class='fa fa-file-pdf-o'></i> #{{ fee_invoice.invoice_reference }}</a></div>
-                        <a href="{% url 'invoice-pdf' fee_invoice.invoice_reference %}" class="btn btn-info btn-lg"  target="_blank">Invoice</a>
-                    </span>
-                    <span style="float:right;">
-                        <a href="{% url 'external' %}" class="btn btn-info btn-lg">Return to Dashboard</a>
-                    </span>
-            -->
                 {% else %}
                     <a href="{% url 'home' %}" class="btn btn-info btn-lg">Log in</a><p>You must be logged in to see your invoice online.</p>
                 {% endif %}

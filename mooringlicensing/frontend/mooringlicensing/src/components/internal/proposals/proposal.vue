@@ -16,8 +16,8 @@
                 />
 
                 <Submission v-if="canSeeSubmission"
-                    :submitter_first_name="proposal.submitter.first_name"
-                    :submitter_last_name="proposal.submitter.last_name"
+                    :submitter_first_name="proposal.submitter.legal_first_name"
+                    :submitter_last_name="proposal.submitter.legal_last_name"
                     :lodgement_date="proposal.lodgement_date"
                 />
 
@@ -68,6 +68,8 @@
                         :readonly="readonly"
                         :key="computedProposalId"
                         @profile-fetched="populateProfile"
+                        @updateSubmitText="updateSubmitText"
+                        @updateAutoApprove="updateAutoApprove"
                     />
 
                     <AnnualAdmissionApplication
@@ -80,6 +82,8 @@
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
+                        @updateSubmitText="updateSubmitText"
+                        @updateAutoApprove="updateAutoApprove"
                     />
                     <AuthorisedUserApplication
                         v-if="proposal && proposal.application_type_dict.code==='aua'"
@@ -90,6 +94,8 @@
                         ref="authorised_user_application"
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
+                        @updateSubmitText="updateSubmitText"
+                        @updateAutoApprove="updateAutoApprove"
                     />
                     <MooringLicenceApplication
                         v-if="proposal && proposal.application_type_dict.code==='mla'"
@@ -101,6 +107,8 @@
                         :showElectoralRoll="showElectoralRoll"
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
+                        @updateSubmitText="updateSubmitText"
+                        @updateAutoApprove="updateAutoApprove"
                     />
                 </template>
                 <template v-if="display_requirements">
@@ -155,6 +163,12 @@
                                     </button>
                                     <input v-else type="button" @click.prevent="save" 
                                         class="btn btn-primary" value="Save Proposal"/>
+
+                                    <button v-if="submittingProposal" type="button" class="btn btn-primary" disabled>
+                                        Save&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                    </button>
+                                    <input v-else type="button" @click.prevent="submit" 
+                                        class="btn btn-primary" :value="submitText" />
                                 </p>
                             </div>
                         </div>
@@ -192,8 +206,12 @@ export default {
     data: function() {
         let vm = this;
         return {
+            autoApprove: false,
             profile: {},
             savingProposal: false,
+            submittingProposal: false,
+            submitText: "Submit",
+            paySubmitting:false,
             detailsBody: 'detailsBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
             contactsBody: 'contactsBody'+vm._uid,
@@ -304,6 +322,12 @@ export default {
         }
     },
     computed: {
+        confirmation_url: function() {
+            return (this.proposal) ? `/confirmation/${this.proposal.id}/` : '';
+        },
+        application_fee_url: function() {
+            return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
+        },
         proposedApprovalKey: function() {
             return "proposed_approval_" + this.uuid;
         },
@@ -332,6 +356,9 @@ export default {
             return true
         },
         */
+        proposal_form_url: function() {
+            return (this.proposal) ? `/api/proposal/${this.proposal.id}/internal_save.json` : '';
+        },
         showElectoralRoll: function() {
             let show = false;
             if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
@@ -438,9 +465,20 @@ export default {
         applicant_email:function(){
             return this.proposal && this.proposal.applicant && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
+        proposal_submit_url: function() {
+            return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
+        },
     },
     methods: {
-        save: async function() {
+        updateAutoApprove: function(approve) {
+            this.autoApprove = approve;
+            console.log('%cin updateAutoApprove', 'color: #990000')
+            console.log(this.autoApprove)
+        },
+        updateSubmitText: function(submitText) {
+            this.submitText = submitText;
+        },
+        save: async function(withConfirm=true, url=this.proposal_form_url) {
             console.log("saving as assessor/approver");
             let vm = this;
             vm.savingProposal=true;
@@ -519,14 +557,16 @@ export default {
 
             payload.profile = this.profile
             vm.$http.post(
-                `/api/proposal/${this.proposal.id}/internal_save.json`, 
+                url, 
                 payload, {}
             ).then((res)=>{
+                    if (withConfirm) {
                         swal(
                             'Saved',
                             'Your application has been saved',
                             'success'
                         );
+                    }
                     vm.savingProposal=false;
                 },(err)=>{
                     swal({
@@ -536,6 +576,117 @@ export default {
                     });
                     vm.savingProposal=false;     
             })
+        },
+
+        submit: async function(){
+            // remove the confirm prompt when navigating away from window (on button 'Submit' click)
+            this.submittingProposal = true;
+            this.paySubmitting=true;
+
+            try {
+                await swal({
+                    title: this.submitText + " Application",
+                    text: "Are you sure you want to " + this.submitText.toLowerCase()+ " this application?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: this.submitText
+                })
+            } catch (cancel) {
+                this.submittingProposal = false;
+                this.paySubmitting=false;
+                return;
+            }
+
+            if (!this.proposal.fee_paid) {
+                this.$nextTick(async () => {
+                    try {
+                        await this.save_and_pay();
+                    } catch (err) {
+                        console.log(err)
+                        await swal({
+                            title: 'Submit Error',
+                            //text: helpers.apiVueResourceError(err),
+                            html: helpers.formatError(err),
+                            type: "error",
+                            //html: true,
+                        })
+                    }
+                });
+            } else {
+                await this.save_without_pay();
+            }
+        },
+        post_and_redirect: function(url, postData) {
+            /* http.post and ajax do not allow redirect from Django View (post method),
+            this function allows redirect by mimicking a form submit.
+
+            usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
+            */
+            console.log(url)
+            console.log(postData)
+            var postFormStr = "<form method='POST' action='" + url + "'>";
+
+            for (var key in postData) {
+                if (postData.hasOwnProperty(key)) {
+                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                }
+            }
+            postFormStr += "</form>";
+            var formElement = $(postFormStr);
+            $('body').append(formElement);
+            $(formElement).submit();
+        },
+        save_and_pay: async function() {
+            try {
+                const res = await this.save(false, this.proposal_submit_url);
+                this.$nextTick(async () => {
+                    if (this.autoApprove) {
+                        //await this.post_and_redirect(this.application_fee_url, {'auto_approve': true, 'csrfmiddlewaretoken' : this.csrf_token});
+                        await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+                        await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    } else {
+                        await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    }
+                });
+            } catch(err) {
+                console.log(err)
+                console.log(typeof(err.body))
+                await swal({
+                    title: 'Submit Error',
+                    //text: helpers.apiVueResourceError(err),
+                    html: helpers.formatError(err),
+                    type: "error",
+                    //html: true,
+                })
+                this.savingProposal=false;
+                this.paySubmitting=false;
+            }
+        },
+        save_without_pay: async function(){
+            /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
+            let vm = this
+            try {
+                const res = await this.save(false, this.proposal_submit_url);
+                if (res.ok) {
+                    vm.$router.push({
+                    name: 'internal'
+                    });
+                }
+            } catch(err) {
+                //console.log(err)
+                //console.log(typeof(err.body))
+                await swal({
+                    title: 'Submit Error',
+                    //text: helpers.apiVueResourceError(err),
+                    html: helpers.formatError(err),
+                    type: "error",
+                    //html: true,
+                })
+                this.savingProposal=false;
+                this.paySubmitting=false;
+                //this.submitting = false;
+            }
         },
         populateProfile: function(profile) {
             this.profile = profile

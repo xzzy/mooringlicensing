@@ -1208,7 +1208,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if isinstance(user, EmailUserRO):
             user = user.id
 
-        status_without_approver = [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DRAFT]
+        status_without_approver = [
+            Proposal.PROCESSING_STATUS_WITH_ASSESSOR, 
+            Proposal.PROCESSING_STATUS_APPROVED, 
+            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
+            Proposal.PROCESSING_STATUS_DECLINED, 
+            Proposal.PROCESSING_STATUS_DRAFT,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        ]
         if self.processing_status in status_without_approver:
             return False
         else:
@@ -1225,7 +1232,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if isinstance(user, EmailUserRO):
             user = user.id
 
-        status_without_assessor = [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED]
+        status_without_assessor = [
+            Proposal.PROCESSING_STATUS_WITH_APPROVER, 
+            Proposal.PROCESSING_STATUS_APPROVED, 
+            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        ]
         if self.processing_status in status_without_assessor:
             return False
         else:
