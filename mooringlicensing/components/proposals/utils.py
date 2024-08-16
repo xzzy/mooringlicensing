@@ -356,7 +356,7 @@ def save_proponent_data(instance, request, viewset):
     elif type(instance.child_obj) == MooringLicenceApplication:
         save_proponent_data_mla(instance, request, viewset)
 
-    if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user:
+    if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
         # Save request.user details in a JSONField not to overwrite the details of it.
         try:
             user = SystemUser.objects.get(ledger_id=request.user)
