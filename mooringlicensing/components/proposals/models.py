@@ -1004,14 +1004,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.org_applicant.organisation.name
         elif self.proxy_applicant:
             applicant = retrieve_system_user(self.proxy_applicant)
-            return "{} {}".format(
-                applicant.legal_first_name,
-                applicant.last_name)
+            if applicant:
+                return "{} {}".format(
+                    applicant.legal_first_name,
+                    applicant.last_name)
         elif self.proposal_applicant:
             applicant = retrieve_system_user(self.proposal_applicant.email_user_id)
-            return "{} {}".format(
-                applicant.legal_first_name,
-                applicant.legal_last_name)
+            if applicant:
+                return "{} {}".format(
+                    applicant.legal_first_name,
+                    applicant.legal_last_name)
         return ""
 
     @property
