@@ -72,7 +72,7 @@
                                         <div class="col-sm-6">
                                             <div class="row" v-for="d in compliance.documents">
                                                 <a :href="d[1]" target="_blank" class="control-label pull-left">{{d[0]   }}</a>
-                                                <span v-if="!isFinalisedi && d.can_delete">
+                                                <span v-if="!isFinalised && d.can_delete">
                                                     <a @click="delete_document(d)" class="fa fa-trash-o control-label" title="Remove file" style="cursor: pointer; color:red;"></a>
                                                 </span>
                                                 <span v-else >
@@ -156,7 +156,6 @@ export default {
         errorString: '',
         pdBody: 'pdBody'+vm._uid,
         oBody: 'oBody'+vm._uid,
-        isFinalised: false,
         pdBody: 'pdBody'+vm._uid,
         hasDocuments: false,
         validation_form: null,
@@ -169,14 +168,13 @@ export default {
      
     }
   },
-  watch: {
-    
+  watch: {   
     isFinalised: function(){             
         return this.compliance && (this.compliance.customer_status == "Under Review" || this.compliance.customer_status == "Approved");
     },
     hasDocuments: function(){             
         return this.compliance && this.compliance.documents;
-   }
+    }
   },
   filters: {
     formatDate: function(data){
@@ -187,7 +185,7 @@ export default {
   components: {
     datatable,
     CommsLogs,
-      alert
+    alert,
   },
   computed: {
     showError: function() {
@@ -237,7 +235,6 @@ export default {
             if($(vm.form).valid()){
                 vm.sendData();
             }                
-                //vm.sendData();
     },
 
     close:function () {

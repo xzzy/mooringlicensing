@@ -90,7 +90,8 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
                                                     .format(instance.processing_status))
 
-            if instance.proposal.applicant_email != request.user.email:
+            #TODO replace is_internal with group membership check
+            if instance.proposal.applicant_email != request.user.email and not is_internal(request): 
                 raise serializers.ValidationError('You are not authorised to modify this application.')
 
             data = {
