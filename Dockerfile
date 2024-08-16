@@ -1,5 +1,5 @@
 # Prepare the base environment.
-FROM ubuntu:22.04 as builder_base_mooringlicensing
+FROM ubuntu:24.04 as builder_base_mooringlicensing
 MAINTAINER asi@dbca.wa.gov.au
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,6 +15,8 @@ ENV SITE_PREFIX='mls-dev'
 ENV SITE_DOMAIN='dbca.wa.gov.au'
 ENV OSCAR_SHOP_NAME='No Name'
 ENV BPAY_ALLOWED=False
+ENV NODE_MAJOR=20
+
 #ARG BRANCH_ARG
 #ARG REPO_ARG
 #ARG REPO_NO_DASH_ARG
@@ -25,7 +27,7 @@ ENV BPAY_ALLOWED=False
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata cron rsyslog gunicorn
+RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata rsyslog gunicorn virtualenv
 RUN apt-get install --no-install-recommends -y libpq-dev patch libreoffice
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim nano npm sudo
 RUN apt-get install --no-install-recommends -y bzip2 unzip
@@ -37,19 +39,23 @@ RUN apt remove -y libnode72
 # Install nodejs
 RUN update-ca-certificates
 # install node 16
-RUN touch install_node.sh
-RUN curl -fsSL https://deb.nodesource.com/setup_16.x -o install_node.sh
-RUN chmod +x install_node.sh && ./install_node.sh
-RUN apt-get install -y nodejs
+#RUN touch install_node.sh
+#RUN curl -fsSL https://deb.nodesource.com/setup_20.x -o install_node.sh
+#RUN chmod +x install_node.sh && ./install_node.sh
+#RUN apt-get install -y nodejs
+
+RUN mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
+    | tee /etc/apt/sources.list.d/nodesource.list && \
+    apt-get update && \
+    apt-get install -y nodejs
+
 # Install nodejs
-COPY cron /etc/cron.d/dockercron
+COPY python-cron ./
 COPY startup.sh pre_startup.sh /
 COPY ./timezone /etc/timezone
-RUN chmod 0644 /etc/cron.d/dockercron && \
-    crontab /etc/cron.d/dockercron && \
-    touch /var/log/cron.log && \
-    service cron start && \
-    chmod 755 /startup.sh && \
+RUN chmod 755 /startup.sh && \
     chmod +s /startup.sh && \
     chmod 755 /pre_startup.sh && \
     chmod +s /pre_startup.sh && \
@@ -65,20 +71,36 @@ RUN chmod 0644 /etc/cron.d/dockercron && \
     touch /app/rand_hash
     
 RUN chmod 755 /pre_startup.sh 
+# Health checks for kubernetes 
 RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin/health_check.sh -O /bin/health_check.sh
 RUN chmod 755 /bin/health_check.sh
+
+# scheduler
+RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin-python/scheduler/scheduler.py -O /bin/scheduler.py
+RUN chmod 755 /bin/scheduler.py
+
+# Add azcopy to container
+RUN mkdir /tmp/azcopy/
+RUN wget https://aka.ms/downloadazcopy-v10-linux -O /tmp/azcopy/azcopy.tar.gz
+RUN cd /tmp/azcopy/ ; tar -xzvf azcopy.tar.gz
+RUN cp /tmp/azcopy/azcopy_linux_amd64_10.26.0/azcopy /bin/azcopy
+RUN chmod 755 /bin/azcopy
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
 USER oim
-RUN PATH=/app/.local/bin:$PATH
+RUN virtualenv /app/venv
+ENV PATH=/app/venv/bin:$PATH
+RUN git config --global --add safe.directory /app
+
+#RUN PATH=/app/.local/bin:$PATH
 COPY --chown=oim:oim requirements.txt ./
 
-RUN pip install -r requirements.txt \
-  && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
+RUN pip install -r requirements.txt 
+#  && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
 RUN pip install --upgrade pip
-RUN wget -O /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=e2fe6cfbab02d535bc52c77cdbe1e860304347f16d30a4708dc342a231412c57
-RUN pip install /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+#RUN wget -O /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=e2fe6cfbab02d535bc52c77cdbe1e860304347f16d30a4708dc342a231412c57
+#RUN pip install /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
 # Install the project (ensure that frontend projects have been built prior to this step).
 FROM python_libs_ml
 COPY  --chown=oim:oim gunicorn.ini manage_ml.py ./
@@ -102,16 +124,6 @@ RUN python manage_ml.py collectstatic --noinput
 RUN mkdir /app/tmp/
 RUN chmod 777 /app/tmp/
 
-#COPY cron /etc/cron.d/dockercron
-# COPY startup.sh pre_startup.sh /
-# Cron start
-#RUN service rsyslog start
-#RUN chmod 0644 /etc/cron.d/dockercron
-#RUN crontab /etc/cron.d/dockercron
-
-#RUN service cron start
-#RUN chmod 755 /startup.sh
-# cron end
 
 # IPYTHONDIR - Will allow shell_plus (in Docker) to remember history between sessions
 # 1. will create dir, if it does not already exist
@@ -122,5 +134,5 @@ RUN export IPYTHONDIR=/app/logs/.ipython/
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
-CMD ["/pre_startup.sh"]
+CMD ["/startup.sh"]
 
