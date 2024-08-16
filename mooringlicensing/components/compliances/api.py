@@ -321,12 +321,11 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=target_user.id))
+                qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=target_user.id)).distinct()
             else:
                 qs = Compliance.objects.all()
         elif is_customer(self.request):
-            qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded")
-
+            qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded").distinct()
         return qs
 
     @list_route(methods=['GET',], detail=False)
