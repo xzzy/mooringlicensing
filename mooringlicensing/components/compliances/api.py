@@ -62,7 +62,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if is_internal(self.request):
-            return Compliance.objects.all().exclude(processing_status='discarded')
+            return Compliance.objects.all()
         elif is_customer(self.request):
             # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
             user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])

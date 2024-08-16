@@ -166,7 +166,7 @@ export default {
       return this.loading.length > 0;
     },
     canViewonly: function(){
-        return this.compliance.processing_status == 'Due' || this.compliance.processing_status == 'Future' || this.compliance.processing_status == 'Approved';
+        return this.compliance.processing_status == 'Due' || this.compliance.processing_status == 'Future' || this.compliance.processing_status == 'Approved' || this.compliance.processing_status == 'Discarded';
     },
   },
   methods: {

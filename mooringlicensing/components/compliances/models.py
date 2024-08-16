@@ -5,6 +5,7 @@ from django.db import models,transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.conf import settings
+from mooringlicensing.helpers import is_internal
 from ledger_api_client.ledger_models import Invoice
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,  # Region,
@@ -214,23 +215,29 @@ class Compliance(RevisionedMixin):
 
     def assign_to(self, user, request):
         with transaction.atomic():
-            self.assigned_to = user.id
-            self.save()
-            self.log_user_action(ComplianceUserAction.ACTION_ASSIGN_TO.format(user.get_full_name()),request)
+            #TODO use System Groups and also check assignee
+            if is_internal(request):
+                self.assigned_to = user.id
+                self.save()
+                self.log_user_action(ComplianceUserAction.ACTION_ASSIGN_TO.format(user.get_full_name()),request)
 
     def unassign(self,request):
         with transaction.atomic():
-            self.assigned_to = None
-            self.save()
-            self.log_user_action(ComplianceUserAction.ACTION_UNASSIGN,request)
+            #TODO use System Groups
+            if is_internal(request):
+                self.assigned_to = None
+                self.save()
+                self.log_user_action(ComplianceUserAction.ACTION_UNASSIGN,request)
 
     def accept(self, request):
         with transaction.atomic():
-            self.processing_status = Compliance.PROCESSING_STATUS_APPROVED
-            self.customer_status = Compliance.CUSTOMER_STATUS_APPROVED
-            self.save()
-            self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
-            send_compliance_accept_email_notification(self,request)
+            #TODO use System Groups
+            if self.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and is_internal(request):
+                self.processing_status = Compliance.PROCESSING_STATUS_APPROVED
+                self.customer_status = Compliance.CUSTOMER_STATUS_APPROVED
+                self.save()
+                self.log_user_action(ComplianceUserAction.ACTION_CONCLUDE_REQUEST.format(self.id),request)
+                send_compliance_accept_email_notification(self,request)
 
     def send_reminder(self, user=None):
         with transaction.atomic():
