@@ -944,7 +944,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         invoice = None
         application_fee = self.get_main_application_fee()
         if application_fee:
-            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            try:
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+            except:
+                return None
         return invoice
 
     @property

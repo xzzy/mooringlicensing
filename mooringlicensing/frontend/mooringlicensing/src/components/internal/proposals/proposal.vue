@@ -167,7 +167,7 @@
                                     <button v-if="submittingProposal" type="button" class="btn btn-primary" disabled>
                                         Save&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                     </button>
-                                    <input v-else type="button" @click.prevent="submit" 
+                                    <input v-else-if="submittable" type="button" @click.prevent="submit" 
                                         class="btn btn-primary" :value="submitText" />
                                 </p>
                             </div>
@@ -371,6 +371,15 @@ export default {
                 return false
             }
             return true
+        },
+        submittable: function() {
+            if ((this.proposal.assessor_mode.has_assessor_mode || 
+                this.proposal.approver_mode.has_approver_mode) &&
+                (this.proposal.processing_status == 'Draft' || 
+                this.proposal.processing_status == 'Awaiting Payment')) {
+                return true
+            }
+            return false
         },
         contactsURL: function(){
             return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations, this.proposal.applicant.id + '/contacts') : '';

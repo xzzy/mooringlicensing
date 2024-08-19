@@ -91,7 +91,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                                                     .format(instance.processing_status))
 
             #TODO replace is_internal with group membership check
-            if instance.proposal.applicant_email != request.user.email and not is_internal(request): 
+            if instance.proposal.applicant_email != request.user.email or not is_internal(request): 
                 raise serializers.ValidationError('You are not authorised to modify this application.')
 
             data = {
