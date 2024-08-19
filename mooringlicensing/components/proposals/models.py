@@ -1265,10 +1265,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def update(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
+        
         with transaction.atomic():
             if self.can_user_edit:
                 # Save the data first
-                save_proponent_data(self,request,viewset)
+                save_proponent_data(self,request,viewset.action)
                 self.save()
             else:
                 raise ValidationError('You can\'t edit this proposal at this moment')

@@ -284,6 +284,7 @@ export default {
             uuid: 0,
             mooringBays: [],
             siteLicenseeMooring: {},
+            submitRes: null,
         }
     },
     components: {
@@ -479,18 +480,7 @@ export default {
         },
     },
     methods: {
-        updateAutoApprove: function(approve) {
-            this.autoApprove = approve;
-            console.log('%cin updateAutoApprove', 'color: #990000')
-            console.log(this.autoApprove)
-        },
-        updateSubmitText: function(submitText) {
-            this.submitText = submitText;
-        },
-        save: async function(withConfirm=true, url=this.proposal_form_url) {
-            console.log("saving as assessor/approver");
-            let vm = this;
-            vm.savingProposal=true;
+        buildPayload: function() {
 
             let payload = {
                 proposal: {},
@@ -563,27 +553,46 @@ export default {
                     payload.proposal.insurance_choice = this.$refs.mooring_licence_application.$refs.insurance.selectedOption;
                 }
             }
-
             payload.profile = this.profile
-            vm.$http.post(
+
+            return payload;
+        },
+        updateAutoApprove: function(approve) {
+            this.autoApprove = approve;
+            console.log('%cin updateAutoApprove', 'color: #990000')
+            console.log(this.autoApprove)
+        },
+        updateSubmitText: function(submitText) {
+            this.submitText = submitText;
+        },
+        save: async function(withConfirm=true, url=this.proposal_form_url) {
+            console.log("saving as assessor/approver");
+            let vm = this;
+            vm.savingProposal=true;
+
+            let payload = this.buildPayload();
+   
+            return vm.$http.post(
                 url, 
                 payload, {}
             ).then((res)=>{
-                    if (withConfirm) {
-                        swal(
-                            'Saved',
-                            'Your application has been saved',
-                            'success'
-                        );
-                    }
-                    vm.savingProposal=false;
-                },(err)=>{
-                    swal({
-                        title: "Please fix following errors before saving",
-                        text: err.bodyText,
-                        type:'error'
-                    });
-                    vm.savingProposal=false;     
+                if (withConfirm) {
+                    swal(
+                        'Saved',
+                        'Your application has been saved',
+                        'success'
+                    );
+                }
+                vm.savingProposal=false;
+                this.submitRes = true;
+            },(err)=>{
+                swal({
+                    title: "Please fix following errors before saving",
+                    text: err.bodyText,
+                    type:'error'
+                });
+                vm.savingProposal=false;  
+                this.submitRes = false;
             })
         },
 
@@ -631,13 +640,16 @@ export default {
 
             usage:  vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
             */
-            console.log(url)
-            console.log(postData)
             var postFormStr = "<form method='POST' action='" + url + "'>";
 
             for (var key in postData) {
                 if (postData.hasOwnProperty(key)) {
-                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                    if (typeof (postData[key]) === 'object') {
+                        let data = JSON.stringify(postData[key]);
+                        postFormStr += "<input type='hidden' name='" + key + "' value='" + data + "'>";
+                    } else {
+                        postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                    }
                 }
             }
             postFormStr += "</form>";
@@ -647,15 +659,25 @@ export default {
         },
         save_and_pay: async function() {
             try {
-                const res = await this.save(false, this.proposal_submit_url);
+                await this.save(false, this.proposal_submit_url)
                 this.$nextTick(async () => {
-                    if (this.autoApprove) {
-                        //await this.post_and_redirect(this.application_fee_url, {'auto_approve': true, 'csrfmiddlewaretoken' : this.csrf_token});
-                        await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                    } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
-                        await this.post_and_redirect(this.application_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                    console.log(this.submitRes)
+                    if (this.submitRes) {
+                        let payload = this.buildPayload();
+                        payload.csrfmiddlewaretoken = this.csrf_token;
+                        if (this.autoApprove) {
+                            this.post_and_redirect(this.application_fee_url, payload);
+                        } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
+                            this.post_and_redirect(this.application_fee_url, payload);
+                        } else {
+                            this.post_and_redirect(this.confirmation_url, payload);
+                        }
+                        this.submitRes = null;
                     } else {
-                        await this.post_and_redirect(this.confirmation_url, {'csrfmiddlewaretoken' : this.csrf_token});
+                        this.savingProposal=false;
+                        this.paySubmitting=false;
+                        this.submittingProposal=false;
+                        this.submitRes = null;
                     }
                 });
             } catch(err) {
@@ -670,6 +692,7 @@ export default {
                 })
                 this.savingProposal=false;
                 this.paySubmitting=false;
+                this.submittingProposal=false;
             }
         },
         save_without_pay: async function(){
