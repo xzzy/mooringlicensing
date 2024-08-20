@@ -698,16 +698,16 @@ export default {
                     vm.$nextTick(async () => {
                         let max_length = 0
                         if (!data.tag) {
-                            var error = null;
+                            var error_status = null;
                             console.log("fetch existing vessel");
                             // fetch draft/approved vessel
                             try {
                                 await vm.lookupVessel(data.id);
                             } catch(e) {
-                                error = e;
+                                error_status = e.status;
                                 console.error(e);
                             } finally {
-                                if (error.status == '400'){
+                                if (error_status == '400'){
                                     //empty the search
                                     var searchValue = "";
                                     var err = "The selected vessel is already listed with RIA under another owner";
@@ -899,6 +899,7 @@ export default {
             if (this.proposal && this.proposal.processing_status === 'Draft' && !this.proposal.pending_amendment_request) {
                 if (vesselData && vesselData.rego_no) {
                     this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
+                    this.vessel.vessel_ownership = Object.assign({}, vesselData.vessel_ownership);
                     this.vessel.id = vesselData.id;
                     this.vessel.rego_no = vesselData.rego_no;
                     //this.vessel.read_only = true;
@@ -973,21 +974,26 @@ export default {
                     res = await this.$http.get(url);
                 }
                 if (!this.proposal.rego_no && res && res.body && !res.body.vessel_ownership.end_date) {
-                    this.vessel = Object.assign({}, res.body);
                     console.log({ res })
-                    console.log('res.body has been assigned to the this.vessel.')
-                    const payload = {
-                        id: this.vessel.id,
-                        tag: false,
-                        selected: true,
-                    }
-                    console.log('trigger select2:select.')
-                    $(vm.$refs.vessel_rego_nos).trigger({
-                        type: 'select2:select',
-                        params: {
-                            data: payload,
+                    console.log(this.vessel)
+                    try {
+                        Object.assign(this.vessel, res.body);
+                        console.log('res.body has been assigned to the this.vessel.')
+                        const payload = {
+                            id: this.vessel.id,
+                            tag: false,
+                            selected: true,
                         }
-                    });
+                        console.log('trigger select2:select.')
+                        $(vm.$refs.vessel_rego_nos).trigger({
+                            type: 'select2:select',
+                            params: {
+                                data: payload,
+                            }
+                        });
+                    } catch (err) {
+                        console.log(err);
+                    }
                 }
             }
             // read in dot_name
