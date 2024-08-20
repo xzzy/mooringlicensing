@@ -126,11 +126,11 @@
                                                 @click.prevent="submit" 
                                                 class="btn btn-primary" 
                                                 :value="submitText" 
-                                                :disabled="saveExitProposal || savingProposal || disableSubmit"
+                                                :disabled="saveExitProposal || savingProposal "
                                                 id="submitButton"
-                                                :title="disabledSubmitText"
+                                                
                                             />
-
+                                            <!--TODO fix or remove || disableSubmit :title="disabledSubmitText" removed, only work on client-side - if a change is made and the page reloaded it will still block submit-->
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                                         </p>
                                     </div>
@@ -203,6 +203,7 @@ export default {
   },
   computed: {
       profileHasChanged: function(){
+        console.log(this.profile_original)
         let originalHash = JSON.stringify(this.profile_original)
         let currentHash = JSON.stringify(this.profile)
         if (originalHash !== currentHash){
