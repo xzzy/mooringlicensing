@@ -668,7 +668,7 @@ def store_vessel_data(request, vessel_data):
 
     return vessel, vessel_details
 
-def store_vessel_ownership(request, vessel, instance=None):
+def store_vessel_ownership(request, vessel, instance):
     logger.info(f'Storing vessel_ownership with the vessel: [{vessel}], proposal: [{instance}] ...')
 
     ## Get Vessel
@@ -758,13 +758,16 @@ def store_vessel_ownership(request, vessel, instance=None):
         pass
     vessel_ownership_data['vessel'] = vessel.id
 
-    owner, created = Owner.objects.get_or_create(emailuser=request.user.id)  # Is owner accessing user...??? Correct???
-    if created:
-        logger.info(f'New Owner: [{owner}] has been created.')
-    else:
-        logger.info(f'Existing Owner: [{owner}] has been retrieved.')
+    if instance and instance.proposal_applicant:
+        owner, created = Owner.objects.get_or_create(emailuser=instance.proposal_applicant.email_user_id)
+        if created:
+            logger.info(f'New Owner: [{owner}] has been created.')
+        else:
+            logger.info(f'Existing Owner: [{owner}] has been retrieved.')
 
-    vessel_ownership_data['owner'] = owner.id
+        vessel_ownership_data['owner'] = owner.id
+    else:
+        raise serializers.ValidationError("proposal has no applicant to be set as vessel owner")
 
     # Create/Retrieve vessel_ownership
     vo_created = False
@@ -775,6 +778,7 @@ def store_vessel_ownership(request, vessel, instance=None):
             vessel=vessel,
             company_ownerships=company_ownership,
         )
+        print(vessel_ownerships.count())
         if vessel_ownerships.count():
             vessel_ownership = vessel_ownerships.first()
         else:
