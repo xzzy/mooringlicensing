@@ -345,28 +345,38 @@ class SpecialFieldsSearch(object):
         return item_data
 
 def save_proponent_data(instance, request, action):
-    if action == 'submit':
-        logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
-    if type(instance.child_obj) == WaitingListApplication:
-        save_proponent_data_wla(instance, request, action)
-    elif type(instance.child_obj) == AnnualAdmissionApplication:
-        save_proponent_data_aaa(instance, request, action)
-    elif type(instance.child_obj) == AuthorisedUserApplication:
-        save_proponent_data_aua(instance, request, action)
-    elif type(instance.child_obj) == MooringLicenceApplication:
-        save_proponent_data_mla(instance, request, action)
 
-    if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
-        # Save request.user details in a JSONField not to overwrite the details of it.
-        try:
-            user = SystemUser.objects.get(ledger_id=request.user)
-            serializer = UserSerializer(user, context={'request':request})
-            if instance:
-                instance.personal_details = serializer.data
-                instance.save()
-        except Exception as e:
-            print(e)
-            raise serializers.ValidationError("error")
+    if (
+        (instance.proposal_applicant and 
+         instance.proposal_applicant.email_user_id == request.user.id and 
+         instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT)
+        or instance.has_assessor_mode(request.user)
+        or instance.has_approver_mode(request.user)
+    ):
+        if action == 'submit':
+            logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
+        if type(instance.child_obj) == WaitingListApplication:
+            save_proponent_data_wla(instance, request, action)
+        elif type(instance.child_obj) == AnnualAdmissionApplication:
+            save_proponent_data_aaa(instance, request, action)
+        elif type(instance.child_obj) == AuthorisedUserApplication:
+            save_proponent_data_aua(instance, request, action)
+        elif type(instance.child_obj) == MooringLicenceApplication:
+            save_proponent_data_mla(instance, request, action)
+
+        if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
+            # Save request.user details in a JSONField not to overwrite the details of it.
+            try:
+                user = SystemUser.objects.get(ledger_id=request.user)
+                serializer = UserSerializer(user, context={'request':request})
+                if instance:
+                    instance.personal_details = serializer.data
+                    instance.save()
+            except Exception as e:
+                print(e)
+                raise serializers.ValidationError("error")
+    else:
+        raise serializers.ValidationError("user not authorised to update applicant details")
 
 
 def save_proponent_data_aaa(instance, request, action):
@@ -376,7 +386,7 @@ def save_proponent_data_aaa(instance, request, action):
     if vessel_data:
         if action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -411,7 +421,7 @@ def save_proponent_data_wla(instance, request, action):
     if vessel_data:
         if action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -445,7 +455,7 @@ def save_proponent_data_mla(instance, request, action):
     if vessel_data:
         if action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -476,9 +486,7 @@ def save_proponent_data_aua(instance, request, action):
     if vessel_data:
         if action == 'submit':
             submit_vessel_data(instance, request, vessel_data)
-        elif (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or
-              instance.has_assessor_mode(request.user) or 
-              instance.has_approver_mode(request.user)):
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
