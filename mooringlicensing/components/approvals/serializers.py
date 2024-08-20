@@ -446,6 +446,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         if type(obj.child_obj) == MooringLicence:
             moa_set = MooringOnApproval.objects.filter(
                     mooring=obj.child_obj.mooring,
+                    active=True
                     )
             for moa in moa_set:
                 approval = moa.approval
@@ -496,7 +497,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_authorised_user_moorings_detail(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserPermit:
-            for moa in obj.mooringonapproval_set.filter(end_date__isnull=True):
+            for moa in obj.mooringonapproval_set.filter(end_date__isnull=True, active=True):
                 if moa.mooring.mooring_licence is not None:
                     licence_holder_data = ProposalApplicantSerializer(moa.mooring.mooring_licence.current_proposal.proposal_applicant).data
                     moorings.append({
@@ -514,7 +515,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         links = ''
         request = self.context.get('request')
         if type(obj.child_obj) == AuthorisedUserPermit:
-            for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+            for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current', active=True):
                 if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
                     links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
                             moa.mooring.id,
@@ -1152,6 +1153,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             query = Q()
             query &= Q(mooring=mooring)
             query &= Q(approval=obj)
+            query &= Q(active=True)
             # query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))
 
             try:

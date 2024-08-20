@@ -119,6 +119,7 @@ api_patterns = [
     re_path(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     re_path(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
     re_path(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
+    
 ]
 
 # URL Patterns
@@ -191,7 +192,8 @@ urlpatterns = [
     re_path(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
-
+    re_path(r'^api/remove-AUP-from-mooring/(?P<mooring_id>\d+)/(?P<approval_id>\d+)$',approval_api.removeAUPFromMooring, name='remove_AUP_from_mooring'),
+   re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
 ] + ledger_patterns #+ media_serv_patterns
 
 
