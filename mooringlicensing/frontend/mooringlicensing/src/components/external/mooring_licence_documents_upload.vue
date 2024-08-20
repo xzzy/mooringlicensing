@@ -107,6 +107,10 @@ export default {
         wrapping_class_name: {
             type: String,
             default: 'container',
+        },
+        is_internal: {
+            type: Boolean,
+            default: false,
         }
     },
     data() {

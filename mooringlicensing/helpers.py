@@ -85,6 +85,16 @@ def is_authorised_to_modify(request, instance):
     if not authorised:
         logger.warning(f'User: [{request.user}] is not authorised to modify this proposal: [{instance}].  Raise an error.')
         raise serializers.ValidationError('You are not authorised to modify this application.')
+    
+def is_authorised_to_submit_documents(request, instance):
+    authorised = True
+
+    authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS]
+    authorised &= (request.user.email == instance.applicant_email or is_internal(request))
+
+    if not authorised:
+        logger.warning(f'User: [{request.user}] is not authorised to modify this proposal: [{instance}].  Raise an error.')
+        raise serializers.ValidationError('You are not authorised to modify this application.')
 
 def is_applicant_address_set(instance):
 

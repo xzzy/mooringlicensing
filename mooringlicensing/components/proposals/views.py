@@ -125,6 +125,8 @@ class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
 
+        #TODO add auth check here (and other TemplateView functions)
+
         debug = self.request.GET.get('debug', 'f')
         if debug.lower() in ['true', 't', 'yes', 'y']:
             debug = True

@@ -160,7 +160,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     def accept(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.accept(request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)

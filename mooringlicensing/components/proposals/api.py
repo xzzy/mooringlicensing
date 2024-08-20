@@ -108,7 +108,7 @@ from mooringlicensing.components.main.decorators import (
         query_debugger
         )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
-from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set
+from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set, is_authorised_to_submit_documents
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -940,7 +940,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
 
-        is_authorised_to_modify(request, instance)
+        is_authorised_to_submit_documents(request, instance)
 
         errors = []
         if not instance.mooring_report_documents.count():

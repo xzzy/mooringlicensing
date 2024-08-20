@@ -300,14 +300,15 @@ export default {
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
                         }
-                        for (let invoice of full.invoices){
+                                          
+                    }
+                    for (let invoice of full.invoices){
                             if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){
                                 links +=  `<a href='/application_fee_existing/${invoice.reference}'>Pay</a>`
                             }
-                        }
-                        if (full.document_upload_url){
-                            links +=  `<a href='${full.document_upload_url}'>Upload Documents</a>`
-                        }
+                        }     
+                    if (full.document_upload_url){
+                        links +=  `<a href='${full.document_upload_url}'>Upload Documents</a>`
                     }
                     return links;
                 }
