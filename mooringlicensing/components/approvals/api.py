@@ -3,6 +3,7 @@ import traceback
 from django.db.models import Q, Min, CharField, Value
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
+from django.http import HttpResponse
 from confy import env
 import datetime
 import pytz
@@ -39,7 +40,7 @@ from mooringlicensing.components.proposals.models import Proposal, MooringLicenc
 from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
-    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
+    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,MooringOnApproval,
     private_storage
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
@@ -527,7 +528,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     def get_moorings(self, request, *args, **kwargs):
         instance = self.get_object()
         moorings = []
-        for moa in instance.mooringonapproval_set.all():
+        for moa in instance.mooringonapproval_set.filter(active='True'):
             licence_holder_data = {}
             if moa.mooring.mooring_licence:
                 licence_holder_data = SystemUser.objects.get(ledger_id=moa.mooring.mooring_licence.current_proposal.email_user_id)
@@ -1476,3 +1477,21 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
                 waiting_list_allocation.set_wla_order()
 
             return Response({"proposal_created": new_proposal.lodgement_number})
+        
+
+def removeAUPFromMooring(request, mooring_id, approval_id):
+    
+    if is_internal(request):
+        instance = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
+        instance.active = False
+        instance.save()
+        return HttpResponse({'Successfully Removed'})
+        
+def removeMooringFromApproval(request, mooring_name, approval_id):
+    
+    if is_internal(request):
+        mooring_id = Mooring.objects.get(name=mooring_name).pk
+        instance = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
+        instance.active = False
+        instance.save()
+        return HttpResponse({'Successfully Removed'})

@@ -26,6 +26,8 @@
                                 <th>Number</th>
                                 <th>Allocated by</th>
                                 <th>Contact number</th>
+                                <th></th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -48,7 +50,11 @@
                                         </tr>
                                     </table>
                                 </td>
+                                <td>
+                                    <a v-if="approval.approval_type_dict.code == 'aup'"  v-on:click="removeAUPFromMooring(entity.id,approval.id)">Remove</a>
+                                </td>
                             </tr>
+
                             <tr v-for="booking in bookings">
                                 <td>Booking</td>
                                 <td>{{ booking.booking_id_pf }}</td>
@@ -173,6 +179,30 @@ from '@/utils/hooks'
                     this.dataLoading = false;
                 });
             },
+            removeAUPFromMooring: async function(mooring_id, approval_id) {
+                swal({
+                title: "Remove Authorized User Permit",
+                text: "Are you sure you want to Remove the Authorized User Permit?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Remove',
+                confirmButtonColor:'#dc3545'
+            }).then(()=>{
+                this.$nextTick(async () => {
+                    try {
+                        const resp = await this.$http.delete(`/api/remove-AUP-from-mooring/${mooring_id}/${approval_id}`);
+                        if (resp.status === 200) { 
+                            this.approvals = this.approvals.filter(item => item.id !== approval_id);
+                            swal("Removed!", "The User Permit has been removed successfully.", "success")
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        swal("Error!", "Something went wrong.", "error")
+                    }
+                });
+            })
+            },
+
         },
         mounted: function () {
             this.$nextTick(async () => {

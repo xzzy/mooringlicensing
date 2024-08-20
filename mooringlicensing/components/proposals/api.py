@@ -290,7 +290,7 @@ class GetMooringPerBay(views.APIView):
                 if mooring_bay_id:
                     aup_mooring_ids = []
                     if aup_id:
-                        aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.all()]
+                        aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.filter(active=True)]
                     if vessel_details_id:
                         ## restrict search results to suitable vessels
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id)
@@ -2518,9 +2518,19 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             if mooring.mooring_licence and mooring.mooring_licence.status == Approval.APPROVAL_STATUS_CURRENT:
                 approval_list.append(mooring.mooring_licence.approval)
 
-            serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
-            return Response(serializer.data)
-        raise serializers.ValidationError("not authorised to view related approvals")
+        if len(approval_list) > 0:
+            for approval in reversed(range(len(approval_list))):
+                print(approval_list[approval].lodgement_number)
+                if approval_list[approval].lodgement_number.startswith('AUP'):
+                    approval_id = approval_list[approval].pk
+                    try:
+                        moa = MooringOnApproval.objects.get(mooring_id=mooring.pk, approval_id=approval_id)
+                    except ObjectDoesNotExist:
+                        moa = None
+                    if moa is None or moa.active is False:
+                        approval_list.pop(approval)
+        serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler

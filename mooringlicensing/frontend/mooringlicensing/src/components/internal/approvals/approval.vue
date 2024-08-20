@@ -238,6 +238,7 @@ export default {
                 'Allocated By',
                 'Mobile',
                 'Email',
+                'Action',
             ],
 
         moorings_datatable_options: {
@@ -261,6 +262,14 @@ export default {
                 },
                 {
                     data: "email",
+                },
+                {
+                    data: "action",
+                   'render': function(row, type, full){
+                        let links = '';
+                        links += `<a onclick="window.removeMooringFromAUP('${full.mooring_name}')" style="cursor: pointer;">Remove</a><br/>`;
+                        return links;    
+                    },
                 },
             ],
         },
@@ -413,7 +422,6 @@ export default {
     constructMooringsTable: function() {
         let vm = this;
         this.$refs.moorings_datatable.vmDataTable.clear().draw();
-
         for (let aum of vm.approval.authorised_user_moorings_detail) {
             this.$refs.moorings_datatable.vmDataTable.row.add(
                 {
@@ -423,11 +431,13 @@ export default {
                     'allocated_by': aum.allocated_by,
                     'mobile': aum.mobile,
                     'email': aum.email,
+                    'action':null,
                 }
             ).draw();
         }
         vm.$refs.moorings_datatable.vmDataTable.columns.adjust().responsive.recalc();
     },
+
     constructMLVesselsTable: function() {
         let vm = this;
         this.$refs.ml_vessels_datatable.vmDataTable.clear().draw();
@@ -467,9 +477,39 @@ export default {
         }
         vm.$refs.ml_authorised_users_datatable.vmDataTable.columns.adjust().responsive.recalc();
     },
-
     commaToNewline(s){
         return s.replace(/[,;]/g, '\n');
+    },
+    removeMooringFromAUP(mooringName) {
+        swal({
+                title: "Remove Mooring",
+                text: "Are you sure you want to Remove the Mooring?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Remove',
+                confirmButtonColor:'#dc3545'
+            }).then(()=>{
+                this.$nextTick(async () => {
+                    try {
+                        const resp = await this.$http.get(`/api/remove-mooring-from-approval/${mooringName}/${this.approval.id}`);
+                        if (resp.status === 200) {  
+                            const rowIndex = this.approval.authorised_user_moorings_detail.findIndex(row => row.mooring_name === mooringName);
+                            if (rowIndex !== -1) {
+                                this.approval.authorised_user_moorings_detail.splice(rowIndex, 1);
+                                swal("Removed!", "The mooring has been removed successfully.", "success").then(()=>{
+                                    this.$nextTick(async () => {
+                                        window.location.reload();
+                                    })
+                                })
+                            }                            
+                        }
+                    } catch (error) {
+                        swal("Error!", "Something went wrong", "error")
+                        console.error(error);
+                    }
+                   
+                });
+            })
     },
     viewApprovalPDF: function(id,media_link){
             let vm=this;
@@ -487,6 +527,9 @@ export default {
 
   },
   mounted: function () {
+    window.removeMooringFromAUP = (mooringName) => {
+      this.removeMooringFromAUP(mooringName);
+    };
   },
 }
 </script>
