@@ -384,7 +384,10 @@ def save_proponent_data_aaa(instance, request, action):
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
@@ -419,7 +422,10 @@ def save_proponent_data_wla(instance, request, action):
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
@@ -453,7 +459,10 @@ def save_proponent_data_mla(instance, request, action):
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
@@ -484,7 +493,10 @@ def save_proponent_data_aua(instance, request, action):
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)

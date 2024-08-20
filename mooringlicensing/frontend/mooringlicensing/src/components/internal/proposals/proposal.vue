@@ -661,7 +661,6 @@ export default {
             try {
                 await this.save(false, this.proposal_submit_url)
                 this.$nextTick(async () => {
-                    console.log(this.submitRes)
                     if (this.submitRes) {
                         let payload = this.buildPayload();
                         payload.csrfmiddlewaretoken = this.csrf_token;
@@ -699,12 +698,12 @@ export default {
             /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
             let vm = this
             try {
-                const res = await this.save(false, this.proposal_submit_url);
-                if (res.ok) {
-                    vm.$router.push({
-                    name: 'internal'
-                    });
-                }
+                await this.save(false, this.proposal_submit_url)
+                this.$nextTick(async () => {
+                    if (this.submitRes) {
+                        vm.$router.go();
+                    }
+                });
             } catch(err) {
                 //console.log(err)
                 //console.log(typeof(err.body))
@@ -717,7 +716,8 @@ export default {
                 })
                 this.savingProposal=false;
                 this.paySubmitting=false;
-                //this.submitting = false;
+                this.submitRes = null;
+                this.submittingProposal=false;
             }
         },
         populateProfile: function(profile) {

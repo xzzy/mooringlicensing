@@ -2062,9 +2062,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')
 
-                self.proposal_applicant.copy_self_to_proposal(proposal)
-
                 proposal.save(no_revision=True)
+                self.proposal_applicant.copy_self_to_proposal(proposal)
+         
                 return proposal
             except:
                 raise
@@ -2460,12 +2460,12 @@ class ProposalApplicant(RevisionedMixin):
             postal_country = self.postal_country,
             postal_postcode = self.postal_postcode,
 
+            email_user_id = self.email_user_id,
             email = self.email,
             phone_number = self.phone_number,
             mobile_number = self.mobile_number,
         )
         logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the Proposal: [{target_proposal}] by copying the ProposalApplicant: [{self}].')
-
 
 def update_sticker_doc_filename(instance, filename):
     return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)
