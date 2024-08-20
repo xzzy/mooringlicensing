@@ -585,6 +585,7 @@ export default {
                 }
                 vm.savingProposal=false;
                 this.submitRes = true;
+                vm.proposal = res.body;
             },(err)=>{
                 swal({
                     title: "Please fix following errors before saving",
