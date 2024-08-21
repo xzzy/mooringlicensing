@@ -39,7 +39,7 @@
             </div>
         </div>
 
-        <div v-if="is_external" class="row">
+        <div class="row">
             <div class="col-md-12">
                 <button type="button" class="btn btn-primary pull-right" @click="new_application_button_clicked">New Application</button>
             </div>
@@ -453,9 +453,15 @@ export default {
     },
     methods: {
         new_application_button_clicked: function(){
-            this.$router.push({
-                name: 'apply_proposal'
-            })
+            if (this.is_internal) {
+                this.$router.push({
+                    name: 'internal_apply_proposal'
+                })
+            } else {
+                this.$router.push({
+                    name: 'apply_proposal'
+                })
+            }
         },
         reinstateWLAllocation: function(proposal_id){
             let vm = this;

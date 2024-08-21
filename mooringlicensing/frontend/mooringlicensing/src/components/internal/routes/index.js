@@ -19,6 +19,7 @@ import Compliance from '../compliances/access.vue'
 import Reports from '@/components/reports/reports.vue'
 import Approval from '@/components/internal/approvals/approval.vue'
 import ManageVessel from '@/components/internal/manage_vessel.vue'
+import ProposalApply from '@/components/external/proposal_apply.vue'
 /*
 import User from '../users/manage.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
@@ -214,6 +215,12 @@ export default
                 }
             },
             children: [
+                {
+                    path: '/',
+                    component: ProposalApply,
+                    name:"internal_apply_proposal",
+                    props: {is_internal:true},
+                },
                 {
                     path: ':proposal_id',
                     component: {

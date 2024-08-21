@@ -230,7 +230,18 @@ class GetWlaAllowed(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        wla_allowed = get_wla_allowed(request.user)
+
+        #TODO group auth
+        applicant_id = request.user.id
+        if is_internal(request):
+            applicant_system_id = request.GET.get('applicant_system_id', False)
+            if applicant_system_id:
+                try:
+                    applicant_id = SystemUser.objects.get(id=applicant_system_id).email_user_id
+                except:
+                    applicant_id = request.user.id
+
+        wla_allowed = get_wla_allowed(applicant_id)
         return Response({"wla_allowed": wla_allowed})
 
 
@@ -478,8 +489,19 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def existing_licences(self, request, *args, **kwargs):
         existing_licences = []
+
+        #TODO group auth
+        applicant_id = request.user.id
+        if is_internal(request):
+            applicant_system_id = request.GET.get('applicant_system_id', False)
+            if applicant_system_id:
+                try:
+                    applicant_id = SystemUser.objects.get(id=applicant_system_id).email_user_id
+                except:
+                    applicant_id = request.user.id
+
         l_list = Approval.objects.filter(
-            current_proposal__proposal_applicant__email_user_id=request.user.id,
+            current_proposal__proposal_applicant__email_user_id=applicant_id,
             status__in=[Approval.APPROVAL_STATUS_CURRENT,],
         )
         for l in l_list:

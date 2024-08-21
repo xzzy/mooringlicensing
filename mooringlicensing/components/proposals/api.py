@@ -813,7 +813,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         except:
             raise serializers.ValidationError("proposal type does not exist")
 
-        wla_allowed = get_wla_allowed(request.user)
+        wla_allowed = get_wla_allowed(request.user.id)
         if not wla_allowed:
             raise serializers.ValidationError("user not permitted to create WLA at this time")
 
