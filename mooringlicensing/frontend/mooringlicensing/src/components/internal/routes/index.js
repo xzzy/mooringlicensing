@@ -40,7 +40,8 @@ export default
     children: [
         {
             path: '/',
-            component: InternalDashboard
+            component: InternalDashboard,
+            name: 'internal-dashboard'
         },
         {
             path: 'approvals',

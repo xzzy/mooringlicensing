@@ -435,7 +435,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
@@ -1093,7 +1092,6 @@ class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListDcvPermitSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
@@ -1378,7 +1376,6 @@ class StickerPaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = StickerSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
@@ -1410,7 +1407,6 @@ class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListDcvAdmissionSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
@@ -1449,7 +1445,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             new_proposal = None
             if allocated_mooring:
                 new_proposal = MooringLicenceApplication.objects.create(
-                    submitter=request.user, #the user that had created the application, not the applicant
+                    submitter=request.user.id, #the user that had created the application, not the applicant
                     proposal_type=proposal_type,
                     allocated_mooring=allocated_mooring,
                     waiting_list_allocation=waiting_list_allocation,

@@ -62,7 +62,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if is_internal(self.request):
-            return Compliance.objects.all().exclude(processing_status='discarded')
+            return Compliance.objects.all()
         elif is_customer(self.request):
             # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
             user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
@@ -90,7 +90,8 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
                                                     .format(instance.processing_status))
 
-            if instance.proposal.applicant_email != request.user.email:
+            #TODO replace is_internal with group membership check
+            if instance.proposal.applicant_email != request.user.email and not is_internal(request): 
                 raise serializers.ValidationError('You are not authorised to modify this application.')
 
             data = {
@@ -118,7 +119,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     def assign_request_user(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.assign_to(request.user,request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
@@ -143,7 +144,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         except EmailUser.DoesNotExist:
             raise serializers.ValidationError('A user with the id passed in does not exist')
         instance.assign_to(user,request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -151,7 +152,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     def unassign(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.unassign(request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -159,7 +160,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     def accept(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.accept(request)
-        serializer = InternalComplianceSerializer(instance)
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -321,12 +322,11 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             if target_email_user_id:
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=target_user.id))
+                qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=target_user.id)).distinct()
             else:
                 qs = Compliance.objects.all()
         elif is_customer(self.request):
-            qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded")
-
+            qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded").distinct()
         return qs
 
     @list_route(methods=['GET',], detail=False)
@@ -337,7 +337,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         #result_page = self.paginator.paginate_queryset(qs, request)
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)

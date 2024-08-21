@@ -49,9 +49,11 @@
                                     <select v-show="isLoading" class="form-control">
                                         <option value="">Loading...</option>
                                     </select>
-                                    <select @change="assignTo" :disabled="canViewonly || !check_assessor()" v-if="!isLoading" class="form-control" v-model="compliance.assigned_to">
-                                        <option value="null">Unassigned</option>
-                                        <option v-for="member in compliance.allowed_assessors" :value="member.id">{{member.first_name}} {{member.last_name}}</option>
+                                    <select @change="assignTo" 
+                                    :disabled="canViewonly || !check_assessor()" 
+                                    v-if="!isLoading" class="form-control" 
+                                    v-model="compliance.assigned_to">
+                                        <option v-for="member in compliance.allowed_assessors" :value="member.ledger_id">{{member.legal_first_name}} {{member.legal_last_name}}</option>
                                     </select>
                                     <a v-if="!canViewonly && check_assessor()" @click.prevent="assignMyself()" class="actionBtn pull-right">Assign to me</a>
                                 </div>
@@ -75,30 +77,84 @@
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
-                            <div class="col-sm-12">
-                                <form class="form-horizontal" name="compliance_form">
+                           <div class="col-md-12"> 
+                            <form class="form-horizontal" name="complianceForm" method="post">
+                                <alert :show.sync="showError" type="danger">
+                                    <strong>{{errorString}}</strong>
+                                </alert>
+                                <div class="row">
                                     <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Requirement</label>
+                                        <label class="col-sm-3 control-label pull-left"  for="Name">Requirement:</label>
                                         <div class="col-sm-6">
                                             {{compliance.requirement}}
                                         </div>
-                                    </div>   
+                                    </div>
+                                </div>
+
+                                <div class="row">
                                     <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Details</label>
+                                        <label class="col-sm-3 control-label pull-left"  for="Name">Details:</label>
                                         <div class="col-sm-6">
-                                            <textarea disabled class="form-control" name="details" placeholder="" v-model="compliance.text"></textarea>
+                                            <textarea :disabled="isFinalised" class="form-control" name="detail" placeholder="" v-model="compliance.text"></textarea>
                                         </div>
-                                    </div>   
-                                    <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Documents</label>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div v-if="hasDocuments" class="form-group">
+                                        <div class="col-sm-3 control-label pull-left" >  
+                                            <label  for="Name">Documents:</label>
+                                        </div> 
                                         <div class="col-sm-6">
                                             <div class="row" v-for="d in compliance.documents">
-                                                    <a :href="d[1]" target="_blank" class="control-label pull-left">{{d[0]}}</a>
+                                                <a :href="d[1]" target="_blank" class="control-label pull-left">{{d[0]   }}</a>
+                                                <span v-if="!isFinalised && d.can_delete">
+                                                    <a @click="delete_document(d)" class="fa fa-trash-o control-label" title="Remove file" style="cursor: pointer; color:red;"></a>
+                                                </span>
+                                                <span v-else >
+                                                    <i class="fa fa-info-circle" aria-hidden="true" title="Previously submitted documents cannot be deleted" style="cursor: pointer;"></i>
+                                                </span>
                                             </div>
                                         </div>
-                                    </div>                               
-                                </form>
-                            </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div v-if="!isFinalised" class="form-group"> 
+                                        <label class="col-sm-3 control-label pull-left"  for="Name">Attachments:</label>
+                                    <div class="col-sm-6">
+                                        <template v-for="(f,i) in files">
+                                            <div :class="'row top-buffer file-row-'+i">
+                                                <div class="col-sm-4">
+                                                    <span v-if="f.file == null" class="btn btn-info btn-file pull-left" style="margin-bottom: 5px">
+                                                        Attach File <input type="file" :name="'file-upload-'+i" :class="'file-upload-'+i" @change="uploadFile($event,f)"/>
+                                                    </span>
+                                                    <span v-else class="btn btn-info btn-file pull-left" style="margin-bottom: 5px">
+                                                        Update File <input type="file" :name="'file-upload-'+i" :class="'file-upload-'+i" @change="uploadFile($event,f)"/>
+                                                    </span>
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <span>{{f.name}}</span>
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <button @click="removeFile(i)" class="btn btn-danger">Remove</button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <a href="" @click.prevent="attachAnother"><i class="fa fa-lg fa-plus top-buffer-2x"></i></a>
+                                    </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="form-group">
+                                        <div class="col-lg-2 pull-right">
+                                            <button v-if="!isFinalised" @click.prevent="submit()" class="btn btn-primary">Submit</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                           </div>
                         </div>
                     </div>
                 </div>
@@ -114,7 +170,7 @@ import Vue from 'vue'
 import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import ComplianceAmendmentRequest from './compliance_amendment_request.vue'
-import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
+import alert from '@vue-utils/alert.vue'
 import {
   api_endpoints,
   helpers
@@ -125,6 +181,7 @@ export default {
   data() {
     let vm = this;
     return {
+        form: null,
         loading: [],
         profile:{},
         compliance: {
@@ -136,10 +193,19 @@ export default {
         logs_url: helpers.add_endpoint_json(api_endpoints.compliances,vm.$route.params.compliance_id+'/action_log'),
         comms_url: helpers.add_endpoint_json(api_endpoints.compliances,vm.$route.params.compliance_id+'/comms_log'),
         comms_add_url: helpers.add_endpoint_json(api_endpoints.compliances,vm.$route.params.compliance_id+'/add_comms_log'),
-      
+        errorString: '',
+        errors: false,
+        files: [
+            {
+                'file': null,
+                'name': ''
+            }
+        ]
     }
   },
-  watch: {},
+  watch: {
+    
+  },
   filters: {
     formatDate: function(data){
         return data ? moment(data).format('DD/MM/YYYY'): '';    }
@@ -158,16 +224,105 @@ export default {
     datatable,
     CommsLogs,
     ComplianceAmendmentRequest,
+    alert,
   },
   computed: {
     isLoading: function () {
       return this.loading.length > 0;
     },
     canViewonly: function(){
-        return this.compliance.processing_status == 'Due' || this.compliance.processing_status == 'Future' || this.compliance.processing_status == 'Approved';
+        return this.compliance.processing_status == 'Due' || this.compliance.processing_status == 'Future' || this.compliance.processing_status == 'Approved' || this.compliance.processing_status == 'Discarded';
     },
+    showError: function() {
+        var vm = this;
+        return vm.errors;
+    },
+    isDiscarded: function(){         
+        return this.compliance && (this.compliance.customer_status == "Discarded");
+    },
+    isFinalised: function(){             
+        return this.compliance && (this.compliance.processing_status == "With Assessor" || this.compliance.processing_status == "Approved");
+    },
+    hasDocuments: function(){             
+        return this.compliance && this.compliance.documents;
+    }
   },
   methods: {
+
+    delete_document: function(doc){
+        let vm= this;
+        let data = {'document': doc}
+        if(doc)
+        {
+          vm.$http.post(helpers.add_endpoint_json(api_endpoints.compliances,vm.compliance.id+'/delete_document'),JSON.stringify(data),{
+                emulateJSON:true
+                }).then((response)=>{               
+                    vm.compliance = response.body;       
+                },(error)=>{
+                    vm.errors = true;
+                    vm.errorString = helpers.apiVueResourceError(error);
+                });              
+        }
+    },
+    uploadFile(event,file_obj){
+            let vm = this;
+            let _file = null;
+            if (event.target.files && event.target.files[0]) {
+                var reader = new FileReader();
+                reader.readAsDataURL(event.target.files[0]); 
+                reader.onload = function(e) {
+                    _file = e.target.result;
+                };
+                _file = event.target.files[0];
+            }
+            file_obj.file = _file;
+            file_obj.name = _file.name;
+    },
+    removeFile(index){
+            let length = this.files.length;
+            $('.file-row-'+index).remove();
+            this.files.splice(index,1);
+            this.$nextTick(() => {
+                length == 1 ? this.attachAnother() : '';
+            });
+    },
+    attachAnother(){
+            this.files.push({
+                'file': null,
+                'name': ''
+            })
+    },
+    submit:function () {
+            let vm =this;
+            if($(vm.form).valid()){
+                vm.sendData();
+            }                
+    },
+
+    sendData:function(){
+            let vm = this;
+            vm.errors = false;
+            let data = new FormData(vm.form);
+            vm.addingComms = true;            
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.compliances,vm.compliance.id+'/submit'),data,{
+                emulateJSON:true
+                }).then((response)=>{
+                    vm.addingCompliance = false;                
+                    vm.compliance = response.body;
+                    swal(
+                        'Submitted',
+                        'Compliance has been submitted on the holder\'s behalf',
+                        'success'
+                    );
+                    vm.$router.push({ path: '/internal/compliances' });
+                        
+                },(error)=>{
+                    vm.errors = true;
+                    vm.addingCompliance = false;
+                    vm.errorString = helpers.apiVueResourceError(error);
+                });     
+    },
+
     commaToNewline(s){
         return s.replace(/[,;]/g, '\n');
     },
@@ -183,7 +338,7 @@ export default {
     },
     assignTo: function(){
         let vm = this;
-        if ( vm.compliance.assigned_to != 'null'){
+        if ( vm.compliance.assigned_to !== null && vm.compliance.assigned_to !== undefined){
             let data = {'user_id': vm.compliance.assigned_to};
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.compliances,(vm.compliance.id+'/assign_to')),JSON.stringify(data),{
                 emulateJSON:true
@@ -194,7 +349,7 @@ export default {
             });
             
         }
-        else{
+        else if (vm.compliance.assigned_to !== undefined) {
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.compliances,(vm.compliance.id+'/unassign')))
             .then((response) => {
                 console.log(response);
@@ -258,7 +413,7 @@ export default {
     let vm = this;
     
     this.fetchProfile();
-    
+    vm.form = document.forms.complianceForm;
   }
 }
 </script>

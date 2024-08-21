@@ -125,12 +125,15 @@ class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
 
-        debug = self.request.GET.get('debug', 'f')
+        #TODO add auth check here (and other TemplateView functions)
+
+        debug = self.request.GET.get('debug', 'f') #TODO use actual debug (if even needed)
         if debug.lower() in ['true', 't', 'yes', 'y']:
             debug = True
         else:
             debug = False
 
+        #TODO handle this better or elsewhere
         if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS:
             if not debug:
                 raise ValidationError('You cannot upload documents for the application when it is not in awaiting-documents status')

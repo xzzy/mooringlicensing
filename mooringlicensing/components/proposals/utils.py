@@ -344,39 +344,52 @@ class SpecialFieldsSearch(object):
             item_data[item['name']] = item_data_list
         return item_data
 
-def save_proponent_data(instance, request, viewset):
-    if viewset.action == 'submit':
-        logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
-    if type(instance.child_obj) == WaitingListApplication:
-        save_proponent_data_wla(instance, request, viewset)
-    elif type(instance.child_obj) == AnnualAdmissionApplication:
-        save_proponent_data_aaa(instance, request, viewset)
-    elif type(instance.child_obj) == AuthorisedUserApplication:
-        save_proponent_data_aua(instance, request, viewset)
-    elif type(instance.child_obj) == MooringLicenceApplication:
-        save_proponent_data_mla(instance, request, viewset)
+def save_proponent_data(instance, request, action):
 
-    if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user:
-        # Save request.user details in a JSONField not to overwrite the details of it.
-        try:
-            user = SystemUser.objects.get(ledger_id=request.user)
-            serializer = UserSerializer(user, context={'request':request})
-            if instance:
-                instance.personal_details = serializer.data
-                instance.save()
-        except Exception as e:
-            print(e)
-            raise serializers.ValidationError("error")
+    if (
+        (instance.proposal_applicant and 
+         instance.proposal_applicant.email_user_id == request.user.id and 
+         instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT)
+        or instance.has_assessor_mode(request.user)
+        or instance.has_approver_mode(request.user)
+    ):
+        if action == 'submit':
+            logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
+        if type(instance.child_obj) == WaitingListApplication:
+            save_proponent_data_wla(instance, request, action)
+        elif type(instance.child_obj) == AnnualAdmissionApplication:
+            save_proponent_data_aaa(instance, request, action)
+        elif type(instance.child_obj) == AuthorisedUserApplication:
+            save_proponent_data_aua(instance, request, action)
+        elif type(instance.child_obj) == MooringLicenceApplication:
+            save_proponent_data_mla(instance, request, action)
+
+        if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
+            # Save request.user details in a JSONField not to overwrite the details of it.
+            try:
+                user = SystemUser.objects.get(ledger_id=request.user)
+                serializer = UserSerializer(user, context={'request':request})
+                if instance:
+                    instance.personal_details = serializer.data
+                    instance.save()
+            except Exception as e:
+                print(e)
+                raise serializers.ValidationError("error")
+    else:
+        raise serializers.ValidationError("user not authorised to update applicant details")
 
 
-def save_proponent_data_aaa(instance, request, viewset):
+def save_proponent_data_aaa(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if viewset.action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -384,7 +397,7 @@ def save_proponent_data_aaa(instance, request, viewset):
             instance, 
             data=proposal_data, 
             context={
-                "action": viewset.action,
+                "action": action,
                 "proposal_id": instance.id
                 #"ignore_insurance_check": request.data.get("ignore_insurance_check")
                 }
@@ -394,7 +407,7 @@ def save_proponent_data_aaa(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
-    if viewset.action == 'submit':
+    if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
@@ -404,14 +417,17 @@ def save_proponent_data_aaa(instance, request, viewset):
             instance.save()
 
 
-def save_proponent_data_wla(instance, request, viewset):
+def save_proponent_data_wla(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if viewset.action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -419,7 +435,7 @@ def save_proponent_data_wla(instance, request, viewset):
             instance, 
             data=proposal_data, 
             context={
-                "action": viewset.action,
+                "action": action,
                 "proposal_id": instance.id
                 }
     )
@@ -428,7 +444,7 @@ def save_proponent_data_wla(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
-    if viewset.action == 'submit':
+    if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
@@ -437,15 +453,18 @@ def save_proponent_data_wla(instance, request, viewset):
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.save()
 
-def save_proponent_data_mla(instance, request, viewset):
+def save_proponent_data_mla(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
 
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if viewset.action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
-        elif instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT:
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -453,7 +472,7 @@ def save_proponent_data_mla(instance, request, viewset):
             instance, 
             data=proposal_data, 
             context={
-                "action": viewset.action,
+                "action": action,
                 "proposal_id": instance.id
                 #"ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
@@ -464,21 +483,22 @@ def save_proponent_data_mla(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
-    if viewset.action == 'submit':
+    if action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
 
 
-def save_proponent_data_aua(instance, request, viewset):
+def save_proponent_data_aua(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
     # vessel
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
-        if viewset.action == 'submit':
+        if ((action == 'submit' or (
+            (instance.has_assessor_mode(request.user)
+            or instance.has_approver_mode(request.user)) and 
+            instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
-        elif (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or
-              instance.has_assessor_mode(request.user) or 
-              instance.has_approver_mode(request.user)):
+        else:
             save_vessel_data(instance, request, vessel_data)
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
@@ -486,7 +506,7 @@ def save_proponent_data_aua(instance, request, viewset):
             instance, 
             data=proposal_data, 
             context={
-                "action": viewset.action,
+                "action": action,
                 "proposal_id": instance.id
                 #"ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
@@ -497,7 +517,7 @@ def save_proponent_data_aua(instance, request, viewset):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
-    if viewset.action == 'submit':
+    if action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
 
@@ -530,7 +550,8 @@ def save_vessel_data(instance, request, vessel_data):
         vessel_data.update({key: vessel_ownership_data.get(key)})
 
     # overwrite vessel_data.id with correct value
-    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'):
+    #TODO: this should be adjusted to a) not use a client-derived value b) not have its own block with pass, just reverse the condition c) be implemented in submit_vessel_data
+    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'): 
         # do not write vessel_data to proposal
         pass
     else:
@@ -660,7 +681,7 @@ def store_vessel_data(request, vessel_data):
 
     return vessel, vessel_details
 
-def store_vessel_ownership(request, vessel, instance=None):
+def store_vessel_ownership(request, vessel, instance):
     logger.info(f'Storing vessel_ownership with the vessel: [{vessel}], proposal: [{instance}] ...')
 
     ## Get Vessel
@@ -750,13 +771,16 @@ def store_vessel_ownership(request, vessel, instance=None):
         pass
     vessel_ownership_data['vessel'] = vessel.id
 
-    owner, created = Owner.objects.get_or_create(emailuser=request.user.id)  # Is owner accessing user...??? Correct???
-    if created:
-        logger.info(f'New Owner: [{owner}] has been created.')
-    else:
-        logger.info(f'Existing Owner: [{owner}] has been retrieved.')
+    if instance and instance.proposal_applicant:
+        owner, created = Owner.objects.get_or_create(emailuser=instance.proposal_applicant.email_user_id)
+        if created:
+            logger.info(f'New Owner: [{owner}] has been created.')
+        else:
+            logger.info(f'Existing Owner: [{owner}] has been retrieved.')
 
-    vessel_ownership_data['owner'] = owner.id
+        vessel_ownership_data['owner'] = owner.id
+    else:
+        raise serializers.ValidationError("proposal has no applicant to be set as vessel owner")
 
     # Create/Retrieve vessel_ownership
     vo_created = False
@@ -767,6 +791,7 @@ def store_vessel_ownership(request, vessel, instance=None):
             vessel=vessel,
             company_ownerships=company_ownership,
         )
+        print(vessel_ownerships.count())
         if vessel_ownerships.count():
             vessel_ownership = vessel_ownerships.first()
         else:

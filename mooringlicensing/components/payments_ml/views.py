@@ -18,6 +18,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from mooringlicensing.components.main.models import ApplicationType
 # from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 from rest_framework.response import Response
+from mooringlicensing.components.proposals.utils import save_proponent_data
 
 import dateutil.parser
 from django.db import transaction
@@ -49,6 +50,7 @@ from ledger_api_client.order import Order
 # from ledger.order.models import Order
 # >>>>>>> main
 
+from mooringlicensing.helpers import is_authorised_to_modify, is_applicant_address_set
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email
@@ -384,10 +386,37 @@ class ApplicationFeeView(TemplateView):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
 
     def get(self, request, *args, **kwargs):
-        pass
+        self.template_name = 'mooringlicensing/payments_ml/fee_calculation_error.html'
+        context = {
+            'error_message': 'invalid fee request',
+        }
+        return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
         proposal = self.get_object()
+
+        try:
+            is_authorised_to_modify(request, proposal)
+            post_data_pre = request.POST
+            post_data = {}
+            for i in post_data_pre:
+                try:
+                    post_data[i] = json.loads(post_data_pre.get(i))
+                except ValueError as e:
+                    continue
+
+            setattr(request,"data",post_data)
+            save_proponent_data(proposal, request, "submit")
+
+            proposal = self.get_object()
+            is_applicant_address_set(proposal)
+        except Exception as e:
+            self.template_name = 'mooringlicensing/payments_ml/fee_calculation_error.html'
+            context = {
+                'error_message': str(e),
+            }
+            return render(request, self.template_name, context)
+
         application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=request.user.id, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
         logger.info(f'ApplicationFee: [{application_fee}] has been created for the Proposal: [{proposal}].')
 

@@ -107,7 +107,7 @@ export default {
         wrapping_class_name: {
             type: String,
             default: 'container',
-        }
+        },
     },
     data() {
         let vm = this;
@@ -199,8 +199,15 @@ export default {
             }).then(
                 (res)=>{
                     let ret = vm.perform_submit();
+                    console.log(ret);
                     ret.then(data=>{
-                        this.$router.push({ name: 'external-dashboard' })
+                        console.log(data);
+                        console.log(data.body);
+                        if (data.body && data.body.internal_submission) {
+                            this.$router.push({ name: 'internal-dashboard' })
+                        } else {
+                            this.$router.push({ name: 'external-dashboard' })
+                        }
                     })
                     this.submitting = false
                 },

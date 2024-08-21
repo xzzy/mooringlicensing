@@ -37,7 +37,13 @@
 
         <div class="row"><div class="col-sm-12" style="margin-top: 1em">
             {% if request.user == applicant or request.user.is_staff %}
-                {% if request.user.is_authenticated %}
+                {% if request.user.is_staff %}
+                <div class="row">
+                    <div class="col-sm-12">
+                        <a href="{% url 'internal' %}" class="pull-right btn btn-info btn-lg">Return to Applications</a>
+                    </div>
+                </div>
+                {% elif request.user.is_authenticated %}
                     <div class="row">
                         <div class="col-sm-12">
                             <a href="{% url 'external' %}" class="pull-right btn btn-info btn-lg">Return to Dashboard</a>

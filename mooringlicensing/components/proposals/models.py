@@ -1211,7 +1211,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if isinstance(user, EmailUserRO):
             user = user.id
 
-        status_without_approver = [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DRAFT]
+        status_without_approver = [
+            Proposal.PROCESSING_STATUS_WITH_ASSESSOR, 
+            Proposal.PROCESSING_STATUS_APPROVED, 
+            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
+            Proposal.PROCESSING_STATUS_DECLINED, 
+            Proposal.PROCESSING_STATUS_DRAFT,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        ]
         if self.processing_status in status_without_approver:
             return False
         else:
@@ -1228,7 +1235,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if isinstance(user, EmailUserRO):
             user = user.id
 
-        status_without_assessor = [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_DECLINED]
+        status_without_assessor = [
+            Proposal.PROCESSING_STATUS_WITH_APPROVER, 
+            Proposal.PROCESSING_STATUS_APPROVED, 
+            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
+            Proposal.PROCESSING_STATUS_DECLINED,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        ]
         if self.processing_status in status_without_assessor:
             return False
         else:
@@ -1252,10 +1265,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def update(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
+        
         with transaction.atomic():
             if self.can_user_edit:
                 # Save the data first
-                save_proponent_data(self,request,viewset)
+                save_proponent_data(self,request,viewset.action)
                 self.save()
             else:
                 raise ValidationError('You can\'t edit this proposal at this moment')
@@ -2048,9 +2062,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 logger.info(f'Cloning the proposal: [{self}] to the proposal: [{proposal}]...')
 
-                self.proposal_applicant.copy_self_to_proposal(proposal)
-
                 proposal.save(no_revision=True)
+                self.proposal_applicant.copy_self_to_proposal(proposal)
+         
                 return proposal
             except:
                 raise
@@ -2446,12 +2460,12 @@ class ProposalApplicant(RevisionedMixin):
             postal_country = self.postal_country,
             postal_postcode = self.postal_postcode,
 
+            email_user_id = self.email_user_id,
             email = self.email,
             phone_number = self.phone_number,
             mobile_number = self.mobile_number,
         )
         logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the Proposal: [{target_proposal}] by copying the ProposalApplicant: [{self}].')
-
 
 def update_sticker_doc_filename(instance, filename):
     return '{}/stickers/batch/{}'.format(settings.MEDIA_APP_DIR, filename)

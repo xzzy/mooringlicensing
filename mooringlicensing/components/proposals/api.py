@@ -88,7 +88,8 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSerializer,
     VesselFullSerializer,
     VesselFullOwnershipSerializer,
-    ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer
+    ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer,
+    AmendmentRequestDisplaySerializer
 )
 from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence, VesselOwnershipOnApproval, \
@@ -108,7 +109,7 @@ from mooringlicensing.components.main.decorators import (
         query_debugger
         )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
-from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set
+from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set, is_authorised_to_submit_documents
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -649,7 +650,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         #result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
@@ -941,7 +941,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
 
-        is_authorised_to_modify(request, instance)
+        is_authorised_to_submit_documents(request, instance)
 
         errors = []
         if not instance.mooring_report_documents.count():
@@ -958,7 +958,8 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(errors)
 
         instance.process_after_submit_other_documents(request)
-        return Response()
+
+        return Response({"internal_submission":is_internal(request)})
 
 
 class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
@@ -1551,7 +1552,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         with transaction.atomic():
             instance = self.get_object()
             is_authorised_to_modify(request, instance)
-            save_proponent_data(instance,request,self)
+            save_proponent_data(instance,request,self.action)
             return redirect(reverse('external'))
         
     @detail_route(methods=['post'], detail=True)
@@ -1562,8 +1563,11 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             with transaction.atomic():
                 instance = self.get_object()
 
-                save_proponent_data(instance,request,self)
-                return redirect(reverse('internal'))
+                save_proponent_data(instance,request,self.action)
+                instance = self.get_object()
+                serializer_class = self.internal_serializer_class()
+                serializer = serializer_class(instance, context={'request':request})
+                return Response(serializer.data)
 
     @detail_route(methods=['post'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -1575,7 +1579,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             logger.info(f'Proposal: [{instance}] has been submitted by the user: [{request.user}].')
 
             is_authorised_to_modify(request, instance)
-            save_proponent_data(instance, request, self)
+            save_proponent_data(instance, request, self.action)
 
             instance = self.get_object()
             is_applicant_address_set(instance)
@@ -2464,7 +2468,6 @@ class MooringPaginatedViewSet(viewsets.ModelViewSet):
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
 
-        self.paginator.page_size = qs.count()
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListMooringSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
