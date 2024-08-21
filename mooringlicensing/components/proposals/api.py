@@ -958,7 +958,8 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(errors)
 
         instance.process_after_submit_other_documents(request)
-        return Response()
+
+        return Response({"internal_submission":is_internal(request)})
 
 
 class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):

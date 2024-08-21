@@ -550,7 +550,8 @@ def save_vessel_data(instance, request, vessel_data):
         vessel_data.update({key: vessel_ownership_data.get(key)})
 
     # overwrite vessel_data.id with correct value
-    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'):
+    #TODO: this should be adjusted to a) not use a client-derived value b) not have its own block with pass, just reverse the condition c) be implemented in submit_vessel_data
+    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'): 
         # do not write vessel_data to proposal
         pass
     else:
