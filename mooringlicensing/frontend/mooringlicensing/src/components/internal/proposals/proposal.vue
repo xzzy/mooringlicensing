@@ -565,7 +565,7 @@ export default {
         updateSubmitText: function(submitText) {
             this.submitText = submitText;
         },
-        save: async function(withConfirm=true, url=this.proposal_form_url) {
+        save: async function(withConfirm=true, url=this.proposal_form_url,updateProposalData=true) {
             console.log("saving as assessor/approver");
             let vm = this;
             vm.savingProposal=true;
@@ -581,11 +581,15 @@ export default {
                         'Saved',
                         'Your application has been saved',
                         'success'
-                    );
+                    );                   
+                }
+                //we want to update the local client-side proposal data if we remain on the same page, to accomodate details that change on the backend (e.g. vessel details id)
+                //we do not want to update that data if we need to immediately redirect (save_and_pay)
+                if (updateProposalData) {
+                    vm.proposal = res.body;
                 }
                 vm.savingProposal=false;
-                this.submitRes = true;
-                vm.proposal = res.body;
+                this.submitRes = true;               
             },(err)=>{
                 swal({
                     title: "Please fix following errors before saving",
@@ -660,7 +664,7 @@ export default {
         },
         save_and_pay: async function() {
             try {
-                await this.save(false, this.proposal_submit_url)
+                await this.save(false, this.proposal_submit_url,false)
                 this.$nextTick(async () => {
                     if (this.submitRes) {
                         let payload = this.buildPayload();
@@ -699,7 +703,7 @@ export default {
             /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
             let vm = this
             try {
-                await this.save(false, this.proposal_submit_url)
+                await this.save(false, this.proposal_submit_url,true)
                 this.$nextTick(async () => {
                     if (this.submitRes) {
                         vm.$router.go();
