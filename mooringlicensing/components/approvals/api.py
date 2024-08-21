@@ -1444,7 +1444,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             new_proposal = None
             if allocated_mooring:
                 new_proposal = MooringLicenceApplication.objects.create(
-                    submitter=request.user, #the user that had created the application, not the applicant
+                    submitter=request.user.id, #the user that had created the application, not the applicant
                     proposal_type=proposal_type,
                     allocated_mooring=allocated_mooring,
                     waiting_list_allocation=waiting_list_allocation,
