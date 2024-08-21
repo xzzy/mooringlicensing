@@ -187,6 +187,7 @@ class MooringOnApproval(RevisionedMixin):
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
     site_licensee = models.BooleanField()
     end_date = models.DateField(blank=True, null=True)
+    active = models.BooleanField(default=True)
 
     def __str__(self):
         approval = self.approval.lodgement_number if self.approval else ' '
@@ -195,7 +196,7 @@ class MooringOnApproval(RevisionedMixin):
         return 'ID:{} ({}-{}-{})'.format(self.id, approval, mooring, sticker)
 
     def save(self, *args, **kwargs):
-        existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False).count()
+        existing_ria_moorings = MooringOnApproval.objects.filter(approval=self.approval, mooring=self.mooring, site_licensee=False, active=True).count()
         if existing_ria_moorings >= 2 and not self.site_licensee:
             raise ValidationError('Maximum of two RIA selected moorings allowed per Authorised User Permit')
 
@@ -213,7 +214,8 @@ class MooringOnApproval(RevisionedMixin):
         no_end_date = Q(end_date__isnull=True)
         ml_is_current = Q(mooring__mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)
         sticker_is_current = Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT)
-        moas = approval.mooringonapproval_set.filter((no_end_date & ml_is_current) & sticker_is_current)  # Is (end_date_is_not_set | ml_is_current) correct?
+        is_active = Q(active=True)
+        moas = approval.mooringonapproval_set.filter((no_end_date & ml_is_current) & sticker_is_current & is_active)  # Is (end_date_is_not_set | ml_is_current) correct?
         return moas
 
     @staticmethod
@@ -221,7 +223,8 @@ class MooringOnApproval(RevisionedMixin):
         has_end_date = Q(end_date__isnull=False)
         ml_is_not_current = ~Q(mooring__mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)
         sticker_is_current = Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT)
-        moas = approval.mooringonapproval_set.filter((has_end_date | ml_is_not_current) & sticker_is_current)
+        is_active = Q(active=True)
+        moas = approval.mooringonapproval_set.filter((has_end_date | ml_is_not_current) & sticker_is_current & is_active)
         return moas
 
 class VesselOwnershipOnApproval(RevisionedMixin):
@@ -602,7 +605,7 @@ class Approval(RevisionedMixin):
         query = Q()
         query &= Q(mooring=mooring)
         query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))  # Not ended yet
-
+        query &= Q(active=True)
         created = None
         if not self.mooringonapproval_set.filter(query):
             mooring_on_approval, created = MooringOnApproval.objects.update_or_create(
@@ -863,6 +866,7 @@ class Approval(RevisionedMixin):
             query &= Q(mooring=self.mooring)
             query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,])
             query &= Q(Q(end_date__gt=target_date) | Q(end_date__isnull=True))
+            query &= Q(active=True)
             moa_set = MooringOnApproval.objects.filter(query)
             if moa_set.count() > 0:
                 # Authorised User exists
@@ -1634,7 +1638,7 @@ class AuthorisedUserPermit(Approval):
     @property
     def current_moorings(self):
         moorings = []
-        moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT))
+        moas = self.mooringonapproval_set.filter(Q(end_date__isnull=True) & Q(mooring__mooring_licence__status=MooringLicence.APPROVAL_STATUS_CURRENT) &Q(active=True))
         for moa in moas:
             moorings.append(moa.mooring)
         return moorings
@@ -1652,7 +1656,7 @@ class AuthorisedUserPermit(Approval):
         _stickers_to_be_replaced_for_renewal = []  # Stickers in this list get 'expired' status.  When replaced for renewal, sticker doesn't need 'to be returned'.  This is used for that.
 
         # 1. Find all the moorings which should be assigned to the new stickers
-        new_moas = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True, end_date__isnull=True)  # New moa doesn't have stickers.
+        new_moas = MooringOnApproval.objects.filter(approval=self, sticker__isnull=True, end_date__isnull=True, active=True)  # New moa doesn't have stickers.
         for moa in new_moas:
             if moa not in moas_to_be_reallocated:
                 if moa.approval and moa.approval.current_proposal and moa.approval.current_proposal.vessel_details:
@@ -1963,7 +1967,8 @@ class MooringLicence(Approval):
             return {}
         moa_set = MooringOnApproval.objects.filter(
             mooring=self.mooring,
-            approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,]
+            approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
+            active = True
         )
 
         authorised_persons = []
@@ -2078,6 +2083,7 @@ class MooringLicence(Approval):
             moa_set = MooringOnApproval.objects.filter(
                 mooring=self.mooring,
                 approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,],
+                active=True
             )
             for moa in moa_set:
                 if type(moa.approval.child_obj) == AuthorisedUserPermit:

@@ -1107,7 +1107,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_authorised_user_moorings(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
-            for moa in obj.approval.mooringonapproval_set.all():
+            for moa in obj.approval.mooringonapproval_set.filter(active=True):
                 # if moa.mooring.mooring_licence is not None:
                 #     suitable_for_mooring = True
                 #     # only do check if vessel details exist
@@ -1777,11 +1777,13 @@ class ListMooringSerializer(serializers.ModelSerializer):
         preference_count_ria = MooringOnApproval.objects.filter(
             query,
             site_licensee=False,
+            active=True
         ).count()
 
         preference_count_site_licensee = MooringOnApproval.objects.filter(
             query,
             site_licensee=True,
+            active=True
         ).count()
 
         return {

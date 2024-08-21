@@ -943,11 +943,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def invoice(self):
         invoice = None
         application_fee = self.get_main_application_fee()
+<<<<<<< HEAD
         if application_fee:
             try:
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             except:
                 return None
+=======
+        try:
+            if (application_fee):
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+        except ObjectDoesNotExist:
+            invoice = None
+>>>>>>> main
         return invoice
 
     @property
@@ -3473,7 +3481,7 @@ class AuthorisedUserApplication(Proposal):
         # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
         mls_to_be_emailed = []
         from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
-        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True)  # New moa doesn't have stickers.
+        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True, active=True)  # New moa doesn't have stickers.
         if self.mooring_authorisation_preference == 'ria':
             # Do we send an authorised user mooring summary doc to someone?
             pass
@@ -4201,6 +4209,7 @@ class Mooring(RevisionedMixin):
             query &= Q(mooring=self)
             query &= Q(approval__status__in=[Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_CURRENT,])
             query &= Q(Q(end_date__gt=today) | Q(end_date__isnull=True))  # No end date or future end date
+            query &= Q(active=True)
             
             # Retrieve all the AUPs which link to the mooring without any MSLs.  Which means we have to set the end_date and cancell the AUPs.
             active_mooring_on_approvals = MooringOnApproval.objects.filter(query)
