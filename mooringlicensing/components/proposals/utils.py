@@ -1069,6 +1069,45 @@ def create_proposal_applicant(proposal, system_user):
     proposal_applicant.dob = system_user.legal_dob
     proposal_applicant.save()
 
+def change_proposal_applicant(proposal_applicant, system_user):
+    if (system_user.ledger_id):
+        proposal_applicant.email_user_id = system_user.ledger_id.id
+    else:
+        serializers.ValidationError("system user does not have a valid email user account")
+
+    if (not system_user.legal_first_name or
+        not system_user.legal_last_name or 
+        not system_user.legal_dob or 
+        not system_user.mobile_number):
+        serializers.ValidationError("system user profile is missing required details - please ensure they have provided all required personal/contact details")
+
+    proposal_applicant.first_name = system_user.legal_first_name
+    proposal_applicant.last_name = system_user.legal_last_name
+    proposal_applicant.email = system_user.email
+    proposal_applicant.phone_number = system_user.phone_number
+    proposal_applicant.mobile_number = system_user.mobile_number
+    proposal_applicant.dob = system_user.legal_dob
+
+    # Residential address
+    proposal_applicant.residential_line1 = None
+    proposal_applicant.residential_line2 = None
+    proposal_applicant.residential_line3 = None
+    proposal_applicant.residential_locality = None
+    proposal_applicant.residential_state = None
+    proposal_applicant.residential_country = None
+    proposal_applicant.residential_postcode = None
+
+    # Postal address
+    proposal_applicant.postal_line1 = None
+    proposal_applicant.postal_line2 = None
+    proposal_applicant.postal_line3 = None
+    proposal_applicant.postal_locality = None
+    proposal_applicant.postal_state = None
+    proposal_applicant.postal_country = None
+    proposal_applicant.postal_postcode = None
+    
+    proposal_applicant.save()
+
 def update_proposal_applicant(proposal, request):
 
     proposal_applicant, created = ProposalApplicant.objects.get_or_create(proposal=proposal)

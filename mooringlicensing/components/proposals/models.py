@@ -2377,7 +2377,7 @@ class ProposalApplicant(RevisionedMixin):
     postal_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
     postal_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
     postal_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
-    postal_locality = models.CharField('Suburb / Town', max_length=255, blank=True)
+    postal_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
     postal_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
     postal_country = CountryField(default='AU', null=True, blank=True)
     postal_postcode = models.CharField(max_length=10, null=True, blank=True)

@@ -27,7 +27,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    construct_dict_from_docs, save_proponent_data, create_proposal_applicant,
+    construct_dict_from_docs, save_proponent_data, create_proposal_applicant, change_proposal_applicant
 )
 from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -1181,6 +1181,52 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             logger.warn(msg)
             raise serializers.ValidationError(msg)
 
+    @detail_route(methods=['POST'], detail=True)
+    @basic_exception_handler
+    def change_applicant(self, request, *args, **kwargs):
+        if is_internal(request):
+
+            applicant_system_id = request.data.get("applicant_system_id")
+            if not applicant_system_id:
+                raise serializers.ValidationError("no system user id provided")
+
+            instance = self.get_object()
+            try:
+                applicant = instance.proposal_applicant
+            except:
+                raise serializers.ValidationError("proposal has no applicant")
+            
+            try:
+                system_user = SystemUser.objects.get(id=applicant_system_id)
+            except:
+                raise serializers.ValidationError("system user does not exist")
+            
+            if (system_user.ledger_id and applicant.email_user_id == system_user.ledger_id.id):
+                raise serializers.ValidationError("provided system user id already applicant of this proposal")
+
+            #check proposal processing status - only proposals in draft can have the applicant changed
+            if instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT:
+                raise serializers.ValidationError("only proposals in draft can have the applicant changed")
+
+            #check proposal type - only new proposals can have the applicant changed
+            if instance.proposal_type and instance.proposal_type.code != "new":
+                raise serializers.ValidationError("amendments and renewals cannot have the applicant changed")
+
+            #check application type - MLA proposals cannot have the applicant changed
+            if instance.application_type_code == "mla":
+                raise serializers.ValidationError("mooring license applications cannot have the applicant changed")
+
+            #if the proposal is a WLA check the user - users cannot have multiple new WLAs
+            if instance.application_type_code == "wla" and not get_wla_allowed(system_user.ledger_id.id):
+                raise serializers.ValidationError("selected applicant cannot be assigned to waiting list application")
+
+            #run the applicant change
+            change_proposal_applicant(applicant, system_user)
+
+            return Response({"applicant_system_id": applicant_system_id})
+        else:
+            raise serializers.ValidationError("user not authorised to change applicant")
+        
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler

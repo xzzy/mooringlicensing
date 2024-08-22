@@ -3,6 +3,41 @@
       <div class="col-sm-12">
         <div class="row">
             <div class="col-sm-12">
+                <div class="panel panel-default" v-if="!readonly && is_internal && proposal.proposal_type.code == 'new' && proposal.processing_status == 'Draft'">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Applicant
+                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true" data-parent="#userInfo" :aria-controls="appBody">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                        </a>
+                        </h3>
+                    </div>
+                    <div class="panel-body collapse in" :id="appBody">
+                        <form class="form-horizontal">
+                            <div class="form-group">
+                                <label class="col-sm-3 control-label">Applicant</label>
+                                <div class="col-sm-6">
+                                    <select 
+                                        id="person_lookup"  
+                                        name="person_lookup"  
+                                        ref="person_lookup" 
+                                        class="form-control" 
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <div class="col-sm-12">
+                                    <button v-if="changingApplicant" type="button" class="btn btn-primary pull-right" disabled>
+                                    Change Applicant&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                    </button>
+                                    <button v-else type="button" @click.prevent="changeApplicant" class="btn btn-primary pull-right"
+                                    :disabled="applicant_system_id == null || applicant_system_id == original_applicant_system_id">
+                                    Change Applicant
+                                    </button>
+                                </div>
+                            </div>                        
+                        </form>
+                    </div>
+                </div>
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <h3 class="panel-title">Personal Details
@@ -287,6 +322,7 @@ export default {
         return {
             electoralRollSectionIndex: 'electoral_roll_' + vm._uid,
             silentElector: null,
+            appBody: 'appBody'+vm._uid,
             adBody: 'adBody'+vm._uid,
             pBody: 'pBody'+vm._uid,
             cBody: 'cBody'+vm._uid,
@@ -300,6 +336,9 @@ export default {
             selected_postal_id: null,
             residential_address: "",
             postal_address:"",
+            original_applicant_system_id: null,
+            applicant_system_id: null,
+            changingApplicant: false,
         }
     },
     components: {
@@ -335,6 +374,96 @@ export default {
         },
     },
     methods: {
+        changeApplicant: async function() {
+            
+            if (this.applicant_system_id != null &&
+                this.applicant_system_id != this.original_applicant_system_id) {
+                console.log(this.applicant_system_id)
+                console.log(this.original_applicant_system_id)
+                this.changingApplicant = true;
+
+                try {
+                    await swal({
+                        title: "Change Applicant",
+                        text: "Are you sure you want to change the applicant of this application?",
+                        type: "question",
+                        showCancelButton: true,
+                        confirmButtonText: "Change Applicant"
+                    })
+                } catch (cancel) {
+                    this.changingApplicant = false;
+                    return;
+                }
+
+                let url = `/api/proposal/${this.proposal.id}/change_applicant/`;
+                const payload = {"applicant_system_id":this.applicant_system_id};
+
+                this.$http.post(
+                    url, 
+                    payload,
+                ).then((res)=>{
+                    this.changingApplicant = false;
+                    this.$router.go();
+                },(err)=>{
+                    swal({
+                        title: "Please fix following errors before saving",
+                        text: err.bodyText,
+                        type:'error'
+                    });
+                    this.changingApplicant = false;
+                });
+            }          
+        },
+        initialisePersonLookup: function() {
+            let vm = this;
+            $(vm.$refs.person_lookup).select2({
+                minimumInputLength: 2,
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Person",
+                pagination: true,
+                ajax: {
+                    url: api_endpoints.person_lookup,
+                    dataType: 'json',
+                    data: function(params) {
+                        return {
+                            search_term: params.term,
+                            page_number: params.page || 1,
+                            type: 'public',
+                        }
+                    },
+                    processResults: function(data){
+                        console.log({data})
+                        return {
+                            'results': data.results,
+                            'pagination': {
+                                'more': data.pagination.more
+                            }
+                        }
+                    },
+                },
+            }).
+            on("select2:select", function (e) {
+                var selected = $(e.currentTarget);
+                vm.applicant_system_id = e.params.data.id;
+            }).
+            on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.applicant_system_id = vm.profile.id;;
+            }).
+            on("select2:open",function (e) {
+                const searchField = $('[aria-controls="select2-person_lookup-results"]')
+                // move focus to select2 field
+                searchField[0].focus();
+            });
+        },
+        getApplicantDisplay: function () {           
+            let vm = this; 
+            console.log("getApplicantDisplay")
+            let display = vm.profile.legal_first_name + " " + vm.profile.legal_last_name + " (DOB: "+vm.profile.legal_dob+")";
+            var newOption = new Option(display, vm.profile.id, false, true);
+            $('#person_lookup').append(newOption);         
+        },
         readFile: function() {
             let vm = this;
             let _file = null;
@@ -420,7 +549,6 @@ export default {
             console.log(error);
         })
     },
-
     mounted: async function(){
 
         await this.fetchProfile(); //beforeRouteEnter doesn't work when loading this component in Application.vue so adding an extra method to get profile details.
@@ -428,6 +556,15 @@ export default {
             this.$emit('profile-fetched', this.profile);
             this.residential_address_table_key++;
             this.postal_address_table_key++;
+            if (this.is_internal && !this.readonly && this.proposal.proposal_type.code == 'new' && this.proposal.processing_status == 'Draft') {
+                //must select user to load for
+                this.applicant_system_id = this.profile.id;
+                this.original_applicant_system_id = this.profile.id;
+                this.$nextTick(async () => {
+                    this.initialisePersonLookup();
+                    this.getApplicantDisplay();
+                });
+            }
         });
         $('.panelClicker[data-toggle="collapse"]').on('click', function () {
             var chev = $(this).children()[0];

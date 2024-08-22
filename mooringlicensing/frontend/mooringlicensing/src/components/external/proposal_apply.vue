@@ -3,7 +3,7 @@
         <!--button type="button" @click="createML">Mooring Licence Application</button-->
         <FormSection label="Select Applicant" v-if="is_internal">
             <div>
-                <div >
+                <div>
                     <label class="col-sm-3">Applicant</label>
                     <div class="col-sm-6">
                         <select 
