@@ -1,6 +1,21 @@
 <template lang="html">
     <div class="container">
         <!--button type="button" @click="createML">Mooring Licence Application</button-->
+        <FormSection label="Select Applicant" v-if="is_internal">
+            <div>
+                <div >
+                    <label class="col-sm-3">Applicant</label>
+                    <div class="col-sm-6">
+                        <select 
+                            id="person_lookup"  
+                            name="person_lookup"  
+                            ref="person_lookup" 
+                            class="form-control" 
+                        />
+                    </div>
+                </div>
+            </div>
+        </FormSection>
         <div v-if="applicationsLoading">
             <div style="text-align: center;">
                 <i class='fa fa-5x fa-spinner fa-spin'></i>
@@ -11,18 +26,6 @@
                 <form class="form-horizontal" name="personal_form" method="post">
                     <FormSection label="Apply for">
                         <div>
-                            <div v-if="is_internal">
-                                <label class="col-sm-3">Applicant</label>
-                                <div class="col-sm-6">
-                                    <select 
-                                        id="person_lookup"  
-                                        name="person_lookup"  
-                                        ref="person_lookup" 
-                                        class="form-control" 
-                                    />
-                                </div>
-                            </div>
-
                             <div v-if="season_text" class="col-sm-12" style="margin-bottom: 1em;">
                                 <strong>
                                     Application for the current season: {{ season_text }}
@@ -255,7 +258,6 @@ export default {
             selectedApplication: {},
             add_vessel: false,
             selectedCurrentProposal: null,
-            //selected_application_name: '',
             application_types_and_licences: [],
 
             wlaChoices: [],
@@ -326,6 +328,27 @@ export default {
 
     },
     methods: {
+        resetForm: function() {
+            this.form =  null;
+            this.selectedApplication =  {};
+            this.add_vessel =  false;
+            this.selectedCurrentProposal =  null;
+            this.application_types_and_licences =  [];
+            this.wlaChoices =  [];
+            this.aaaChoices =  [];
+            this.auaChoices =  [];
+            this.mlChoices =  [];
+            this.wlaApprovals =  [];
+            this.aaaApprovals =  [];
+            this.auaApprovals =  [];
+            this.mlApprovals =  [];
+            this.wlaMultiple =  [];
+            this.aaaMultiple =  [];
+            this.auaMultiple =  [];
+            this.mlMultiple =  [];
+            this.newWlaAllowed =  false;
+            this.season_text =  '';
+        },
         initialisePersonLookup: function(){
             let vm = this;
             $(vm.$refs.person_lookup).select2({
@@ -637,6 +660,7 @@ export default {
         applicant_system_id: async function () {
             console.log(this.applicant_system_id)
             this.applicationsLoading = true;
+            this.resetForm();
             if (this.applicant_system_id != null) {
                 await this.fetchApplicationTypes();
                 await this.fetchExistingLicences();
