@@ -1052,11 +1052,21 @@ def create_proposal_applicant(proposal, system_user):
     logger.info(f'ProposalApplicant: [{proposal_applicant}] has been created for the proposal: [{proposal}].')
     if (system_user.ledger_id):
         proposal_applicant.email_user_id = system_user.ledger_id.id
+    else:
+        serializers.ValidationError("system user does not have a valid email user account")
+
+    if (not system_user.legal_first_name or
+        not system_user.legal_last_name or 
+        not system_user.legal_dob or 
+        not system_user.mobile_number):
+        serializers.ValidationError("system user profile is missing required details - please ensure they have provided all required personal/contact details")
+
     proposal_applicant.first_name = system_user.legal_first_name
     proposal_applicant.last_name = system_user.legal_last_name
     proposal_applicant.email = system_user.email
     proposal_applicant.phone_number = system_user.phone_number
     proposal_applicant.mobile_number = system_user.mobile_number
+    proposal_applicant.dob = system_user.legal_dob
     proposal_applicant.save()
 
 def update_proposal_applicant(proposal, request):

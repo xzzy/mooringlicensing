@@ -644,11 +644,11 @@ export default {
                 await this.fetchCurrentSeason();
 
                 this.parseApprovals();  // wlaApprovals, aaaApprovals, auaApprovals and ml Approvals
-            this.parseWla();
-            this.parseAaa();
-            this.parseAua();
-            this.parseMl();
-            this.form = document.forms.new_proposal;
+                this.parseWla();
+                this.parseAaa();
+                this.parseAua();
+                this.parseMl();
+                this.form = document.forms.new_proposal;
             }
             this.applicationsLoading = false;
         }
