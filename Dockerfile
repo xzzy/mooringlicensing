@@ -52,7 +52,6 @@ RUN mkdir -p /etc/apt/keyrings && \
     apt-get install -y nodejs
 
 # Install nodejs
-COPY python-cron ./
 COPY startup.sh pre_startup.sh /
 COPY ./timezone /etc/timezone
 RUN chmod 755 /startup.sh && \
@@ -92,7 +91,7 @@ USER oim
 RUN virtualenv /app/venv
 ENV PATH=/app/venv/bin:$PATH
 RUN git config --global --add safe.directory /app
-
+COPY python-cron ./
 #RUN PATH=/app/.local/bin:$PATH
 COPY --chown=oim:oim requirements.txt ./
 
