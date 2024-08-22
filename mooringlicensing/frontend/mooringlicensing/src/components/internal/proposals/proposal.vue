@@ -159,13 +159,13 @@
                             <div v-if="!readonly" class="container">
                                 <p class="pull-right" style="margin-top:5px">
                                     <button v-if="savingProposal" type="button" class="btn btn-primary" disabled>
-                                        Save&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                        Save Proposal&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                     </button>
                                     <input v-else type="button" @click.prevent="save" 
                                         class="btn btn-primary" value="Save Proposal"/>
 
                                     <button v-if="submittingProposal" type="button" class="btn btn-primary" disabled>
-                                        Save&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
+                                        {{submitText}}&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                     </button>
                                     <input v-else-if="submittable" type="button" @click.prevent="submit" 
                                         class="btn btn-primary" :value="submitText" />
