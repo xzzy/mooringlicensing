@@ -563,7 +563,40 @@ export default {
                     this.creatingProposal = true;
 
                     if (this.is_internal) {
-                        console.log("creating proposal as internal user")
+
+                        const payload = {
+                            "applicant_system_id": this.applicant_system_id,
+                        };
+
+                        const url = helpers.add_endpoint_json(api_endpoints.proposal, (
+                            this.selectedCurrentProposal + '/renew_amend_approval_wrapper')
+                        )
+                        if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.internalwaitinglistapplication,payload);
+                            }
+                        } else if (this.selectedApplication && ['aaa', 'aap', 'aaa_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.internalannualadmissionapplication,payload);
+                            }
+                        } else if (this.selectedApplication && ['aua', 'aup', 'aua_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.internalauthoriseduserapplication,payload);
+                            }
+                        } else if (this.selectedApplication && ['ml', 'ml_multiple'].includes(this.selectedApplication.code)) {
+                            res = await this.$http.post(url, {'add_vessel': vm.add_vessel});
+                        } 
+                        const proposal = res.body;
+                        this.$router.push({
+                            name: "internal-proposal",
+                            params: { proposal_id: proposal.id }
+                        });
                     } else {
                         const url = helpers.add_endpoint_json(api_endpoints.proposal, (
                             this.selectedCurrentProposal + '/renew_amend_approval_wrapper')

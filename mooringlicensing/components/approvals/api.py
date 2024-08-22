@@ -237,7 +237,7 @@ class GetWlaAllowed(views.APIView):
             applicant_system_id = request.GET.get('applicant_system_id', False)
             if applicant_system_id:
                 try:
-                    applicant_id = SystemUser.objects.get(id=applicant_system_id).email_user_id
+                    applicant_id = SystemUser.objects.get(id=applicant_system_id).ledger_id.id
                 except:
                     applicant_id = request.user.id
 
@@ -496,7 +496,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             applicant_system_id = request.GET.get('applicant_system_id', False)
             if applicant_system_id:
                 try:
-                    applicant_id = SystemUser.objects.get(id=applicant_system_id).email_user_id
+                    applicant_id = SystemUser.objects.get(id=applicant_system_id).ledger_id.id
                 except:
                     applicant_id = request.user.id
 
