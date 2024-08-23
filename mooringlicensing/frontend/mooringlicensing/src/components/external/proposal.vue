@@ -507,6 +507,7 @@ export default {
                 if (this.submitRes) {
                     let payload = this.buildPayload();
                     payload.csrfmiddlewaretoken = this.csrf_token;
+                    console.log("autoApprove",this.autoApprove); //TODO get this from the the submitRes instead?
                     if (this.autoApprove) {
                         this.post_and_redirect(this.application_fee_url, payload);
                     } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {

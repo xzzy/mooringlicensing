@@ -2586,6 +2586,12 @@ class WaitingListApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
     
+    def set_auto_approve(self,request):
+        #check WLA auto approval conditions
+
+        #for WLA (and AAA) auto-approve just means if it is paid for right away
+        pass
+
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -2856,6 +2862,18 @@ class AnnualAdmissionApplication(Proposal):
     new_application_text = "I want to apply for an annual admission permit"
     apply_page_visibility = True
     description = 'Annual Admission Application'
+
+    def set_auto_approve(self,request):
+        #check AAA auto approval conditions
+        #for AAA (and WLA) auto-approve just means if it is paid for right away
+        #and for AAA it always is
+        if (self.has_assessor_mode(request) or 
+            self.has_approver_mode(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+            self.auto_approve = True
+            self.save()
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
@@ -3340,6 +3358,10 @@ class AuthorisedUserApplication(Proposal):
             return self.previous_application.child_obj.get_mooring_authorisation_preference()
         else:
             return self.mooring_authorisation_preference
+
+    def set_auto_approve(self,request):
+        #check AUP auto approval conditions
+        pass
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -3868,6 +3890,10 @@ class MooringLicenceApplication(Proposal):
         # ret_value = send_submit_email_notification(request, self)
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
+
+    def set_auto_approve(self,request):
+        #check MLA auto approval conditions
+        pass
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -4406,6 +4432,8 @@ class Vessel(RevisionedMixin):
             Proposal.PROCESSING_STATUS_DISCARDED,
         ])
         proposals_filter &= ~Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
+        if proposal_being_processed.previous_application:
+            proposals_filter &= ~Q(id=proposal_being_processed.previous_application.id)  # also exclude the "previous application", should this application be a renewal or amendment
 
         blocking_proposals = Proposal.objects.filter(proposals_filter)
         for bp in blocking_proposals:
