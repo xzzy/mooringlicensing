@@ -27,7 +27,7 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    construct_dict_from_docs, save_proponent_data, create_proposal_applicant,
+    construct_dict_from_docs, save_proponent_data, create_proposal_applicant, change_proposal_applicant
 )
 from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -672,30 +672,75 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
         return AnnualAdmissionApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            try:
+                system_user = SystemUser.objects.get(ledger_id=request.user)
+            except:
+                raise serializers.ValidationError("system user does not exist")
+            
+            try:
+                proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+            except:
+                raise serializers.ValidationError("proposal type does not exist")
 
-        try:
-            system_user = SystemUser.objects.get(ledger_id=request.user)
-        except:
-            raise serializers.ValidationError("system user does not exist")
+            obj = AnnualAdmissionApplication.objects.create(
+                    submitter=request.user.id,
+                    proposal_type=proposal_type
+                    )
+            logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
+            obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
+
+            serialized_obj = ProposalSerializer(obj.proposal)
+            
+            create_proposal_applicant(obj, system_user)
+
+            return Response(serialized_obj.data)
+
+class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
+    queryset = AnnualAdmissionApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            qs = AnnualAdmissionApplication.objects.all()
+            return qs
+        return AnnualAdmissionApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            if is_internal(request):
+
+                applicant_system_id = request.data.get("applicant_system_id")
+                if not applicant_system_id:
+                    raise serializers.ValidationError("no system user id provided")
+
+                try:
+                    system_user = SystemUser.objects.get(id=applicant_system_id)
+                except:
+                    raise serializers.ValidationError("system user does not exist")
+
+                try:
+                    proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+                except:
+                    raise serializers.ValidationError("proposal type does not exist")
+
+                obj = AnnualAdmissionApplication.objects.create(
+                        submitter=request.user.id,
+                        proposal_type=proposal_type
+                        )
+
+                logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
+
+                obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
+
+                serialized_obj = ProposalSerializer(obj.proposal)
+
+                create_proposal_applicant(obj, system_user)
+
+                return Response(serialized_obj.data)
+            raise serializers.ValidationError("not authorised to create application as an internal user")
         
-        try:
-            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-        except:
-            raise serializers.ValidationError("proposal type does not exist")
-
-        obj = AnnualAdmissionApplication.objects.create(
-                submitter=request.user.id,
-                proposal_type=proposal_type
-                )
-        logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
-        obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
-
-        serialized_obj = ProposalSerializer(obj.proposal)
-        
-        create_proposal_applicant(obj, system_user)
-
-        return Response(serialized_obj.data)
-
 
 class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
     queryset = AuthorisedUserApplication.objects.none()
@@ -736,6 +781,49 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
 
         serialized_obj = ProposalSerializer(obj.proposal)
         return Response(serialized_obj.data)
+    
+        
+class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
+    queryset = AuthorisedUserApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            qs = AuthorisedUserApplication.objects.all()
+            return qs
+        return AuthorisedUserApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            if is_internal(request):
+
+                applicant_system_id = request.data.get("applicant_system_id")
+                if not applicant_system_id:
+                    raise serializers.ValidationError("no system user id provided")
+
+                try:
+                    system_user = SystemUser.objects.get(id=applicant_system_id)
+                except:
+                    raise serializers.ValidationError("system user does not exist")
+                
+                try:
+                    proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+                except:
+                    raise serializers.ValidationError("proposal type does not exist")
+
+                obj = AuthorisedUserApplication.objects.create(
+                        submitter=request.user.id,
+                        proposal_type=proposal_type
+                        )
+                logger.info(f'Authorised User Permit Application: [{obj}] has been created by the user: [{request.user}].')
+                obj.log_user_action(f'Authorised User Permit Application: {obj.lodgement_number} has been created.', request)
+
+                create_proposal_applicant(obj, system_user)
+
+                serialized_obj = ProposalSerializer(obj.proposal)
+                return Response(serialized_obj.data)
+            raise serializers.ValidationError("not authorised to create application as an internal user")
 
 
 class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
@@ -756,32 +844,33 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
         return MooringLicenceApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        try:
-            system_user = SystemUser.objects.get(ledger_id=request.user)
-        except:
-            raise serializers.ValidationError("system user does not exist")
-        
-        try:
-            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-        except:
-            raise serializers.ValidationError("proposal type does not exist")
-        mooring_id = request.data.get('mooring_id')
-        mooring=None
-        if mooring_id:
-            mooring = Mooring.objects.get(id=mooring_id)
+        with transaction.atomic():
+            try:
+                system_user = SystemUser.objects.get(ledger_id=request.user)
+            except:
+                raise serializers.ValidationError("system user does not exist")
+            
+            try:
+                proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+            except:
+                raise serializers.ValidationError("proposal type does not exist")
+            mooring_id = request.data.get('mooring_id')
+            mooring=None
+            if mooring_id:
+                mooring = Mooring.objects.get(id=mooring_id)
 
-        obj = MooringLicenceApplication.objects.create(
-                submitter=request.user.id,
-                proposal_type=proposal_type,
-                allocated_mooring=mooring,
-                )
-        logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
-        obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
+            obj = MooringLicenceApplication.objects.create(
+                    submitter=request.user.id,
+                    proposal_type=proposal_type,
+                    allocated_mooring=mooring,
+                    )
+            logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
+            obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
 
-        create_proposal_applicant(obj, system_user)
+            create_proposal_applicant(obj, system_user)
 
-        serialized_obj = ProposalSerializer(obj.proposal)
-        return Response(serialized_obj.data)
+            serialized_obj = ProposalSerializer(obj.proposal)
+            return Response(serialized_obj.data)
 
 
 class WaitingListApplicationViewSet(viewsets.ModelViewSet):
@@ -803,33 +892,80 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
         return WaitingListApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
-        try:
-            system_user = SystemUser.objects.get(ledger_id=request.user)
-        except:
-            raise serializers.ValidationError("system user does not exist")
-        
-        try:
-            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-        except:
-            raise serializers.ValidationError("proposal type does not exist")
+        with transaction.atomic():
+            try:
+                system_user = SystemUser.objects.get(ledger_id=request.user)
+            except:
+                raise serializers.ValidationError("system user does not exist")
+            
+            try:
+                proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+            except:
+                raise serializers.ValidationError("proposal type does not exist")
 
-        wla_allowed = get_wla_allowed(request.user)
-        if not wla_allowed:
-            raise serializers.ValidationError("user not permitted to create WLA at this time")
+            wla_allowed = get_wla_allowed(request.user.id)
+            if not wla_allowed:
+                raise serializers.ValidationError("user not permitted to create WLA at this time")
 
-        obj = WaitingListApplication.objects.create(
-                submitter=request.user.id,
-                proposal_type=proposal_type
-                )
+            obj = WaitingListApplication.objects.create(
+                    submitter=request.user.id,
+                    proposal_type=proposal_type
+                    )
 
-        logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
-        obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)
+            logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
+            obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)
 
-        create_proposal_applicant(obj, system_user)
+            create_proposal_applicant(obj, system_user)
 
-        serialized_obj = ProposalSerializer(obj.proposal)
-        return Response(serialized_obj.data)
+            serialized_obj = ProposalSerializer(obj.proposal)
+            return Response(serialized_obj.data)
 
+class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
+    queryset = WaitingListApplication.objects.none()
+    serializer_class = ProposalSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            qs = WaitingListApplication.objects.all()
+            return qs
+        return WaitingListApplication.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            if is_internal(request):
+
+                applicant_system_id = request.data.get("applicant_system_id")
+                if not applicant_system_id:
+                    raise serializers.ValidationError("no system user id provided")
+
+                try:
+                    system_user = SystemUser.objects.get(id=applicant_system_id)
+                except:
+                    raise serializers.ValidationError("system user does not exist")
+                
+                try:
+                    proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+                except:
+                    raise serializers.ValidationError("proposal type does not exist")
+
+                wla_allowed = get_wla_allowed(request.user.id)
+                if not wla_allowed:
+                    raise serializers.ValidationError("user not permitted to create WLA at this time")
+
+                obj = WaitingListApplication.objects.create(
+                        submitter=request.user.id,
+                        proposal_type=proposal_type
+                        )
+
+                logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
+                obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)
+
+                create_proposal_applicant(obj, system_user)
+
+                serialized_obj = ProposalSerializer(obj.proposal)
+                return Response(serialized_obj.data)
+            raise serializers.ValidationError("not authorised to create application as an internal user")
 
 class ProposalByUuidViewSet(viewsets.ModelViewSet):
     queryset = Proposal.objects.none()
@@ -1045,6 +1181,52 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             logger.warn(msg)
             raise serializers.ValidationError(msg)
 
+    @detail_route(methods=['POST'], detail=True)
+    @basic_exception_handler
+    def change_applicant(self, request, *args, **kwargs):
+        if is_internal(request):
+
+            applicant_system_id = request.data.get("applicant_system_id")
+            if not applicant_system_id:
+                raise serializers.ValidationError("no system user id provided")
+
+            instance = self.get_object()
+            try:
+                applicant = instance.proposal_applicant
+            except:
+                raise serializers.ValidationError("proposal has no applicant")
+            
+            try:
+                system_user = SystemUser.objects.get(id=applicant_system_id)
+            except:
+                raise serializers.ValidationError("system user does not exist")
+            
+            if (system_user.ledger_id and applicant.email_user_id == system_user.ledger_id.id):
+                raise serializers.ValidationError("provided system user id already applicant of this proposal")
+
+            #check proposal processing status - only proposals in draft can have the applicant changed
+            if instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT:
+                raise serializers.ValidationError("only proposals in draft can have the applicant changed")
+
+            #check proposal type - only new proposals can have the applicant changed
+            if instance.proposal_type and instance.proposal_type.code != "new":
+                raise serializers.ValidationError("amendments and renewals cannot have the applicant changed")
+
+            #check application type - MLA proposals cannot have the applicant changed
+            if instance.application_type_code == "mla":
+                raise serializers.ValidationError("mooring license applications cannot have the applicant changed")
+
+            #if the proposal is a WLA check the user - users cannot have multiple new WLAs
+            if instance.application_type_code == "wla" and not get_wla_allowed(system_user.ledger_id.id):
+                raise serializers.ValidationError("selected applicant cannot be assigned to waiting list application")
+
+            #run the applicant change
+            change_proposal_applicant(applicant, system_user)
+
+            return Response({"applicant_system_id": applicant_system_id})
+        else:
+            raise serializers.ValidationError("user not authorised to change applicant")
+        
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
@@ -1469,6 +1651,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def renew_amend_approval_wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
+
+        #TODO add auth check - internal or applicant (covered by get_queryset, but additional checks still warranted)
+
         approval = instance.approval
         ## validation
         renew_amend_conditions = {
@@ -1487,12 +1672,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = instance.renew_approval(request)
         elif approval and approval.amend_or_renew == 'amend':
             instance = instance.amend_approval(request)
-        ## return new application
-        #serializer = ProposalSerializer(instance,context={'request':request})
-        #serializer_class = self.internal_serializer_class()
-        #serializer = serializer_class(instance,context={'request':request})
-        #return Response(serializer.data)
+
         return Response({"id":instance.id})
+    
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler

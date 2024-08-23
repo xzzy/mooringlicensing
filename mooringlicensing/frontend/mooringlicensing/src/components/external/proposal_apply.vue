@@ -1,6 +1,21 @@
 <template lang="html">
     <div class="container">
         <!--button type="button" @click="createML">Mooring Licence Application</button-->
+        <FormSection label="Select Applicant" v-if="is_internal">
+            <div>
+                <div>
+                    <label class="col-sm-3">Applicant</label>
+                    <div class="col-sm-6">
+                        <select 
+                            id="person_lookup"  
+                            name="person_lookup"  
+                            ref="person_lookup" 
+                            class="form-control" 
+                        />
+                    </div>
+                </div>
+            </div>
+        </FormSection>
         <div v-if="applicationsLoading">
             <div style="text-align: center;">
                 <i class='fa fa-5x fa-spinner fa-spin'></i>
@@ -11,14 +26,14 @@
                 <form class="form-horizontal" name="personal_form" method="post">
                     <FormSection label="Apply for">
                         <div>
-                            <div class="col-sm-12" style="margin-bottom: 1em;">
+                            <div v-if="season_text" class="col-sm-12" style="margin-bottom: 1em;">
                                 <strong>
                                     Application for the current season: {{ season_text }}
                                 </strong>
                             </div>
                             <div class="col-sm-12" style="margin-left:20px">
                                 <div class="form-group">
-                                    <label>Annual Admission</label>
+                                    <label v-if="aaaChoices.length > 0">Annual Admission</label>
                                     <div v-if="aaaApprovals.length <= 1">
                                         <div v-for="(application_type, index) in aaaChoices">
                                             <input type="radio" name="applicationType"
@@ -49,7 +64,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label>Authorised User</label>
+                                    <label v-if="auaChoices.length > 0">Authorised User</label>
                                     <div v-if="auaApprovals.length <= 1">
                                         <div v-for="(application_type, index) in auaChoices">
                                             <input type="radio" name="applicationType"
@@ -181,8 +196,8 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <div class="form-group">
+                                
+                                <div v-if="!is_internal" class="form-group"> <!--TODO allow for internal submissions-->
                                     <label>DCV Permit</label>
                                     <div>
                                         <div v-for="(application_type, index) in dcvpChoices">
@@ -224,6 +239,13 @@ import {
     from '@/utils/hooks'
 import utils from './utils'
 export default {
+    props: {
+        is_internal: {
+            type: Boolean,
+            required: false,
+            default: false,
+        }
+    },
     data: function () {
         let vm = this;
         return {
@@ -236,7 +258,6 @@ export default {
             selectedApplication: {},
             add_vessel: false,
             selectedCurrentProposal: null,
-            //selected_application_name: '',
             application_types_and_licences: [],
 
             wlaChoices: [],
@@ -266,6 +287,8 @@ export default {
             //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
 
             season_text: '',
+
+            applicant_system_id: null,
         }
     },
     components: {
@@ -305,6 +328,71 @@ export default {
 
     },
     methods: {
+        resetForm: function() {
+            this.form =  null;
+            this.selectedApplication =  {};
+            this.add_vessel =  false;
+            this.selectedCurrentProposal =  null;
+            this.application_types_and_licences =  [];
+            this.wlaChoices =  [];
+            this.aaaChoices =  [];
+            this.auaChoices =  [];
+            this.mlChoices =  [];
+            this.wlaApprovals =  [];
+            this.aaaApprovals =  [];
+            this.auaApprovals =  [];
+            this.mlApprovals =  [];
+            this.wlaMultiple =  [];
+            this.aaaMultiple =  [];
+            this.auaMultiple =  [];
+            this.mlMultiple =  [];
+            this.newWlaAllowed =  false;
+            this.season_text =  '';
+        },
+        initialisePersonLookup: function(){
+            let vm = this;
+            $(vm.$refs.person_lookup).select2({
+                minimumInputLength: 2,
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Person",
+                pagination: true,
+                ajax: {
+                    url: api_endpoints.person_lookup,
+                    dataType: 'json',
+                    data: function(params) {
+                        return {
+                            search_term: params.term,
+                            page_number: params.page || 1,
+                            type: 'public',
+                        }
+                    },
+                    processResults: function(data){
+                        console.log({data})
+                        return {
+                            'results': data.results,
+                            'pagination': {
+                                'more': data.pagination.more
+                            }
+                        }
+                    },
+                },
+            }).
+            on("select2:select", function (e) {
+                var selected = $(e.currentTarget);
+                vm.applicant_system_id = e.params.data.id;
+            }).
+            on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.applicant_system_id  = null;
+            }).
+            on("select2:open",function (e) {
+                //const searchField = $(".select2-search__field")
+                const searchField = $('[aria-controls="select2-person_lookup-results"]')
+                // move focus to select2 field
+                searchField[0].focus();
+            });
+        },
         parseApprovals: function () {
             this.application_types_and_licences.forEach(app => {
                 if (app.code === 'wla' && app.lodgement_number) {
@@ -473,39 +561,77 @@ export default {
                 let res = null;
                 try {
                     this.creatingProposal = true;
-                    const url = helpers.add_endpoint_json(api_endpoints.proposal, (
-                        this.selectedCurrentProposal + '/renew_amend_approval_wrapper')
-                    )
-                    if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
-                        if (this.selectedCurrentProposal) {
-                            res = await this.$http.post(url);
-                        } else {
-                            res = await this.$http.post(api_endpoints.waitinglistapplication);
+
+                    if (this.is_internal) {
+
+                        const payload = {
+                            "applicant_system_id": this.applicant_system_id,
+                        };
+
+                        const url = helpers.add_endpoint_json(api_endpoints.proposal, (
+                            this.selectedCurrentProposal + '/renew_amend_approval_wrapper')
+                        )
+                        if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.internalwaitinglistapplication,payload);
+                            }
+                        } else if (this.selectedApplication && ['aaa', 'aap', 'aaa_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.internalannualadmissionapplication,payload);
+                            }
+                        } else if (this.selectedApplication && ['aua', 'aup', 'aua_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.internalauthoriseduserapplication,payload);
+                            }
+                        } else if (this.selectedApplication && ['ml', 'ml_multiple'].includes(this.selectedApplication.code)) {
+                            res = await this.$http.post(url, {'add_vessel': vm.add_vessel});
+                        } 
+                        const proposal = res.body;
+                        this.$router.push({
+                            name: "internal-proposal",
+                            params: { proposal_id: proposal.id }
+                        });
+                    } else {
+                        const url = helpers.add_endpoint_json(api_endpoints.proposal, (
+                            this.selectedCurrentProposal + '/renew_amend_approval_wrapper')
+                        )
+                        if (this.selectedApplication && ['wla', 'wla_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.waitinglistapplication);
+                            }
+                        } else if (this.selectedApplication && ['aaa', 'aap', 'aaa_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.annualadmissionapplication);
+                            }
+                        } else if (this.selectedApplication && ['aua', 'aup', 'aua_multiple'].includes(this.selectedApplication.code)) {
+                            if (this.selectedCurrentProposal) {
+                                res = await this.$http.post(url);
+                            } else {
+                                res = await this.$http.post(api_endpoints.authoriseduserapplication);
+                            }
+                        } else if (this.selectedApplication && ['ml', 'ml_multiple'].includes(this.selectedApplication.code)) {
+                            res = await this.$http.post(url, {'add_vessel': vm.add_vessel});
+                        } else if (this.selectedApplication && ['dcvp',].includes(this.selectedApplication.code)) {
+                            this.$router.push('/external/dcv_permit')
+                            return
                         }
-                    } else if (this.selectedApplication && ['aaa', 'aap', 'aaa_multiple'].includes(this.selectedApplication.code)) {
-                        if (this.selectedCurrentProposal) {
-                            res = await this.$http.post(url);
-                        } else {
-                            res = await this.$http.post(api_endpoints.annualadmissionapplication);
-                        }
-                    } else if (this.selectedApplication && ['aua', 'aup', 'aua_multiple'].includes(this.selectedApplication.code)) {
-                        if (this.selectedCurrentProposal) {
-                            res = await this.$http.post(url);
-                        } else {
-                            res = await this.$http.post(api_endpoints.authoriseduserapplication);
-                        }
-                    } else if (this.selectedApplication && ['ml', 'ml_multiple'].includes(this.selectedApplication.code)) {
-                        res = await this.$http.post(url, {'add_vessel': vm.add_vessel});
-                    } else if (this.selectedApplication && ['dcvp',].includes(this.selectedApplication.code)) {
-                        this.$router.push('/external/dcv_permit')
-                        return
+                        const proposal = res.body;
+                        this.$router.push({
+                            name: "draft_proposal",
+                            // params: { proposal_id: proposal.id, add_vessel: vm.add_vessel }
+                            params: { proposal_id: proposal.id }
+                        });
                     }
-                    const proposal = res.body;
-                    this.$router.push({
-                        name: "draft_proposal",
-                        // params: { proposal_id: proposal.id, add_vessel: vm.add_vessel }
-                        params: { proposal_id: proposal.id }
-                    });
                     this.creatingProposal = false;
                 } catch (error) {
                     console.log(error)
@@ -534,14 +660,26 @@ export default {
             }
         },
         fetchExistingLicences: async function () {
-            const response = await this.$http.get(api_endpoints.existing_licences);
-            for (let l of response.body) {
-                this.application_types_and_licences.push(l)
-            }
+            if (this.is_internal && this.applicant_system_id) {
+                const response = await this.$http.get(api_endpoints.existing_licences + '?applicant_system_id='+this.applicant_system_id);
+                for (let l of response.body) {
+                    this.application_types_and_licences.push(l)
+                }
+            } else {
+                const response = await this.$http.get(api_endpoints.existing_licences);
+                for (let l of response.body) {
+                    this.application_types_and_licences.push(l)
+                }
+            }            
         },
         fetchWlaAllowed: async function () {
-            const response = await this.$http.get(api_endpoints.wla_allowed);
-            this.newWlaAllowed = response.body.wla_allowed;
+            if (this.is_internal && this.applicant_system_id) {
+                const response = await this.$http.get(api_endpoints.wla_allowed+ '?applicant_system_id='+this.applicant_system_id);
+                this.newWlaAllowed = response.body.wla_allowed;
+            } else {
+                const response = await this.$http.get(api_endpoints.wla_allowed);
+                this.newWlaAllowed = response.body.wla_allowed;
+            }
         },
         fetchCurrentSeason: async function () {
             const response = await this.$http.get(api_endpoints.current_season);
@@ -551,20 +689,50 @@ export default {
             }
         }
     },
+    watch: {
+        applicant_system_id: async function () {
+            console.log(this.applicant_system_id)
+            this.applicationsLoading = true;
+            this.resetForm();
+            if (this.applicant_system_id != null) {
+                await this.fetchApplicationTypes();
+                await this.fetchExistingLicences();
+                await this.fetchWlaAllowed();
+                await this.fetchCurrentSeason();
+
+                this.parseApprovals();  // wlaApprovals, aaaApprovals, auaApprovals and ml Approvals
+                this.parseWla();
+                this.parseAaa();
+                this.parseAua();
+                this.parseMl();
+                this.form = document.forms.new_proposal;
+            }
+            this.applicationsLoading = false;
+        }
+    },
     mounted: async function () {
         this.applicationsLoading = true;
 
-        await this.fetchApplicationTypes();
-        await this.fetchExistingLicences();  // application_types_and_licences has all the application types and the existing licences
-        await this.fetchWlaAllowed();
-        await this.fetchCurrentSeason();
+        if (this.is_internal) {
+            //must select user to load for
+            this.$nextTick(async () => {
+                this.initialisePersonLookup();
+            });
+        } else {
 
-        this.parseApprovals();  // wlaApprovals, aaaApprovals, auaApprovals and ml Approvals
-        this.parseWla();
-        this.parseAaa();
-        this.parseAua();
-        this.parseMl();
-        this.form = document.forms.new_proposal;
+            await this.fetchApplicationTypes();
+            await this.fetchExistingLicences();  // application_types_and_licences has all the application types and the existing licences
+            await this.fetchWlaAllowed();
+            await this.fetchCurrentSeason();
+
+            this.parseApprovals();  // wlaApprovals, aaaApprovals, auaApprovals and ml Approvals
+            this.parseWla();
+            this.parseAaa();
+            this.parseAua();
+            this.parseMl();
+            this.form = document.forms.new_proposal;
+
+        }
         this.applicationsLoading = false;
     },
     beforeRouteEnter: function (to, from, next) {

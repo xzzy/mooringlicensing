@@ -4,6 +4,7 @@ from mooringlicensing.components.proposals.models import ProposalApplicant
 from rest_framework import serializers
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from mooringlicensing.helpers import in_dbca_domain
+from django_countries.serializer_fields import CountryField
 
 class UserForEndorserSerializer(serializers.ModelSerializer):
 
@@ -37,6 +38,8 @@ class UserForEndorserSerializer(serializers.ModelSerializer):
 class ProposalApplicantSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     ledger_id = serializers.SerializerMethodField()
+    residential_country = CountryField()
+    postal_country = CountryField()
 
     class Meta:
         model = ProposalApplicant

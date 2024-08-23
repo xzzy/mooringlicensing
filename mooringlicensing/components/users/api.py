@@ -113,7 +113,7 @@ class GetPerson(views.APIView):
                 for user in my_objects:
                     user_name = get_user_name(user)
                     if user.legal_dob:
-                        text = '{} {} (DOB: {})'.format(user_name["first_name"], user_name["last_name"], user.legal_dob)
+                        text = '{} {} (DOB: {})'.format(user_name["first_name"], user_name["last_name"], user.legal_dob.strftime('%d/%m/%Y'))
                     else:
                         text = '{} {}'.format(user_name["first_name"], user_name["last_name"])
 

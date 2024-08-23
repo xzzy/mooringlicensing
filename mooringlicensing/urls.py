@@ -43,6 +43,11 @@ router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet, 'propos
 router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationViewSet, 'waitinglistapplication')
 router.register(r'annualadmissionapplication', proposal_api.AnnualAdmissionApplicationViewSet, 'annualadmissionapplication')
 router.register(r'authoriseduserapplication', proposal_api.AuthorisedUserApplicationViewSet, 'authoriseduserapplication')
+
+router.register(r'internalwaitinglistapplication', proposal_api.InternalWaitingListApplicationViewSet, 'internalwaitinglistapplication')
+router.register(r'internalannualadmissionapplication', proposal_api.InternalAnnualAdmissionApplicationViewSet, 'internalannualadmissionapplication')
+router.register(r'internalauthoriseduserapplication', proposal_api.InternalAuthorisedUserApplicationViewSet, 'internalauthoriseduserapplication')
+
 router.register(r'mooringlicenceapplication', proposal_api.MooringLicenceApplicationViewSet, 'mooringlicenceapplication')
 router.register(r'proposals_paginated', proposal_api.ProposalPaginatedViewSet, 'proposals_paginated')
 router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet, 'approvals_paginated')
