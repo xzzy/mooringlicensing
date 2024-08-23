@@ -161,7 +161,7 @@ export default {
             return {
                 data: "approval",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.approval){
