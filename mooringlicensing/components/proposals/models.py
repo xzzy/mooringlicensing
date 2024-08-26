@@ -2340,7 +2340,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             vessel_exists = (True if
                     self.approval and self.approval.current_proposal and 
                     self.approval.current_proposal.vessel_details and
-                    not self.approval.current_proposal.vessel_ownership.end_date
+                    not self.approval.current_proposal.vessel_ownership.end_date #end_date means sold
                     else False)
         else:
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
@@ -2366,16 +2366,61 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     #determines if the vessel category has increased for a vessel recorded on the application
     def has_higher_vessel_category(self):
+        from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
+        max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
+        length = 0
+        if (max_vessel_length_with_no_payment[0] < self.vessl_length or (
+            max_vessel_length_with_no_payment[0] == self.vessl_length and
+            not max_vessel_length_with_no_payment[1])):
+            return True
+        return False
+    
+    def keeping_current_vessel(self):
+        #on client-side check, user input is used to determine this value when the proposal vessel registration has already been saved
+        #however, no such check is required to determine if the vessel is being kept or not - 
+        # we just need to check if the proposal's vessel registration is the same or not
 
-        #if (this.max_vessel_length_with_no_payment !== null &&
-        #    (this.max_vessel_length_with_no_payment.max_length < length ||
-        #        this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
-        #    // vessel length is in higher category
-        #    this.higherVesselCategory = true;
-        #} else {
-        #    this.higherVesselCategory = false;
-        #}
-        pass
+        previous_rego_no = None
+        if (self.previous_application and 
+            self.previous_application and 
+            self.previous_application.vessel_details and
+            self.previous_application.vessel_details.vessel and
+            self.previous_application.vessel_ownership and
+            not self.previous_application.vessel_ownership.end_date): #end_date means sold
+            previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
+
+        if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
+                previous_rego_no == self.vessel_details.vessel.rego_no):
+                return True
+        
+        return False
+    
+    def vessel_ownership_changed(self):
+
+        previous_ownership = None
+        if self.previous_application:
+            previous_ownership = self.previous_application.vessel_ownership
+        
+        if previous_ownership and self.vessel_ownership:
+            previous_company_ownership = previous_ownership.get_latest_company_ownership()
+            company_ownership = self.vessel_ownership.get_latest_company_ownership()
+            if previous_company_ownership:
+                if self.vessel_ownership.individual_owner:
+                    return True
+                elif company_ownership:
+                    if (previous_company_ownership.company and company_ownership.company and
+                        previous_company_ownership.company.name.strip() != company_ownership.company.name.strip()
+                    ):
+                        return True
+                    if (previous_company_ownership.percentage and company_ownership.percentage and
+                        previous_company_ownership.percentage != company_ownership.percentage
+                    ):
+                        return True
+            else:
+                if not self.vessel_ownership.individual_owner:
+                    return True
+
+        return False
 
 
 class ProposalApplicant(RevisionedMixin):
@@ -2619,26 +2664,13 @@ class WaitingListApplication(Proposal):
             self.proposal_applicant.email_user_id == request.user.id)
             ):
 
-            #(!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged || this.vesselOwnershipChanged)
-            #first submit true false true false false
-
-            #maybe not
-            #(self.proposal_type and (self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or self.proposal_type.code == PROPOSAL_TYPE_RENEWAL) and
-            #())
-
             if (not self.vessel_on_proposal() or
                 self.mooring_preference_changed() or
-                self.has_higher_vessel_category()
+                self.has_higher_vessel_category() or
+                not self.keeping_current_vessel() or
+                self.vessel_ownership_changed()
                 ):
-                self.auto_approve = False
-
-            #if there is no vessel recorded for the proposal OR DONE
-            #the proposal is a renewal/amendment AND (
-            #the mooring preference has changed for renewal/amendment OR
-            #said vessel is NOT being kept for renewal/amendment OR
-            #the vessel has changed to a "higher" category for renewal/amendment OR
-            #the vessel ownership has changed for renewal/amendment)
-            
+                self.auto_approve = False        
 
             self.auto_approve = True
             self.save()

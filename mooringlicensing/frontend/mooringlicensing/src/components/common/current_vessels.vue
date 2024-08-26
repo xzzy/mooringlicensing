@@ -165,29 +165,7 @@ from '@/utils/hooks'
                     this.keep_current_vessel = this.proposal.keep_existing_vessel
                     this.resetCurrentVessel()
                 }
-            } else {
-                // Shouldn't reach here.  There should be a proposal.
-            }
-
-            // if (this.proposal && this.proposal.proposal_type.code == 'new' && this.proposal.processing_status != 'Draft'){
-            //     console.log('mounted1')
-            //     this.keep_current_vessel = true
-            //     this.resetCurrentVessel()
-            // } else if (this.proposal && !this.proposal.keep_existing_vessel) {
-            //     console.log('mounted2')
-            //     this.keep_current_vessel = false
-            //     this.resetCurrentVessel()
-            // } else if (!this.vesselExists){
-            //     console.log('mounted3')
-            //     this.keep_current_vessel = false
-            //     this.resetCurrentVessel()
-            // } else if (this.proposal && this.proposal.proposal_type.code == 'swap_moorings'){
-            //     // When swap moorings, always keep the current vessel
-            //     this.keep_current_vessel = true
-            //     this.resetCurrentVessel()
-            // } else {
-            //     console.log('mounted4')
-            // }
+            } 
         },
         created: function() {
         },
