@@ -2671,9 +2671,10 @@ class WaitingListApplication(Proposal):
                 self.vessel_ownership_changed()
                 ):
                 self.auto_approve = False        
-
-            self.auto_approve = True
-            self.save()
+                self.save()
+            else:
+                self.auto_approve = True
+                self.save()
         
 
     def validate_against_existing_proposals_and_approvals(self):
