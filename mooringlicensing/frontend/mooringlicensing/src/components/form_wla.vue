@@ -304,9 +304,12 @@ export default {
             }
             this.$nextTick(async () => {
                 // auto approve
+                console.log(!this.proposal.vessel_on_proposal, this.higherVesselCategory, !this.keepCurrentVessel, this.mooringPreferenceChanged, this.vesselOwnershipChanged)
                 if (!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged || this.vesselOwnershipChanged) {
+                    console.log("AUTOAPPROVE FALSE")
                     await this.$emit("updateAutoApprove", false);
                 } else {
+                    console.log("AUTOAPPROVE TRUE")
                     await this.$emit("updateAutoApprove", true);
                 }
             })

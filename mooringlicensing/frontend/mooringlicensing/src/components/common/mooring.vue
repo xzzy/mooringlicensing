@@ -65,7 +65,7 @@ from '@/utils/hooks'
             mooringPreferenceChanged: async function() {
                 console.log("mooringPrefChanged");
                 let preferenceChanged = false;
-                if (this.proposal.previous_application_preferred_bay !== this.selectedMooring) {
+                if (this.proposal.previous_application_preferred_bay_id !== this.selectedMooring) {
                     preferenceChanged = true;
                 }
                 this.$emit("mooringPreferenceChanged", preferenceChanged);

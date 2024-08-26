@@ -27,7 +27,11 @@ from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
-    construct_dict_from_docs, save_proponent_data, create_proposal_applicant, change_proposal_applicant
+    construct_dict_from_docs, 
+    save_proponent_data, 
+    create_proposal_applicant, 
+    change_proposal_applicant, 
+    get_max_vessel_length_for_main_component,
 )
 from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
     ProposalType, ProposalApplicant, VesselRegistrationDocument
@@ -1771,58 +1775,15 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['GET',], detail=True)
     def get_max_vessel_length_for_main_component(self, request, *args, **kwargs):
         try:
-            from mooringlicensing.components.payments_ml.models import FeeConstructor
-
             proposal = self.get_object()
             logger.info(f'Calculating the max vessel length for the main component without any additional cost for the Proposal: [{proposal}]...')
 
-            ### test
-            max_vessel_length = (0, True)  # (length, include_length)
-            get_out_of_loop = False
-            while True:
-                if proposal.application_fees.all():
-                    for application_fee in proposal.application_fees.all():
-                        for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
-                            if fee_item_application_fee.application_fee.proposal.application_type == fee_item_application_fee.fee_item.fee_constructor.application_type:
-                                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] is the main component of the proposal: [{proposal}]')
-                                length_tuple = fee_item_application_fee.get_max_allowed_length()
-                                if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
-                                    max_vessel_length = length_tuple
-                            else:
-                                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] is not the main component of the proposal: [{proposal}]')
-
-                if get_out_of_loop:
-                    break
-
-                # Retrieve the previous application
-                proposal = proposal.previous_application
-
-                if not proposal:
-                    # No previous application exists.  Get out of the loop
-                    break
-                else:
-                    # Previous application exists
-                    if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
-                        # Previous application is 'new'/'renewal'
-                        # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
-                        get_out_of_loop = True
+            max_vessel_length = get_max_vessel_length_for_main_component(proposal)
 
             res = {'max_length': max_vessel_length[0], 'include_max_length': max_vessel_length[1]}
             logger.info(f'Max vessel length for the main component without any additional cost is [{res}].')
 
             return Response(res)
-            ###
-
-            # if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT,]:
-            #     current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
-            #     target_date = proposal.get_target_date(current_datetime.date())
-            #
-            #     max_amount_paid = proposal.get_max_amount_paid_for_main_component()
-            #
-            #     fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(proposal.application_type, target_date)
-            #     max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
-            #
-            # return Response({'max_length': max_length})
 
         except Exception as e:
             print(traceback.print_exc())

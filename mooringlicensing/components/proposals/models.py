@@ -2352,6 +2352,31 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def validate_against_existing_proposals_and_approvals(self):
         self.child_obj.validate_against_existing_proposals_and_approvals()
 
+    #determines if the preferred mooring bay has changed (evaluate as true if the bay has been chosen for the first time for the application)
+    def mooring_preference_changed(self):
+        
+        previous_application_preferred_bay_id = None
+        if self.previous_application and self.previous_application.preferred_bay:
+            previous_application_preferred_bay_id = self.previous_application.preferred_bay.id
+
+        if self.preferred_bay_id != previous_application_preferred_bay_id:
+            return True
+
+        return False
+
+    #determines if the vessel category has increased for a vessel recorded on the application
+    def has_higher_vessel_category(self):
+
+        #if (this.max_vessel_length_with_no_payment !== null &&
+        #    (this.max_vessel_length_with_no_payment.max_length < length ||
+        #        this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
+        #    // vessel length is in higher category
+        #    this.higherVesselCategory = true;
+        #} else {
+        #    this.higherVesselCategory = false;
+        #}
+        pass
+
 
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
@@ -2588,9 +2613,36 @@ class WaitingListApplication(Proposal):
     
     def set_auto_approve(self,request):
         #check WLA auto approval conditions
+        if (self.has_assessor_mode(request) or 
+            self.has_approver_mode(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
 
-        #for WLA (and AAA) auto-approve just means if it is paid for right away
-        pass
+            #(!this.proposal.vessel_on_proposal || this.higherVesselCategory || !this.keepCurrentVessel || this.mooringPreferenceChanged || this.vesselOwnershipChanged)
+            #first submit true false true false false
+
+            #maybe not
+            #(self.proposal_type and (self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or self.proposal_type.code == PROPOSAL_TYPE_RENEWAL) and
+            #())
+
+            if (not self.vessel_on_proposal() or
+                self.mooring_preference_changed() or
+                self.has_higher_vessel_category()
+                ):
+                self.auto_approve = False
+
+            #if there is no vessel recorded for the proposal OR DONE
+            #the proposal is a renewal/amendment AND (
+            #the mooring preference has changed for renewal/amendment OR
+            #said vessel is NOT being kept for renewal/amendment OR
+            #the vessel has changed to a "higher" category for renewal/amendment OR
+            #the vessel ownership has changed for renewal/amendment)
+            
+
+            self.auto_approve = True
+            self.save()
+        
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
@@ -2865,8 +2917,8 @@ class AnnualAdmissionApplication(Proposal):
 
     def set_auto_approve(self,request):
         #check AAA auto approval conditions
-        #for AAA (and WLA) auto-approve just means if it is paid for right away
-        #and for AAA it always is
+        #for AAA auto-approve just means if it is paid for right away
+        #and it always is
         if (self.has_assessor_mode(request) or 
             self.has_approver_mode(request) or
             (self.proposal_applicant and 
@@ -3361,7 +3413,15 @@ class AuthorisedUserApplication(Proposal):
 
     def set_auto_approve(self,request):
         #check AUP auto approval conditions
-        pass
+        if (self.has_assessor_mode(request) or 
+            self.has_approver_mode(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+
+
+            self.auto_approve = True
+            self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))

@@ -1195,3 +1195,37 @@ def get_file_content_http_response(file_path):
             response = HttpResponse(f, content_type=mime_type_guess[0])
         response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
         return response
+    
+def get_max_vessel_length_for_main_component(proposal):
+
+    max_vessel_length = (0, True)  # (length, include_length)
+    get_out_of_loop = False
+    #TODO improve this.
+    while True:
+        for application_fee in proposal.application_fees.all():
+            for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
+                if fee_item_application_fee.application_fee.proposal.application_type == fee_item_application_fee.fee_item.fee_constructor.application_type:
+                    logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] is the main component of the proposal: [{proposal}]')
+                    length_tuple = fee_item_application_fee.get_max_allowed_length()
+                    if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
+                        max_vessel_length = length_tuple
+                else:
+                    logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] is not the main component of the proposal: [{proposal}]')
+
+        if get_out_of_loop:
+            break
+
+        # Retrieve the previous application
+        proposal = proposal.previous_application
+
+        if not proposal:
+            # No previous application exists.  Get out of the loop
+            break
+        else:
+            # Previous application exists
+            if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,]:
+                # Previous application is 'new'/'renewal'
+                # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
+                get_out_of_loop = True
+
+    return max_vessel_length
