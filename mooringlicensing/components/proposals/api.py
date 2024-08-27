@@ -1739,7 +1739,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             is_authorised_to_modify(request, instance)
             save_proponent_data(instance,request,self.action)
-            return redirect(reverse('external'))
+            instance = self.get_object()
+            serializer = self.serializer_class(instance, context={'request':request})
+            return Response(serializer.data)
         
     @detail_route(methods=['post'], detail=True)
     @renderer_classes((JSONRenderer,))

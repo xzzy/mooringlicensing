@@ -69,7 +69,6 @@
                         :key="computedProposalId"
                         @profile-fetched="populateProfile"
                         @updateSubmitText="updateSubmitText"
-                        @updateAutoApprove="updateAutoApprove"
                     />
 
                     <AnnualAdmissionApplication
@@ -83,7 +82,6 @@
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
                         @updateSubmitText="updateSubmitText"
-                        @updateAutoApprove="updateAutoApprove"
                     />
                     <AuthorisedUserApplication
                         v-if="proposal && proposal.application_type_dict.code==='aua'"
@@ -95,7 +93,6 @@
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
                         @updateSubmitText="updateSubmitText"
-                        @updateAutoApprove="updateAutoApprove"
                     />
                     <MooringLicenceApplication
                         v-if="proposal && proposal.application_type_dict.code==='mla'"
@@ -108,7 +105,6 @@
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
                         @updateSubmitText="updateSubmitText"
-                        @updateAutoApprove="updateAutoApprove"
                     />
                 </template>
                 <template v-if="display_requirements">
@@ -206,7 +202,6 @@ export default {
     data: function() {
         let vm = this;
         return {
-            autoApprove: false,
             profile: {},
             savingProposal: false,
             submittingProposal: false,
@@ -557,11 +552,6 @@ export default {
 
             return payload;
         },
-        updateAutoApprove: function(approve) {
-            this.autoApprove = approve;
-            console.log('%cin updateAutoApprove', 'color: #990000')
-            console.log(this.autoApprove)
-        },
         updateSubmitText: function(submitText) {
             this.submitText = submitText;
         },
@@ -587,6 +577,9 @@ export default {
                 //we do not want to update that data if we need to immediately redirect (save_and_pay)
                 if (updateProposalData) {
                     vm.proposal = res.body;
+                }
+                if (res.body.auto_approve !== undefined) {
+                    vm.proposal.auto_approve = res.body.auto_approve;
                 }
                 vm.savingProposal=false;
                 this.submitRes = true;               
@@ -669,7 +662,7 @@ export default {
                     if (this.submitRes) {
                         let payload = this.buildPayload();
                         payload.csrfmiddlewaretoken = this.csrf_token;
-                        if (this.autoApprove) {
+                        if (this.proposal.auto_approve) {
                             this.post_and_redirect(this.application_fee_url, payload);
                         } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
                             this.post_and_redirect(this.application_fee_url, payload);

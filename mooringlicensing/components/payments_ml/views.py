@@ -399,7 +399,7 @@ class ApplicationFeeView(TemplateView):
             #check for auto approval
             auto_approved = is_authorised_to_pay_auto_approved(request,proposal)
             if not auto_approved:
-                is_authorised_to_modify(request, proposal) #TODO or is being paid after being auto approved...
+                is_authorised_to_modify(request, proposal)
             post_data_pre = request.POST
             post_data = {}
             for i in post_data_pre:
@@ -409,7 +409,7 @@ class ApplicationFeeView(TemplateView):
                     continue
 
             setattr(request,"data",post_data)
-            save_proponent_data(proposal, request, "submit")
+            save_proponent_data(proposal, request, "submit", auto_approved)
 
             proposal = self.get_object()
             is_applicant_address_set(proposal)

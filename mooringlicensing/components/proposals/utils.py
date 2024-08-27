@@ -345,12 +345,12 @@ class SpecialFieldsSearch(object):
             item_data[item['name']] = item_data_list
         return item_data
 
-def save_proponent_data(instance, request, action):
+def save_proponent_data(instance, request, action, being_auto_approved=False):
 
     if (
         (instance.proposal_applicant and 
          instance.proposal_applicant.email_user_id == request.user.id and 
-         instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT)
+         (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT) or being_auto_approved)
         or instance.has_assessor_mode(request.user)
         or instance.has_approver_mode(request.user)
     ):
