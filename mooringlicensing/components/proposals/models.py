@@ -4581,8 +4581,9 @@ class Vessel(RevisionedMixin):
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
-        proposals_filter &= ~Q(processing_status__in=[  # Blocking proposal's status is not the statuses listed
+        proposals_filter &= ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
             Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER, #it is possible for an approval to expire before the sticker has printed
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_EXPIRED,
             Proposal.PROCESSING_STATUS_DISCARDED,

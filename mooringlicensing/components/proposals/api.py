@@ -2290,7 +2290,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             owner = Owner.objects.filter(emailuser=user.id)
             if owner:
-                queryset = owner[0].vessels.all()
+                queryset = owner.first().vessels.distinct()
         return queryset
 
     @detail_route(methods=['POST',], detail=True)
