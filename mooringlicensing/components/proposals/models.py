@@ -2340,7 +2340,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             vessel_exists = (True if
                     self.approval and self.approval.current_proposal and 
                     self.approval.current_proposal.vessel_details and
-                    not self.approval.current_proposal.vessel_ownership.end_date
+                    not self.approval.current_proposal.vessel_ownership.end_date #end_date means sold
                     else False)
         else:
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
@@ -2352,6 +2352,101 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def validate_against_existing_proposals_and_approvals(self):
         self.child_obj.validate_against_existing_proposals_and_approvals()
 
+    #determines if the preferred mooring bay has changed (evaluate as true if the bay has been chosen for the first time for the application)
+    def mooring_preference_changed(self):
+        
+        previous_application_preferred_bay_id = None
+        if self.previous_application and self.previous_application.preferred_bay:
+            previous_application_preferred_bay_id = self.previous_application.preferred_bay.id
+
+        if self.preferred_bay_id != previous_application_preferred_bay_id:
+            return True
+
+        return False
+
+    #determines if the vessel category has increased for a vessel recorded on the application
+    def has_higher_vessel_category(self):
+        from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
+        max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
+        length = 0
+        if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
+            max_vessel_length_with_no_payment[0] == self.vessel_length and
+            not max_vessel_length_with_no_payment[1])):
+            return True
+        return False
+    
+    def keeping_current_vessel(self):
+        #on client-side check, user input is used to determine this value when the proposal vessel registration has already been saved
+        #however, no such check is required to determine if the vessel is being kept or not - 
+        # we just need to check if the proposal's vessel registration is the same or not
+
+        previous_rego_no = None
+        if (self.previous_application and 
+            self.previous_application and 
+            self.previous_application.vessel_details and
+            self.previous_application.vessel_details.vessel and
+            self.previous_application.vessel_ownership and
+            not self.previous_application.vessel_ownership.end_date): #end_date means sold
+            previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
+
+        if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
+                previous_rego_no == self.vessel_details.vessel.rego_no):
+                return True
+        
+        return False
+    
+    def vessel_ownership_changed(self):
+
+        previous_ownership = None
+        if self.previous_application:
+            previous_ownership = self.previous_application.vessel_ownership
+        
+        if previous_ownership and self.vessel_ownership:
+            previous_company_ownership = previous_ownership.get_latest_company_ownership()
+            company_ownership = self.vessel_ownership.get_latest_company_ownership()
+            if previous_company_ownership:
+                if self.vessel_ownership.individual_owner:
+                    return True
+                elif company_ownership:
+                    if (previous_company_ownership.company and company_ownership.company and
+                        previous_company_ownership.company.name.strip() != company_ownership.company.name.strip()
+                    ):
+                        return True
+                    if (previous_company_ownership.percentage and company_ownership.percentage and
+                        previous_company_ownership.percentage != company_ownership.percentage
+                    ):
+                        return True
+            else:
+                if not self.vessel_ownership.individual_owner:
+                    return True
+
+        return False
+
+    def mooring_changed(self):
+        #on client-side check, user input is used to determine this value when the selected mooring has already been saved
+        #however, no such check is required to determine if a new mooring is being selected or not - 
+        # we just need to check if the proposal's mooring is the same or not
+
+        #check
+        if self.previous_application:
+            if (self.mooring_authorisation_preference != self.previous_application.mooring_authorisation_preference):
+                return True
+            #TODO do we need check preference changes? probably not
+            #elif self.mooring_authorisation_preference == 'ria':
+            #    #bay_preferences_numbered if ria
+            #    #remove uncommon elements from both lists in case bays are added/removed
+            #    uncommon = list(set(self.bay_preferences_numbered) ^ set(self.previous_application.bay_preferences_numbered))
+            #    bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.bay_preferences_numbered))
+            #    previous_bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.previous_application.bay_preferences_numbered))
+            #    if bay_preferences_numbered != previous_bay_preferences_numbered:
+            #        return True
+            elif self.mooring_authorisation_preference == 'site_licensee':
+                #mooring_id if site license
+                #TODO licensee need to checked as well? probably not
+                if (self.mooring_id != self.previous_application.mooring_id):
+                    return True
+
+        return False
 
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
@@ -2586,6 +2681,27 @@ class WaitingListApplication(Proposal):
     class Meta:
         app_label = 'mooringlicensing'
     
+    def set_auto_approve(self,request):
+        #check WLA auto approval conditions
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+
+            if (not self.vessel_on_proposal() or
+                self.mooring_preference_changed() or
+                self.has_higher_vessel_category() or
+                not self.keeping_current_vessel() or
+                self.vessel_ownership_changed()
+                ):
+                self.auto_approve = False        
+                self.save()
+            else:
+                self.auto_approve = True
+                self.save()
+        
+
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -2856,6 +2972,18 @@ class AnnualAdmissionApplication(Proposal):
     new_application_text = "I want to apply for an annual admission permit"
     apply_page_visibility = True
     description = 'Annual Admission Application'
+
+    def set_auto_approve(self,request):
+        #check AAA auto approval conditions
+        #for AAA auto-approve just means if it is paid for right away
+        #and it always is
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+            self.auto_approve = True
+            self.save()
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
@@ -3340,6 +3468,33 @@ class AuthorisedUserApplication(Proposal):
             return self.previous_application.child_obj.get_mooring_authorisation_preference()
         else:
             return self.mooring_authorisation_preference
+
+    def set_auto_approve(self,request):
+        #check AUP auto approval conditions
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+
+            #check if amendment or renewal
+            if self.proposal_type and (
+                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                if (not self.vessel_on_proposal() or
+                    self.mooring_changed() or
+                    self.has_higher_vessel_category() or
+                    not self.keeping_current_vessel() or
+                    self.vessel_ownership_changed()
+                    ):
+                    self.auto_approve = False
+                    self.save()
+                else:
+                    self.auto_approve = True
+                    self.save()
+            else:
+                self.auto_approve = False
+                self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -3868,6 +4023,32 @@ class MooringLicenceApplication(Proposal):
         # ret_value = send_submit_email_notification(request, self)
         # TODO: Send email (payment success, granted/printing-sticker)
         return True
+
+    def set_auto_approve(self,request):
+        #check AUP auto approval conditions
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+
+            #check if amendment or renewal
+            if self.proposal_type and (
+                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                if (not self.vessel_on_proposal() or
+                    self.has_higher_vessel_category() or
+                    not self.keeping_current_vessel() or
+                    self.vessel_ownership_changed()
+                    ):
+                    self.auto_approve = False
+                    self.save()
+                else:
+                    self.auto_approve = True
+                    self.save()
+            else:
+                self.auto_approve = False
+                self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -4400,13 +4581,16 @@ class Vessel(RevisionedMixin):
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
-        proposals_filter &= ~Q(processing_status__in=[  # Blocking proposal's status is not the statuses listed
+        proposals_filter &= ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
             Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER, #it is possible for an approval to expire before the sticker has printed
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_EXPIRED,
             Proposal.PROCESSING_STATUS_DISCARDED,
         ])
         proposals_filter &= ~Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
+        if proposal_being_processed.previous_application:
+            proposals_filter &= ~Q(id=proposal_being_processed.previous_application.id)  # also exclude the "previous application", should this application be a renewal or amendment
 
         blocking_proposals = Proposal.objects.filter(proposals_filter)
         for bp in blocking_proposals:

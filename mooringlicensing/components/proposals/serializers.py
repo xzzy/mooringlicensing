@@ -231,8 +231,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'proposal_applicant',
                 'uuid',
                 'amendment_requests',
+                'auto_approve',
                 )
-        read_only_fields=('documents',)
+        read_only_fields=('documents','auto_approve')
 
     def get_amendment_requests(self, obj):
         data = None
@@ -675,7 +676,6 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                 'silent_elector',
                 'temporary_document_collection_id',
                 'keep_existing_vessel',
-                'auto_approve', #TODO: if auto approve is supposed to be strictly based on other values we should NOT let the client set it
                 )
         read_only_fields=('id',)
 
@@ -714,7 +714,6 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
                 'insurance_choice',
                 'temporary_document_collection_id',
                 'keep_existing_vessel',
-                'auto_approve',
                 )
         read_only_fields=('id',)
 
@@ -752,7 +751,6 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 'processing_status',
                 'temporary_document_collection_id',
                 'keep_existing_vessel',
-                'auto_approve',
                 )
         read_only_fields=('id',)
 
@@ -816,7 +814,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'temporary_document_collection_id',
                 'keep_existing_mooring',
                 'keep_existing_vessel',
-                'auto_approve',
                 )
         read_only_fields=('id',)
 

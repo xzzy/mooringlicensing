@@ -38,7 +38,6 @@
                 ref="waiting_list_application"
                 :showElectoralRoll="showElectoralRoll"
                 :readonly="readonly"
-                @updateAutoApprove="updateAutoApprove"
                 @updateSubmitText="updateSubmitText"
                 @vesselChanged="updateVesselChanged"
                 @mooringPreferenceChanged="updateMooringPreference"
@@ -54,7 +53,6 @@
                 ref="annual_admission_application"
                 :showElectoralRoll="showElectoralRoll"
                 :readonly="readonly"
-                @updateAutoApprove="updateAutoApprove"
                 @updateSubmitText="updateSubmitText"
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
@@ -68,7 +66,6 @@
                 ref="authorised_user_application"
                 :readonly="readonly"
                 @updateSubmitText="updateSubmitText"
-                @updateAutoApprove="updateAutoApprove"
                 @vesselChanged="updateVesselChanged"
                 @changeMooring="updateMooringAuth"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
@@ -83,7 +80,6 @@
                 :showElectoralRoll="showElectoralRoll"
                 :readonly="readonly"
                 @updateSubmitText="updateSubmitText"
-                @updateAutoApprove="updateAutoApprove"
                 @vesselChanged="updateVesselChanged"
                 @updateVesselOwnershipChanged="updateVesselOwnershipChanged"
                 @noVessel="noVessel"
@@ -187,7 +183,6 @@ export default {
       mooringPreferenceChanged: false,
       vesselOwnershipChanged: false,
       submitText: "Submit",
-      autoApprove: false,
       missingVessel: false,
       // add_vessel: false,
       profile_original: {},
@@ -395,11 +390,6 @@ export default {
     noVessel: function(noVessel) {
         this.missingVessel = noVessel;
     },
-    updateAutoApprove: function(approve) {
-        this.autoApprove = approve;
-        console.log('%cin updateAutoApprove', 'color: #990000')
-        console.log(this.autoApprove)
-    },
     updateMooringAuth: function(changed) {
         this.mooringOptionsChanged = changed;
         //console.log("updateMooringAuth");
@@ -464,6 +454,9 @@ export default {
                     'success'
                 );
             };
+            if (res.body.auto_approve !== undefined) {
+                vm.proposal.auto_approve = res.body.auto_approve;
+            }
             vm.savingProposal=false;
             this.submitRes = true;
             return res;
@@ -507,7 +500,7 @@ export default {
                 if (this.submitRes) {
                     let payload = this.buildPayload();
                     payload.csrfmiddlewaretoken = this.csrf_token;
-                    if (this.autoApprove) {
+                    if (this.proposal.auto_approve) {
                         this.post_and_redirect(this.application_fee_url, payload);
                     } else if (['wla', 'aaa'].includes(this.proposal.application_type_code)) {
                         this.post_and_redirect(this.application_fee_url, payload);

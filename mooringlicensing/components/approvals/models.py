@@ -901,10 +901,19 @@ class Approval(RevisionedMixin):
                 if self.status == Approval.APPROVAL_STATUS_CURRENT and self.expiry_date < today:
                     self.status = Approval.APPROVAL_STATUS_EXPIRED
                     self.save()
+                    #expire any associated sticker
+                    do_not_expire = [Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_LOST]
+                    stickers = Sticker.objects.filter(approval=self).exclude(status__in=do_not_expire)
+
                     send_approval_expire_email_notification(self)
                     proposal = self.current_proposal
                     ApprovalUserAction.log_action(self, ApprovalUserAction.ACTION_EXPIRE_APPROVAL.format(self.id), user)
                     ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_EXPIRED_APPROVAL_.format(proposal.id), user)
+
+                    for sticker in stickers:
+                        sticker.status = Sticker.STICKER_STATUS_EXPIRED
+                        sticker.save()
+                        logger.info(f'Status: [{Sticker.STICKER_STATUS_EXPIRED}] has been set to the sticker: [{sticker}]')
             except:
                 raise
 

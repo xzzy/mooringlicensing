@@ -76,6 +76,13 @@ def is_customer(request):
 def is_internal(request):
     return is_departmentUser(request)
 
+def is_authorised_to_pay_auto_approved(request, instance):
+    if (instance.auto_approve and 
+        (request.user.email == instance.applicant_email or is_internal(request))
+        ):
+        return True
+    return False
+
 def is_authorised_to_modify(request, instance):
     authorised = True
 

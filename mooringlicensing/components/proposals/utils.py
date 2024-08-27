@@ -47,6 +47,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     AuthorisedUserPermit, Approval
 )
+from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
 from mooringlicensing.components.users.serializers import UserSerializer
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.ledger_models import EmailUserRO
@@ -344,12 +345,12 @@ class SpecialFieldsSearch(object):
             item_data[item['name']] = item_data_list
         return item_data
 
-def save_proponent_data(instance, request, action):
+def save_proponent_data(instance, request, action, being_auto_approved=False):
 
     if (
         (instance.proposal_applicant and 
          instance.proposal_applicant.email_user_id == request.user.id and 
-         instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT)
+         (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT) or being_auto_approved)
         or instance.has_assessor_mode(request.user)
         or instance.has_approver_mode(request.user)
     ):
@@ -362,7 +363,7 @@ def save_proponent_data(instance, request, action):
         elif type(instance.child_obj) == AuthorisedUserApplication:
             save_proponent_data_aua(instance, request, action)
         elif type(instance.child_obj) == MooringLicenceApplication:
-            save_proponent_data_mla(instance, request, action)
+            save_proponent_data_mla(instance, request, action) 
 
         if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
             # Save request.user details in a JSONField not to overwrite the details of it.
@@ -375,6 +376,8 @@ def save_proponent_data(instance, request, action):
             except Exception as e:
                 print(e)
                 raise serializers.ValidationError("error")
+            
+        instance.child_obj.set_auto_approve(request)
     else:
         raise serializers.ValidationError("user not authorised to update applicant details")
 
@@ -1205,3 +1208,38 @@ def get_file_content_http_response(file_path):
             response = HttpResponse(f, content_type=mime_type_guess[0])
         response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
         return response
+    
+
+def get_max_vessel_length_for_main_component(proposal):
+    #get the max vessel allowed before payment change is required
+    max_vessel_length = (0, True)  # (length, include_length)
+
+    proposal_application_type = proposal.application_type    
+    proposal_id_list = []
+    continue_loop = True
+    first = True
+
+    #populate the proposal id list with all previous applications, up to the latest renewal or new application
+    #include the latest renewal (if any) but stop checking previous applications after that
+    #if the current application is a renewal, still check the previous applications until another renewal/new is found
+    while continue_loop:
+        if proposal.id in proposal_id_list:
+            continue_loop = False
+            break
+        proposal_id_list.append(proposal.id)
+        if (proposal.previous_application and 
+            proposal.proposal_type and 
+            (not proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,] or first)):
+            proposal = proposal.previous_application
+        else:
+            continue_loop = False
+        if first:
+            first = False
+
+    fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee__proposal_id__in=proposal_id_list).filter(fee_item__fee_constructor__application_type=proposal_application_type)
+    for fee_item_application_fee in fee_item_application_fees:     
+        length_tuple = fee_item_application_fee.get_max_allowed_length()
+        if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
+            max_vessel_length = length_tuple
+
+    return max_vessel_length
