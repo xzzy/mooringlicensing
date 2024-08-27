@@ -157,10 +157,17 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
-
         if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
             raise ValidationError('You cannot endorse/decline the application not in awaiting-endorsement status')
-
+        
+        # checking if the user hold an active mooring licence
+        try:
+            mooring_status =  Mooring.objects.get(id=proposal.mooring_id).mooring_licence.status
+        except:
+            raise ValidationError('There is no mooring licence for this mooring')
+        if(mooring_status != 'current'):
+            raise ValidationError('You do not hold an active mooring site licence to endorse/decline the application')
+        
         action = self.kwargs['action']
         if action == 'endorse':
             self.template_name = 'mooringlicensing/proposals/authorised_user_application_endorsed.html'
