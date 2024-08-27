@@ -2422,6 +2422,31 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         return False
 
+    def mooring_changed(self):
+        #on client-side check, user input is used to determine this value when the selected mooring has already been saved
+        #however, no such check is required to determine if a new mooring is being selected or not - 
+        # we just need to check if the proposal's mooring is the same or not
+
+        #check
+        if self.previous_application:
+            if (self.mooring_authorisation_preference != self.previous_application.mooring_authorisation_preference):
+                return True
+            #TODO do we need check preference changes? probably not
+            #elif self.mooring_authorisation_preference == 'ria':
+            #    #bay_preferences_numbered if ria
+            #    #remove uncommon elements from both lists in case bays are added/removed
+            #    uncommon = list(set(self.bay_preferences_numbered) ^ set(self.previous_application.bay_preferences_numbered))
+            #    bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.bay_preferences_numbered))
+            #    previous_bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.previous_application.bay_preferences_numbered))
+            #    if bay_preferences_numbered != previous_bay_preferences_numbered:
+            #        return True
+            elif self.mooring_authorisation_preference == 'site_licensee':
+                #mooring_id if site license
+                #TODO licensee need to checked as well? probably not
+                if (self.mooring_id != self.previous_application.mooring_id):
+                    return True
+
+        return False
 
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
@@ -3452,9 +3477,19 @@ class AuthorisedUserApplication(Proposal):
             self.proposal_applicant.email_user_id == request.user.id)
             ):
 
-
-            self.auto_approve = True
-            self.save()
+            #check if amendment or renewal
+            if self.proposal_type == PROPOSAL_TYPE_AMENDMENT or self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+                if (not self.vessel_on_proposal() or
+                    self.mooring_changed() or
+                    self.has_higher_vessel_category() or
+                    not self.keeping_current_vessel() or
+                    self.vessel_ownership_changed()
+                    ):
+                    self.auto_approve = False
+                    self.save()
+                else:
+                    self.auto_approve = True
+                    self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))

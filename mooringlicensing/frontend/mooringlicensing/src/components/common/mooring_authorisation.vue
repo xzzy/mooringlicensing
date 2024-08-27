@@ -126,7 +126,7 @@ import draggable from 'vuedraggable';
                 if (this.proposal.bay_preferences_numbered) {
                     let newArray = [];
                     for (let n of this.proposal.bay_preferences_numbered) {
-                        const found = response.body.find(el => el.id === n);
+                        const found = response.body.results.find(el => el.id === n);
                         newArray.push(found);
                     }
                     // read ordered array into Vue array
