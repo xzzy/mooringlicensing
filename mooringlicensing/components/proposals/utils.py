@@ -363,7 +363,7 @@ def save_proponent_data(instance, request, action):
         elif type(instance.child_obj) == AuthorisedUserApplication:
             save_proponent_data_aua(instance, request, action)
         elif type(instance.child_obj) == MooringLicenceApplication:
-            save_proponent_data_mla(instance, request, action)
+            save_proponent_data_mla(instance, request, action) 
 
         if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
             # Save request.user details in a JSONField not to overwrite the details of it.
@@ -376,6 +376,8 @@ def save_proponent_data(instance, request, action):
             except Exception as e:
                 print(e)
                 raise serializers.ValidationError("error")
+            
+        instance.child_obj.set_auto_approve(request)
     else:
         raise serializers.ValidationError("user not authorised to update applicant details")
 

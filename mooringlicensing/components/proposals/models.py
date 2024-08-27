@@ -2369,8 +2369,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
         max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
         length = 0
-        if (max_vessel_length_with_no_payment[0] < self.vessl_length or (
-            max_vessel_length_with_no_payment[0] == self.vessl_length and
+        if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
+            max_vessel_length_with_no_payment[0] == self.vessel_length and
             not max_vessel_length_with_no_payment[1])):
             return True
         return False
@@ -2683,8 +2683,8 @@ class WaitingListApplication(Proposal):
     
     def set_auto_approve(self,request):
         #check WLA auto approval conditions
-        if (self.has_assessor_mode(request) or 
-            self.has_approver_mode(request) or
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):
@@ -2977,8 +2977,8 @@ class AnnualAdmissionApplication(Proposal):
         #check AAA auto approval conditions
         #for AAA auto-approve just means if it is paid for right away
         #and it always is
-        if (self.has_assessor_mode(request) or 
-            self.has_approver_mode(request) or
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):
@@ -3471,14 +3471,16 @@ class AuthorisedUserApplication(Proposal):
 
     def set_auto_approve(self,request):
         #check AUP auto approval conditions
-        if (self.has_assessor_mode(request) or 
-            self.has_approver_mode(request) or
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):
 
             #check if amendment or renewal
-            if self.proposal_type == PROPOSAL_TYPE_AMENDMENT or self.proposal_type == PROPOSAL_TYPE_RENEWAL:
+            if self.proposal_type and (
+                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
                 if (not self.vessel_on_proposal() or
                     self.mooring_changed() or
                     self.has_higher_vessel_category() or
@@ -3490,6 +3492,9 @@ class AuthorisedUserApplication(Proposal):
                 else:
                     self.auto_approve = True
                     self.save()
+            else:
+                self.auto_approve = False
+                self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -4020,8 +4025,30 @@ class MooringLicenceApplication(Proposal):
         return True
 
     def set_auto_approve(self,request):
-        #check MLA auto approval conditions
-        pass
+        #check AUP auto approval conditions
+        if (self.is_assessor(request) or 
+            self.is_approver(request) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
+
+            #check if amendment or renewal
+            if self.proposal_type and (
+                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                if (not self.vessel_on_proposal() or
+                    self.has_higher_vessel_category() or
+                    not self.keeping_current_vessel() or
+                    self.vessel_ownership_changed()
+                    ):
+                    self.auto_approve = False
+                    self.save()
+                else:
+                    self.auto_approve = True
+                    self.save()
+            else:
+                self.auto_approve = False
+                self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
