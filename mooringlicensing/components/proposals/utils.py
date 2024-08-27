@@ -493,7 +493,17 @@ def save_proponent_data_mla(instance, request, action):
 
 def save_proponent_data_aua(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
-    # vessel
+    mooring_id = request.data.get('proposal',{}).get('mooring_id')
+    # checking if the mooring licence for the mooring is active
+    if(mooring_id and action == 'submit'):
+        mooring_status = None
+        try:
+            mooring_status =  Mooring.objects.get(id=mooring_id).mooring_licence.status
+        except:
+            raise serializers.ValidationError('Mooring site licence for this mooring does not exist')
+        if(mooring_status != 'current'):
+            raise serializers.ValidationError('Mooring site licence for this mooring is not active')
+
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
         if ((action == 'submit' or (

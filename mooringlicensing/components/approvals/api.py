@@ -30,7 +30,7 @@ from ledger_api_client.utils import get_or_create
 
 from django.core.cache import cache
 from mooringlicensing import forms
-from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
+from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification, send_au_summary_to_ml_holder
 from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger, timeit
 from mooringlicensing.components.payments_ml.api import logger
 from mooringlicensing.components.payments_ml.models import FeePeriod, FeeSeason, FeeConstructor
@@ -1500,16 +1500,51 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
 def removeAUPFromMooring(request, mooring_id, approval_id):
     
     if is_internal(request):
-        instance = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
-        instance.active = False
-        instance.save()
+        moa = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
+        today=datetime.now(pytz.timezone(TIME_ZONE)).date()
+        # removing the link between Approval and MSL
+        moa.active = False
+        moa.end_date = today         
+        moa.save()
+        # regenerating Authorised User Permit after mooring has been removed
+        moa.approval.generate_doc()
+        # send_aup_revoked email if required
+        mooring = Mooring.objects.get(id=mooring_id)
+        moas = MooringOnApproval.objects.filter(mooring_id=mooring_id, active = True)
+        mls = MooringLicence.objects.filter(mooring=mooring)
+        if moas.count() > 0:
+            for ml in mls:
+                # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
+                ml.generate_au_summary_doc(request.user)
+                #send email to mooring licence owner if with the above attachement if required
+        else:
+            # removing the List of Authorised Users document if there is no more AUPs remaining 
+            mooring.mooring_licence.authorised_user_summary_document = None
         return HttpResponse({'Successfully Removed'})
         
 def removeMooringFromApproval(request, mooring_name, approval_id):
     
     if is_internal(request):
         mooring_id = Mooring.objects.get(name=mooring_name).pk
-        instance = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
-        instance.active = False
-        instance.save()
+        moa = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
+        today=datetime.now(pytz.timezone(TIME_ZONE)).date()
+        moa.active = False
+        moa.end_date = today         
+        moa.save()
+        # regenerating Authorised User Permit after mooring has been removed
+        moa.approval.generate_doc()
+        # send_aup_revoked email if required
+        mooring = Mooring.objects.get(id=mooring_id)
+        moas = MooringOnApproval.objects.filter(mooring_id=mooring_id, active = True)
+        mls = MooringLicence.objects.filter(mooring=mooring)
+        if moas.count() > 0:
+            for ml in mls:
+                # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
+                ml.generate_au_summary_doc(request.user)
+                #send email to mooring licence owner if with the above attachement if required
+        else:
+            # removing the List of Authorised Users document if there is no more AUPs remaining             
+            mooring.mooring_licence.authorised_user_summary_document = None
+        mooring.save()
+        mooring.mooring_licence.save()
         return HttpResponse({'Successfully Removed'})

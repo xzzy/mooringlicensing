@@ -399,6 +399,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     document_upload_url = serializers.SerializerMethodField()
     can_view_payment_details = serializers.SerializerMethodField()
     invoice_links = serializers.SerializerMethodField()
+    can_endorse = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -427,6 +428,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             'invoice_links',
             'mooring_authorisation_preference',
             'declined_by_endorser',
+            'can_endorse',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -455,6 +457,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             'invoice_links',
             'mooring_authorisation_preference',
             'declined_by_endorser',
+            'can_endorse',
         )
 
     def get_submitter(self, obj):
@@ -466,10 +469,13 @@ class ListProposalSerializer(BaseProposalSerializer):
             return ""
         
     def get_applicant(self, obj):
-        if obj.proposal_applicant:
-            user = retrieve_system_user(obj.proposal_applicant.email_user_id)
-            return UserSerializer(user).data
-        else:
+        try:
+            if obj.proposal_applicant:
+                user = retrieve_system_user(obj.proposal_applicant.email_user_id)
+                return UserSerializer(user).data
+            else:
+                return ""
+        except:
             return ""
 
     def get_invoice_links(self, proposal):
@@ -544,6 +550,15 @@ class ListProposalSerializer(BaseProposalSerializer):
             elif user in obj.allowed_assessors:
                 return True
         return False
+    def get_can_endorse(self,obj):
+        try:
+            mooring_status = Approval.objects.get(id=obj.mooring.mooring_licence.id).status
+            if(mooring_status == 'current'):
+                return True
+            return False
+        except:
+            return False
+        
 
 
 class ProposalForEndorserSerializer(BaseProposalSerializer):

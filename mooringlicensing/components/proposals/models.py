@@ -4121,6 +4121,7 @@ class MooringLicenceApplication(Proposal):
                     # Create new relation between the approval and the mooring
                     target_mooring.mooring_licence = approval
                     target_mooring.save()
+                    target_mooring.mooring_licence.authorised_user_summary_document = None
                     logger.info(f'Create a link between the MSL: [{approval}] and the mooring: [{target_mooring}].')
             else:
                 approval, approval_created = self.approval_class.objects.update_or_create(
@@ -4423,7 +4424,7 @@ class Mooring(RevisionedMixin):
                 active_mooring_on_approval.approval.manage_stickers()  
                 active_mooring_on_approval.approval.generate_doc()
                 send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
-
+        
 
     def __str__(self):
         return f'{self.name} (Bay: {self.mooring_bay.name})'
