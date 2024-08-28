@@ -4598,7 +4598,7 @@ class Vessel(RevisionedMixin):
 
         if blocking_proposals:
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active application")
 
         # 2. Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #    where Permit or Licence holder is an owner other than the applicant of this Waiting List application
@@ -4622,7 +4622,7 @@ class Vessel(RevisionedMixin):
         blocking_approvals = MooringLicence.objects.filter(ml_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Mooring Site Licence.')
-            raise serializers.ValidationError("Another owner of this vessel holds a current Mooring Site Licence")
+            raise serializers.ValidationError("This vessel is listed under a current Mooring Site Licence")
 
         ## 3. Other Approvals filter
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -4639,7 +4639,7 @@ class Vessel(RevisionedMixin):
         blocking_approvals = Approval.objects.filter(approval_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
+            raise serializers.ValidationError("This vessel is listed under a current Licence/Permit")
 
     @property
     def latest_vessel_details(self):
