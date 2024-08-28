@@ -4577,7 +4577,18 @@ class Vessel(RevisionedMixin):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
 
-        ## Requirement: If vessel is owned by multiple parties then there must be no
+        if proposal_being_processed.proposal_applicant:
+            if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
+                raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+        else:
+            raise serializers.ValidationError("No valid proposal applicant provided")
+        
+        #vessels can be:
+        # 1 on multiple active approvals IF owned by the same person
+        # 2 on only ONE active proposal at a time
+        # 3 by one owner only - other applicants may not use the vessel until the vessel has been sold (and all related proposals and approvals are no longer active)
+
+        ## Requirement: Vessel can only be listed as owned by one vessel owner until sold (with company ownership also considered)
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
@@ -4598,7 +4609,7 @@ class Vessel(RevisionedMixin):
 
         if blocking_proposals:
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active application")
 
         # 2. Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
         #    where Permit or Licence holder is an owner other than the applicant of this Waiting List application
@@ -4622,7 +4633,7 @@ class Vessel(RevisionedMixin):
         blocking_approvals = MooringLicence.objects.filter(ml_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Mooring Site Licence.')
-            raise serializers.ValidationError("Another owner of this vessel holds a current Mooring Site Licence")
+            raise serializers.ValidationError("This vessel is listed under a current Mooring Site Licence with another owner")
 
         ## 3. Other Approvals filter
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -4639,7 +4650,7 @@ class Vessel(RevisionedMixin):
         blocking_approvals = Approval.objects.filter(approval_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("Another owner of this vessel holds a current Licence/Permit")
+            raise serializers.ValidationError("This vessel is listed under a current Licence/Permit with another owner")
 
     @property
     def latest_vessel_details(self):
