@@ -4577,6 +4577,12 @@ class Vessel(RevisionedMixin):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
 
+        if proposal_being_processed.proposal_applicant:
+            if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
+                raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+        else:
+            raise serializers.ValidationError("No valid proposal applicant provided")
+
         ## Requirement: If vessel is owned by multiple parties then there must be no
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
