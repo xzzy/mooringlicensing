@@ -90,22 +90,24 @@ class FeeSeasonForm(forms.ModelForm):
     def clean_name(self):
         data = self.cleaned_data['name']
 
-        if not self.instance.is_editable:
-            if data != self.instance.name:
-                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
-        if not data:
-            raise forms.ValidationError('Please enter the name field.')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.name:
+                    raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+            if not data:
+                raise forms.ValidationError('Please enter the name field.')
 
         return data
 
     def clean_application_type(self):
         data = self.cleaned_data['application_type']
 
-        if not self.instance.is_editable:
-            if data != self.instance.application_type:
-                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
-        if not data:
-            raise forms.ValidationError('Please select an application type.')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.application_type:
+                    raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+            if not data:
+                raise forms.ValidationError('Please select an application type.')
 
         return data
 
@@ -162,35 +164,39 @@ class FeeConstructorForm(forms.ModelForm):
 
     def clean_application_type(self):
         data = self.cleaned_data['application_type']
-        if not self.instance.is_editable:
-            # This fee_constructor object has been used at least once.
-            if data != self.instance.application_type:
-                raise forms.ValidationError('Application type cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                # This fee_constructor object has been used at least once.
+                if data != self.instance.application_type:
+                    raise forms.ValidationError('Application type cannot be changed once used for payment calculation')
         return data
 
     def clean_vessel_size_category_group(self):
         data = self.cleaned_data['vessel_size_category_group']
-        if not self.instance.is_editable:
-            # This fee_constructor object has been used at least once.
-            if data != self.instance.vessel_size_category_group:
-                raise forms.ValidationError('Vessel size category group cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                # This fee_constructor object has been used at least once.
+                if data != self.instance.vessel_size_category_group:
+                    raise forms.ValidationError('Vessel size category group cannot be changed once used for payment calculation')
         return data
 
     def clean_fee_season(self):
         data = self.cleaned_data['fee_season']
-        if not self.instance.is_editable:
-            # This fee_constructor object has been used at least once.
-            if data != self.instance.fee_season:
-                raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                # This fee_constructor object has been used at least once.
+                if data != self.instance.fee_season:
+                    raise forms.ValidationError('Fee season cannot be changed once used for payment calculation')
         return data
 
     def clean_incur_gst(self):
         data = self.cleaned_data['incur_gst']
-        if not self.instance.is_editable:
-            # This fee_constructor object has been used at least once.
-            if data != self.instance.incur_gst:
-                # Once used, application_type must not be changed
-                raise forms.ValidationError('Incur gst cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                # This fee_constructor object has been used at least once.
+                if data != self.instance.incur_gst:
+                    # Once used, application_type must not be changed
+                    raise forms.ValidationError('Incur gst cannot be changed once used for payment calculation')
         return data
 
     def clean(self):
