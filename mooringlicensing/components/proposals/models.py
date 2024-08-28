@@ -4583,7 +4583,7 @@ class Vessel(RevisionedMixin):
         else:
             raise serializers.ValidationError("No valid proposal applicant provided")
 
-        ## Requirement: If vessel is owned by multiple parties then there must be no
+        ## Requirement: Vessel can only be listed as owned by one vessel owner until sold (with company ownership also considered)
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
@@ -4628,7 +4628,7 @@ class Vessel(RevisionedMixin):
         blocking_approvals = MooringLicence.objects.filter(ml_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Mooring Site Licence.')
-            raise serializers.ValidationError("This vessel is listed under a current Mooring Site Licence")
+            raise serializers.ValidationError("This vessel is listed under a current Mooring Site Licence with another owner")
 
         ## 3. Other Approvals filter
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -4645,7 +4645,7 @@ class Vessel(RevisionedMixin):
         blocking_approvals = Approval.objects.filter(approval_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("This vessel is listed under a current Licence/Permit")
+            raise serializers.ValidationError("This vessel is listed under a current Licence/Permit with another owner")
 
     @property
     def latest_vessel_details(self):
