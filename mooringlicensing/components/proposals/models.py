@@ -4582,6 +4582,11 @@ class Vessel(RevisionedMixin):
                 raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
         else:
             raise serializers.ValidationError("No valid proposal applicant provided")
+        
+        #vessels can be:
+        # 1 on multiple active approvals IF owned by the same person
+        # 2 on only ONE active proposal at a time
+        # 3 by one owner only - other applicants may not use the vessel until the vessel has been sold (and all related proposals and approvals are no longer active)
 
         ## Requirement: Vessel can only be listed as owned by one vessel owner until sold (with company ownership also considered)
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
