@@ -953,7 +953,10 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
                 except:
                     raise serializers.ValidationError("proposal type does not exist")
 
-                wla_allowed = get_wla_allowed(request.user.id)
+                if not system_user.ledger_id:
+                    raise serializers.ValidationError("system user does not have valid corresponding email user")
+
+                wla_allowed = get_wla_allowed(system_user.ledger_id.id)
                 if not wla_allowed:
                     raise serializers.ValidationError("user not permitted to create WLA at this time")
 
