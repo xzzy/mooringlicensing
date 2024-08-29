@@ -1775,7 +1775,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             is_applicant_address_set(instance)
 
-            return Response()
+            serializer = self.serializer_class(instance, context={'request':request})
+            return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     def get_max_vessel_length_for_main_component(self, request, *args, **kwargs):

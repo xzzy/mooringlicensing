@@ -365,6 +365,7 @@ def save_proponent_data(instance, request, action, being_auto_approved=False):
         elif type(instance.child_obj) == MooringLicenceApplication:
             save_proponent_data_mla(instance, request, action) 
 
+        instance.refresh_from_db()
         if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
             # Save request.user details in a JSONField not to overwrite the details of it.
             try:

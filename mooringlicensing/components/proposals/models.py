@@ -2369,10 +2369,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
         max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
         length = 0
-        if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
-            max_vessel_length_with_no_payment[0] == self.vessel_length and
-            not max_vessel_length_with_no_payment[1])):
-            return True
+        if self.vessel_length:
+            if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
+                max_vessel_length_with_no_payment[0] == self.vessel_length and
+                not max_vessel_length_with_no_payment[1])):
+                return True
         return False
     
     def keeping_current_vessel(self):
