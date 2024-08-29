@@ -3503,7 +3503,7 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        if not (self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+        if not (self.auto_approve and (self.proposal_type.code == PROPOSAL_TYPE_RENEWAL or self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT)):
             # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
             if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
                 (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
