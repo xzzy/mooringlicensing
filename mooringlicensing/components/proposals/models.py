@@ -3503,21 +3503,22 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
-        if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
-            (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
-            # Mooring preference is 'site_licensee' and which is new mooring applying for.
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
-            self.save()
-            # Email to endorser
-            send_endorsement_of_authorised_user_application_email(request, self)
-            send_confirmation_email_upon_submit(request, self, False)
-        else:
-            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            self.save()
-            send_confirmation_email_upon_submit(request, self, False)
-            if not self.auto_approve:
-                send_notification_email_upon_submit_to_assessor(request, self)
+        if not (self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+            # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+            if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
+                (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
+                # Mooring preference is 'site_licensee' and which is new mooring applying for.
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+                self.save()
+                # Email to endorser
+                send_endorsement_of_authorised_user_application_email(request, self)
+                send_confirmation_email_upon_submit(request, self, False)
+            else:
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                self.save()
+                send_confirmation_email_upon_submit(request, self, False)
+                if not self.auto_approve:
+                    send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')

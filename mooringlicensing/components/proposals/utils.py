@@ -377,8 +377,6 @@ def save_proponent_data(instance, request, action, being_auto_approved=False):
             except Exception as e:
                 print(e)
                 raise serializers.ValidationError("error")
-            
-        instance.child_obj.set_auto_approve(request)
     else:
         raise serializers.ValidationError("user not authorised to update applicant details")
 
@@ -411,6 +409,7 @@ def save_proponent_data_aaa(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
@@ -448,6 +447,7 @@ def save_proponent_data_wla(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
@@ -487,6 +487,7 @@ def save_proponent_data_mla(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
@@ -531,6 +532,7 @@ def save_proponent_data_aua(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
