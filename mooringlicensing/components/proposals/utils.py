@@ -994,7 +994,8 @@ def ownership_percentage_validation(vessel_ownership, proposal):
 
     total_percent = vessel_ownership_percentage
     vessel = vessel_ownership.vessel
-    for vo in vessel.filtered_vesselownership_set.all():
+
+    for vo in vessel.filtered_vesselownership_set.distinct('owner'): 
         if vo in previous_vessel_ownerships:
             # We don't want to count the percentage in the previous vessel ownerships
             continue
@@ -1006,8 +1007,8 @@ def ownership_percentage_validation(vessel_ownership, proposal):
                         company_ownership.percentage and
                         company_ownership.blocking_proposal
                 ):
-                    total_percent += vo.company_ownership.percentage
-                    logger.info(f'Vessel ownership to be taken into account in the calculation: {vo.company_ownership}')
+                    total_percent += company_ownership.percentage
+                    logger.info(f'Vessel ownership to be taken into account in the calculation: {company_ownership}')
         elif vo.percentage and vo.id != individual_ownership_id:
             total_percent += vo.percentage
             logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
