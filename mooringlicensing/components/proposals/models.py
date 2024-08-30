@@ -4578,18 +4578,20 @@ class Vessel(RevisionedMixin):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
 
-        if proposal_being_processed.proposal_applicant:
-            if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
-                raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
-        else:
-            raise serializers.ValidationError("No valid proposal applicant provided")
+        #NOTE below check has been disabled
+        #a vessel CAN have multiple owners, subject to owner percentage, multiple owners cannot exist across multipe licenses (TODO review reqs)
+        # a vessel can be owned by multiple owners if their percentage is low enough
+        #if proposal_being_processed.proposal_applicant:
+        #    if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
+        #        raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+        #else:
+        #    raise serializers.ValidationError("No valid proposal applicant provided")
         
         #vessels can be:
         # 1 on multiple active approvals IF owned by the same person
         # 2 on only ONE active proposal at a time
-        # 3 by one owner only - other applicants may not use the vessel until the vessel has been sold (and all related proposals and approvals are no longer active)
 
-        ## Requirement: Vessel can only be listed as owned by one vessel owner until sold (with company ownership also considered)
+        ## Requirement: If vessel is owned by multiple parties then there must be no
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
@@ -4670,7 +4672,7 @@ class Vessel(RevisionedMixin):
                 )
 
 
-class VesselLogDocument(Document):
+class VesselLogDocument(Document):#
     log_entry = models.ForeignKey('VesselLogEntry',related_name='documents', on_delete=models.CASCADE)
     _file = models.FileField(storage=private_storage,upload_to=update_vessel_comms_log_filename, max_length=512)
 
