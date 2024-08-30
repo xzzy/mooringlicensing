@@ -2357,7 +2357,7 @@ class VesselViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def lookup_vessel_ownership(self, request, *args, **kwargs):
         vessel = self.get_object()
-        serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.all(), many=True)
+        serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.distinct("owner"), many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -2458,7 +2458,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         else:
             raise serializers.ValidationError("no email user id provided")
 
-        vessel_ownership_list = owner.vesselownership_set.all()
+        vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
 
         # TODO review - rewrite following for vessel_ownership_list
         if search_text:
@@ -2485,7 +2485,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         owner_qs = Owner.objects.filter(emailuser=request.user.id)
         if owner_qs:
             owner = owner_qs[0]
-            vessel_ownership_list = owner.vesselownership_set.all()
+            vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
 
             # rewrite following for vessel_ownership_list
             if search_text:
