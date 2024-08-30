@@ -393,6 +393,7 @@ def save_proponent_data_aaa(instance, request, action):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
+    instance.refresh_from_db()
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveAnnualAdmissionApplicationSerializer(
@@ -409,6 +410,7 @@ def save_proponent_data_aaa(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
@@ -432,6 +434,7 @@ def save_proponent_data_wla(instance, request, action):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
+    instance.refresh_from_db()
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveWaitingListApplicationSerializer(
@@ -447,6 +450,7 @@ def save_proponent_data_wla(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
@@ -470,6 +474,7 @@ def save_proponent_data_mla(instance, request, action):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
+    instance.refresh_from_db()
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveMooringLicenceApplicationSerializer(
@@ -487,6 +492,7 @@ def save_proponent_data_mla(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         instance.child_obj.process_after_submit(request)
@@ -515,6 +521,7 @@ def save_proponent_data_aua(instance, request, action):
             submit_vessel_data(instance, request, vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
+    instance.refresh_from_db()
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
     serializer = SaveAuthorisedUserApplicationSerializer(
@@ -532,6 +539,7 @@ def save_proponent_data_aua(instance, request, action):
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
     update_proposal_applicant(instance.child_obj, request)
+    instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
     if action == 'submit':
         instance.child_obj.process_after_submit(request)
@@ -711,7 +719,6 @@ def store_vessel_ownership(request, vessel, instance):
         raise serializers.ValidationError({"Missing information": "You must supply the company name"})
 
     individual_owner = vessel_ownership_data.get('individual_owner')
-
     company_ownership = None
     if individual_owner:
         # This proposal is for individual owner
@@ -807,7 +814,6 @@ def store_vessel_ownership(request, vessel, instance):
             vessel=vessel,
             company_ownerships=company_ownership,
         )
-        print(vessel_ownerships.count())
         if vessel_ownerships.count():
             vessel_ownership = vessel_ownerships.first()
         else:
@@ -822,14 +828,20 @@ def store_vessel_ownership(request, vessel, instance):
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]:
         # Retrieve a vessel_ownership from the previous proposal
         # vessel_ownership = instance.previous_application.vessel_ownership  # !!! This is not always true when ML !!!
-        vessel_ownership = instance.get_latest_vessel_ownership_by_vessel(vessel)
+        vessel_ownership = instance.vessel_ownership if instance.vessel_ownership else instance.get_latest_vessel_ownership_by_vessel(vessel)
 
         vessel_ownership_to_be_created = False
         if vessel_ownership and vessel_ownership.end_date:
             logger.info(f'Existing VesselOwnership: [{vessel_ownership}] has been retrieved, but the vessel is sold.  This vessel ownership cannot be used.')
             vessel_ownership_to_be_created = True
+        
+        keep_existing_vessel = False
+        if (vessel_ownership and 
+            vessel_ownership.vessel and 
+            vessel_ownership.vessel.rego_no and 
+            vessel.rego_no):
+            keep_existing_vessel = vessel_ownership.vessel.rego_no == vessel.rego_no
 
-        keep_existing_vessel = request.data.get('proposal', {}).get('keep_existing_vessel', True)
         if not keep_existing_vessel:
             if instance.application_type.code in [MooringLicenceApplication.code,]:
                 logger.info(f'New vessel: [{vessel}] is going to be added to the ML application: [{instance}].')
@@ -837,6 +849,11 @@ def store_vessel_ownership(request, vessel, instance):
             if instance.application_type.code in [AuthorisedUserApplication.code,]:
                 logger.info(f'New vessel: [{vessel}] is going to replace the existing vessel of the AU application: [{instance}].')
                 vessel_ownership_to_be_created = True
+
+        #set vessel_ownership_to_be_created to true if switch between individual/company ownership
+        if ("individual_owner" in vessel_ownership_data and 
+            vessel_ownership_data["individual_owner"] != vessel_ownership.individual_owner):
+            vessel_ownership_to_be_created = True
 
         if vessel_ownership_to_be_created:
             vessel_ownership = VesselOwnership.objects.create(
@@ -941,8 +958,10 @@ def ownership_percentage_validation(vessel_ownership, proposal):
             vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
         ).order_by('created').last()
         # company_ownership_id = vessel_ownership.company_ownership.id
-        company_ownership_id = company_ownership.id
-        # if not vessel_ownership.company_ownership.percentage:
+        if company_ownership:
+            company_ownership_id = company_ownership.id
+            # if not vessel_ownership.company_ownership.percentage:
+    if company_ownership_id:
         if not company_ownership.percentage:
             raise serializers.ValidationError({
                 "Ownership Percentage": "You must specify a percentage"
@@ -953,7 +972,7 @@ def ownership_percentage_validation(vessel_ownership, proposal):
                 min_percent_fail = True
             else:
                 # vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
-                vessel_ownership_percentage = company_ownership.percentage
+                vessel_ownership_percentage = company_ownership.percentage    
     elif not vessel_ownership.percentage:
         raise serializers.ValidationError({
             "Ownership Percentage": "You must specify a percentage"

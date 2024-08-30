@@ -2397,7 +2397,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
     
     def vessel_ownership_changed(self):
-
         previous_ownership = None
         if self.previous_application:
             previous_ownership = self.previous_application.vessel_ownership
@@ -2417,10 +2416,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         previous_company_ownership.percentage != company_ownership.percentage
                     ):
                         return True
-            else:
-                if not self.vessel_ownership.individual_owner:
+            else: #no previous company ownership
+                if not self.vessel_ownership.individual_owner: #company ownership
                     return True
-
+                
         return False
 
     def mooring_changed(self):
