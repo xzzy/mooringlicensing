@@ -505,8 +505,8 @@ export default {
                                 }
                             }
                         }
-                    } else {
-                        if (!this.vesselOwnership.individual_owner) {
+                    } else { //not company ownership
+                        if (!this.vesselOwnership.individual_owner) { //company ownership
                             // Individual ownership --> Company ownership
                             vesselOwnershipChanged = true
                         }

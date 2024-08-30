@@ -2369,10 +2369,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
         max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
         length = 0
-        if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
-            max_vessel_length_with_no_payment[0] == self.vessel_length and
-            not max_vessel_length_with_no_payment[1])):
-            return True
+        if self.vessel_length:
+            if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
+                max_vessel_length_with_no_payment[0] == self.vessel_length and
+                not max_vessel_length_with_no_payment[1])):
+                return True
         return False
     
     def keeping_current_vessel(self):
@@ -2396,7 +2397,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
     
     def vessel_ownership_changed(self):
-
         previous_ownership = None
         if self.previous_application:
             previous_ownership = self.previous_application.vessel_ownership
@@ -2416,10 +2416,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         previous_company_ownership.percentage != company_ownership.percentage
                     ):
                         return True
-            else:
-                if not self.vessel_ownership.individual_owner:
+            else: #no previous company ownership
+                if not self.vessel_ownership.individual_owner: #company ownership
                     return True
-
+                
         return False
 
     def mooring_changed(self):
@@ -3502,21 +3502,22 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
-        if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
-            (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
-            # Mooring preference is 'site_licensee' and which is new mooring applying for.
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
-            self.save()
-            # Email to endorser
-            send_endorsement_of_authorised_user_application_email(request, self)
-            send_confirmation_email_upon_submit(request, self, False)
-        else:
-            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            self.save()
-            send_confirmation_email_upon_submit(request, self, False)
-            if not self.auto_approve:
-                send_notification_email_upon_submit_to_assessor(request, self)
+        if not (self.auto_approve and (self.proposal_type.code == PROPOSAL_TYPE_RENEWAL or self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT)):
+            # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+            if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
+                (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
+                # Mooring preference is 'site_licensee' and which is new mooring applying for.
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+                self.save()
+                # Email to endorser
+                send_endorsement_of_authorised_user_application_email(request, self)
+                send_confirmation_email_upon_submit(request, self, False)
+            else:
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                self.save()
+                send_confirmation_email_upon_submit(request, self, False)
+                if not self.auto_approve:
+                    send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
@@ -4577,18 +4578,20 @@ class Vessel(RevisionedMixin):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
 
-        if proposal_being_processed.proposal_applicant:
-            if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
-                raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
-        else:
-            raise serializers.ValidationError("No valid proposal applicant provided")
+        #NOTE below check has been disabled
+        #a vessel CAN have multiple owners, subject to owner percentage, multiple owners cannot exist across multipe licenses (TODO review reqs)
+        # a vessel can be owned by multiple owners if their percentage is low enough
+        #if proposal_being_processed.proposal_applicant:
+        #    if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
+        #        raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+        #else:
+        #    raise serializers.ValidationError("No valid proposal applicant provided")
         
         #vessels can be:
         # 1 on multiple active approvals IF owned by the same person
         # 2 on only ONE active proposal at a time
-        # 3 by one owner only - other applicants may not use the vessel until the vessel has been sold (and all related proposals and approvals are no longer active)
 
-        ## Requirement: Vessel can only be listed as owned by one vessel owner until sold (with company ownership also considered)
+        ## Requirement: If vessel is owned by multiple parties then there must be no
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
@@ -4669,7 +4672,7 @@ class Vessel(RevisionedMixin):
                 )
 
 
-class VesselLogDocument(Document):
+class VesselLogDocument(Document):#
     log_entry = models.ForeignKey('VesselLogEntry',related_name='documents', on_delete=models.CASCADE)
     _file = models.FileField(storage=private_storage,upload_to=update_vessel_comms_log_filename, max_length=512)
 
