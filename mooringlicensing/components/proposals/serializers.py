@@ -696,7 +696,7 @@ class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
             
             # When company ownership, vessel registration document is compulsory
-            if not self.instance.vessel_ownership.individual_owner:
+            if self.instance.vessel_ownership  and not self.instance.vessel_ownership.individual_owner:
                 if not self.instance.vessel_ownership.vessel_registration_documents.count():
                     custom_errors["Copy of registration papers"] = "You must provide evidence of this"
 

@@ -638,9 +638,9 @@ def submit_vessel_data(instance, request, vessel_data):
             raise serializers.ValidationError(vessel_lookup_errors)
 
     if not vessel_data.get('rego_no'):
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
-            if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
-                return
+        #MLA and WLA do not need a vessel to be submitted
+        if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
+            return
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")
 
