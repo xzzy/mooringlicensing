@@ -3637,9 +3637,11 @@ class AuthorisedUserApplication(Proposal):
                     # convert proposed_issuance_approval to an end_date
                     if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
                         moa2.end_date = current_datetime.date()
+                        moa2.active = False
                         moa2.save()
                     elif moa1.get("id") == moa2.id and moa1.get("checked") and moa2.end_date:
                         moa2.end_date = None
+                        moa2.active = True
                         moa2.save()
         # set auto_approve renewal application ProposalRequirement due dates to those from previous application + 12 months
         if self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
