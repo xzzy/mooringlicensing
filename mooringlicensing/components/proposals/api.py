@@ -2289,12 +2289,13 @@ class VesselViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Vessel.objects.none()
         user = self.request.user
-        if is_internal(self.request):
-            queryset = Vessel.objects.all().order_by('id')
-        elif is_customer(self.request):
-            owner = Owner.objects.filter(emailuser=user.id)
-            if owner:
-                queryset = owner.first().vessels.distinct()
+        queryset = Vessel.objects.all().order_by('id')
+        #if is_internal(self.request):
+        #    queryset = Vessel.objects.all().order_by('id')
+        #elif is_customer(self.request):
+        #    owner = Owner.objects.filter(emailuser=user.id)
+        #    if owner:
+        #        queryset = owner.first().vessels.distinct()
         return queryset
 
     @detail_route(methods=['POST',], detail=True)
@@ -2357,7 +2358,10 @@ class VesselViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def lookup_vessel_ownership(self, request, *args, **kwargs):
         vessel = self.get_object()
-        serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.distinct("owner"), many=True)
+        if is_internal(request):
+            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.distinct("owner"), many=True)
+        else:
+            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.filter(owner__emailuser=request.user.id).distinct("owner"), many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
