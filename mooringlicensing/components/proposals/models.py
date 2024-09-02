@@ -1565,8 +1565,33 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 ria_mooring_name = ''
                 mooring_id = details.get('mooring_id')
+                mooring_on_approval = details.get('mooring_on_approval')
+                mooring_on_approval.reverse()
+                id_list = []
+                checked_list = []
+                temp = []
+
+                #sanitise mooring on approval - count only entry per id and only the latest among each id
+                for i in mooring_on_approval:
+                    if "id" in i and "checked" in i and not i["id"] in id_list:
+                        temp.append(i)
+                        checked_list.append(i["checked"])
+                        id_list.append(i["id"])
+                
+                mooring_on_approval = temp
+
                 if mooring_id:
-                    ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                    try:
+                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                    except:
+                        raise serializers.ValidationError("Mooring id provided is invalid")
+                elif not mooring_on_approval or mooring_on_approval == []:
+                    raise serializers.ValidationError("No mooring provided")
+                else:
+                    #check if mooring on approval list has at least one checked value
+                    if not True in checked_list:
+                        raise serializers.ValidationError("No mooring provided")
+
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
                     'mooring_bay_id': details.get('mooring_bay_id'),
@@ -1574,7 +1599,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'ria_mooring_name': ria_mooring_name,
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email'),
-                    'mooring_on_approval': details.get('mooring_on_approval'),
+                    'mooring_on_approval': mooring_on_approval,
                     'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
@@ -1816,8 +1841,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if details:
                     ria_mooring_name = ''
                     mooring_id = details.get('mooring_id')
+                    mooring_on_approval = details.get('mooring_on_approval')
+                    mooring_on_approval.reverse()
+                    id_list = []
+                    checked_list = []
+                    temp = []
+
+                    #sanitise mooring on approval - count only entry per id and only the latest among each id
+                    for i in mooring_on_approval:
+                        if "id" in i and "checked" in i and not i["id"] in id_list:
+                            temp.append(i)
+                            checked_list.append(i["checked"])
+                            id_list.append(i["id"])
+                    
+                    mooring_on_approval = temp
+
                     if mooring_id:
-                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        try:
+                            ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        except:
+                            raise serializers.ValidationError("Mooring id provided is invalid")
+                    elif not mooring_on_approval or mooring_on_approval == []:
+                        raise serializers.ValidationError("No mooring provided")
+                    else:
+                        #check if mooring on approval list has at least one checked value
+                        if not True in checked_list:
+                            raise serializers.ValidationError("No mooring provided")
 
                     self.proposed_issuance_approval = {
                         'mooring_bay_id': details.get('mooring_bay_id'),
@@ -1825,7 +1874,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'ria_mooring_name': ria_mooring_name,
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email'),
-                        'mooring_on_approval': details.get('mooring_on_approval'),
+                        'mooring_on_approval': mooring_on_approval,
                         'vessel_ownership': details.get('vessel_ownership'),
                     }
                     self.save()
@@ -2422,7 +2471,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 
         return False
 
-    def mooring_changed(self):
+    def mooring_changed(self, request=None):
         #on client-side check, user input is used to determine this value when the selected mooring has already been saved
         #however, no such check is required to determine if a new mooring is being selected or not - 
         # we just need to check if the proposal's mooring is the same or not
@@ -2432,14 +2481,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if (self.mooring_authorisation_preference != self.previous_application.mooring_authorisation_preference):
                 return True
             #TODO do we need check preference changes? probably not
-            #elif self.mooring_authorisation_preference == 'ria':
-            #    #bay_preferences_numbered if ria
-            #    #remove uncommon elements from both lists in case bays are added/removed
-            #    uncommon = list(set(self.bay_preferences_numbered) ^ set(self.previous_application.bay_preferences_numbered))
-            #    bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.bay_preferences_numbered))
-            #    previous_bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.previous_application.bay_preferences_numbered))
-            #    if bay_preferences_numbered != previous_bay_preferences_numbered:
-            #        return True
+            elif self.mooring_authorisation_preference == 'ria':
+                #this is a rare instance where a client-side decision can directly affect auto-approval
+                #if the user wants to add an additional (ria specified) mooring then we return the mooring as changed
+                if "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
+                    return True
             elif self.mooring_authorisation_preference == 'site_licensee':
                 #mooring_id if site license
                 #TODO licensee need to checked as well? probably not
@@ -3484,7 +3530,7 @@ class AuthorisedUserApplication(Proposal):
                 self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
                 self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
                 if (not self.vessel_on_proposal() or
-                    self.mooring_changed() or
+                    self.mooring_changed(request) or
                     self.has_higher_vessel_category() or
                     not self.keeping_current_vessel() or
                     self.vessel_ownership_changed()
