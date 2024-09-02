@@ -1119,7 +1119,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_authorised_user_moorings(self, obj):
         moorings = []
         if type(obj.child_obj) == AuthorisedUserApplication and obj.approval:
-            for moa in obj.approval.mooringonapproval_set.filter(active=True):
+            for moa in obj.approval.mooringonapproval_set.all():
                 # if moa.mooring.mooring_licence is not None:
                 #     suitable_for_mooring = True
                 #     # only do check if vessel details exist
@@ -1148,7 +1148,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 #import ipdb; ipdb.set_trace()
 
                 # Retrieve checkbox status for this mooring (moa.mooring)
-                checked = True
+                checked = moa.active
                 if obj.proposed_issuance_approval and 'mooring_on_approval' in obj.proposed_issuance_approval:
                     for item in obj.proposed_issuance_approval['mooring_on_approval']:
                         if  moa.id == item['id']:
