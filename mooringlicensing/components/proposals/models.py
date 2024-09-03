@@ -49,6 +49,7 @@ from mooringlicensing.components.main.models import (
     UserAction,
     Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin,
 )
+
 import requests
 import ledger_api_client
 from mooringlicensing.components.main.decorators import (
@@ -2425,6 +2426,36 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 return True
         return False
     
+    def vessel_mooring_compatible(self, mooring):
+        if (self.vessel_length > mooring.vessel_size_limit or
+            self.vessel_draft > mooring.vessel_draft_limit or
+            (mooring.vessel_weight_limit and self.vessel_weight > mooring.vessel_weight_limit)):
+            return False
+        return True
+
+    #determines if the vessel and moorings are still compatible (if either have changed)
+    def vessel_moorings_compatible(self, request=None):
+        #get moorings
+        if self.mooring_authorisation_preference and self.mooring_changed(request):
+            #if preference has changed then check preference type
+            #if a mooring has been nominated, check the vessel by that mooring - return False if incompatible
+            if self.mooring_authorisation_preference == "site_licensee":
+                if not self.vessel_mooring_compatible(self.mooring):
+                    return False
+            #otherwise, return False - RIA selection will require approval anyway
+            elif self.mooring_authorisation_preference == "ria":
+                return False
+                    
+        if self.approval:
+            #check by existing active moorings for approval - whether nominated or ria - return False if any are incompatible
+            moa_set = self.approval.mooringonapproval_set.filter(active=True)
+            for i in moa_set:
+                if not self.vessel_mooring_compatible(i.mooring):
+                    return False
+
+        return True
+
+
     def keeping_current_vessel(self):
         #on client-side check, user input is used to determine this value when the proposal vessel registration has already been saved
         #however, no such check is required to determine if the vessel is being kept or not - 
@@ -2480,11 +2511,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.previous_application:
             if (self.mooring_authorisation_preference != self.previous_application.mooring_authorisation_preference):
                 return True
-            #TODO do we need check preference changes? probably not
             elif self.mooring_authorisation_preference == 'ria':
                 #this is a rare instance where a client-side decision can directly affect auto-approval
                 #if the user wants to add an additional (ria specified) mooring then we return the mooring as changed
-                if "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
+                if request and "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
                     return True
             elif self.mooring_authorisation_preference == 'site_licensee':
                 #mooring_id if site license
@@ -2738,6 +2768,7 @@ class WaitingListApplication(Proposal):
             if (not self.vessel_on_proposal() or
                 self.mooring_preference_changed() or
                 self.has_higher_vessel_category() or
+                not self.vessel_moorings_compatible() or
                 not self.keeping_current_vessel() or
                 self.vessel_ownership_changed()
                 ):
@@ -3531,6 +3562,7 @@ class AuthorisedUserApplication(Proposal):
                 self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
                 if (not self.vessel_on_proposal() or
                     self.mooring_changed(request) or
+                    not self.vessel_moorings_compatible(request) or
                     self.has_higher_vessel_category() or
                     not self.keeping_current_vessel() or
                     self.vessel_ownership_changed()
@@ -4088,6 +4120,7 @@ class MooringLicenceApplication(Proposal):
                 self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
                 self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
                 if (not self.vessel_on_proposal() or
+                    not self.vessel_moorings_compatible(request) or
                     self.has_higher_vessel_category() or
                     not self.keeping_current_vessel() or
                     self.vessel_ownership_changed()
