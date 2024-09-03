@@ -6,6 +6,23 @@
                     <strong>Admission fees must be paid on or before the date of entry to Rottnest Island Reserve</strong>
                 </div>
             </div>
+            <div class="row form-group" v-if="is_internal">
+                <label class="col-sm-3 control-label" >Applicant Email</label>
+                <div class="col-sm-6">
+                        <select
+                            id="person_lookup"  
+                            name="person_lookup"  
+                            ref="person_lookup" 
+                            class="form-control" 
+                        />
+                    </div>
+            </div>
+            <div v-if="show_confirm_email_field" class="row form-group">
+                <label for="email_address_confirmation" class="col-sm-3 control-label">Applicant Email (Confirm)</label>
+                <div class="col-sm-6">
+                    <input type="email" class="form-control" name="email_address_confirmation" placeholder="" v-model="dcv_admission.email_address_confirmation">
+                </div>
+            </div>
             <div class="row form-group">
                 <label for="vessel_search" class="col-sm-3 control-label">Unique vessel identifier</label>
                 <div class="col-sm-9">
@@ -17,6 +34,7 @@
                     -->
                 </div>
             </div>
+
             <div class="row form-group">
                 <label for="vessel_name" class="col-sm-3 control-label">Vessel name</label>
                 <div class="col-sm-6">
@@ -51,13 +69,13 @@
                 </div>
             </div>
 
-            <div v-if="show_email_fields" class="row form-group">
+            <div v-if="show_email_fields && !is_internal" class="row form-group">
                 <label for="email_address" class="col-sm-3 control-label">Email address</label>
                 <div class="col-sm-6">
                     <input type="email" class="form-control" name="email_address" placeholder="" v-model="dcv_admission.email_address">
                 </div>
             </div>
-            <div v-if="show_email_fields" class="row form-group">
+            <div v-if="(show_email_fields && !is_internal)" class="row form-group">
                 <label for="email_address_confirmation" class="col-sm-3 control-label">Email address (Confirm)</label>
                 <div class="col-sm-6">
                     <input type="email" class="form-control" name="email_address_confirmation" placeholder="" v-model="dcv_admission.email_address_confirmation">
@@ -139,6 +157,16 @@ export default {
             type: Boolean,
             default: false,
         },
+        is_internal: {
+            type: Boolean,
+            required: false,
+            default: false,
+        },
+        show_confirm_email_field:{
+            type: Boolean,
+            required: false,
+            default: false,
+        }
     },
     data() {
         let vm = this;
@@ -187,7 +215,6 @@ export default {
         FormSection,
     },
     watch: {
-
     },
     computed: {
         pay_submit_button_enabled: function(){
@@ -252,10 +279,20 @@ export default {
                 if(!this.does_dcv_permit_exist){
                     if(!this.is_valid_email_address)
                         enabled = false
-                    if(!this.is_valid_email_address_confirmation)
-                        enabled = false
-                    if(!this.is_valid_email_addresses)
-                        enabled = false
+                    if(!this.is_internal){
+                        if(!this.is_valid_email_address_confirmation)
+                            enabled = false
+                        if(!this.is_valid_email_addresses)
+                            enabled = false
+                    }
+                    else{
+                        if(this.show_confirm_email_field){
+                            if(!this.is_valid_email_address_confirmation)
+                                enabled = false
+                            if(!this.is_valid_email_addresses)
+                                enabled = false
+                        }
+                    }
                 }
             }
             return enabled
@@ -328,6 +365,68 @@ export default {
                     }
                 }
             }
+        },
+        initialisePersonLookup: function() {
+            let vm = this;
+            $(vm.$refs.person_lookup).select2({
+                minimumInputLength: 2,
+                theme: "bootstrap",
+                allowClear: true,
+                placeholder: "Select Email",
+                pagination: true,
+                ajax: {
+                    url: api_endpoints.person_lookup,
+                    dataType: 'json',
+                    data: function(params) {
+                        return {
+                            search_term: params.term,
+                            page_number: params.page || 1,
+                            display_email: true,
+                            type: 'public',
+                        };
+                    },
+                    processResults: function(data, params) {
+
+                        const searchOption = {
+                            id: params.term,
+                            text: params.term ,
+                            customValue : true
+                        };
+                        
+                        return {
+                            results: [searchOption,
+                                ...data.results
+                                
+                            ],
+                            pagination: {
+                                more: data.pagination.more
+                            }
+                        };
+                    }
+                }
+            }).
+            on("select2:select", function(e) {
+                var selected = $(e.currentTarget);
+                const selectedTerm = e.params.data.text;
+                if (e.params.data.customValue) {
+                    vm.show_confirm_email_field = true;
+                    vm.dcv_admission.email_address = e.params.data.text
+                } else {
+                    vm.applicant_system_id = e.params.data.id;
+                    vm.show_confirm_email_field = false;
+                    vm.dcv_admission.email_address = e.params.data.text
+                    vm.dcv_admission.email_address_confirmation = e.params.data.text
+                }
+            }).
+            on("select2:unselect", function(e) {
+                var selected = $(e.currentTarget);
+                vm.applicant_system_id = null;
+                vm.show_confirm_email_field = false; 
+            }).
+            on("select2:open", function(e) {
+                const searchField = $('[aria-controls="select2-person_lookup-results"]');
+                searchField[0].focus(); 
+            });
         },
         validateRegoNo: function(data) {
             // force uppercase and no whitespace
@@ -423,7 +522,6 @@ export default {
             //vm.readRegoNo();
         },
         pay_and_submit: function(){
-            // pay_and_submit() --> save_and_pay() --> post_and_redirect()
             let vm = this
             vm.paySubmitting = true;
 
@@ -434,9 +532,8 @@ export default {
                 showCancelButton: true,
                 confirmButtonText: vm.pay_submit_button_text,
             }).then(
-                (res)=>{
-                    vm.save_and_pay();
-                    //this.paySubmitting = false
+                async (res)=>{
+                    await vm.save_and_pay();
                 },
                 (res)=>{
                     this.paySubmitting = false
@@ -445,10 +542,17 @@ export default {
         },
         save_and_pay: async function() {
             try{
-                const res = await this.save(false, '/api/dcv_admission/')
+                let res;
+                if(this.is_internal){
+                    res = await this.save(false, '/api/internal_dcv_admission/')
+                }
+                else{
+                    res = await this.save(false, '/api/dcv_admission/')
+                }               
                 this.dcv_admission.id = res.body.id
                 await helpers.post_and_redirect(this.dcv_admission_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
-                //this.paySubmitting = false
+
+                this.paySubmitting = false
             } catch(err) {
                 helpers.processError(err)
                 this.paySubmitting = false
@@ -501,8 +605,12 @@ export default {
     },
     mounted: function () {
         this.$nextTick(() => {
-            this.initialiseSelects()
-        });
+            this.initialiseSelects();
+            if(this.is_internal){
+                this.initialisePersonLookup();
+            }
+        })
+        
     },
     created: async function() {
         const res = await this.$http.get(api_endpoints.fee_configurations)

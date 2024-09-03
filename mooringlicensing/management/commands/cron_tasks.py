@@ -40,6 +40,7 @@ class Command(BaseCommand):
         subprocess.call('python manage_ml.py export_and_email_sticker_data', shell=True)
         subprocess.call('python manage_ml.py import_sticker_data', shell=True)
         subprocess.call('python manage_ml.py send_mooring_licence_application_submit_due_reminder', shell=True)
+        subprocess.call('python manage_ml.py send_accept_mooring_licence_reminder', shell=True)
 
         logger.info('===== Completed command: {} ====='.format(__name__))
         cron_email.info('</div>')

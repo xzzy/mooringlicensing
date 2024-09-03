@@ -309,6 +309,7 @@ CODE_DAYS_FOR_RENEWAL_AAP = 'RenewalNotificationAAP'
 CODE_DAYS_FOR_RENEWAL_AUP = 'RenewalNotificationAUP'
 CODE_DAYS_FOR_RENEWAL_ML = 'RenewalNotificationML'
 CODE_DAYS_FOR_RENEWAL_DCVP = 'RenewalNotificationDCVP'
+CODE_DAYS_FOR_REMIND_BEFORE_MLA_EXPIRE = 'MLAOfferReminderNotification'
 
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
     {
@@ -383,6 +384,12 @@ TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
         'description': 'Number of days before expiry date of the approvals to email',
         'default': 10
     },
+    {
+        'code': CODE_DAYS_FOR_REMIND_BEFORE_MLA_EXPIRE,
+        'name': 'MLA Offer Expires Reminder notification',
+        'description': 'Number of days before expiry date to remind the WLA to accept the MLA offer',
+        'default': 10
+    }
 ]
 
 # Oracle codes

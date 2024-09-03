@@ -15,7 +15,8 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
-            'submitter', #TODO applicant vs submitter
+            'submitter', 
+            'applicant',
             'skipper',
             'contact_number',
             'dcv_vessel_id',
