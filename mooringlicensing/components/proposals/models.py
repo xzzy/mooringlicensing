@@ -2427,10 +2427,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
     
     def vessel_mooring_compatible(self, mooring):
-        print(self.vessel_length > mooring.vessel_size_limit,self.vessel_draft > mooring.vessel_draft_limit,self.vessel_weight > mooring.vessel_weight_limit)
         if (self.vessel_length > mooring.vessel_size_limit or
             self.vessel_draft > mooring.vessel_draft_limit or
-            self.vessel_weight > mooring.vessel_weight_limit):
+            (mooring.vessel_weight_limit and self.vessel_weight > mooring.vessel_weight_limit)):
             return False
         return True
 

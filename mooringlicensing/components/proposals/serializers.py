@@ -1161,6 +1161,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     "site_licensee": 'RIA Allocated' if not moa.site_licensee else 'User Requested',
                     "status": 'Current' if not moa.end_date else 'Historical',
                     "checked": checked,
+                    'vessel_size_weight': str(moa.mooring.vessel_weight_limit),
                     'vessel_size_limit': str(moa.mooring.vessel_size_limit),
                     'vessel_draft_limit': str(moa.mooring.vessel_draft_limit),
                     "suitable_for_mooring": suitable_for_mooring,
