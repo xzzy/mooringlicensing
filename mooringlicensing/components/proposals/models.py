@@ -1565,8 +1565,33 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 ria_mooring_name = ''
                 mooring_id = details.get('mooring_id')
+                mooring_on_approval = details.get('mooring_on_approval')
+                mooring_on_approval.reverse()
+                id_list = []
+                checked_list = []
+                temp = []
+
+                #sanitise mooring on approval - count only entry per id and only the latest among each id
+                for i in mooring_on_approval:
+                    if "id" in i and "checked" in i and not i["id"] in id_list:
+                        temp.append(i)
+                        checked_list.append(i["checked"])
+                        id_list.append(i["id"])
+                
+                mooring_on_approval = temp
+
                 if mooring_id:
-                    ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                    try:
+                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                    except:
+                        raise serializers.ValidationError("Mooring id provided is invalid")
+                elif not mooring_on_approval or mooring_on_approval == []:
+                    raise serializers.ValidationError("No mooring provided")
+                else:
+                    #check if mooring on approval list has at least one checked value
+                    if not True in checked_list:
+                        raise serializers.ValidationError("No mooring provided")
+
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
                     'mooring_bay_id': details.get('mooring_bay_id'),
@@ -1574,7 +1599,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'ria_mooring_name': ria_mooring_name,
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email'),
-                    'mooring_on_approval': details.get('mooring_on_approval'),
+                    'mooring_on_approval': mooring_on_approval,
                     'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
@@ -1816,8 +1841,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if details:
                     ria_mooring_name = ''
                     mooring_id = details.get('mooring_id')
+                    mooring_on_approval = details.get('mooring_on_approval')
+                    mooring_on_approval.reverse()
+                    id_list = []
+                    checked_list = []
+                    temp = []
+
+                    #sanitise mooring on approval - count only entry per id and only the latest among each id
+                    for i in mooring_on_approval:
+                        if "id" in i and "checked" in i and not i["id"] in id_list:
+                            temp.append(i)
+                            checked_list.append(i["checked"])
+                            id_list.append(i["id"])
+                    
+                    mooring_on_approval = temp
+
                     if mooring_id:
-                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        try:
+                            ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        except:
+                            raise serializers.ValidationError("Mooring id provided is invalid")
+                    elif not mooring_on_approval or mooring_on_approval == []:
+                        raise serializers.ValidationError("No mooring provided")
+                    else:
+                        #check if mooring on approval list has at least one checked value
+                        if not True in checked_list:
+                            raise serializers.ValidationError("No mooring provided")
 
                     self.proposed_issuance_approval = {
                         'mooring_bay_id': details.get('mooring_bay_id'),
@@ -1825,7 +1874,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'ria_mooring_name': ria_mooring_name,
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email'),
-                        'mooring_on_approval': details.get('mooring_on_approval'),
+                        'mooring_on_approval': mooring_on_approval,
                         'vessel_ownership': details.get('vessel_ownership'),
                     }
                     self.save()
@@ -2369,10 +2418,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
         max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
         length = 0
-        if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
-            max_vessel_length_with_no_payment[0] == self.vessel_length and
-            not max_vessel_length_with_no_payment[1])):
-            return True
+        if self.vessel_length:
+            if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
+                max_vessel_length_with_no_payment[0] == self.vessel_length and
+                not max_vessel_length_with_no_payment[1])):
+                return True
         return False
     
     def keeping_current_vessel(self):
@@ -2396,7 +2446,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
     
     def vessel_ownership_changed(self):
-
         previous_ownership = None
         if self.previous_application:
             previous_ownership = self.previous_application.vessel_ownership
@@ -2416,13 +2465,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         previous_company_ownership.percentage != company_ownership.percentage
                     ):
                         return True
-            else:
-                if not self.vessel_ownership.individual_owner:
+            else: #no previous company ownership
+                if not self.vessel_ownership.individual_owner: #company ownership
                     return True
-
+                
         return False
 
-    def mooring_changed(self):
+    def mooring_changed(self, request=None):
         #on client-side check, user input is used to determine this value when the selected mooring has already been saved
         #however, no such check is required to determine if a new mooring is being selected or not - 
         # we just need to check if the proposal's mooring is the same or not
@@ -2432,14 +2481,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if (self.mooring_authorisation_preference != self.previous_application.mooring_authorisation_preference):
                 return True
             #TODO do we need check preference changes? probably not
-            #elif self.mooring_authorisation_preference == 'ria':
-            #    #bay_preferences_numbered if ria
-            #    #remove uncommon elements from both lists in case bays are added/removed
-            #    uncommon = list(set(self.bay_preferences_numbered) ^ set(self.previous_application.bay_preferences_numbered))
-            #    bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.bay_preferences_numbered))
-            #    previous_bay_preferences_numbered = list(filter(lambda i: i not in uncommon, self.previous_application.bay_preferences_numbered))
-            #    if bay_preferences_numbered != previous_bay_preferences_numbered:
-            #        return True
+            elif self.mooring_authorisation_preference == 'ria':
+                #this is a rare instance where a client-side decision can directly affect auto-approval
+                #if the user wants to add an additional (ria specified) mooring then we return the mooring as changed
+                if "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
+                    return True
             elif self.mooring_authorisation_preference == 'site_licensee':
                 #mooring_id if site license
                 #TODO licensee need to checked as well? probably not
@@ -2938,8 +2984,10 @@ class WaitingListApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
-            return True
+        #MLA and WLA do not need a vessel to be submitted
+        return True
+        #if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
+        #    return True
         # return False
 
     def process_after_approval(self, request=None, total_amount=0):
@@ -3482,7 +3530,7 @@ class AuthorisedUserApplication(Proposal):
                 self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
                 self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
                 if (not self.vessel_on_proposal() or
-                    self.mooring_changed() or
+                    self.mooring_changed(request) or
                     self.has_higher_vessel_category() or
                     not self.keeping_current_vessel() or
                     self.vessel_ownership_changed()
@@ -3502,21 +3550,22 @@ class AuthorisedUserApplication(Proposal):
         self.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(self.lodgement_number), request)
         mooring_preference = self.get_mooring_authorisation_preference()
 
-        # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
-        if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
-            (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
-            # Mooring preference is 'site_licensee' and which is new mooring applying for.
-            self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
-            self.save()
-            # Email to endorser
-            send_endorsement_of_authorised_user_application_email(request, self)
-            send_confirmation_email_upon_submit(request, self, False)
-        else:
-            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            self.save()
-            send_confirmation_email_upon_submit(request, self, False)
-            if not self.auto_approve:
-                send_notification_email_upon_submit_to_assessor(request, self)
+        if not (self.auto_approve and (self.proposal_type.code == PROPOSAL_TYPE_RENEWAL or self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT)):
+            # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
+            if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
+                (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
+                # Mooring preference is 'site_licensee' and which is new mooring applying for.
+                self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+                self.save()
+                # Email to endorser
+                send_endorsement_of_authorised_user_application_email(request, self)
+                send_confirmation_email_upon_submit(request, self, False)
+            else:
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                self.save()
+                send_confirmation_email_upon_submit(request, self, False)
+                if not self.auto_approve:
+                    send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
@@ -3588,9 +3637,11 @@ class AuthorisedUserApplication(Proposal):
                     # convert proposed_issuance_approval to an end_date
                     if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
                         moa2.end_date = current_datetime.date()
+                        moa2.active = False
                         moa2.save()
                     elif moa1.get("id") == moa2.id and moa1.get("checked") and moa2.end_date:
                         moa2.end_date = None
+                        moa2.active = True
                         moa2.save()
         # set auto_approve renewal application ProposalRequirement due dates to those from previous application + 12 months
         if self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
@@ -4249,9 +4300,11 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
-            return True
-        return False
+        #MLA and WLA do not need a vessel to be submitte
+        return True
+        #if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
+        #    return True
+        #return False
 
     def does_have_valid_associations(self):
         """
@@ -4577,18 +4630,20 @@ class Vessel(RevisionedMixin):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import Approval, MooringLicence
 
-        if proposal_being_processed.proposal_applicant:
-            if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
-                raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
-        else:
-            raise serializers.ValidationError("No valid proposal applicant provided")
+        #NOTE below check has been disabled
+        #a vessel CAN have multiple owners, subject to owner percentage, multiple owners cannot exist across multipe licenses (TODO review reqs)
+        # a vessel can be owned by multiple owners if their percentage is low enough
+        #if proposal_being_processed.proposal_applicant:
+        #    if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
+        #        raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
+        #else:
+        #    raise serializers.ValidationError("No valid proposal applicant provided")
         
         #vessels can be:
         # 1 on multiple active approvals IF owned by the same person
         # 2 on only ONE active proposal at a time
-        # 3 by one owner only - other applicants may not use the vessel until the vessel has been sold (and all related proposals and approvals are no longer active)
 
-        ## Requirement: Vessel can only be listed as owned by one vessel owner until sold (with company ownership also considered)
+        ## Requirement: If vessel is owned by multiple parties then there must be no
         # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
         proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
@@ -4669,7 +4724,7 @@ class Vessel(RevisionedMixin):
                 )
 
 
-class VesselLogDocument(Document):
+class VesselLogDocument(Document):#
     log_entry = models.ForeignKey('VesselLogEntry',related_name='documents', on_delete=models.CASCADE)
     _file = models.FileField(storage=private_storage,upload_to=update_vessel_comms_log_filename, max_length=512)
 

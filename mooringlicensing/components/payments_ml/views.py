@@ -394,7 +394,6 @@ class ApplicationFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         proposal = self.get_object()
-
         try:
             #check for auto approval
             auto_approved = is_authorised_to_pay_auto_approved(request,proposal)

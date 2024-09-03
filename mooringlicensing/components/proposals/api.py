@@ -1686,13 +1686,16 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def proposed_approval(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProposedApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.proposed_approval(request, serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedApprovalSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.proposed_approval(request, serializer.validated_data)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to assess proposal")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -1775,7 +1778,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             is_applicant_address_set(instance)
 
-            return Response()
+            serializer = self.serializer_class(instance, context={'request':request})
+            return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     def get_max_vessel_length_for_main_component(self, request, *args, **kwargs):
@@ -2288,12 +2292,13 @@ class VesselViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Vessel.objects.none()
         user = self.request.user
-        if is_internal(self.request):
-            queryset = Vessel.objects.all().order_by('id')
-        elif is_customer(self.request):
-            owner = Owner.objects.filter(emailuser=user.id)
-            if owner:
-                queryset = owner.first().vessels.distinct()
+        queryset = Vessel.objects.all().order_by('id')
+        #if is_internal(self.request):
+        #    queryset = Vessel.objects.all().order_by('id')
+        #elif is_customer(self.request):
+        #    owner = Owner.objects.filter(emailuser=user.id)
+        #    if owner:
+        #        queryset = owner.first().vessels.distinct()
         return queryset
 
     @detail_route(methods=['POST',], detail=True)
@@ -2356,7 +2361,10 @@ class VesselViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def lookup_vessel_ownership(self, request, *args, **kwargs):
         vessel = self.get_object()
-        serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.all(), many=True)
+        if is_internal(request):
+            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.distinct("owner"), many=True)
+        else:
+            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.filter(owner__emailuser=request.user.id).distinct("owner"), many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -2457,7 +2465,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         else:
             raise serializers.ValidationError("no email user id provided")
 
-        vessel_ownership_list = owner.vesselownership_set.all()
+        vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
 
         # TODO review - rewrite following for vessel_ownership_list
         if search_text:
@@ -2484,7 +2492,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         owner_qs = Owner.objects.filter(emailuser=request.user.id)
         if owner_qs:
             owner = owner_qs[0]
-            vessel_ownership_list = owner.vesselownership_set.all()
+            vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
 
             # rewrite following for vessel_ownership_list
             if search_text:
