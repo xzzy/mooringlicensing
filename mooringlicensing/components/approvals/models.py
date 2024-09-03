@@ -1625,6 +1625,7 @@ class AuthorisedUserPermit(Approval):
             # Set end_date to the moa because the mooring on it is no longer available.
             moa = self.mooringonapproval_set.get(mooring__mooring_licence=mooring_licence)
             if not moa.end_date:
+                moa.active = False
                 moa.end_date = datetime.datetime.now().date()
                 moa.save()
                 logger.info(f'Set end_date: [{moa.end_date}] to the MooringOnApproval: [{moa}] because the Mooring: [{moa.mooring}] is no longer available.')

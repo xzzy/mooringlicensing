@@ -604,10 +604,9 @@ class FeeConstructor(models.Model):
                             #     # No fee_items created
                             #     continue
                             if (
-                                    (vessel_size_category.null_vessel and proposal_type.code in [settings.PROPOSAL_TYPE_NEW,]) or
+                                    #(vessel_size_category.null_vessel and proposal_type.code in [settings.PROPOSAL_TYPE_NEW,]) or
                                     (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,]) or
                                     (not fee_period.is_first_period and proposal_type.code in [settings.PROPOSAL_TYPE_RENEWAL,])
-                                    # When null vessel and new proposal (any application type), OR
                                     # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication <== When renew the ML with null vessel, do we need nul vessel AA fee_item...???
                                     # When first period and renewal proposal
                             ):

@@ -897,9 +897,11 @@ export default {
             const vesselData = res.body;
             // read in vessel ownership data from Proposal if in Draft status
             if (this.proposal && this.proposal.processing_status === 'Draft' && !this.proposal.pending_amendment_request) {
-                if (vesselData && vesselData.rego_no) {
+                if (vesselData && vesselData.rego_no ) {
                     this.vessel.vessel_details = Object.assign({}, vesselData.vessel_details);
-                    this.vessel.vessel_ownership = Object.assign({}, vesselData.vessel_ownership);
+                    if (Object.keys(vesselData.vessel_ownership).length) {
+                        this.vessel.vessel_ownership = Object.assign({}, vesselData.vessel_ownership);
+                    }
                     this.vessel.id = vesselData.id;
                     this.vessel.rego_no = vesselData.rego_no;
                     //this.vessel.read_only = true;

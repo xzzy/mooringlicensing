@@ -638,9 +638,9 @@ def submit_vessel_data(instance, request, vessel_data):
             raise serializers.ValidationError(vessel_lookup_errors)
 
     if not vessel_data.get('rego_no'):
-        if instance.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
-            if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
-                return
+        #MLA and WLA do not need a vessel to be submitted
+        if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
+            return
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")
 
@@ -828,7 +828,7 @@ def store_vessel_ownership(request, vessel, instance):
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]:
         # Retrieve a vessel_ownership from the previous proposal
         # vessel_ownership = instance.previous_application.vessel_ownership  # !!! This is not always true when ML !!!
-        vessel_ownership = instance.vessel_ownership if instance.vessel_ownership else instance.get_latest_vessel_ownership_by_vessel(vessel)
+        vessel_ownership = instance.vessel_ownership if instance.vessel_ownership != None else instance.get_latest_vessel_ownership_by_vessel(vessel)
 
         vessel_ownership_to_be_created = False
         if vessel_ownership and vessel_ownership.end_date:
@@ -851,7 +851,8 @@ def store_vessel_ownership(request, vessel, instance):
                 vessel_ownership_to_be_created = True
 
         #set vessel_ownership_to_be_created to true if switch between individual/company ownership
-        if ("individual_owner" in vessel_ownership_data and 
+        if (vessel_ownership and
+            "individual_owner" in vessel_ownership_data and 
             vessel_ownership_data["individual_owner"] != vessel_ownership.individual_owner):
             vessel_ownership_to_be_created = True
 
