@@ -84,6 +84,7 @@ class GetPerson(views.APIView):
         if is_internal(request): 
             search_term = request.GET.get('search_term', '')
             page_number = request.GET.get('page_number', 1)
+            display_email = request.GET.get('display_email',False)
             items_per_page = 10
 
             if search_term:
@@ -112,10 +113,13 @@ class GetPerson(views.APIView):
                 data_transform = []
                 for user in my_objects:
                     user_name = get_user_name(user)
-                    if user.legal_dob:
-                        text = '{} {} (DOB: {})'.format(user_name["first_name"], user_name["last_name"], user.legal_dob.strftime('%d/%m/%Y'))
+                    if(display_email):
+                        text = user.email
                     else:
-                        text = '{} {}'.format(user_name["first_name"], user_name["last_name"])
+                        if user.legal_dob:
+                            text = '{} {} (DOB: {})'.format(user_name["first_name"], user_name["last_name"], user.legal_dob.strftime('%d/%m/%Y'))
+                        else:
+                            text = '{} {}'.format(user_name["first_name"], user_name["last_name"])
 
                     serializer = UserSerializer(user)
                     user_data = serializer.data

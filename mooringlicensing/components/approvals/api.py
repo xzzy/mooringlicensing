@@ -822,7 +822,9 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             # 2. DcvPermit doesn't exist
             if dcv_vessel.dcv_permits.count():
                 # DcvPermit exists
-                submitter = dcv_vessel.dcv_permits.first().submitter
+                #TODO update when DCV permit applicant exist
+                # submitter = dcv_vessel.dcv_permits.first().submitter
+                pass
             else:
                 # DcvPermit doesn't exist
                 email_address = request.data.get('email_address')
@@ -835,7 +837,7 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                             if this_user:
                                 new_user = this_user.first()
                             else:
-                                new_user = get_or_create('email_address')
+                                new_user = get_or_create(email_address)
                             submitter = new_user
                         else:
                             raise forms.ValidationError('Please fill the skipper field')
@@ -854,8 +856,12 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                     dcv_vessel.dcv_organisations.add(dcv_organisation)
                 # dcv_vessel.dcv_organisation = dcv_organisation
                 # dcv_vessel.save()
-
-        data['submitter'] = submitter.id
+        try:
+            submitter_id = submitter.id
+        except:
+            submitter_id = submitter['data']['emailuser_id']
+        data['submitter'] = submitter_id
+        data['applicant'] = submitter_id
         data['dcv_vessel_id'] = dcv_vessel.id
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -900,6 +906,127 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
                 number_of_people = serializer_num.save()
 
         return Response(serializer.data)
+    
+class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
+    queryset = DcvAdmission.objects.all().order_by('id')
+    serializer_class = DcvAdmissionSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            qs = DcvAdmission.objects.all().order_by('id')
+            return qs
+        return DcvAdmission.objects.none()
+
+    @staticmethod
+    def _handle_dcv_vessel(dcv_vessel, org_id=None):
+        data = dcv_vessel
+        rego_no_requested = data.get('rego_no', '')
+        vessel_name_requested = data.get('vessel_name', '')
+        try:
+            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
+        except DcvVessel.DoesNotExist:
+            data['rego_no'] = rego_no_requested
+            data['vessel_name'] = vessel_name_requested
+            serializer = DcvVesselSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            dcv_vessel = serializer.save()
+        except Exception as e:
+            logger.error(e)
+            raise
+
+        return dcv_vessel
+
+    def create(self, request, *args, **kwargs):
+        if is_internal(self.request):
+            data = request.data
+            dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
+            dcv_organisation = None
+            email_confirm = request.data.get('email_address_confirmation')
+            submitter = request.user
+            email_address = request.data.get('email_address')
+            email_address_confirmation = request.data.get('email_address_confirmation')
+            skipper = request.data.get('skipper')
+            if email_address and email_address_confirmation:
+                if email_address == email_address_confirmation:
+                    if skipper:
+                        this_user = EmailUser.objects.filter(email=email_address)
+                        if this_user:
+                            new_user = this_user.first()
+                        else:
+                            new_user = get_or_create(email_address)
+                        applicant = new_user
+                    else:
+                        raise forms.ValidationError('Please fill the skipper field')
+                else:
+                    raise forms.ValidationError('Email addresses do not match')
+            else:
+                raise forms.ValidationError('Please fill the email address fields')
+            if dcv_vessel.dcv_permits.count():
+                # DcvPermit exists
+                #TODO update when DCV permit applicant exist
+                # submitter = dcv_vessel.dcv_permits.first().submitter
+                pass
+            else:
+                # No DcvPermit found, create DcvOrganisation and link it to DcvVessel
+                my_data = {}
+                my_data['organisation'] = request.data.get('organisation_name')
+                my_data['abn_acn'] = request.data.get('organisation_abn')
+                dcv_organisation, created = DcvPermitViewSet.handle_dcv_organisation(my_data, False)
+                orgs = dcv_vessel.dcv_organisations.filter(id=dcv_organisation.id)
+                if not orgs:
+                    dcv_vessel.dcv_organisations.add(dcv_organisation)
+                    # dcv_vessel.save()
+
+            data['submitter'] = submitter.id
+            try:
+                applicant_id = applicant.id
+            except:
+                applicant_id = applicant['data']['emailuser_id']
+            data['applicant'] = applicant_id
+            data['dcv_vessel_id'] = dcv_vessel.id
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            dcv_admission = serializer.save()
+            logger.info(f'Create DcvAdmission: [{dcv_admission}].')
+            if dcv_organisation:
+                dcv_admission.dcv_organisation = dcv_organisation
+                dcv_admission.save()
+
+            for arrival in data.get('arrivals', None):
+                arrival['dcv_admission'] = dcv_admission.id
+                serializer_arrival = DcvAdmissionArrivalSerializer(data=arrival)
+                serializer_arrival.is_valid(raise_exception=True)
+                dcv_admission_arrival = serializer_arrival.save()
+
+                # Adults
+                age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_ADULT)
+                for admission_type, number in arrival.get('adults').items():
+                    number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
+                    admission_type_obj = AdmissionType.objects.get(code=admission_type)
+                    serializer_num = NumberOfPeopleSerializer(data={
+                        'number': number if number else 0,  # when number is blank, set to 0
+                        'dcv_admission_arrival': dcv_admission_arrival.id,
+                        'age_group': age_group_obj.id,
+                        'admission_type': admission_type_obj.id
+                    })
+                    serializer_num.is_valid(raise_exception=True)
+                    number_of_people = serializer_num.save()
+
+                # Children
+                age_group_obj = AgeGroup.objects.get(code=AgeGroup.AGE_GROUP_CHILD)
+                for admission_type, number in arrival.get('children').items():
+                    number = 0 if dcv_admission_arrival.private_visit else number  # When private visit, we don't care the number of people
+                    admission_type_obj = AdmissionType.objects.get(code=admission_type)
+                    serializer_num = NumberOfPeopleSerializer(data={
+                        'number': number if number else 0,  # when number is blank, set to 0
+                        'dcv_admission_arrival': dcv_admission_arrival.id,
+                        'age_group': age_group_obj.id,
+                        'admission_type': admission_type_obj.id
+                    })
+                    serializer_num.is_valid(raise_exception=True)
+                    number_of_people = serializer_num.save()
+            return Response(serializer.data)
+        raise serializers.ValidationError("not authorised to create application as an internal user")
 
 
 class DcvPermitViewSet(viewsets.ModelViewSet):

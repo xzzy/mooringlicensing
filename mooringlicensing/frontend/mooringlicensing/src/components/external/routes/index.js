@@ -9,6 +9,7 @@ import VesselsDashboard from '@/components/external/vessels_dashboard.vue'
 import ManageVessel from '@/components/external/manage_vessel.vue'
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
+import DcvAdmissionForm from '@/components/external/dcv/dcv_admission.vue'
 /*
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
@@ -83,9 +84,25 @@ export default
         },
         {
             path: 'dcv_admission',
-            component: DcvAdmission,
-            name: 'dcv_admission'
+            component:
+            {
+            render(c){
+            return c('router-view')
+            }
         },
+            children: [
+            {
+            path: '/',
+            component: DcvAdmission,
+            name:'dcv_admission'
+            },
+            {
+            path: 'dcv_admission_form',
+            component: DcvAdmissionForm,
+            name:'dcv-admission-form'
+            }
+            ]
+            },
         {
             path: 'vessels',
             component: VesselsDashboard,

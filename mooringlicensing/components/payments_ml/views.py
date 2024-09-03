@@ -90,7 +90,7 @@ class DcvAdmissionFeeView(TemplateView):
                 new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
                 checkout_response = checkout(
                     request,
-                    dcv_admission.submitter_obj, #TODO applicant vs submitter
+                    dcv_admission.applicant_obj, #changed from submitter to applicant
                     lines,
                     return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
@@ -98,7 +98,7 @@ class DcvAdmissionFeeView(TemplateView):
                     invoice_text='DCV Admission Fee',
                 )
                 #TODO applicant vs submitter
-                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.submitter, dcv_admission.id))
+                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
                 return checkout_response
 
         except Exception as e:
@@ -484,11 +484,10 @@ class DcvAdmissionFeeSuccessView(TemplateView):
                 logger.info(f'DcvAdmissionFee with uuid: {uuid} exists.')
             dcv_admission_fee = DcvAdmissionFee.objects.get(uuid=uuid)
             dcv_admission = dcv_admission_fee.dcv_admission
-
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{dcv_admission_fee.invoice_reference}/'
             context = {
                 'dcv_admission': dcv_admission,
-                'submitter': dcv_admission.submitter_obj, #TODO applicant vs submitter
+                'submitter': dcv_admission.applicant_obj, #TODO applicant vs submitter
                 'fee_invoice': dcv_admission_fee,
                 'invoice_url': invoice_url,
                 'admission_urls': dcv_admission.get_admission_urls(),
@@ -530,8 +529,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
             else:
                 logger.info(f'FeeCalculation with uuid: {uuid} exist.')
             fee_calculation = FeeCalculation.objects.get(uuid=uuid)
-            db_operations = fee_calculation.data
-
+            logger.info(dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY)
             if dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 if invoice.system not in [LEDGER_SYSTEM_ID, ]:
                     #TODO applicant vs submitter

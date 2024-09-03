@@ -2492,6 +2492,7 @@ class DcvAdmission(RevisionedMixin):
 
     #TODO applicant vs submitter?
     submitter = models.IntegerField(blank=True, null=True)
+    applicant = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime when payment
     skipper = models.CharField(max_length=50, blank=True, null=True)
@@ -2514,6 +2515,10 @@ class DcvAdmission(RevisionedMixin):
     @property
     def submitter_obj(self):
         return retrieve_email_userro(self.submitter) if self.submitter else None
+    
+    @property
+    def applicant_obj(self):
+        return retrieve_email_userro(self.applicant) if self.applicant else None
 
     def __str__(self):
         lodgement_number = '---'

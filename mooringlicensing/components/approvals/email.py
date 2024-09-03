@@ -201,10 +201,49 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
             _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
 
     return msg
-    
+
+def send_reminder_to_accept_ml_offer_mail(approval, days_before_expire, total_expire_period, request=None):
+    email = TemplateEmailBase(
+        subject='First and Final Reminder: Apply for Mooring Site Licence - Rottnest Island Authority',
+        html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
+        txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
+    )
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url = url + reverse('external')
+
+    proposal = approval.current_proposal
+
+    context = {
+        'recipient': approval.applicant_obj,
+        'url': get_public_url(request),
+        'approval' : approval,
+        'number_of_days' : days_before_expire,
+        'due_date' : approval.issue_date + timedelta(total_expire_period)
+    }
+
+    sender = settings.DEFAULT_FROM_EMAIL
+    try:
+        sender_user = EmailUser.objects.get(email__icontains=sender)
+    except:
+        sender_user = None
+
+    to_address = approval.applicant_obj.email
+    all_ccs = []
+    bcc = []
+
+    msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
+    if msg:
+        _log_approval_email(msg, approval, sender=sender_user)
+        if approval.org_applicant:
+            _log_org_email(msg, approval.org_applicant, proposal.applicant_obj, sender=sender_user)
+        else:
+            _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
+
+    return msg
+   
 
 def send_vessel_nomination_reminder_mail(approval, request=None):
-    # 10
+    
     email = TemplateEmailBase(
         subject='First and Final Reminder: Vessel Requirements for {} - Rottnest Island Authority'.format(approval.description),
         html_template='mooringlicensing/emails_2/email_10.html',
