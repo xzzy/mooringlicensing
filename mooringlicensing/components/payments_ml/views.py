@@ -528,6 +528,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
             else:
                 logger.info(f'FeeCalculation with uuid: {uuid} exist.')
             fee_calculation = FeeCalculation.objects.get(uuid=uuid)
+            db_operations = fee_calculation.data
             logger.info(dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY)
             if dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 if invoice.system not in [LEDGER_SYSTEM_ID, ]:

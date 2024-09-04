@@ -409,6 +409,7 @@ export default {
                 var selected = $(e.currentTarget);
                 const selectedTerm = e.params.data.text;
                 if (e.params.data.customValue) {
+                    vm.dcv_admission.email_address_confirmation = ''
                     vm.show_confirm_email_field = true;
                     vm.dcv_admission.email_address = e.params.data.text
                 } else {
@@ -422,6 +423,8 @@ export default {
                 var selected = $(e.currentTarget);
                 vm.applicant_system_id = null;
                 vm.show_confirm_email_field = false; 
+                vm.dcv_admission.email_address = ''
+                vm.dcv_admission.email_address_confirmation = ''
             }).
             on("select2:open", function(e) {
                 const searchField = $('[aria-controls="select2-person_lookup-results"]');
