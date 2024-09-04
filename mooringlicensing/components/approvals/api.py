@@ -1437,6 +1437,9 @@ class StickerViewSet(viewsets.ModelViewSet):
         sticker = self.get_object()
         data = request.data
 
+        if not sticker.printing_date:
+            raise serializers.ValidationError("cannot return a sticker that has not yet been printed")
+
         # Update Sticker action
         data['sticker'] = sticker.id
         data['action'] = 'Record returned'
@@ -1455,6 +1458,9 @@ class StickerViewSet(viewsets.ModelViewSet):
     def record_lost(self, request, *args, **kwargs):
         sticker = self.get_object()
         data = request.data
+
+        if not sticker.printing_date:
+            raise serializers.ValidationError("cannot lose a sticker that has not yet been printed")
 
         # Update Sticker action
         data['sticker'] = sticker.id
