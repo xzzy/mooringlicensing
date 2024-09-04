@@ -36,6 +36,7 @@ class StickerListener(object):
                 else:
                     logger.info(f'Proposal: [{sticker_saved.proposal_initiated}] still has sticker(s) being printed.')
         elif sticker_saved.status in [Sticker.STICKER_STATUS_LOST, Sticker.STICKER_STATUS_RETURNED,]:
+
             stickers_to_be_returned = sticker_saved.approval.stickers.filter(status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
             proposals_initiated = []
 
@@ -90,6 +91,12 @@ class StickerListener(object):
                             proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                             proposal.save()
                             logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal: [{proposal}]')
+        elif sticker_saved.status in [Sticker.STICKER_STATUS_TO_BE_RETURNED,]:
+            if sticker_saved.proposal_initiated.processing_status == Proposal.PROCESSING_STATUS_PRINTING_STICKER:
+                sticker_saved.proposal_initiated.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                sticker_saved.proposal_initiated.save()
+                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{sticker_saved.proposal_initiated}]')
+            
 
         # Update the latest approval history for the approval this sticker is for
         latest_approval_history = ApprovalHistory.objects.filter(approval=sticker_saved.approval, end_date__isnull=True).order_by('-start_date')
