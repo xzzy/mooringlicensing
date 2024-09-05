@@ -139,13 +139,13 @@
                                                 {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
-                                                {% if is_account_management_user or request.user.is_superuser %}
+                                                {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
                                                 {% endif %}
                                                 {% if show_tests and request.user.is_superuser %}
                                                     <li><a href="{% url 'test-emails' %}">Test Emails</a></li>
                                                 {% endif %}
-                                                {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
+                                                {% if is_account_management_user or request.user.is_superuser %}
                                                     <li><a class="dropdown-item" href="/ledger-ui/accounts-management">Accounts Management</a></li>
                                                 {% endif %}
                                                     <li><a class="dropdown-item" href="/ledger-ui/system-accounts">Manage Account</a></li>

@@ -3198,33 +3198,36 @@ class Sticker(models.Model):
             return f'ID: {self.id} (#---, {self.status})'
 
     def record_lost(self):
-        logger.info(f'record_lost() is being accessed for the sticker: [{self}].')
-        self.status = Sticker.STICKER_STATUS_LOST
-        self.save()
-        logger.info(f'Status: [{Sticker.STICKER_STATUS_LOST}] has been set to the sticker: [{self}].')
+        if (self.status == "current" or self.status == "to_be_returned") and self.printing_date:
+            logger.info(f'record_lost() is being accessed for the sticker: [{self}].')
+            self.status = Sticker.STICKER_STATUS_LOST
+            self.save()
+            logger.info(f'Status: [{Sticker.STICKER_STATUS_LOST}] has been set to the sticker: [{self}].')
 
     def record_returned(self):
-        logger.info(f'record_returned() is being accessed for the sticker: [{self}].')
-        self.status = Sticker.STICKER_STATUS_RETURNED
-        self.save()
-        logger.info(f'Status: [{Sticker.STICKER_STATUS_RETURNED}] has been set to the sticker: [{self}].')
+        if (self.status == "to_be_returned") and self.printing_date:
+            logger.info(f'record_returned() is being accessed for the sticker: [{self}].')
+            self.status = Sticker.STICKER_STATUS_RETURNED
+            self.save()
+            logger.info(f'Status: [{Sticker.STICKER_STATUS_RETURNED}] has been set to the sticker: [{self}].')
 
     def request_replacement(self, new_status):
-        logger.info(f'record_replacement() is being accessed for the sticker: [{self}].')
-        self.status = new_status
-        self.save()
-        logger.info(f'Status: [{new_status}] has been set to the sticker: [{self}].')
+        if (self.status == "current") and self.printing_date:
+            logger.info(f'record_replacement() is being accessed for the sticker: [{self}].')
+            self.status = new_status
+            self.save()
+            logger.info(f'Status: [{new_status}] has been set to the sticker: [{self}].')
 
-        # Create replacement sticker
-        new_sticker = Sticker.objects.create(
-            approval=self.approval,
-            vessel_ownership=self.vessel_ownership,
-            fee_constructor=self.fee_constructor,
-            fee_season=self.approval.latest_applied_season,
-        )
-        logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
+            # Create replacement sticker
+            new_sticker = Sticker.objects.create(
+                approval=self.approval,
+                vessel_ownership=self.vessel_ownership,
+                fee_constructor=self.fee_constructor,
+                fee_season=self.approval.latest_applied_season,
+            )
+            logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
 
-        return new_sticker
+            return new_sticker
 
     def get_sticker_colour(self):
         # colour = self.approval.child_obj.sticker_colour

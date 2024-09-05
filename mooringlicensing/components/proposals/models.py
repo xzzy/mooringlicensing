@@ -2759,8 +2759,8 @@ class WaitingListApplication(Proposal):
     
     def set_auto_approve(self,request):
         #check WLA auto approval conditions
-        if (self.is_assessor(request) or 
-            self.is_approver(request) or
+        if (self.is_assessor(request.user) or 
+            self.is_approver(request.user) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):
@@ -3054,15 +3054,16 @@ class AnnualAdmissionApplication(Proposal):
 
     def set_auto_approve(self,request):
         #check AAA auto approval conditions
-        #for AAA auto-approve just means if it is paid for right away
-        #and it always is
-        if (self.is_assessor(request) or 
-            self.is_approver(request) or
+        if (self.is_assessor(request.user) or 
+            self.is_approver(request.user) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):
-            self.auto_approve = True
-            self.save()
+            if self.proposal_type and (
+            self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+            self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                self.auto_approve = True
+                self.save()
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
@@ -3550,8 +3551,8 @@ class AuthorisedUserApplication(Proposal):
 
     def set_auto_approve(self,request):
         #check AUP auto approval conditions
-        if (self.is_assessor(request) or 
-            self.is_approver(request) or
+        if (self.is_assessor(request.user) or 
+            self.is_approver(request.user) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):
@@ -4109,8 +4110,8 @@ class MooringLicenceApplication(Proposal):
 
     def set_auto_approve(self,request):
         #check AUP auto approval conditions
-        if (self.is_assessor(request) or 
-            self.is_approver(request) or
+        if (self.is_assessor(request.user) or 
+            self.is_approver(request.user) or
             (self.proposal_applicant and 
             self.proposal_applicant.email_user_id == request.user.id)
             ):

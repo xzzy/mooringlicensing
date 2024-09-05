@@ -412,6 +412,7 @@ def save_proponent_data_aaa(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
+    instance.refresh_from_db()
     if action == 'submit':
         # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
@@ -420,6 +421,9 @@ def save_proponent_data_aaa(instance, request, action):
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             instance.save()
+            if instance.auto_approve:
+                current_datetime = datetime.datetime.now()
+                instance.update_or_create_approval(current_datetime, request)       
 
 
 def save_proponent_data_wla(instance, request, action):

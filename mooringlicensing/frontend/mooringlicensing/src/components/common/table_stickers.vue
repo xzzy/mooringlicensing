@@ -412,8 +412,10 @@ export default {
                 case 'lost':
                     break
                 case 'to_be_returned':
-                    links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
-                    links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+                    if (sticker.printing_date !== "" && sticker.printing_date !== null) {
+                        links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
+                        links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
+                    }
                     break
                 case 'returned':
                     break
