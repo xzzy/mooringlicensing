@@ -3198,21 +3198,21 @@ class Sticker(models.Model):
             return f'ID: {self.id} (#---, {self.status})'
 
     def record_lost(self):
-        if (self.status.code == "current" or self.status.code == "to_be_returned") and self.printing_date:
+        if (self.status == "current" or self.status == "to_be_returned") and self.printing_date:
             logger.info(f'record_lost() is being accessed for the sticker: [{self}].')
             self.status = Sticker.STICKER_STATUS_LOST
             self.save()
             logger.info(f'Status: [{Sticker.STICKER_STATUS_LOST}] has been set to the sticker: [{self}].')
 
     def record_returned(self):
-        if (self.status.code == "to_be_returned") and self.printing_date:
+        if (self.status == "to_be_returned") and self.printing_date:
             logger.info(f'record_returned() is being accessed for the sticker: [{self}].')
             self.status = Sticker.STICKER_STATUS_RETURNED
             self.save()
             logger.info(f'Status: [{Sticker.STICKER_STATUS_RETURNED}] has been set to the sticker: [{self}].')
 
     def request_replacement(self, new_status):
-        if (self.status.code == "current") and self.printing_date:
+        if (self.status == "current") and self.printing_date:
             logger.info(f'record_replacement() is being accessed for the sticker: [{self}].')
             self.status = new_status
             self.save()
