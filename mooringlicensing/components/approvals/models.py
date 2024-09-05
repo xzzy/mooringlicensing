@@ -1657,6 +1657,10 @@ class AuthorisedUserPermit(Approval):
     def manage_stickers(self, proposal=None):
         logger.info(f'Managing stickers for the AuthorisedUserPermit: [{self}]...')
 
+        stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+        if stickers_not_exported:
+            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+
         # Lists to be returned to the caller
         moas_to_be_reallocated = []  # List of MooringOnApproval objects which are to be on the new stickers
         stickers_to_be_returned = []  # List of the stickers to be returned

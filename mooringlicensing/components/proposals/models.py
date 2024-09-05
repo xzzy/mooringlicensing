@@ -3722,19 +3722,20 @@ class AuthorisedUserApplication(Proposal):
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
-
+        self.refresh_from_db()
         #####
         # Set proposal status after manage _stickers
         #####
         stickers_to_be_printed = []
         if self.approval:
-            stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING,])
+            stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+            stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING,])
 
-        if len(stickers_to_be_returned):
+        if len(stickers_to_be_returned): #TODO this should include before and after this application's sticker has printed
             a_sticker = stickers_to_be_returned[0]  # All the stickers to be returned should have the same vessel, so just pick the first one
             if self.vessel_ownership and a_sticker.vessel_ownership.vessel.rego_no == self.vessel_ownership.vessel.rego_no:
                 # Same vessel
-                if stickers_to_be_printed:
+                if stickers_not_exported:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                     self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number), )
                 else:
@@ -3745,15 +3746,16 @@ class AuthorisedUserApplication(Proposal):
                 self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
                 self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
         else:
-            # There are no stickers to be returned
-            if stickers_to_be_printed:
-                # There is a sticker to be printed
-                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
-            else:
+            # There are no stickers to be returned - before and after the sticker for this application has been printed
+            if stickers_to_be_printed: #this only evaluates as True for pre-existing stickers, in which case set the current sticker to True
                 # There are no stickers to be printed
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+            else:
+                #if we are here, it is an entirely new application and we need a sticker
+                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+
         self.save()
         # self.refresh_from_db()
         # self.proposal.refresh_from_db()
