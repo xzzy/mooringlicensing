@@ -2218,6 +2218,8 @@ class MooringLicence(Approval):
                     status__in=[
                         Sticker.STICKER_STATUS_CURRENT,
                         Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,
                     ],
                     vessel_ownership=vessel_ownership,
                 )
@@ -2244,6 +2246,8 @@ class MooringLicence(Approval):
                 status__in=[
                     Sticker.STICKER_STATUS_CURRENT,
                     Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                    Sticker.STICKER_STATUS_NOT_READY_YET,
+                    Sticker.STICKER_STATUS_READY,
                 ]
             )
             # CurrentStickers - StickersToBeKept = StickersToBeReturned
@@ -2274,7 +2278,9 @@ class MooringLicence(Approval):
                     status__in=(
                         Sticker.STICKER_STATUS_CURRENT,
                         Sticker.STICKER_STATUS_AWAITING_PRINTING,
-                        Sticker.STICKER_STATUS_TO_BE_RETURNED,),
+                        Sticker.STICKER_STATUS_TO_BE_RETURNED,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,),
                     vessel_ownership=vessel_ownership,
                 )
                 if existing_sticker:
