@@ -1585,13 +1585,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     try:
                         ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                     except:
-                        raise serializers.ValidationError("Mooring id provided is invalid")
+                        if self.application_type.code == "aua":
+                            raise serializers.ValidationError("Mooring id provided is invalid")
                 elif not mooring_on_approval or mooring_on_approval == []:
-                    raise serializers.ValidationError("No mooring provided")
+                    if self.application_type.code == "aua":
+                        raise serializers.ValidationError("No mooring provided")
                 else:
                     #check if mooring on approval list has at least one checked value
                     if not True in checked_list:
-                        raise serializers.ValidationError("No mooring provided")
+                        if self.application_type.code == "aua":
+                            raise serializers.ValidationError("No mooring provided")
 
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
@@ -1861,13 +1864,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         try:
                             ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                         except:
-                            raise serializers.ValidationError("Mooring id provided is invalid")
+                            if self.application_type.code == "aua":
+                                raise serializers.ValidationError("Mooring id provided is invalid")
                     elif not mooring_on_approval or mooring_on_approval == []:
-                        raise serializers.ValidationError("No mooring provided")
+                        if self.application_type.code == "aua":
+                            raise serializers.ValidationError("No mooring provided")
                     else:
                         #check if mooring on approval list has at least one checked value
                         if not True in checked_list:
-                            raise serializers.ValidationError("No mooring provided")
+                            if self.application_type.code == "aua":
+                                raise serializers.ValidationError("No mooring provided")
 
                     self.proposed_issuance_approval = {
                         'mooring_bay_id': details.get('mooring_bay_id'),
