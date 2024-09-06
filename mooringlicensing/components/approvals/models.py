@@ -2226,6 +2226,11 @@ class MooringLicence(Approval):
                 if not stickers_for_this_vessel or sticker_colour_to_be_changed:
                     # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
                     # A new sticker should be created
+
+                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                    if stickers_not_exported:
+                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+            
                     new_sticker = Sticker.objects.create(
                         approval=self,
                         vessel_ownership=proposal.vessel_ownership,
@@ -2246,10 +2251,9 @@ class MooringLicence(Approval):
                 status__in=[
                     Sticker.STICKER_STATUS_CURRENT,
                     Sticker.STICKER_STATUS_AWAITING_PRINTING,
-                    Sticker.STICKER_STATUS_NOT_READY_YET,
-                    Sticker.STICKER_STATUS_READY,
                 ]
             )
+
             # CurrentStickers - StickersToBeKept = StickersToBeReturned
             stickers_to_be_returned = [sticker for sticker in stickers_current if sticker not in stickers_to_be_kept]
 
@@ -2286,6 +2290,10 @@ class MooringLicence(Approval):
                 if existing_sticker:
                     existing_sticker = existing_sticker.first()
                     stickers_to_be_replaced.append(existing_sticker)
+
+                stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                if stickers_not_exported:
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
 
                 # Sticker not found --> Create it
                 new_sticker = Sticker.objects.create(
