@@ -97,7 +97,6 @@ class DcvAdmissionFeeView(TemplateView):
                     booking_reference=str(dcv_admission_fee.uuid),
                     invoice_text='DCV Admission Fee',
                 )
-                #TODO applicant vs submitter
                 logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
                 return checkout_response
 
@@ -499,6 +498,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
     @staticmethod
     def adjust_db_operations(dcv_admission, db_operations):
         dcv_admission.lodgement_datetime = dateutil.parser.parse(db_operations['datetime_for_calculating_fee'])
+        dcv_admission.status = DcvAdmission.DCV_ADMISSION_STATUS_PAID
         dcv_admission.save()
 
     def get(self, request, uuid, format=None):

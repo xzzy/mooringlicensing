@@ -20,10 +20,13 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
             'skipper',
             'contact_number',
             'dcv_vessel_id',
+            'date_created',
+            'status',
         )
         read_only_fields = (
             'id',
             'lodgement_number',
+            'date_created',
         )
 
     def validate(self, data):
