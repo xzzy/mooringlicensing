@@ -1395,13 +1395,13 @@ class AnnualAdmissionPermit(Approval):
         )
         if proposal.proposal_applicant:
             proposal_applicant = proposal.proposal_applicant
-            new_sticker.postal_line1 = proposal_applicant.postal_line1
-            new_sticker.postal_line2 = proposal_applicant.postal_line2
-            new_sticker.postal_line3 = proposal_applicant.postal_line3
-            new_sticker.postal_locality = proposal_applicant.postal_locality
-            new_sticker.postal_state = proposal_applicant.postal_state
-            new_sticker.postal_country = proposal_applicant.postal_country
-            new_sticker.postal_postcode = proposal_applicant.postal_postcode
+            new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+            new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+            new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+            new_sticker.postal_address_locality = proposal_applicant.postal_locality
+            new_sticker.postal_address_state = proposal_applicant.postal_state
+            new_sticker.postal_address_country = proposal_applicant.postal_country
+            new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
             new_sticker.save()            
 
         logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -1474,13 +1474,13 @@ class AnnualAdmissionPermit(Approval):
             
             if proposal.proposal_applicant:
                 proposal_applicant = proposal.proposal_applicant
-                new_sticker.postal_line1 = proposal_applicant.postal_line1
-                new_sticker.postal_line2 = proposal_applicant.postal_line2
-                new_sticker.postal_line3 = proposal_applicant.postal_line3
-                new_sticker.postal_locality = proposal_applicant.postal_locality
-                new_sticker.postal_state = proposal_applicant.postal_state
-                new_sticker.postal_country = proposal_applicant.postal_country
-                new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                new_sticker.postal_address_state = proposal_applicant.postal_state
+                new_sticker.postal_address_country = proposal_applicant.postal_country
+                new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
                 new_sticker.save()
 
             logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -1876,13 +1876,13 @@ class AuthorisedUserPermit(Approval):
                 
                 if proposal.proposal_applicant:
                     proposal_applicant = proposal.proposal_applicant
-                    new_sticker.postal_line1 = proposal_applicant.postal_line1
-                    new_sticker.postal_line2 = proposal_applicant.postal_line2
-                    new_sticker.postal_line3 = proposal_applicant.postal_line3
-                    new_sticker.postal_locality = proposal_applicant.postal_locality
-                    new_sticker.postal_state = proposal_applicant.postal_state
-                    new_sticker.postal_country = proposal_applicant.postal_country
-                    new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                    new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                    new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                    new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                    new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                    new_sticker.postal_address_state = proposal_applicant.postal_state
+                    new_sticker.postal_address_country = proposal_applicant.postal_country
+                    new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
                     new_sticker.save()
 
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -2149,13 +2149,13 @@ class MooringLicence(Approval):
         
         if proposal.proposal_applicant:
             proposal_applicant = proposal.proposal_applicant
-            new_sticker.postal_line1 = proposal_applicant.postal_line1
-            new_sticker.postal_line2 = proposal_applicant.postal_line2
-            new_sticker.postal_line3 = proposal_applicant.postal_line3
-            new_sticker.postal_locality = proposal_applicant.postal_locality
-            new_sticker.postal_state = proposal_applicant.postal_state
-            new_sticker.postal_country = proposal_applicant.postal_country
-            new_sticker.postal_postcode = proposal_applicant.postal_postcode
+            new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+            new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+            new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+            new_sticker.postal_address_locality = proposal_applicant.postal_locality
+            new_sticker.postal_address_state = proposal_applicant.postal_state
+            new_sticker.postal_address_country = proposal_applicant.postal_country
+            new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
             new_sticker.save()
 
         logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -2199,13 +2199,13 @@ class MooringLicence(Approval):
                 )
                 if proposal.proposal_applicant:
                     proposal_applicant = proposal.proposal_applicant
-                    new_sticker.postal_line1 = proposal_applicant.postal_line1
-                    new_sticker.postal_line2 = proposal_applicant.postal_line2
-                    new_sticker.postal_line3 = proposal_applicant.postal_line3
-                    new_sticker.postal_locality = proposal_applicant.postal_locality
-                    new_sticker.postal_state = proposal_applicant.postal_state
-                    new_sticker.postal_country = proposal_applicant.postal_country
-                    new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                    new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                    new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                    new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                    new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                    new_sticker.postal_address_state = proposal_applicant.postal_state
+                    new_sticker.postal_address_country = proposal_applicant.postal_country
+                    new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
                     new_sticker.save()
                 new_sticker_created = True
                 stickers_to_be_kept.append(new_sticker)
@@ -2279,13 +2279,13 @@ class MooringLicence(Approval):
                     )
                     if proposal.proposal_applicant:
                         proposal_applicant = proposal.proposal_applicant
-                        new_sticker.postal_line1 = proposal_applicant.postal_line1
-                        new_sticker.postal_line2 = proposal_applicant.postal_line2
-                        new_sticker.postal_line3 = proposal_applicant.postal_line3
-                        new_sticker.postal_locality = proposal_applicant.postal_locality
-                        new_sticker.postal_state = proposal_applicant.postal_state
-                        new_sticker.postal_country = proposal_applicant.postal_country
-                        new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
                         new_sticker.save()
                     new_sticker_created = True
                     stickers_to_be_kept.append(new_sticker)
@@ -2339,13 +2339,13 @@ class MooringLicence(Approval):
                     )
                     if proposal.proposal_applicant:
                         proposal_applicant = proposal.proposal_applicant
-                        new_sticker.postal_line1 = proposal_applicant.postal_line1
-                        new_sticker.postal_line2 = proposal_applicant.postal_line2
-                        new_sticker.postal_line3 = proposal_applicant.postal_line3
-                        new_sticker.postal_locality = proposal_applicant.postal_locality
-                        new_sticker.postal_state = proposal_applicant.postal_state
-                        new_sticker.postal_country = proposal_applicant.postal_country
-                        new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
                         new_sticker.save()
                     new_sticker_created = True
                     stickers_to_be_kept.append(new_sticker)
@@ -2418,13 +2418,13 @@ class MooringLicence(Approval):
                 )
                 if proposal.proposal_applicant:
                     proposal_applicant = proposal.proposal_applicant
-                    new_sticker.postal_line1 = proposal_applicant.postal_line1
-                    new_sticker.postal_line2 = proposal_applicant.postal_line2
-                    new_sticker.postal_line3 = proposal_applicant.postal_line3
-                    new_sticker.postal_locality = proposal_applicant.postal_locality
-                    new_sticker.postal_state = proposal_applicant.postal_state
-                    new_sticker.postal_country = proposal_applicant.postal_country
-                    new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                    new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                    new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                    new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                    new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                    new_sticker.postal_address_state = proposal_applicant.postal_state
+                    new_sticker.postal_address_country = proposal_applicant.postal_country
+                    new_sticker.postal_address_postcode = proposal_applicant.postal_postcode
                     new_sticker.save()
                 stickers_to_be_kept.append(new_sticker)
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -2464,12 +2464,12 @@ class MooringLicence(Approval):
                     )
                     if proposal.proposal_applicant:
                         proposal_applicant = proposal.proposal_applicant
-                        new_sticker.postal_line1 = proposal_applicant.postal_line1
-                        new_sticker.postal_line2 = proposal_applicant.postal_line2
-                        new_sticker.postal_line3 = proposal_applicant.postal_line3
-                        new_sticker.postal_locality = proposal_applicant.postal_locality
-                        new_sticker.postal_state = proposal_applicant.postal_state
-                        new_sticker.postal_country = proposal_applicant.postal_country
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_country
                         new_sticker.postal_postcode = proposal_applicant.postal_postcode
                         new_sticker.save()
                     stickers_to_be_kept.append(new_sticker)
@@ -3342,13 +3342,13 @@ class Sticker(models.Model):
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
 
-    postal_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
-    postal_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
-    postal_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
-    postal_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
-    postal_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
-    postal_country = CountryField(default='AU', null=True, blank=True)
-    postal_postcode = models.CharField(max_length=10, null=True, blank=True)
+    postal_address_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
+    postal_address_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
+    postal_address_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
+    postal_address_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
+    postal_address_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
+    postal_address_country = CountryField(default='AU', null=True, blank=True)
+    postal_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -3418,13 +3418,13 @@ class Sticker(models.Model):
                 vessel_ownership=self.vessel_ownership,
                 fee_constructor=self.fee_constructor,
                 fee_season=self.approval.latest_applied_season,
-                postal_line1 = self.postal_line1,
-                postal_line2 = self.postal_line2,
-                postal_line3 = self.postal_line3,
-                postal_locality = self.postal_locality,
-                postal_state = self.postal_state,
-                postal_country = self.postal_country,
-                postal_postcode = self.postal_postcode,
+                postal_address_line1 = self.postal_address_line1,
+                postal_address_line2 = self.postal_address_line2,
+                postal_address_line3 = self.postal_address_line3,
+                postal_address_locality = self.postal_address_locality,
+                postal_address_state = self.postal_address_state,
+                postal_address_country = self.postal_address_country,
+                postal_address_postcode = self.postal_address_postcode,
             )
             logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
 
@@ -3501,26 +3501,6 @@ class Sticker(models.Model):
     @property
     def last_name(self):
         return self.approval.postal_last_name
-
-    @property
-    def postal_address_line1(self):
-        return self.approval.postal_address_line1
-
-    @property
-    def postal_address_line2(self):
-        return self.approval.postal_address_line2
-
-    @property
-    def postal_address_state(self):
-        return self.approval.postal_address_state
-
-    @property
-    def postal_address_suburb(self):
-        return self.approval.postal_address_suburb
-
-    @property
-    def postal_address_postcode(self):
-        return self.approval.postal_address_postcode
 
     @property
     def vessel_registration_number(self):

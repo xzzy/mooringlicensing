@@ -62,6 +62,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer, StickerForDcvSaveSerializer,
+    StickerPostalAddressSaveSerializer
 )
 from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import UserSerializer
@@ -615,14 +616,31 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         else:
             raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
 
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def change_sticker_address(self, request, *args, **kwargs):
+        approval = self.get_object()
+        sticker_id = request.data['id']
+        sticker = Sticker.objects.filter(approval=approval, id=sticker_id, status__in=(Sticker.STICKER_STATUS_READY,Sticker.STICKER_STATUS_NOT_READY_YET,))
+        if sticker.exists():
+            serializer = StickerPostalAddressSaveSerializer(sticker,request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response({'stickers': serializer.data})
+        else:
+            raise serializers.ValidationError("sticker unavailable or postal address cannot be changed")
+
+
     @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def stickers(self, request, *args, **kwargs):
         instance = self.get_object()
-        stickers = instance.stickers.filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_CURRENT,])
+        stickers = instance.stickers
         serializer = StickerSerializer(stickers, many=True)
         return Response({'stickers': serializer.data})
+        
 
     @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
