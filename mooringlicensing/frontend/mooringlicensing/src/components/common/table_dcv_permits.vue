@@ -21,7 +21,7 @@
             </div>
         </div>
 
-        <div v-if="is_external" class="row">
+        <div v-if="is_external || is_internal" class="row">
             <div class="col-md-12">
                 <button type="button" class="btn btn-primary pull-right" @click="new_application_button_clicked">New Application</button>
             </div>
@@ -351,9 +351,15 @@ export default {
             this.$refs.create_new_sticker_modal.isModalOpen = true
         },
         new_application_button_clicked: function(){
-            this.$router.push({
-                name: 'apply_proposal'
-            })
+            if (this.is_internal) {
+                this.$router.push({
+                    name: 'internal_dcv_permit'
+                })
+            } else {
+                this.$router.push({
+                    name: 'dcv_permit'
+                })
+            }
         },
         fetchFilterLists: function(){
             let vm = this;

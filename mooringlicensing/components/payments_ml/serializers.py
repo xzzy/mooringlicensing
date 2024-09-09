@@ -189,12 +189,20 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'id',
             'lodgement_number',
             'submitter', #TODO applicant vs submitter
+            'applicant',
             'lodgement_datetime',
             'dcv_vessel_id',
             'dcv_organisation_id',
             'fee_season_id',
             'start_date',
             'end_date',
+            'line1',
+            'line2',
+            'line3',
+            'locality',
+            'postcode',
+            'state',
+            'country',
             # 'permits',
         )
         read_only_fields = (

@@ -21,6 +21,7 @@ import Approval from '@/components/internal/approvals/approval.vue'
 import ManageVessel from '@/components/internal/manage_vessel.vue'
 import ProposalApply from '@/components/external/proposal_apply.vue'
 import DcvAdmissionForm from '@/components/external/dcv/dcv_admission.vue'
+import DcvPermit from '@/components/external/dcv/dcv_permit.vue'
 /*
 import User from '../users/manage.vue'
 import ProposalCompare from '../proposals/proposal_compare.vue'
@@ -158,6 +159,12 @@ export default
             path: 'search',
             component: Search,
             name:"internal-search"
+        },
+        {   
+            path: 'dcv_permit',
+            component: DcvPermit,
+            name:"internal_dcv_permit",
+            props: {is_internal:true},    
         },
         {
             path:'reports',
