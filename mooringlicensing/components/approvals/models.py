@@ -19,6 +19,7 @@ from django.db.models import JSONField
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
+from django_countries.fields import CountryField
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
@@ -2581,6 +2582,8 @@ class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
 
     #TODO applicant vs submitter?
+    #created datetime
+    #status
     submitter = models.IntegerField(blank=True, null=True)
     applicant = models.IntegerField(blank=True, null=True)
     lodgement_number = models.CharField(max_length=10, blank=True, unique=True)
@@ -2840,6 +2843,7 @@ class DcvPermit(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
     #TODO applicant vs submitter
+    applicant = models.IntegerField(blank=True, null=True)
     submitter = models.IntegerField(blank=True, null=True)
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
@@ -2852,11 +2856,23 @@ class DcvPermit(RevisionedMixin):
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime assigned on the success of payment
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date assigned on the success of payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date assigned on the success of payment
+    line1 = models.CharField('Line 1', max_length=255, blank=True, null=True)
+    line2 = models.CharField('Line 2', max_length=255, blank=True, null=True)
+    line3 = models.CharField('Line 3', max_length=255, blank=True, null=True)
+    locality = models.CharField('Suburb / Town', max_length=255, blank=True, null=True)
+    postcode = models.CharField(max_length=10, blank=True, null=True)
+    state = models.CharField(max_length=255, default='WA', blank=True, null=True)
+    country = CountryField(default='AU', blank=True, null=True)
+    
 
     @property
     def submitter_obj(self):
         return retrieve_email_userro(self.submitter) if self.submitter else None
 
+    @property
+    def applicant_obj(self):
+        return retrieve_email_userro(self.applicant) if self.applicant else None
+    
     def create_fee_lines(self):
         """ Create the ledger lines - line item for application fee sent to payment system """
         logger.info(f'Creating fee lines for the DcvPermit: [{self}]...')
@@ -3005,11 +3021,11 @@ class DcvPermit(RevisionedMixin):
             'organisation_name': self.dcv_organisation.name if self.dcv_organisation else '',
             'organisation_abn': self.dcv_organisation.abn if self.dcv_organisation else '',
             'issue_date': self.lodgement_datetime.strftime('%d/%m/%Y'),
-            'p_address_line1': self.postal_address_line1,
-            'p_address_line2': self.postal_address_line2,
-            'p_address_suburb': self.postal_address_suburb,
-            'p_address_state': self.postal_address_state,
-            'p_address_postcode': self.postal_address_postcode,
+            'p_address_line1': self.line1,
+            'p_address_line2': self.line2,
+            'p_address_suburb': self.locality,
+            'p_address_state': self.state,
+            'p_address_postcode': self.postcode,
             'vessel_rego_no': self.dcv_vessel.rego_no,
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),

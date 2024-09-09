@@ -941,7 +941,6 @@ class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
             data = request.data
             dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
             dcv_organisation = None
-            email_confirm = request.data.get('email_address_confirmation')
             submitter = request.user
             email_address = request.data.get('email_address')
             email_address_confirmation = request.data.get('email_address_confirmation')
@@ -1126,20 +1125,146 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-
         dcv_organisation, created = self.handle_dcv_organisation(request.data)
         dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
         fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
 
         data['submitter'] = request.user.id
+        data['applicant'] = request.user.id
         data['dcv_vessel_id'] = dcv_vessel.id
         data['dcv_organisation_id'] = dcv_organisation.id
         data['fee_season_id'] = fee_season_requested.get('id')
+        data['line1'] = data.get('postal_address')['line1']
+        data['line2'] = data.get('postal_address')['line2']
+        data['line3'] = data.get('postal_address')['line2']
+        data['locality'] = data.get('postal_address')['locality']
+        data['postcode'] = data.get('postal_address')['postcode']
+        data['state'] = data.get('postal_address')['state']
+        data['country'] = data.get('postal_address')['country']
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()
         logger.info(f'Create DcvPermit: [{dcv_permit}].')
+        return Response(serializer.data)
+    
+class InternalDcvPermitViewSet(viewsets.ModelViewSet):
+    queryset = DcvPermit.objects.all().order_by('id')
+    serializer_class = DcvPermitSerializer
 
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            qs = DcvPermit.objects.all().order_by('id')
+            return qs
+        elif is_customer(self.request):
+            #TODO applicant vs submitter
+            queryset = DcvPermit.objects.filter(Q(applicant=user.id))
+            return queryset
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return DcvPermit.objects.none()
+
+    @staticmethod
+    def handle_dcv_organisation(data, abn_required=True):
+        abn_requested = data.get('abn_acn', '')
+        name_requested = data.get('organisation', '')
+        created = False
+        try:
+            if abn_required:
+                dcv_organisation = DcvOrganisation.objects.get(abn=abn_requested)
+            else:
+                data['name'] = name_requested
+                serializer = DcvOrganisationSerializer(data=data, context={'abn_required': abn_required})
+                serializer.is_valid(raise_exception=True)
+                dcv_organisation = serializer.save()
+                created = True
+                logger.info(f'Create DcvOrganisation: [{dcv_organisation}].')
+        except DcvOrganisation.DoesNotExist:
+            data['name'] = name_requested
+            data['abn'] = abn_requested
+            serializer = DcvOrganisationSerializer(data=data, context={'abn_required': abn_required})
+            serializer.is_valid(raise_exception=True)
+            dcv_organisation = serializer.save()
+            created = True
+            logger.info(f'Create DcvOrganisation: [{dcv_organisation}].')
+        except Exception as e:
+            logger.error(e)
+            raise
+
+        return dcv_organisation, created
+
+    @staticmethod
+    def _handle_dcv_vessel(request, org_id=None):
+        data = request.data
+        rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
+        vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
+        try:
+            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
+        except DcvVessel.DoesNotExist:
+            data['rego_no'] = rego_no_requested
+            data['vessel_name'] = vessel_name_requested
+            # data['dcv_organisation_id'] = org_id
+            serializer = DcvVesselSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            dcv_vessel = serializer.save()
+            logger.info(f'Create DcvVessel: [{dcv_vessel}].')
+        except Exception as e:
+            logger.error(e)
+            raise
+
+        orgs = dcv_vessel.dcv_organisations.filter(id=org_id)
+        if not orgs:
+            dcv_vessel.dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
+
+        return dcv_vessel
+
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def create_new_sticker(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        mailed_date = None
+        if request.data['mailed_date']:
+            mailed_date = datetime.strptime(request.data['mailed_date'], '%d/%m/%Y').date()
+
+        sticker_number = request.data['sticker_number']
+        sticker_number = int(sticker_number)
+
+        data = {}
+        data['number'] = sticker_number
+        data['mailing_date'] = mailed_date
+        data['dcv_permit'] = instance.id
+        data['status'] = Sticker.STICKER_STATUS_CURRENT
+
+        serializer = StickerForDcvSaveSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        sticker = serializer.save()
+        logger.info(f'Create Sticker: [{sticker}].')
+
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        #add if internal
+        data = request.data
+        dcv_organisation, created = self.handle_dcv_organisation(request.data)
+        dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
+        fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
+
+        data['submitter'] = request.user.id
+        data['applicant'] = data.get('applicant')
+        data['dcv_vessel_id'] = dcv_vessel.id
+        data['dcv_organisation_id'] = dcv_organisation.id
+        data['fee_season_id'] = fee_season_requested.get('id')
+        data['line1'] = data.get('postal_address')['line1']
+        data['line2'] = data.get('postal_address')['line2']
+        data['line3'] = data.get('postal_address')['line2']
+        data['locality'] = data.get('postal_address')['locality']
+        data['postcode'] = data.get('postal_address')['postcode']
+        data['state'] = data.get('postal_address')['state']
+        data['country'] = data.get('postal_address')['country']
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        dcv_permit = serializer.save()
+        logger.info(f'Create DcvPermit: [{dcv_permit}].')
         return Response(serializer.data)
 
 

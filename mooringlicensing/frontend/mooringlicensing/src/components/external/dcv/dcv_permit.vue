@@ -1,5 +1,20 @@
 <template>
     <div class="container" id="externalDash">
+        <FormSection label="Select Applicant" v-if="is_internal">
+            <div>
+                <div>
+                    <label class="col-sm-3">Applicant</label>
+                    <div class="col-sm-6">
+                        <select 
+                            id="person_lookup"  
+                            name="person_lookup"  
+                            ref="person_lookup" 
+                            class="form-control" 
+                        />
+                    </div>
+                </div>
+            </div>
+        </FormSection>
         <FormSection :formCollapse="false" label="DCV Permit" Index="dcv_permit">
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Organisation</label>
@@ -36,6 +51,22 @@
                     <input type="text" class="form-control" name="vessel_name" placeholder="" v-model="dcv_permit.dcv_vessel.vessel_name">
                 </div>
             </div>
+            <div class="row form-group">
+                            <label for="" class="col-sm-3 control-label" >
+                                <strong>
+                                Postal Address
+                                </strong>
+                            </label>
+                            <div class="col-sm-6">
+                            <select v-model="dcv_permit.postal_address" class="form-control">
+                                <option selected disabled hidden value>Select postal address...</option>
+                                <option v-for="option in postal_addresses" :value="option" :key="option.id">
+                                    {{ option.line1 }}, {{ option.locality }}, {{ option.state }}, {{ option.postcode }}, {{ option.country }}
+                                </option>
+                                
+                            </select>
+                            </div>
+                        </div>
         </FormSection>
 
         <div>
@@ -77,6 +108,7 @@ export default {
         return {
             dcv_permit: {
                 id: null,
+                applicant: '',
                 organisation: '',
                 abn_acn: '',
                 season: null,
@@ -89,9 +121,11 @@ export default {
                     rego_no: '',
                     vessel_name: '',
                 },
+                postal_address: null,
             },
             paySubmitting: false,
             season_options: [],
+            postal_addresses: [],
         }
     },
     props: {
@@ -103,6 +137,11 @@ export default {
         */
         readonly:{
             type: Boolean,
+            default: false,
+        },
+        is_internal: {
+            type: Boolean,
+            required: false,
             default: false,
         },
     },
@@ -125,15 +164,76 @@ export default {
         },
     },
     methods: {
+        initialisePersonLookup: function(){
+            let vm = this;
+            $(vm.$refs.person_lookup).select2({
+                minimumInputLength: 2,
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Person",
+                pagination: true,
+                ajax: {
+                    url: api_endpoints.person_lookup,
+                    dataType: 'json',
+                    data: function(params) {
+                        return {
+                            search_term: params.term,
+                            page_number: params.page || 1,
+                            type: 'public',
+                        }
+                    },
+                    processResults: function(data){
+                        return {
+                            'results': data.results,
+                            'pagination': {
+                                'more': data.pagination.more
+                            }
+                        }
+                    },
+                },
+            }).
+            on("select2:select", function (e) {
+                var selected = $(e.currentTarget);
+                vm.dcv_permit.applicant = e.params.data.ledger_id;
+                if(e.params.data.postal_address_list){
+                    vm.postal_addresses = e.params.data.postal_address_list
+                }
+            }).
+            on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.dcv_permit.applicant  = null;
+            }).
+            on("select2:open",function (e) {
+                //const searchField = $(".select2-search__field")
+                const searchField = $('[aria-controls="select2-person_lookup-results"]')
+                // move focus to select2 field
+                searchField[0].focus();
+            });
+        },
+        populatePostalAddresses: async function(){
+            let vm = this;
+            try{
+                const res = await this.$http.get(api_endpoints.profile);
+                vm.postal_addresses = res.body.postal_address_list
+                return res;
+            } catch(err){
+                this.processError(err)
+            }
+            
+        },
         lookupDcvVessel: async function(id) {
-            console.log('in lookupDcvVessel')
             var error = null;
             try {
             const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
+            const vesselData = res.body;
+            console.log('existing dcv_vessel: ')
+            console.log(vesselData);
+                if (vesselData && vesselData.rego_no) {
+                    this.dcv_permit.dcv_vessel = Object.assign({}, vesselData);
+                    console.log(this.dcv_permit.dcv_vessel)
+                }
             } catch(e) {
-                error = e;
-            } finally {
-                if (error.status == '400'){
+                if (e.status == '400'){
                     //empty the search
                     var searchValue = "";
                     var err = "The selected vessel is already listed with RIA under another owner";
@@ -145,15 +245,8 @@ export default {
                     
                     var option = new Option(searchValue, searchValue, true, true);
                     $(this.$refs.dcv_vessel_rego_nos).append(option).trigger('change');                    
-                } else {
-                    const vesselData = res.body;
-                    console.log('existing dcv_vessel: ')
-                    console.log(vesselData);
-                    if (vesselData && vesselData.rego_no) {
-                        this.dcv_permit.dcv_vessel = Object.assign({}, vesselData);
-                    }
                 }
-            }
+            } 
         },
         validateRegoNo: function(data) {
             // force uppercase and no whitespace
@@ -189,7 +282,7 @@ export default {
             }).
             on("select2:select",function (e) {
                 var selected = $(e.currentTarget);
-                //vm.vessel.rego_no = selected.val();
+                // vm.vessel.rego_no = selected.val();
                 let id = selected.val();
                 vm.$nextTick(() => {
                     //if (!isNew) {
@@ -263,7 +356,13 @@ export default {
         },
         save_and_pay: async function() {
             try{
-                const res = await this.save(false, '/api/dcv_permit/')
+                let res;
+                if(this.is_internal){
+                    res = await this.save(false, '/api/internal_dcv_permit/')
+                }
+                else{
+                    res = await this.save(false, '/api/dcv_permit/')
+                }
                 this.dcv_permit.id = res.body.id
                 await helpers.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
                 this.paySubmitting = false
@@ -311,6 +410,7 @@ export default {
                         'success'
                     );
                 };
+                console.log(res)
                 return res;
             } catch(err){
                 this.processError(err)
@@ -331,6 +431,15 @@ export default {
         this.$nextTick(() => {
             this.initialiseSelects()
         });
+        if (this.is_internal) {
+            //must select user to load for
+            this.$nextTick(async () => {
+                this.initialisePersonLookup();
+            });
+        }
+        else {  
+            this.populatePostalAddresses();
+        }
     },
     created: function() {
         this.fetchFilterLists()
