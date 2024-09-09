@@ -27,22 +27,32 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!--tab/dropdown for different forms-->
+
+                <!--form for changing sticker address-->
+
+                <!--show this only is replace stickers selected-->
                 <div class="row form-group">
                     <label class="col-sm-2 control-label" for="reason">Reason</label>
                     <div class="col-sm-9">
                         <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
                     </div>
                 </div>
-            </div>
-            <div slot="footer">
                 <div class="row">
-                    <div class="col-md-7">
+                    <div class="col-md-8 text-right">
                         <span v-if="is_internal"><strong><input type="checkbox" v-model="waive_the_fee" /> Waive the fee</strong></span>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4 text-right">
                         <span><strong>Sticker replacement cost ${{ total_fee }}</strong></span>
                         <button type="button" v-if="processing" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                         <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!okButtonEnabled">Ok</button>
+                    </div>
+                </div>
+            </div>
+            <div slot="footer">
+                <div class="row">
+                    <div class="col-md-12">
                         <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
                     </div>
                 </div>
@@ -52,6 +62,9 @@
 </template>
 
 <script>
+
+//TODO repurpose this to manage stickers in general, including changing address
+
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
@@ -118,7 +131,7 @@ export default {
             return vm.errors;
         },
         title: function() {
-            return 'New Sticker'
+            return 'Manage Stickers'
         },
         total_fee: function() {
             let vm = this

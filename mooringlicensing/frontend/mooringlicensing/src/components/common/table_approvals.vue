@@ -126,7 +126,7 @@ import ApprovalCancellation from '../internal/approvals/approval_cancellation.vu
 import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
-import RequestNewStickerModal from "@/components/common/request_new_sticker_modal.vue"
+import RequestNewStickerModal from "@/components/common/manage_stickers_modal.vue"
 import SwapMooringsModal from "@/components/common/swap_moorings_modal.vue"
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
