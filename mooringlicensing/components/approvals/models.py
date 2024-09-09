@@ -2179,7 +2179,7 @@ class MooringLicence(Approval):
             return [], stickers_to_be_returned
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            # Amendment (vessel(s) may be changed)
+            # Amendment (vessel(s) may be changed or added)
             stickers_to_be_kept = []  # Store all the stickers we want to keep
             new_sticker_created = False
             new_sticker_status = Sticker.STICKER_STATUS_READY  # Default to 'ready'
@@ -2194,6 +2194,37 @@ class MooringLicence(Approval):
             if stickers_to_be_returned_by_vessel_sold:
                 new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
 
+            #(potentially) new vessel ownership as of this amendment
+            if proposal.vessel_ownership:
+                stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                if stickers_not_exported:
+                    #TODO add warning for these exceptions in this function - if it gets here then the customer has paid but stickers have NOT been made
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                
+                #check to ensure this not a vessel(_ownership) with a sticker already
+                stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CURRENT,
+                        Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,
+                    ],
+                    vessel_ownership=proposal.vessel_ownership,
+                )
+                if not stickers_for_this_vessel:
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=proposal.vessel_ownership,
+                        fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
+                        fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+
+            #established vessel ownerships on approval (not inclusive of new vessels via new proposal)
             for vessel_ownership in self.vessel_ownership_list:
                 # Loop through all the current(active) vessel_ownerships of this mooring site licence
 
@@ -2223,7 +2254,7 @@ class MooringLicence(Approval):
                     ],
                     vessel_ownership=vessel_ownership,
                 )
-                if not stickers_for_this_vessel or sticker_colour_to_be_changed:
+                if (not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created:
                     # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
                     # A new sticker should be created
 
@@ -2276,8 +2307,13 @@ class MooringLicence(Approval):
             stickers_to_be_kept = []
             stickers_to_be_replaced = []
 
-            for vessel_ownership in self.vessel_ownership_list:
-                # Look for the sticker for the vessel
+            #(potentially) new vessel ownership as of this renewal
+            if proposal.vessel_ownership:
+                stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                if stickers_not_exported:
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                
+                #check to ensure this not a vessel(_ownership) with a sticker already
                 existing_sticker = self.stickers.filter(
                     status__in=(
                         Sticker.STICKER_STATUS_CURRENT,
@@ -2285,7 +2321,7 @@ class MooringLicence(Approval):
                         Sticker.STICKER_STATUS_TO_BE_RETURNED,
                         Sticker.STICKER_STATUS_NOT_READY_YET,
                         Sticker.STICKER_STATUS_READY,),
-                    vessel_ownership=vessel_ownership,
+                    vessel_ownership=proposal.vessel_ownership,
                 )
                 if existing_sticker:
                     existing_sticker = existing_sticker.first()
@@ -2298,8 +2334,7 @@ class MooringLicence(Approval):
                 # Sticker not found --> Create it
                 new_sticker = Sticker.objects.create(
                     approval=self,
-                    # vessel_ownership=proposal.vessel_ownership,
-                    vessel_ownership=vessel_ownership,
+                    vessel_ownership=proposal.vessel_ownership,
                     fee_constructor=proposal.fee_constructor,
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
@@ -2310,6 +2345,42 @@ class MooringLicence(Approval):
                 if existing_sticker:
                     new_sticker.sticker_to_replace = existing_sticker
                     new_sticker.save()
+
+            for vessel_ownership in self.vessel_ownership_list:
+                if vessel_ownership.id != proposal.vessel_ownership.id: #don't do this one twice
+                    # Look for the sticker for the vessel
+                    existing_sticker = self.stickers.filter(
+                        status__in=(
+                            Sticker.STICKER_STATUS_CURRENT,
+                            Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                            Sticker.STICKER_STATUS_TO_BE_RETURNED,
+                            Sticker.STICKER_STATUS_NOT_READY_YET,
+                            Sticker.STICKER_STATUS_READY,),
+                        vessel_ownership=vessel_ownership,
+                    )
+                    if existing_sticker:
+                        existing_sticker = existing_sticker.first()
+                        stickers_to_be_replaced.append(existing_sticker)
+
+                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                    if stickers_not_exported:
+                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+
+                    # Sticker not found --> Create it
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        # vessel_ownership=proposal.vessel_ownership,
+                        vessel_ownership=vessel_ownership,
+                        fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
+                        fee_season=self.latest_applied_season,
+                    )
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+
+                    if existing_sticker:
+                        new_sticker.sticker_to_replace = existing_sticker
+                        new_sticker.save()
 
             if len(stickers_to_be_kept):
                 proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER

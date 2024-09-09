@@ -1824,9 +1824,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_AUA_MLA(self, request=None, details=None):
         with transaction.atomic():
             try:
+                from mooringlicensing.components.approvals.models import Sticker
                 logger.info(f'Processing final_approval...for the proposal: [{self}].')
 
                 self.proposed_decline_status = False
+
+                if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
+                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                    if stickers_not_exported:
+                        raise Exception('Cannot approve proposal...  There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
 
                 # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
