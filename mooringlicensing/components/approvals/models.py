@@ -19,6 +19,7 @@ from django.db.models import JSONField
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
+from django_countries.fields import CountryField
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 # from ledger.settings_base import TIME_ZONE
@@ -1392,6 +1393,17 @@ class AnnualAdmissionPermit(Approval):
             proposal_initiated=proposal,
             fee_season=self.latest_applied_season,
         )
+        if proposal.proposal_applicant:
+            proposal_applicant = proposal.proposal_applicant
+            new_sticker.postal_line1 = proposal_applicant.postal_line1
+            new_sticker.postal_line2 = proposal_applicant.postal_line2
+            new_sticker.postal_line3 = proposal_applicant.postal_line3
+            new_sticker.postal_locality = proposal_applicant.postal_locality
+            new_sticker.postal_state = proposal_applicant.postal_state
+            new_sticker.postal_country = proposal_applicant.postal_country
+            new_sticker.postal_postcode = proposal_applicant.postal_postcode
+            new_sticker.save()
+            
 
         logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
         return new_sticker
@@ -1460,6 +1472,18 @@ class AnnualAdmissionPermit(Approval):
                 fee_season=self.latest_applied_season,
                 status=new_sticker_status,
             )
+            
+            if proposal.proposal_applicant:
+                proposal_applicant = proposal.proposal_applicant
+                new_sticker.postal_line1 = proposal_applicant.postal_line1
+                new_sticker.postal_line2 = proposal_applicant.postal_line2
+                new_sticker.postal_line3 = proposal_applicant.postal_line3
+                new_sticker.postal_locality = proposal_applicant.postal_locality
+                new_sticker.postal_state = proposal_applicant.postal_state
+                new_sticker.postal_country = proposal_applicant.postal_country
+                new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                new_sticker.save()
+
             logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
 
             # Set statuses to both new and existing stickers
@@ -1850,6 +1874,18 @@ class AuthorisedUserPermit(Approval):
                     fee_season=self.latest_applied_season,
                     status=new_status
                 )
+                
+                if proposal.proposal_applicant:
+                    proposal_applicant = proposal.proposal_applicant
+                    new_sticker.postal_line1 = proposal_applicant.postal_line1
+                    new_sticker.postal_line2 = proposal_applicant.postal_line2
+                    new_sticker.postal_line3 = proposal_applicant.postal_line3
+                    new_sticker.postal_locality = proposal_applicant.postal_locality
+                    new_sticker.postal_state = proposal_applicant.postal_state
+                    new_sticker.postal_country = proposal_applicant.postal_country
+                    new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                    new_sticker.save()
+
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
                 new_stickers.append(new_sticker)
             if moa_to_be_on_new_sticker.sticker in stickers_to_be_replaced_for_renewal:
@@ -2111,6 +2147,18 @@ class MooringLicence(Approval):
             proposal_initiated=proposal,
             fee_season=self.latest_applied_season,
         )
+        
+        if proposal.proposal_applicant:
+            proposal_applicant = proposal.proposal_applicant
+            new_sticker.postal_line1 = proposal_applicant.postal_line1
+            new_sticker.postal_line2 = proposal_applicant.postal_line2
+            new_sticker.postal_line3 = proposal_applicant.postal_line3
+            new_sticker.postal_locality = proposal_applicant.postal_locality
+            new_sticker.postal_state = proposal_applicant.postal_state
+            new_sticker.postal_country = proposal_applicant.postal_country
+            new_sticker.postal_postcode = proposal_applicant.postal_postcode
+            new_sticker.save()
+
         logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
         return new_sticker
 
@@ -2150,6 +2198,16 @@ class MooringLicence(Approval):
                     fee_season=self.latest_applied_season,
                     status=new_sticker_status,
                 )
+                if proposal.proposal_applicant:
+                    proposal_applicant = proposal.proposal_applicant
+                    new_sticker.postal_line1 = proposal_applicant.postal_line1
+                    new_sticker.postal_line2 = proposal_applicant.postal_line2
+                    new_sticker.postal_line3 = proposal_applicant.postal_line3
+                    new_sticker.postal_locality = proposal_applicant.postal_locality
+                    new_sticker.postal_state = proposal_applicant.postal_state
+                    new_sticker.postal_country = proposal_applicant.postal_country
+                    new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                    new_sticker.save()
                 new_sticker_created = True
                 stickers_to_be_kept.append(new_sticker)
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the vessel_ownership: [{vessel_ownership}] of the licence: [{self}].')
@@ -2220,6 +2278,16 @@ class MooringLicence(Approval):
                         fee_season=self.latest_applied_season,
                         status=new_sticker_status,
                     )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_line1 = proposal_applicant.postal_line1
+                        new_sticker.postal_line2 = proposal_applicant.postal_line2
+                        new_sticker.postal_line3 = proposal_applicant.postal_line3
+                        new_sticker.postal_locality = proposal_applicant.postal_locality
+                        new_sticker.postal_state = proposal_applicant.postal_state
+                        new_sticker.postal_country = proposal_applicant.postal_country
+                        new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                        new_sticker.save()
                     new_sticker_created = True
                     stickers_to_be_kept.append(new_sticker)
                     logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -2270,6 +2338,16 @@ class MooringLicence(Approval):
                         fee_season=self.latest_applied_season,
                         status=new_sticker_status,
                     )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_line1 = proposal_applicant.postal_line1
+                        new_sticker.postal_line2 = proposal_applicant.postal_line2
+                        new_sticker.postal_line3 = proposal_applicant.postal_line3
+                        new_sticker.postal_locality = proposal_applicant.postal_locality
+                        new_sticker.postal_state = proposal_applicant.postal_state
+                        new_sticker.postal_country = proposal_applicant.postal_country
+                        new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                        new_sticker.save()
                     new_sticker_created = True
                     stickers_to_be_kept.append(new_sticker)
                     logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
@@ -2339,6 +2417,16 @@ class MooringLicence(Approval):
                     proposal_initiated=proposal,
                     fee_season=self.latest_applied_season,
                 )
+                if proposal.proposal_applicant:
+                    proposal_applicant = proposal.proposal_applicant
+                    new_sticker.postal_line1 = proposal_applicant.postal_line1
+                    new_sticker.postal_line2 = proposal_applicant.postal_line2
+                    new_sticker.postal_line3 = proposal_applicant.postal_line3
+                    new_sticker.postal_locality = proposal_applicant.postal_locality
+                    new_sticker.postal_state = proposal_applicant.postal_state
+                    new_sticker.postal_country = proposal_applicant.postal_country
+                    new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                    new_sticker.save()
                 stickers_to_be_kept.append(new_sticker)
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
 
@@ -2375,6 +2463,16 @@ class MooringLicence(Approval):
                         proposal_initiated=proposal,
                         fee_season=self.latest_applied_season,
                     )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_line1 = proposal_applicant.postal_line1
+                        new_sticker.postal_line2 = proposal_applicant.postal_line2
+                        new_sticker.postal_line3 = proposal_applicant.postal_line3
+                        new_sticker.postal_locality = proposal_applicant.postal_locality
+                        new_sticker.postal_state = proposal_applicant.postal_state
+                        new_sticker.postal_country = proposal_applicant.postal_country
+                        new_sticker.postal_postcode = proposal_applicant.postal_postcode
+                        new_sticker.save()
                     stickers_to_be_kept.append(new_sticker)
                     logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
 
@@ -3245,6 +3343,14 @@ class Sticker(models.Model):
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     date_updated = models.DateTimeField(blank=True, null=True, auto_now=True)
 
+    postal_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
+    postal_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
+    postal_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
+    postal_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
+    postal_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
+    postal_country = CountryField(default='AU', null=True, blank=True)
+    postal_postcode = models.CharField(max_length=10, null=True, blank=True)
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['-date_updated', '-date_created', '-number',]
@@ -3313,6 +3419,13 @@ class Sticker(models.Model):
                 vessel_ownership=self.vessel_ownership,
                 fee_constructor=self.fee_constructor,
                 fee_season=self.approval.latest_applied_season,
+                postal_line1 = self.postal_line1,
+                postal_line2 = self.postal_line2,
+                postal_line3 = self.postal_line3,
+                postal_locality = self.postal_locality,
+                postal_state = self.postal_state,
+                postal_country = self.postal_country,
+                postal_postcode = self.postal_postcode,
             )
             logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
 
