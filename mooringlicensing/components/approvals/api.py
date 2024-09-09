@@ -862,6 +862,8 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             submitter_id = submitter['data']['emailuser_id']
         data['submitter'] = submitter_id
         data['applicant'] = submitter_id
+        data['date_created'] = datetime.now(pytz.timezone(TIME_ZONE))
+        data['status'] = DcvAdmission.DCV_ADMISSION_STATUS_UNPAID
         data['dcv_vessel_id'] = dcv_vessel.id
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -983,6 +985,8 @@ class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
                 applicant_id = applicant['data']['emailuser_id']
             data['applicant'] = applicant_id
             data['dcv_vessel_id'] = dcv_vessel.id
+            data['date_created'] = datetime.now(pytz.timezone(TIME_ZONE))
+            data['status'] = DcvAdmission.DCV_ADMISSION_STATUS_UNPAID
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_admission = serializer.save()
@@ -1444,7 +1448,10 @@ class DcvAdmissionFilterBackend(DatatablesFilterBackend):
         filter_date_to = request.GET.get('filter_date_to')
         if filter_date_to and not filter_date_to.lower() == 'all':
             filter_date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
-            queries &= Q(dcv_admission_arrivals__arrival_date__lte=filter_date_to)
+            queries &= Q(dcv_admission_arrivals__arrival_date__lte=filter_date_to) 
+              
+        # remove cancelled
+        queries &= ~Q(status=DcvAdmission.DCV_ADMISSION_STATUS_CANCELLED)
         queryset = queryset.filter(queries)
 
         # getter = request.query_params.get

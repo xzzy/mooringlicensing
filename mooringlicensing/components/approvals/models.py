@@ -2580,9 +2580,16 @@ class DcvVessel(RevisionedMixin):
 
 class DcvAdmission(RevisionedMixin):
     LODGEMENT_NUMBER_PREFIX = 'DCV'
-
+    
+    DCV_ADMISSION_STATUS_PAID = 'paid'
+    DCV_ADMISSION_STATUS_UNPAID = 'unpaid'
+    DCV_ADMISSION_STATUS_CANCELLED = 'cancelled'
+    STATUS_CHOICES = (
+        (DCV_ADMISSION_STATUS_PAID, 'Paid'),
+        (DCV_ADMISSION_STATUS_UNPAID, 'Unpaid'),
+        (DCV_ADMISSION_STATUS_CANCELLED, 'Cancelled'),
+    )
     #TODO applicant vs submitter?
-    #created datetime
     #status
     submitter = models.IntegerField(blank=True, null=True)
     applicant = models.IntegerField(blank=True, null=True)
@@ -2592,7 +2599,9 @@ class DcvAdmission(RevisionedMixin):
     contact_number = models.CharField(max_length=50, blank=True, null=True)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
-
+    date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
+    
     @property
     def admin_group(self):
         return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_DCV_PERMIT_ADMIN)
