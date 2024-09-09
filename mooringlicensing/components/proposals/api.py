@@ -1660,7 +1660,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         instance = self.get_object()
 
         #TODO add auth check - internal or applicant (covered by get_queryset, but additional checks still warranted)
-
         approval = instance.approval
         ## validation
         renew_amend_conditions = {

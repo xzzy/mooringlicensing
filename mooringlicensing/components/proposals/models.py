@@ -1585,13 +1585,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     try:
                         ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                     except:
-                        raise serializers.ValidationError("Mooring id provided is invalid")
+                        if self.application_type.code == "aua":
+                            raise serializers.ValidationError("Mooring id provided is invalid")
                 elif not mooring_on_approval or mooring_on_approval == []:
-                    raise serializers.ValidationError("No mooring provided")
+                    if self.application_type.code == "aua":
+                        raise serializers.ValidationError("No mooring provided")
                 else:
                     #check if mooring on approval list has at least one checked value
                     if not True in checked_list:
-                        raise serializers.ValidationError("No mooring provided")
+                        if self.application_type.code == "aua":
+                            raise serializers.ValidationError("No mooring provided")
 
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
@@ -1821,9 +1824,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def final_approval_for_AUA_MLA(self, request=None, details=None):
         with transaction.atomic():
             try:
+                from mooringlicensing.components.approvals.models import Sticker
                 logger.info(f'Processing final_approval...for the proposal: [{self}].')
 
                 self.proposed_decline_status = False
+
+                if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
+                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                    if stickers_not_exported:
+                        raise Exception('Cannot approve proposal...  There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
 
                 # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -1861,13 +1870,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         try:
                             ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                         except:
-                            raise serializers.ValidationError("Mooring id provided is invalid")
+                            if self.application_type.code == "aua":
+                                raise serializers.ValidationError("Mooring id provided is invalid")
                     elif not mooring_on_approval or mooring_on_approval == []:
-                        raise serializers.ValidationError("No mooring provided")
+                        if self.application_type.code == "aua":
+                            raise serializers.ValidationError("No mooring provided")
                     else:
                         #check if mooring on approval list has at least one checked value
                         if not True in checked_list:
-                            raise serializers.ValidationError("No mooring provided")
+                            if self.application_type.code == "aua":
+                                raise serializers.ValidationError("No mooring provided")
 
                     self.proposed_issuance_approval = {
                         'mooring_bay_id': details.get('mooring_bay_id'),
@@ -3722,19 +3734,20 @@ class AuthorisedUserApplication(Proposal):
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
-
+        self.refresh_from_db()
         #####
         # Set proposal status after manage _stickers
         #####
         stickers_to_be_printed = []
         if self.approval:
-            stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_AWAITING_PRINTING,])
+            stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+            stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING,])
 
-        if len(stickers_to_be_returned):
+        if len(stickers_to_be_returned): #TODO this should include before and after this application's sticker has printed
             a_sticker = stickers_to_be_returned[0]  # All the stickers to be returned should have the same vessel, so just pick the first one
             if self.vessel_ownership and a_sticker.vessel_ownership.vessel.rego_no == self.vessel_ownership.vessel.rego_no:
                 # Same vessel
-                if stickers_to_be_printed:
+                if stickers_not_exported:
                     self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                     self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number), )
                 else:
@@ -3745,15 +3758,16 @@ class AuthorisedUserApplication(Proposal):
                 self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
                 self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
         else:
-            # There are no stickers to be returned
-            if stickers_to_be_printed:
-                # There is a sticker to be printed
-                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
-            else:
+            # There are no stickers to be returned - before and after the sticker for this application has been printed
+            if stickers_to_be_printed: #this only evaluates as True for pre-existing stickers, in which case set the current sticker to True
                 # There are no stickers to be printed
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+            else:
+                #if we are here, it is an entirely new application and we need a sticker
+                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+
         self.save()
         # self.refresh_from_db()
         # self.proposal.refresh_from_db()

@@ -1437,7 +1437,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         sticker = self.get_object()
         data = request.data
 
-        if not sticker.printing_date or not (self.status == "to_be_returned"):
+        if not sticker.printing_date or not (sticker.status == "to_be_returned"):
             raise serializers.ValidationError("cannot return a sticker that has not yet been printed")
 
         # Update Sticker action
@@ -1459,7 +1459,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         sticker = self.get_object()
         data = request.data
 
-        if not sticker.printing_date or not (self.status == "current" or self.status == "to_be_returned"):
+        if not sticker.printing_date or not (sticker.status == "current" or sticker.status == "to_be_returned"):
             raise serializers.ValidationError("cannot lose a sticker that has not yet been printed")
 
         # Update Sticker action
@@ -1487,7 +1487,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         # data = request.data
         data = {}
 
-        if not sticker.printing_date or not (self.status == "current"):
+        if not sticker.printing_date or not (sticker.status == "current"):
             raise serializers.ValidationError("cannot replace a sticker that has not yet been printed")
 
         # Update Sticker action
