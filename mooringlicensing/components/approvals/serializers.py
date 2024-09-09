@@ -1351,13 +1351,13 @@ class StickerSerializer(serializers.ModelSerializer):
             'can_view_payment_details',
             'date_created',
             'date_updated',
-            'postal_line1',
-            'postal_line2',
-            'postal_line3',
-            'postal_locality',
-            'postal_state',
-            'postal_country',
-            'postal_postcode',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
         )
         datatables_always_serialize = (
             'id',
@@ -1378,13 +1378,13 @@ class StickerSerializer(serializers.ModelSerializer):
             'can_view_payment_details',
             'date_created',
             'date_updated',
-            'postal_line1',
-            'postal_line2',
-            'postal_line3',
-            'postal_locality',
-            'postal_state',
-            'postal_country',
-            'postal_postcode',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
         )
 
     def get_fee_season(self, obj):
@@ -1443,13 +1443,13 @@ class StickerPostalAddressSaveSerializer():
         model = Sticker
         fields = (
             'id',
-            'postal_line1',
-            'postal_line2',
-            'postal_line3',
-            'postal_locality',
-            'postal_state',
-            'postal_country',
-            'postal_postcode',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
         )
         read_only = ('id',)
 
