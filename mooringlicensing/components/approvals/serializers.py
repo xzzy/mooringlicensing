@@ -1438,7 +1438,7 @@ class StickerSerializer(serializers.ModelSerializer):
         return None
 
 
-class StickerPostalAddressSaveSerializer():
+class StickerPostalAddressSaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sticker
         fields = (

@@ -624,7 +624,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         sticker_id = request.data['id']
         sticker = Sticker.objects.filter(approval=approval, id=sticker_id, status__in=(Sticker.STICKER_STATUS_READY,Sticker.STICKER_STATUS_NOT_READY_YET,))
         if sticker.exists():
-            serializer = StickerPostalAddressSaveSerializer(sticker,request.data)
+            serializer = StickerPostalAddressSaveSerializer(sticker.first(),data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response({'stickers': serializer.data})
