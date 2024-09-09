@@ -1402,8 +1402,7 @@ class AnnualAdmissionPermit(Approval):
             new_sticker.postal_state = proposal_applicant.postal_state
             new_sticker.postal_country = proposal_applicant.postal_country
             new_sticker.postal_postcode = proposal_applicant.postal_postcode
-            new_sticker.save()
-            
+            new_sticker.save()            
 
         logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
         return new_sticker

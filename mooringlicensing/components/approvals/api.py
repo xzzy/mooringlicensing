@@ -594,6 +594,9 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             # Licence/Permit has a vessel
             sticker_action_details = []
             stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids, status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
+            printed_stickers =stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+            if not printed_stickers.exists():
+                raise serializers.ValidationError("Unable to request new sticker - existing stickers must be printed first before a new sticker is requested")
             data = {}
             today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
             for sticker in stickers:
