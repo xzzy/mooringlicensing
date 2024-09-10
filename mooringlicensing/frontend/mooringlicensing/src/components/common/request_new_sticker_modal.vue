@@ -9,23 +9,71 @@
                             <tr>
                                 <th scope="col"></th>
                                 <th scope="col">Number</th>
-                                <th scope="col">vessel</th>
-                                <th scope="col">mooring</th>
+                                <th scope="col">Vessel</th>
+                                <th scope="col">Mooring</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Postal Address</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="sticker in stickers" :key="sticker.id">
-                                <td><input type="checkbox" v-model="sticker.checked" /></td>
-                                <td>{{ sticker.number }}</td>
+                                <td><input v-if="sticker.status.code == 'current'" type="checkbox" v-model="sticker.checked" /></td>
+                                <td v-if="sticker.number">{{ sticker.number }}</td>
+                                <td v-else>Not Assigned</td>
                                 <td>{{ sticker.vessel.rego_no }}</td>
                                 <td>
                                     <span v-for="mooring in sticker.moorings">
                                         {{ mooring.name }} ({{ mooring.mooring_bay_name }})
                                     </span>
                                 </td>
+                                <td>{{ sticker.status.display }}</td>
+                                <td>
+                                    <span>{{sticker.postal_address_line1}}</span>
+                                    <span>{{sticker.postal_address_locality}}</span>
+                                    <span>{{sticker.postal_address_state}}</span>
+                                    <span>{{sticker.postal_address_country}}</span>
+                                    <span>{{sticker.postal_address_postcode}}</span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+                <div class="row form-group">
+                    <label class="col-sm-5 control-label" for="change_sticker_address">Change Sticker Address</label>
+                    <div class="col-md-6">
+                        <input type="checkbox" v-model="change_sticker_address" />
+                    </div>
+                </div>
+                <div v-if="change_sticker_address" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">Street</label>
+                    <div class="col-sm-6">
+                        <input type="text" class="form-control" name="street" placeholder="" v-model="new_postal_address_line1">
+                    </div>
+                </div>
+                <div v-if="change_sticker_address" class="row form-group">
+                    <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
+                    <div class="col-sm-6">
+                        <input type="text" class="form-control" name="surburb" placeholder="" v-model="new_postal_address_locality">
+                    </div>
+                </div>
+                <div v-if="change_sticker_address" class="row form-group">
+                    <label for="" class="col-sm-3 control-label">State</label>
+                    <div class="col-sm-2">
+                        <input type="text" class="form-control" name="state" placeholder="" v-model="new_postal_address_state">
+                    </div>
+                    <label for="" class="col-sm-2 control-label">Postcode</label>
+                    <div class="col-sm-2">
+                        <input type="text" class="form-control" name="postcode" placeholder="" v-model="new_postal_address_postcode">
+                    </div>
+                </div>
+                <div v-if="change_sticker_address" class="row form-group">
+                    <label for="" class="col-sm-3 control-label" >Country</label>
+                    <div class="col-sm-4">
+                        <select v-model="new_postal_address_country" class="form-control" name="country">
+                            <option selected></option>
+                            <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="row form-group">
                     <label class="col-sm-2 control-label" for="reason">Reason</label>
@@ -78,10 +126,18 @@ export default {
             details: vm.getDefaultDetails(),
             processing: false,
             fee_item: null,
-
+            countries: [],
             errors: false,
             errorString: '',
             waive_the_fee: false,
+            change_sticker_address: false,
+            new_postal_address_line1: '',
+            new_postal_address_line2: '',
+            new_postal_address_line3: '',
+            new_postal_address_locality: '',
+            new_postal_address_state: '',
+            new_postal_address_country: '',
+            new_postal_address_postcode: '',
         }
     },
     watch: {
@@ -219,10 +275,19 @@ export default {
                     console.log(error)
                 }
             )
-        }
+        },
+        fetchCountries: function () {
+            let vm = this;
+            vm.$http.get(api_endpoints.countries).then((response) => {
+                vm.countries = response.body;
+            });
+        },
+    },
+    mounted: function () {
+        this.fetchCountries();
     },
     created:function () {
-        this.fetchData()
+        this.fetchData();
         this.$nextTick(() => {
             this.addEventListeners();
         });

@@ -595,7 +595,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             # Licence/Permit has a vessel
             sticker_action_details = []
             stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids, status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
-            printed_stickers =stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+            printed_stickers = stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
             if not printed_stickers.exists():
                 raise serializers.ValidationError("Unable to request new sticker - existing stickers must be printed first before a new sticker is requested")
             data = {}
@@ -606,6 +606,18 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 data['reason'] = details['reason']
                 data['date_of_lost_sticker'] = today.strftime('%d/%m/%Y')
                 data['waive_the_fee'] = request.data.get('waive_the_fee', False)
+
+                #new address checkbox
+                data['change_sticker_address'] = request.data.get('change_sticker_address', False)
+                #address change (only applied if above True)
+                data['new_postal_address_line1'] = request.data.get('new_postal_address_line1','')
+                data['new_postal_address_line2'] = request.data.get('new_postal_address_line2','')
+                data['new_postal_address_line3'] = request.data.get('new_postal_address_line3','')
+                data['new_postal_address_locality'] = request.data.get('new_postal_address_locality','')
+                data['new_postal_address_state'] = request.data.get('new_postal_address_state','')
+                data['new_postal_address_country'] = request.data.get('new_postal_address_country','AU')
+                data['new_postal_address_postcode'] = request.data.get('new_postal_address_postcode','')
+
                 serializer = StickerActionDetailSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 new_sticker_action_detail = serializer.save()
@@ -637,10 +649,18 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def stickers(self, request, *args, **kwargs):
         instance = self.get_object()
-        stickers = instance.stickers
+        stickers = instance.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
         serializer = StickerSerializer(stickers, many=True)
         return Response({'stickers': serializer.data})
         
+    @detail_route(methods=['GET'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def non_exported_stickers(self, request, *args, **kwargs):
+        instance = self.get_object()
+        stickers = instance.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
+        serializer = StickerSerializer(stickers, many=True)
+        return Response({'stickers': serializer.data})
 
     @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))

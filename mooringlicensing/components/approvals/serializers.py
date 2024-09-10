@@ -1234,6 +1234,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_updated = serializers.DateTimeField(read_only=True)
     user_detail = serializers.SerializerMethodField()
     waive_the_fee = serializers.BooleanField(required=False)
+    change_sticker_address = serializers.BooleanField(required=False)
 
     class Meta:
         model = StickerActionDetail
@@ -1249,6 +1250,14 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'user',  # For saving the user data
             'user_detail',  # For reading the user data
             'waive_the_fee',
+            'change_sticker_address',
+            'new_postal_address_line1',
+            'new_postal_address_line2',
+            'new_postal_address_line3',
+            'new_postal_address_locality',
+            'new_postal_address_state',
+            'new_postal_address_country',
+            'new_postal_address_postcode',
         )
 
     def get_user_detail(self, obj):
