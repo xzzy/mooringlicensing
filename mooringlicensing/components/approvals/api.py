@@ -616,9 +616,15 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 data['new_postal_address_locality'] = request.data.get('new_postal_address_locality','')
                 data['new_postal_address_state'] = request.data.get('new_postal_address_state','')
                 data['new_postal_address_country'] = request.data.get('new_postal_address_country','AU')
-                if data['new_postal_address_country'] == '':
-                    data['new_postal_address_country'] = 'AU'
                 data['new_postal_address_postcode'] = request.data.get('new_postal_address_postcode','')
+                if data['change_sticker_address'] and '' in [
+                      data['new_postal_address_line1'],
+                      data['new_postal_address_locality'],
+                      data['new_postal_address_state'],
+                      data['new_postal_address_country'],
+                      data['new_postal_address_postcode']
+                    ]:
+                    raise serializers.ValidationError("Required address details not provided")                
 
                 serializer = StickerActionDetailSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
@@ -633,17 +639,42 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    def change_sticker_address(self, request, *args, **kwargs):
+    def change_sticker_addresses(self, request, *args, **kwargs):
+        # external
         approval = self.get_object()
-        sticker_id = request.data['id']
-        sticker = Sticker.objects.filter(approval=approval, id=sticker_id, status__in=(Sticker.STICKER_STATUS_READY,Sticker.STICKER_STATUS_NOT_READY_YET,))
-        if sticker.exists():
-            serializer = StickerPostalAddressSaveSerializer(sticker.first(),data=request.data)
+        sticker_ids = []
+        for sticker in request.data['stickers']:
+            if sticker['checked'] == True:
+                sticker_ids.append(sticker['id'])
+
+        stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids, 
+            status__in=(
+                Sticker.STICKER_STATUS_READY, 
+                Sticker.STICKER_STATUS_NOT_READY_YET,))
+        if not stickers.exists():
+            raise serializers.ValidationError("Unable to change address of sticker - already in process of being printed/mailed")
+        data = {}
+        for sticker in stickers:
+            data['id'] = sticker.id
+            data['postal_address_line1'] = request.data.get('new_postal_address_line1','')
+            data['postal_address_line2'] = request.data.get('new_postal_address_line2','')
+            data['postal_address_line3'] = request.data.get('new_postal_address_line3','')
+            data['postal_address_locality'] = request.data.get('new_postal_address_locality','')
+            data['postal_address_state'] = request.data.get('new_postal_address_state','')
+            data['postal_address_country'] = request.data.get('new_postal_address_country','AU')
+            data['postal_address_postcode'] = request.data.get('new_postal_address_postcode','')
+            if '' in [data['postal_address_line1'],
+                      data['postal_address_locality'],
+                      data['postal_address_state'],
+                      data['postal_address_country'],
+                      data['postal_address_postcode']
+                    ]:
+                raise serializers.ValidationError("Required address details not provided")
+            
+            serializer = StickerPostalAddressSaveSerializer(sticker,data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response({'stickers': serializer.data})
-        else:
-            raise serializers.ValidationError("sticker unavailable or postal address cannot be changed")
+        return Response()
 
     @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
@@ -656,24 +687,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             Sticker.STICKER_STATUS_NOT_READY_YET, 
             Sticker.STICKER_STATUS_CURRENT, 
             Sticker.STICKER_STATUS_AWAITING_PRINTING])
-        serializer = StickerSerializer(stickers, many=True)
-        return Response({'stickers': serializer.data})
-
-    @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def replaceable_stickers(self, request, *args, **kwargs):
-        instance = self.get_object()
-        stickers = instance.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
-        serializer = StickerSerializer(stickers, many=True)
-        return Response({'stickers': serializer.data})
-        
-    @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def non_exported_stickers(self, request, *args, **kwargs):
-        instance = self.get_object()
-        stickers = instance.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
         serializer = StickerSerializer(stickers, many=True)
         return Response({'stickers': serializer.data})
 
