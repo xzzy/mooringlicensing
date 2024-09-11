@@ -145,7 +145,7 @@ export default {
             let vm = this
             // Whenever approval_id is changed, update this.stickers
             if (vm.approval_id){
-                const ret = await vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/stickers'))
+                const ret = await vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals, vm.approval_id + '/replaceable_stickers'))
                 for (let sticker of ret.body.stickers){
                     sticker.checked = false
                 }
@@ -210,6 +210,14 @@ export default {
                 "approval_id": vm.approval_id,
                 "stickers": vm.stickers,
                 "waive_the_fee": vm.waive_the_fee,
+                "change_sticker_address": vm.change_sticker_address,
+                "new_postal_address_line1": vm.new_postal_address_line1,
+                "new_postal_address_line2": vm.new_postal_address_line2,
+                "new_postal_address_line3": vm.new_postal_address_line3,
+                "new_postal_address_locality": vm.new_postal_address_locality,
+                "new_postal_address_state": vm.new_postal_address_state,
+                "new_postal_address_country": vm.new_postal_address_country,
+                "new_postal_address_postcode": vm.new_postal_address_postcode,
             })
         },
         cancel:function () {

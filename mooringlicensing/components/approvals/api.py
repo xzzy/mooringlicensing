@@ -643,11 +643,24 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         else:
             raise serializers.ValidationError("sticker unavailable or postal address cannot be changed")
 
-
     @detail_route(methods=['GET'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def stickers(self, request, *args, **kwargs):
+        instance = self.get_object()
+        stickers = instance.stickers.filter(
+            status__in=[
+            Sticker.STICKER_STATUS_READY, 
+            Sticker.STICKER_STATUS_NOT_READY_YET, 
+            Sticker.STICKER_STATUS_CURRENT, 
+            Sticker.STICKER_STATUS_AWAITING_PRINTING])
+        serializer = StickerSerializer(stickers, many=True)
+        return Response({'stickers': serializer.data})
+
+    @detail_route(methods=['GET'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def replaceable_stickers(self, request, *args, **kwargs):
         instance = self.get_object()
         stickers = instance.stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
         serializer = StickerSerializer(stickers, many=True)

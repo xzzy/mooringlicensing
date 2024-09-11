@@ -3419,13 +3419,13 @@ class Sticker(models.Model):
                     vessel_ownership=self.vessel_ownership,
                     fee_constructor=self.fee_constructor,
                     fee_season=self.approval.latest_applied_season,
-                    postal_address_line1 = sticker_action_detail.postal_address_line1,
-                    postal_address_line2 = sticker_action_detail.postal_address_line2,
-                    postal_address_line3 = sticker_action_detail.postal_address_line3,
-                    postal_address_locality = sticker_action_detail.postal_address_locality,
-                    postal_address_state = sticker_action_detail.postal_address_state,
-                    postal_address_country = sticker_action_detail.postal_address_country,
-                    postal_address_postcode = sticker_action_detail.postal_address_postcode,
+                    postal_address_line1 = sticker_action_detail.new_postal_address_line1,
+                    postal_address_line2 = sticker_action_detail.new_postal_address_line2,
+                    postal_address_line3 = sticker_action_detail.new_postal_address_line3,
+                    postal_address_locality = sticker_action_detail.new_postal_address_locality,
+                    postal_address_state = sticker_action_detail.new_postal_address_state,
+                    postal_address_country = sticker_action_detail.new_postal_address_country,
+                    postal_address_postcode = sticker_action_detail.new_postal_address_postcode,
                 )
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the approval with a new postal address: [{self.approval}].')
             else:
