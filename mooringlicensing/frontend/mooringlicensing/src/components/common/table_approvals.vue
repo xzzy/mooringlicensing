@@ -109,7 +109,12 @@
         <RequestNewStickerModal
             ref="request_new_sticker_modal"
             :is_internal="is_internal"
-            @sendData="sendData"
+            @sendData="sendDataForNewSticker"
+        />
+        <RequestStickerAddressModal
+            ref="request_sticker_address_modal"
+            :is_internal="is_internal"
+            @sendData="sendDataForStickerAddress"
         />
         <SwapMooringsModal
             ref="swap_moorings_modal"
@@ -127,6 +132,7 @@ import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
 import RequestNewStickerModal from "@/components/common/request_new_sticker_modal.vue"
+import RequestStickerAddressModal from "@/components/common/request_sticker_address_modal.vue"
 import SwapMooringsModal from "@/components/common/swap_moorings_modal.vue"
 import Vue from 'vue'
 import { api_endpoints, helpers }from '@/utils/hooks'
@@ -190,6 +196,7 @@ export default {
         ApprovalHistory,
         RequestNewStickerModal,
         SwapMooringsModal,
+        RequestStickerAddressModal,
     },
     watch: {
         show_expired_surrendered: function(value){
@@ -466,14 +473,6 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             let links = '';
-                            if(vm.debug){
-                                links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`;
-                            }
-                            /*
-                            if (vm.is_internal && vm.wlaDash) {
-                                links += full.offer_link;
-                            } else
-                            */
                             if (vm.is_external && full.can_reissue) {
                                 if(full.can_action || vm.debug){
                                     if(full.amend_or_renew === 'amend' || vm.debug){
@@ -515,6 +514,7 @@ export default {
                             }
                             if (full.approval_type_dict.code != 'wla') {
                                 links += `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
+                                links += `<a href='#${full.id}' data-request-sticker-address='${full.id}'>Request Sticker Address Change</a><br/>`
                             }
 
                             return links;
@@ -906,6 +906,23 @@ export default {
                    vm.$router.push('/internal/')
                 },
                 err => {
+                    vm.$refs.swap_moorings_modal.isModalOpen = false
+                    swal({
+                        title: "Swap Moorings",
+                        text: err.body,
+                        type: "error",
+                    })
+                }
+            )
+        },
+        sendDataForNewSticker: function(params){
+            let vm = this
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
+                res => {
+                    helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
+                },
+                err => {
+                    vm.$refs.request_new_sticker_modal.processing = false
                     vm.$refs.request_new_sticker_modal.isModalOpen = false
                     swal({
                         title: "Request New Sticker",
@@ -915,14 +932,15 @@ export default {
                 }
             )
         },
-        sendData: function(params){
+        sendDataForStickerAddress: function(params){
             let vm = this
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/request_new_stickers'), params).then(
+            vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals, params.approval_id + '/change_sticker_addresses'), params).then(
                 res => {
-                    helpers.post_and_redirect('/sticker_replacement_fee/', {'csrfmiddlewaretoken' : vm.csrf_token, 'data': JSON.stringify(res.body)});
+                    vm.$router.go();
                 },
                 err => {
-                    vm.$refs.request_new_sticker_modal.isModalOpen = false
+                    vm.$refs.request_sticker_address_modal.processing = false
+                    vm.$refs.request_sticker_address_modal.isModalOpen = false
                     swal({
                         title: "Request New Sticker",
                         text: err.body,
@@ -1060,6 +1078,13 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-request-new-sticker');
                 vm.requestNewSticker(id);
+            });
+
+            //External Request Sticker Address Change listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-request-sticker-address]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-request-sticker-address');
+                vm.requestStickerAddress(id);
             });
 
             // External renewal listener
@@ -1209,6 +1234,10 @@ export default {
         requestNewSticker: function(approval_id){
             this.$refs.request_new_sticker_modal.approval_id = approval_id
             this.$refs.request_new_sticker_modal.isModalOpen = true
+        },
+        requestStickerAddress: function(approval_id){
+            this.$refs.request_sticker_address_modal.approval_id = approval_id
+            this.$refs.request_sticker_address_modal.isModalOpen = true
         },
         approvalHistory: function(id){
             this.approvalHistoryId = parseInt(id);

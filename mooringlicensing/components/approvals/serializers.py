@@ -1234,6 +1234,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     date_updated = serializers.DateTimeField(read_only=True)
     user_detail = serializers.SerializerMethodField()
     waive_the_fee = serializers.BooleanField(required=False)
+    change_sticker_address = serializers.BooleanField(required=False)
 
     class Meta:
         model = StickerActionDetail
@@ -1249,6 +1250,14 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'user',  # For saving the user data
             'user_detail',  # For reading the user data
             'waive_the_fee',
+            'change_sticker_address',
+            'new_postal_address_line1',
+            'new_postal_address_line2',
+            'new_postal_address_line3',
+            'new_postal_address_locality',
+            'new_postal_address_state',
+            'new_postal_address_country',
+            'new_postal_address_postcode',
         )
 
     def get_user_detail(self, obj):
@@ -1351,6 +1360,13 @@ class StickerSerializer(serializers.ModelSerializer):
             'can_view_payment_details',
             'date_created',
             'date_updated',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
         )
         datatables_always_serialize = (
             'id',
@@ -1371,6 +1387,13 @@ class StickerSerializer(serializers.ModelSerializer):
             'can_view_payment_details',
             'date_created',
             'date_updated',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
         )
 
     def get_fee_season(self, obj):
@@ -1423,6 +1446,21 @@ class StickerSerializer(serializers.ModelSerializer):
             return sticker.sticker_printing_batch.emailed_datetime.date()
         return None
 
+
+class StickerPostalAddressSaveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sticker
+        fields = (
+            'id',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
+        )
+        read_only = ('id',)
 
 class ListDcvPermitSerializer(serializers.ModelSerializer):
     dcv_organisation_name = serializers.SerializerMethodField()

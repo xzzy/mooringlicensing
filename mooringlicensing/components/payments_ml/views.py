@@ -321,11 +321,10 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
                 sticker_action_fee.expiry_time = None
                 sticker_action_fee.save()
 
-
                 old_sticker_numbers = []
                 for sticker_action_detail in sticker_action_details.all():
                     old_sticker = sticker_action_detail.sticker
-                    new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
+                    new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST, sticker_action_detail)
                     old_sticker_numbers.append(old_sticker.number)
                     # Send email with the invoice
                 send_sticker_replacement_email(request, old_sticker_numbers, new_sticker.approval, invoice.reference)

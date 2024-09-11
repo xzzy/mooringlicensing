@@ -279,7 +279,7 @@ def sticker_export():
                     mooring_names = [mooring.name for mooring in moorings]
                     mooring_names = ', '.join(mooring_names)
 
-                    if not sticker.postal_address_line1 or not sticker.postal_address_suburb or not sticker.postal_address_state or not sticker.postal_address_postcode:
+                    if not sticker.postal_address_line1 or not sticker.postal_address_locality or not sticker.postal_address_state or not sticker.postal_address_postcode:
                         logger.warning(f'Postal address not found for the Sticker: [{sticker}].')
                         continue
 
@@ -289,7 +289,7 @@ def sticker_export():
                         sticker.last_name,
                         sticker.postal_address_line1,
                         sticker.postal_address_line2,
-                        sticker.postal_address_suburb.upper(),
+                        sticker.postal_address_locality.upper(),
                         sticker.postal_address_state.upper(),
                         sticker.postal_address_postcode,
                         sticker.approval.description,

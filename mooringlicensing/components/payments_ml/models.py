@@ -195,14 +195,14 @@ class StickerActionFee(Payment):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        logger.info(f"Saving StickerActionFee: {self}.")
+        #logger.info(f"Saving StickerActionFee: {self}.")
         if not self.uuid:
             logger.info("StickerActionFee has no uuid")
             self.uuid = uuid.uuid4()
             logger.info(
                 f"StickerActionFee assigned uuid: {self.uuid}",
             )
-        logger.info(f"Saving StickerActionFee: {self}.")
+        #logger.info(f"Saving StickerActionFee: {self}.")
         super().save(*args, **kwargs)
         logger.info("StickerActionFee Saved.")
 
