@@ -616,6 +616,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 data['new_postal_address_locality'] = request.data.get('new_postal_address_locality','')
                 data['new_postal_address_state'] = request.data.get('new_postal_address_state','')
                 data['new_postal_address_country'] = request.data.get('new_postal_address_country','AU')
+                if data['new_postal_address_country'] == '':
+                    data['new_postal_address_country'] = 'AU'
                 data['new_postal_address_postcode'] = request.data.get('new_postal_address_postcode','')
 
                 serializer = StickerActionDetailSerializer(data=data)
