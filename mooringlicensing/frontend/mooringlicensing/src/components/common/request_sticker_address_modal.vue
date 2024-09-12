@@ -153,7 +153,7 @@ export default {
             return vm.errors;
         },
         title: function() {
-            return 'Replace Sticker Address'
+            return 'Update Sticker Address'
         },
     },
     methods:{
