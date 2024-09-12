@@ -514,7 +514,7 @@ export default {
                             }
                             if (full.approval_type_dict.code != 'wla') {
                                 links += `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
-                                links += `<a href='#${full.id}' data-request-sticker-address='${full.id}'>Request Sticker Address Change</a><br/>`
+                                links += `<a href='#${full.id}' data-request-sticker-address='${full.id}'>Update Sticker Address</a><br/>`
                             }
 
                             return links;

@@ -658,8 +658,6 @@ def submit_vessel_data(instance, request, vessel_data):
     instance.vessel_details = vessel_details
     instance.save()
 
-    instance.validate_vessel_length(request)
-
     # record ownership data
     vessel_ownership = store_vessel_ownership(request, vessel, instance)
     instance.vessel_ownership = vessel_ownership

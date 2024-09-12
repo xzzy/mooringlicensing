@@ -312,7 +312,8 @@ class Approval(RevisionedMixin):
     APPROVED_STATUSES = [
         APPROVAL_STATUS_CURRENT,
         APPROVAL_STATUS_SURRENDERED,
-        APPROVAL_STATUS_FULFILLED,
+        #APPROVAL_STATUS_FULFILLED, TODO: ensure removing this does not affect required workflows - 
+        # fulfilled means the WL has been "complete", it should no longer be regarded as "approved" and users should make a new WLA if needed
     ]
     lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES,
