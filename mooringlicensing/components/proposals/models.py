@@ -4764,12 +4764,11 @@ class Vessel(RevisionedMixin):
         # Approval is for the same vessel
         approval_filter &= Q(current_proposal__vessel_ownership__vessel=self)
         # The vessel has not been sold yet
-        approval_filter &= Q(current_proposal__vessel_ownership__end_date__gt=today)
+        approval_filter &= (Q(current_proposal__vessel_ownership__end_date__gt=today) | Q(current_proposal__vessel_ownership__end_date=None))
         # Approval holder is different person
         approval_filter &= ~Q(current_proposal__vessel_ownership=vessel_ownership)
         # We don't want to include the approval this proposal is for.
         approval_filter &= ~Q(id=proposal_being_processed.approval.id) if proposal_being_processed.approval else Q()
-
         blocking_approvals = Approval.objects.filter(approval_filter)
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
