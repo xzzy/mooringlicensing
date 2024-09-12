@@ -62,6 +62,7 @@
                                 <strong>Action</strong><br/>
                                 <button class="btn btn-primary" @click.prevent="acceptCompliance()">Accept</button><br/>
                                 <button class="btn btn-primary top-buffer-s" @click.prevent="amendmentRequest()">Request Amendment</button>
+                                <button class="btn btn-primary top-buffer-s" @click.prevent="discardCompliance()">Discard</button>
                             </div>
                         </div>
                     </div>
@@ -385,6 +386,29 @@ export default {
             this.$refs.amendment_request.amendment.compliance = this.compliance.id;                     
             this.$refs.amendment_request.isModalOpen = true;
     },
+    discardCompliance: function() {
+        let vm = this;
+        swal({
+            title: "Discard Compliance with",
+            text: "Are you sure you want to discard this compliance?",
+            type: "question",
+            showCancelButton: true,
+            confirmButtonText: 'Discard'
+        }).then(() => {
+            vm.$http.get(helpers.add_endpoint_json(api_endpoints.compliances,(vm.compliance.id+'/discard')))
+            .then((response) => {
+                console.log(response);
+                vm.compliance = response.body;
+                vm.$router.push({ name: 'internal-compliances-dash'}); //Navigate to dashboard
+            }, (error) => {
+                console.log(error);
+            });
+        },(error) => {
+
+        });
+
+    },
+
     fetchProfile: function(){
         let vm = this;
         Vue.http.get(api_endpoints.profile).then((response) => {
