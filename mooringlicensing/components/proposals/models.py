@@ -231,7 +231,6 @@ class ProposalSignedLicenceAgreementDocument(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
-
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
     APPLICANT_TYPE_PROXY = 'PRX'
@@ -381,6 +380,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             models.IntegerField(null=True, blank=True),
             blank=True,null=True,
             )
+    #TODO remove these fields once new model complete
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
     mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
     endorser_reminder_sent = models.BooleanField(default=False)
@@ -4584,6 +4584,17 @@ class Mooring(RevisionedMixin):
         if vessel_details.vessel_applicable_length > self.vessel_size_limit or vessel_details.vessel_draft > self.vessel_draft_limit:
             suitable = False
         return suitable
+
+
+class ProposalSiteLicenseeMooringRequest(models.Model):
+    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.CASCADE, related_name="site_licensee_mooring_request")
+    site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
+    mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.CASCADE)
+    endorser_reminder_sent = models.BooleanField(default=False)
+    declined_by_endorser = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'mooringlicensing'
 
 class MooringLogDocument(Document):
     log_entry = models.ForeignKey('MooringLogEntry',related_name='documents', on_delete=models.CASCADE)

@@ -528,13 +528,17 @@ def save_proponent_data_aua(instance, request, action):
     instance.refresh_from_db()
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+    #TODO validate and create mooring selection if proposal_data.get("mooring_authorisation_preference") == 'site_licensee'
+    if action == 'submit' and proposal_data.get("mooring_authorisation_preference") == 'site_licensee':
+        if instance.proposal_type.code == PROPOSAL_TYPE_NEW or not proposal_data.get('keep_existing_mooring'):
+            pass
+        
     serializer = SaveAuthorisedUserApplicationSerializer(
             instance, 
             data=proposal_data, 
             context={
                 "action": action,
                 "proposal_id": instance.id
-                #"ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
     )
     serializer.is_valid(raise_exception=True)

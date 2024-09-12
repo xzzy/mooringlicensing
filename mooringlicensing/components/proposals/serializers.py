@@ -807,8 +807,8 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'insurance_choice',
                 'mooring_authorisation_preference',
                 'bay_preferences_numbered',
-                'site_licensee_email',
-                'mooring_id',
+                #'site_licensee_email',
+                #'mooring_id',
                 'customer_status',
                 'processing_status',
                 'temporary_document_collection_id',
@@ -839,20 +839,21 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
             if not data.get("mooring_authorisation_preference"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
             # if data.get("mooring_authorisation_preference") == 'site_licensee' and not data.get('keep_existing_mooring'):
-            else:
-                if data.get("mooring_authorisation_preference") == 'site_licensee':
-                    if proposal.proposal_type.code == PROPOSAL_TYPE_NEW or not data.get('keep_existing_mooring'):
-                        site_licensee_email = data.get("site_licensee_email")
-                        mooring_id = data.get("mooring_id")
-                        if not site_licensee_email:
-                            custom_errors["Site Licensee Email"] = "This field should not be blank"
-                        if not mooring_id:
-                            custom_errors["Mooring Site ID"] = "This field should not be blank"
-                        # check that the site_licensee_email matches the Mooring Licence holder
-                        if mooring_id and Mooring.objects.get(id=mooring_id):
-                            mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                            if not mooring_licence or mooring_licence.applicant_obj.email.lower().strip() != site_licensee_email.lower().strip():
-                                custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
+            #TODO move this validation to before AUA saved
+            #else:
+            #    if data.get("mooring_authorisation_preference") == 'site_licensee':
+            #        if proposal.proposal_type.code == PROPOSAL_TYPE_NEW or not data.get('keep_existing_mooring'):
+            #            site_licensee_email = data.get("site_licensee_email")
+            #            mooring_id = data.get("mooring_id")
+            #            if not site_licensee_email:
+            #                custom_errors["Site Licensee Email"] = "This field should not be blank"
+            #            if not mooring_id:
+            #                custom_errors["Mooring Site ID"] = "This field should not be blank"
+            #            # check that the site_licensee_email matches the Mooring Licence holder
+            #            if mooring_id and Mooring.objects.get(id=mooring_id):
+            #                mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
+            #                if not mooring_licence or mooring_licence.applicant_obj.email.lower().strip() != site_licensee_email.lower().strip():
+            #                    custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
