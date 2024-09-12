@@ -39,6 +39,38 @@
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div class="form-group" v-if="displayMooringSiteIdField">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left">Proposed Vessel Length</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input class="form-control" disabled :value="proposal.vessel_length"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="displayMooringSiteIdField">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left">Proposed Vessel Draft</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input class="form-control" disabled :value="proposal.vessel_draft"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="displayMooringSiteIdField">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left">Proposed Vessel Weight</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input class="form-control" disabled :value="proposal.vessel_weight"/>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-group" v-if="displayAssociatedMoorings">
                                 <div class="row col-sm-12">
                                     <datatable ref="mooringsTable" :id="mooringsTableId" :dtOptions="mooringsDtOptions"
@@ -138,7 +170,9 @@ export default {
             type: Number,
             required: true
         },
-        proposal: null,
+        proposal: {
+            type: Object,
+        },
         processing_status: {
             type: String,
             required: true
@@ -211,6 +245,7 @@ export default {
                 'Status',
                 'Length limit',
                 'Draft limit',
+                'Weight limit',
             ],
             mooringsDtOptions: {
                 serverSide: false,
@@ -227,6 +262,15 @@ export default {
                 processing: true,
                 createdRow: function (row, data, index) {
                     $(row).attr('data-mooring-on-approval-id', data.id)
+                    if (vm.proposal && (
+                        vm.proposal.vessel_length > data.vessel_size_limit ||
+                        vm.proposal.vessel_draft > data.vessel_draft_limit ||
+                        (data.vessel_weight_limit > 0 && vm.proposal.vessel_weight > data.vessel_weight_limit)
+                    )) {
+                        $(row).css({
+                            'background-color': '#ff6961'
+                        })
+                    }
                 },
                 columns: [
                     {
@@ -315,6 +359,17 @@ export default {
                         mRender: function (data, type, full) {
                             console.log({full})
                             return full.vessel_draft_limit;
+                        }
+                    },
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            console.log({full})
+                            if (full.weight_draft_limit > 0) {
+                                return full.weight_draft_limit;
+                            } else {
+                                return "N/A"
+                            }
                         }
                     },
                 ],

@@ -1553,6 +1553,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise
 
     def proposed_approval(self, request, details):
+        from mooringlicensing.components.approvals.models import MooringOnApproval
         with transaction.atomic():
             try:
                 logger.info(f'Processing proposed approval... for the Proposal: [{self}]')
@@ -1599,12 +1600,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 check_mooring_ids = id_list
                 check_mooring_ids.append(mooring_id)
                 check_vessel = self.vessel_ownership.vessel
-                check_moorings = Mooring.objects.filter(id__in=check_mooring_ids)
+                check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
                 for i in check_moorings:
+                    if not i.mooring:
+                        raise serializers.ValidationError("Mooring does not exist")
                     vessel_details = check_vessel.latest_vessel_details
-                    if (vessel_details.vessel_length > i.vessel_size_limit or
-                        vessel_details.vessel_draft > i.vessel_draft_limit or
-                        (vessel_details.vessel_weight > i.vessel_weight_limit and i.vessel_weight_limit > 0)):
+                    if (vessel_details.vessel_length > i.mooring.vessel_size_limit or
+                        vessel_details.vessel_draft > i.mooring.vessel_draft_limit or
+                        (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
 
 
@@ -1834,6 +1837,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.refresh_from_db()
 
     def final_approval_for_AUA_MLA(self, request=None, details=None):
+        from mooringlicensing.components.approvals.models import MooringOnApproval
         with transaction.atomic():
             try:
                 from mooringlicensing.components.approvals.models import Sticker
@@ -1896,12 +1900,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     check_mooring_ids = id_list
                     check_mooring_ids.append(mooring_id)
                     check_vessel = self.vessel_ownership.vessel
-                    check_moorings = Mooring.objects.filter(id__in=check_mooring_ids)
+                    check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
                     for i in check_moorings:
+                        if not i.mooring:
+                            raise serializers.ValidationError("Mooring does not exist")
                         vessel_details = check_vessel.latest_vessel_details
-                        if (vessel_details.vessel_length > i.vessel_size_limit or
-                            vessel_details.vessel_draft > i.vessel_draft_limit or
-                            (vessel_details.vessel_weight > i.vessel_weight_limit and i.vessel_weight_limit > 0)):
+                        if (vessel_details.vessel_length > i.mooring.vessel_size_limit or
+                            vessel_details.vessel_draft > i.mooring.vessel_draft_limit or
+                            (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                             raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
 
                     self.proposed_issuance_approval = {
