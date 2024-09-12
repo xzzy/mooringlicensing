@@ -86,7 +86,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
 
             # Can only modify if Due or Future.
-            if instance.processing_status not in ['due', 'future']:
+            if instance.processing_status not in ['due', 'future','overdue']:
                 raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
                                                     .format(instance.processing_status))
 
@@ -162,7 +162,13 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         instance.accept(request)
         serializer = InternalComplianceSerializer(instance, context={'request': request})
         return Response(serializer.data)
-
+    @detail_route(methods=['GET',], detail=True)
+    def discard(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
+        instance.save()
+        serializer = InternalComplianceSerializer(instance, context={'request': request})
+        return Response(serializer.data)
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def amendment_request(self, request, *args, **kwargs):
