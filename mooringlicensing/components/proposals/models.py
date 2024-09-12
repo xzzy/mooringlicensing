@@ -2837,16 +2837,13 @@ class WaitingListApplication(Proposal):
         blocking_proposals = []  # 
         for proposal in child_proposals:
             if proposal.processing_status not in [
-                # Proposal.PROCESSING_STATUS_APPROVED, 
+                Proposal.PROCESSING_STATUS_APPROVED, 
                 Proposal.PROCESSING_STATUS_DECLINED, 
                 Proposal.PROCESSING_STATUS_EXPIRED, 
                 Proposal.PROCESSING_STATUS_DISCARDED,
             ] and proposal.succeeding_proposals.count() == 0: # There are no succeeding proposals, which means this proposal is the lastest proposal.
-                # if type(proposal) == WaitingListApplication:
-                #     proposals_wla.append(proposal)
-                # if type(proposal) == MooringLicenceApplication:
-                #     proposals_mla.append(proposal)
-                blocking_proposals.append(proposal)
+                if type(proposal) == WaitingListApplication or type(proposal) == MooringLicenceApplication:
+                    blocking_proposals.append(proposal)
 
         # Get blocking approvals
         approval_histories = ApprovalHistory.objects.filter(
@@ -2859,25 +2856,19 @@ class WaitingListApplication(Proposal):
         # approvals_wla = []
         # approvals_ml = []
         blocking_approvals = []
+
         for approval in approvals:
             if approval.status in Approval.APPROVED_STATUSES:
-                # if type(approval.child_obj) == WaitingListAllocation:
-                #     approvals_wla.append(approval)
-                # if type(approval.child_obj) == MooringLicence:
-                #     approvals_ml.append(approval)
-                blocking_approvals.append(approval)
+                if type(approval.child_obj) == WaitingListAllocation or type(approval.child_obj) == MooringLicence:
+                    blocking_approvals.append(approval)      
 
         # if (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
-        if (blocking_proposals or blocking_approvals):
-            bp = ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in blocking_proposals])
-            ba = ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in blocking_approvals])
-            msg = f'The vessel: {self.vessel_ownership.vessel} in the application is already listed in {bp}{ba}'
-            # raise serializers.ValidationError("The vessel in the application is already listed in " +
-            # ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_wla]) +
-            # ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in blocking_proposals]) +
-            # ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_wla])
-            # ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in blocking_approvals])
-            # )
+        if (blocking_proposals):
+            msg = f'The vessel: {self.vessel_ownership.vessel} is already listed in another active waiting list or mooring license application'
+            logger.error(msg)
+            raise serializers.ValidationError(msg)
+        elif (blocking_approvals):
+            msg = f'The vessel: {self.vessel_ownership.vessel} is already listed in another active waiting list or mooring license'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         # Person can have only one WLA, Waiting List application, Mooring Licence, and Mooring Licence application
