@@ -1207,13 +1207,13 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         data['dcv_vessel_id'] = dcv_vessel.id
         data['dcv_organisation_id'] = dcv_organisation.id
         data['fee_season_id'] = fee_season_requested.get('id')
-        data['line1'] = data.get('postal_address')['line1']
-        data['line2'] = data.get('postal_address')['line2']
-        data['line3'] = data.get('postal_address')['line2']
-        data['locality'] = data.get('postal_address')['locality']
-        data['postcode'] = data.get('postal_address')['postcode']
-        data['state'] = data.get('postal_address')['state']
-        data['country'] = data.get('postal_address')['country']
+        data['postal_address_line1'] = data.get('postal_address')['line1']
+        data['postal_address_line2'] = data.get('postal_address')['line2']
+        data['postal_address_line3'] = data.get('postal_address')['line2']
+        data['postal_address_suburb'] = data.get('postal_address')['locality']
+        data['postal_address_postcode'] = data.get('postal_address')['postcode']
+        data['postal_address_state'] = data.get('postal_address')['state']
+        data['postal_address_country'] = data.get('postal_address')['country']
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         dcv_permit = serializer.save()
