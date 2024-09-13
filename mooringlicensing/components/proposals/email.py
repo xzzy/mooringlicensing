@@ -574,6 +574,8 @@ def send_endorser_reminder_email(proposal, request=None):
     decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
     proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
+    #TODO refactor to handle multiple site_licensee_emails
+
     try:
         endorser = EmailUser.objects.get(email=proposal.site_licensee_email)
     except:

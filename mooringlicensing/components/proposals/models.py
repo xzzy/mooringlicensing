@@ -373,7 +373,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True, on_delete=models.SET_NULL)
     ## Electoral Roll component field
     silent_elector = models.BooleanField(null=True) # if False, user is on electoral roll
-    ## Mooring Authorisation fields mooring_suthorisation_preferences, bay_preferences_numbered, site_licensee_email and mooring
     # AUA
     mooring_authorisation_preference = models.CharField(max_length=20, choices=MOORING_AUTH_PREFERENCES, blank=True)
     bay_preferences_numbered = ArrayField(
@@ -3387,7 +3386,8 @@ class AuthorisedUserApplication(Proposal):
             logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
 
-        # check new site licensee mooring
+        #TODO refactor to handle multiple site_licensee_emails
+        # check new site licensee moorings
         proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
         mooring_id = proposal_data.get('mooring_id')
         if mooring_id and proposal_data.get('site_licensee_email'):
@@ -4587,9 +4587,9 @@ class Mooring(RevisionedMixin):
 
 
 class ProposalSiteLicenseeMooringRequest(models.Model):
-    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.CASCADE, related_name="site_licensee_mooring_request")
+    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="site_licensee_mooring_request")
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
-    mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.CASCADE)
+    mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     endorser_reminder_sent = models.BooleanField(default=False)
     declined_by_endorser = models.BooleanField(default=False)
 

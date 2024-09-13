@@ -617,9 +617,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
-            filter_query &= Q(site_licensee_email__iexact=request.user.email)
-        else:
-            filter_query &= ~Q(site_licensee_email__iexact=request.user.email)
+            filter_query &= (Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email,site_licensee_mooring_request__enabled=True))
+        #TODO commented this out - will check if need (but why exclude?)
+        #else:
+        #    filter_query &= ~Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email)
 
         # don't show discarded applications
         if not level == 'internal':
@@ -676,13 +677,13 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                 user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
                 all = all.filter(Q(org_applicant__in=user_orgs) | 
                         Q(proposal_applicant__email_user_id=target_user.id) | 
-                        Q(site_licensee_email=target_user.email))
+                        Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
             qs = all.filter(Q(org_applicant__in=orgs) | 
                     Q(proposal_applicant__email_user_id=request_user.id) | 
-                    Q(site_licensee_email=request_user.email))
+                    Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True))
             return qs
         return Proposal.objects.none()
 

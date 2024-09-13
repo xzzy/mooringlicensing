@@ -622,8 +622,6 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'berth_mooring',
             'dot_name',
             'insurance_choice',
-            'site_licensee_email', #TODO remove or adjust
-            'mooring_id', #TODO remove or adjust
             'mooring_authorisation_preference',
             'company_ownership_name',
             'company_ownership_percentage',

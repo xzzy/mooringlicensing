@@ -558,12 +558,13 @@ def save_proponent_data_aua(instance, request, action):
                     keep_id_list.append(site_licensee_mooring.id)
                 else:
                     #if it does not exist
-                    ProposalSiteLicenseeMooringRequest.objects.create(
+                    new_site_licence_mooring_request = ProposalSiteLicenseeMooringRequest.objects.create(
                         proposal=instance,
                         site_licensee_email=i["email"],
                         mooring_id=i["mooring_id"],
                         enabled=True,
                     )
+                    keep_id_list.append(new_site_licence_mooring_request.pk)
             #disable any remainder records
             site_licensee_moorings.exclude(id__in=keep_id_list).update(enabled=False)
     else: #RIA preferred, disable all site_licensee_mooring_requests (if any)

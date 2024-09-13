@@ -274,12 +274,6 @@ import draggable from 'vuedraggable';
             };
             this.$nextTick(async () => {
                 await this.fetchMooringBays();
-                /*if (this.proposal.site_licensee_email) {
-                    this.siteLicenseeEmail = this.proposal.site_licensee_email;
-                }
-                if (this.proposal.mooring_id) {
-                    this.mooringSiteId = this.proposal.mooring_id;
-                }*/
                 if (this.proposal.mooring_authorisation_preference) {
                     this.mooringAuthPreference = this.proposal.mooring_authorisation_preference;
                 }
