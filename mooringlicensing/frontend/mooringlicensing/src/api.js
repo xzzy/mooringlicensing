@@ -12,6 +12,7 @@ module.exports = {
     insurance_choices_dict:"/api/insurance_choices_dict",
     vessel_rego_nos:"/api/vessel_rego_nos",
     mooring_lookup:"/api/mooring_lookup",
+    mooring_lookup_by_site_licensee:"/api/mooring_lookup_by_site_licensee",
     mooring_lookup_per_bay:"/api/mooring_lookup_per_bay",
     vessel_lookup:"/api/vessel_lookup",
     sticker_lookup:"/api/sticker_lookup",

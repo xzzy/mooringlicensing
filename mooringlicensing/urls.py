@@ -96,6 +96,7 @@ api_patterns = [
     re_path(r'^api/fee_item_sticker_replacement$', proposal_api.GetStickerReplacementFeeItem.as_view(), name='get-sticker-replacement-fee-item'),
     re_path(r'^api/vessel_rego_nos$', proposal_api.GetVesselRegoNos.as_view(), name='get-vessel_rego-nos'),
     re_path(r'^api/mooring_lookup$', proposal_api.GetMooring.as_view(), name='get-mooring'),
+    re_path(r'^api/mooring_lookup_by_site_licensee$', proposal_api.GetMooringBySiteLicensee.as_view(), name='get-mooring-lookup-by-site-licensee'),
     re_path(r'^api/mooring_lookup_per_bay$', proposal_api.GetMooringPerBay.as_view(), name='get-mooring-per-bay'),
     re_path(r'^api/vessel_lookup$', proposal_api.GetVessel.as_view(), name='get-vessel'),
     re_path(r'^api/sticker_lookup$', approval_api.GetSticker.as_view(), name='get-sticker'),

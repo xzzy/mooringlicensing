@@ -4593,6 +4593,9 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
     endorser_reminder_sent = models.BooleanField(default=False)
     declined_by_endorser = models.BooleanField(default=False)
 
+    enabled = models.BooleanField(default=True) #enabled for proposal by submitter/applicant
+    created = models.DateTimeField(default=timezone.now)
+
     class Meta:
         app_label = 'mooringlicensing'
 

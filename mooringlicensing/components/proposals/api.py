@@ -253,6 +253,45 @@ class GetMooring(views.APIView):
         return Response()
 
 
+class GetMooringBySiteLicensee(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('search_term', '')
+        site_licensee_email = request.GET.get('site_licensee_email', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+        private_moorings = request.GET.get('private_moorings')
+
+        if search_term:
+            if private_moorings:
+                data = Mooring.private_moorings.filter(
+                    name__icontains=search_term,
+                    mooring_licence__approval__current_proposal__proposal_applicant__email=site_licensee_email
+                ).values('id', 'name')
+            else:
+                data = Mooring.objects.filter(
+                    name__icontains=search_term,
+                    mooring_licence__approval__current_proposal__proposal_applicant__email=site_licensee_email
+                ).values('id', 'name')
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+            
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in my_objects]
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
+        return Response()
+
+
 class GetMooringPerBay(views.APIView):
     renderer_classes = [JSONRenderer, ]
 
