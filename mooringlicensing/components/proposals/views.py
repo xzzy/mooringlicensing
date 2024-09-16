@@ -155,6 +155,7 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
     def get_object(self):
         return get_object_or_404(AuthorisedUserApplication, uuid=self.kwargs['uuid_str'])
 
+    #TODO change this to use ProposalSiteLicenseeMooringRequest model
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
         if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:

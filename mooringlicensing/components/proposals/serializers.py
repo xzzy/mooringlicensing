@@ -399,6 +399,45 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 return serializer.data
         return ''
 
+class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializer):
+    
+    can_endorse = serializers.SerializerMethodField()
+    proposal_number = serializers.SerializerMethodField()
+    mooring_name = serializers.SerializerMethodField()
+    proposal_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProposalSiteLicenseeMooringRequest
+        fields = (
+            'id',
+            'site_licensee_email',
+            'declined_by_endorser',
+            'proposal_id',
+            'proposal_number',
+            'mooring_name',
+            'proposal_status',
+            'can_endorse',
+        )
+
+    def get_proposal_number(self,obj):
+        if obj.proposal:
+            return obj.proposal.lodgement_number
+        
+    def get_mooring_name(self,obj):
+        if obj.mooring:
+            return obj.mooring.name
+        
+    def get_proposal_status(self,obj):
+        if obj.proposal:
+            return obj.proposal.processing_status
+
+    def get_can_endorse(self,obj):
+        if (obj.mooring and 
+            obj.mooring.mooring_licence and
+            obj.mooring.mooring_licence.approval and
+            obj.mooring.mooring_licence.approval.status == "current"):
+            return True
+        return False
 
 class ListProposalSerializer(BaseProposalSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
@@ -415,7 +454,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     document_upload_url = serializers.SerializerMethodField()
     can_view_payment_details = serializers.SerializerMethodField()
     invoice_links = serializers.SerializerMethodField()
-    can_endorse = serializers.SerializerMethodField()
+    #can_endorse = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -444,7 +483,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             'invoice_links',
             'mooring_authorisation_preference',
             'declined_by_endorser',
-            'can_endorse',
+            #'can_endorse',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -566,14 +605,18 @@ class ListProposalSerializer(BaseProposalSerializer):
             elif user in obj.allowed_assessors:
                 return True
         return False
-    def get_can_endorse(self,obj):
-        try:
-            mooring_status = Approval.objects.get(id=obj.mooring.mooring_licence.id).status
-            if(mooring_status == 'current'):
-                return True
-            return False
-        except:
-            return False
+    
+    #TODO move to serializer for ProposalSiteLicenseeMooringRequest
+    #def get_can_endorse(self,obj):
+    #    if 'request' in self.context:
+    #        request = self.context['request']
+    #        user = request.user
+    #        site_licensee_mooring_requests = obj.site_licensee_mooring_request.filter(site_licensee_email=user.email)
+    #        if(
+    #            site_licensee_mooring_requests.filter(mooring__mooring_licence__approval__status="current").exists()
+    #        ):
+    #            return True
+    #    return False
         
 
 

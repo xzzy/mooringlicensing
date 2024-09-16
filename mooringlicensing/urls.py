@@ -49,6 +49,7 @@ router.register(r'internalannualadmissionapplication', proposal_api.InternalAnnu
 router.register(r'internalauthoriseduserapplication', proposal_api.InternalAuthorisedUserApplicationViewSet, 'internalauthoriseduserapplication')
 
 router.register(r'mooringlicenceapplication', proposal_api.MooringLicenceApplicationViewSet, 'mooringlicenceapplication')
+router.register(r'site_licensee_mooring_requests_paginated', proposal_api.SiteLicenseeMooringRequestPaginatedViewSet,'site_licensee_mooring_requests_paginated')
 router.register(r'proposals_paginated', proposal_api.ProposalPaginatedViewSet, 'proposals_paginated')
 router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet, 'approvals_paginated')
 router.register(r'dcvpermits_paginated', approval_api.DcvPermitPaginatedViewSet, 'dcvpermits_paginated')

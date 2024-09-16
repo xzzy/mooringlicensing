@@ -34,7 +34,7 @@ from mooringlicensing.components.proposals.utils import (
     get_max_vessel_length_for_main_component,
 )
 from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalType, ProposalApplicant, VesselRegistrationDocument
+    ProposalType, ProposalApplicant, VesselRegistrationDocument, ProposalSiteLicenseeMooringRequest
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
@@ -79,6 +79,7 @@ from mooringlicensing.components.proposals.serializers import (
     ProposedApprovalSerializer,
     AmendmentRequestSerializer,
     ListProposalSerializer,
+    ListProposalSiteLicenseeMooringRequestSerializer,
     ListVesselDetailsSerializer,
     ListVesselOwnershipSerializer,
     VesselSerializer,
@@ -653,6 +654,24 @@ class ProposalRenderer(DatatablesRenderer):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
         return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
 
+class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ModelViewSet):
+    pagination_class = DatatablesPageNumberPagination
+    queryset = ProposalSiteLicenseeMooringRequest.objects.none()
+    serializer_class = ListProposalSiteLicenseeMooringRequestSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        if is_internal(self.request):
+            return ProposalSiteLicenseeMooringRequest.objects.all()
+        elif is_customer(self.request):
+            return ProposalSiteLicenseeMooringRequest.objects.filter(
+                site_licensee_email=request_user.email, 
+                mooring__mooring_licence__approval__status="current",
+                mooring__mooring_licence__approval__current_proposal__proposal_applicant__email=request_user.email,
+                enabled=True)
+        return ProposalSiteLicenseeMooringRequest.objects.none()
+         
 
 class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ProposalFilterBackend,)
