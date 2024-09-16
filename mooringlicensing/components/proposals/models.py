@@ -3386,16 +3386,18 @@ class AuthorisedUserApplication(Proposal):
             logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
 
-        #TODO refactor to handle multiple site_licensee_emails
         # check new site licensee moorings
         proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
-        mooring_id = proposal_data.get('mooring_id')
-        if mooring_id and proposal_data.get('site_licensee_email'):
-            mooring = Mooring.objects.get(id=mooring_id)
+            
+        site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
+        moorings = Mooring.objects
+        for i in site_licensee_moorings_data:
+            mooring = moorings.filter(mooring__id=i["mooring_id"]).first()
             if (self.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
             self.vessel_details.vessel_draft > mooring.vessel_draft_limit):
                 logger.error("Proposal {}: Vessel unsuitable for mooring".format(self))
                 raise serializers.ValidationError("Vessel unsuitable for mooring")
+
         if self.approval:
             # Amend / Renewal
             if proposal_data.get('keep_existing_mooring'):
