@@ -47,6 +47,7 @@ module.exports = {
     countries: '/api/countries',
 
     proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
+    site_licensee_mooring_requests: '/api/site_licensee_mooring_requests_paginated',
     approvals_paginated_list: '/api/approvals_paginated',
     dcvpermits_paginated_list: '/api/dcvpermits_paginated',
     dcvadmissions_paginated_list: '/api/dcvadmissions_paginated',

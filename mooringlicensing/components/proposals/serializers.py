@@ -405,6 +405,8 @@ class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializ
     proposal_number = serializers.SerializerMethodField()
     mooring_name = serializers.SerializerMethodField()
     proposal_status = serializers.SerializerMethodField()
+    applicant_name = serializers.SerializerMethodField()
+    uuid = serializers.SerializerMethodField()
 
     class Meta:
         model = ProposalSiteLicenseeMooringRequest
@@ -417,7 +419,19 @@ class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializ
             'mooring_name',
             'proposal_status',
             'can_endorse',
+            'applicant_name',
+            'uuid',
         )
+
+    def get_uuid(self, obj):
+        try:
+            return obj.proposal.child_obj.uuid
+        except:
+            return ''
+
+    def get_applicant_name(self,obj):
+        if obj.proposal and obj.proposal.proposal_applicant:
+            return obj.proposal.proposal_applicant.first_name + " " + obj.proposal.proposal_applicant.last_name
 
     def get_proposal_number(self,obj):
         if obj.proposal:
@@ -429,7 +443,7 @@ class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializ
         
     def get_proposal_status(self,obj):
         if obj.proposal:
-            return obj.proposal.processing_status
+            return obj.proposal.get_customer_status_display()
 
     def get_can_endorse(self,obj):
         if (obj.mooring and 
