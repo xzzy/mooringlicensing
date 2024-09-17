@@ -9,11 +9,18 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.db.models import Q
 from mooringlicensing import settings
-from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, ProofOfIdentityDocument, Proposal,
-                                                          HelpPage, AuthorisedUserApplication, Mooring,
-                                                          MooringLicenceApplication, SignedLicenceAgreementDocument, VesselRegistrationDocument, WrittenProofDocument
+from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, 
+                                                          InsuranceCertificateDocument, ProofOfIdentityDocument, Proposal,
+                                                          HelpPage, AuthorisedUserApplication, Mooring, 
+                                                          MooringLicenceApplication, SignedLicenceAgreementDocument, 
+                                                          VesselRegistrationDocument, WrittenProofDocument,
+                                                          ProposalSiteLicenseeMooringRequest,
                                                           )
-from mooringlicensing.components.approvals.models import Approval, ApprovalDocument, ApprovalLogDocument, AuthorisedUserSummaryDocument, DcvAdmissionDocument, DcvPermitDocument, RenewalDocument, WaitingListOfferDocument, update_approval_doc_filename
+from mooringlicensing.components.approvals.models import (Approval, ApprovalDocument, ApprovalLogDocument, 
+                                                          AuthorisedUserSummaryDocument, DcvAdmissionDocument, 
+                                                          DcvPermitDocument, RenewalDocument, 
+                                                          WaitingListOfferDocument, update_approval_doc_filename,
+                                                        )
 from mooringlicensing.components.compliances.models import Compliance
 import json,traceback
 from reversion_compare.views import HistoryCompareDetailView
@@ -155,32 +162,40 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
     def get_object(self):
         return get_object_or_404(AuthorisedUserApplication, uuid=self.kwargs['uuid_str'])
 
-    #TODO change this to use ProposalSiteLicenseeMooringRequest model
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
+        mooring_name = request.GET.get("mooring_name","")
+        
         if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
             raise ValidationError('You cannot endorse/decline the application not in awaiting-endorsement status')
         
-        # checking if the user hold an active mooring licence
+        # checking if the user holds an active mooring licence for the specified mooring
         try:
-            mooring_status =  Mooring.objects.get(id=proposal.mooring_id).mooring_licence.status
-        except:
+            mooring_status =  Mooring.objects.filter(
+                mooring_licence__approval__current_proposal__proposal_applicant__email_user_id=request.user.id, 
+                name=mooring_name,
+                mooring_licence__status="current")
+        except Exception as e:
             raise ValidationError('There is no mooring licence for this mooring')
-        if(mooring_status != 'current'):
+        if(not mooring_status.exists()):
             raise ValidationError('You do not hold an active mooring site licence to endorse/decline the application')
         
+        #get ProposalSiteLicenseeMooringRequest
+        site_licensee_mooring_request = ProposalSiteLicenseeMooringRequest.objects.filter(proposal=proposal,
+                                                          mooring__name=mooring_name,
+                                                          site_licensee_email=request.user.email,
+                                                          enabled=True)
+        if not site_licensee_mooring_request.exists():
+            raise ValidationError('No valid site licensee mooring request for site licensee, mooring, and proposal set')
+
         action = self.kwargs['action']
         if action == 'endorse':
             self.template_name = 'mooringlicensing/proposals/authorised_user_application_endorsed.html'
-            proposal.endorse_approved(request)
-            # TODO: Upon endorsement, the applicant and site licensee receive an email
-            from mooringlicensing.components.proposals.email import send_notification_email_upon_submit_to_assessor
-            send_notification_email_upon_submit_to_assessor(request, proposal)
+            site_licensee_mooring_request.first().endorse_approved(request)
         elif action == 'decline':
             self.template_name = 'mooringlicensing/proposals/authorised_user_application_declined.html'
-            proposal.endorse_declined(request)
-            # TODO: Upon endorsement, the applicant and site licensee receive an email
-        proposal.save()
+            site_licensee_mooring_request.first().endorse_declined(request)
+        proposal.refresh_from_db()
 
         context = {
             'proposal': proposal,

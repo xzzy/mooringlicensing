@@ -421,6 +421,8 @@ class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializ
             'can_endorse',
             'applicant_name',
             'uuid',
+            'approved_by_endorser',
+            'declined_by_endorser',
         )
 
     def get_uuid(self, obj):

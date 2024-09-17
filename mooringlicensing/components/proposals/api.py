@@ -701,8 +701,9 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
             qs = all.filter(Q(org_applicant__in=orgs) | 
-                    Q(proposal_applicant__email_user_id=request_user.id) | 
-                    Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True))
+                    Q(proposal_applicant__email_user_id=request_user.id) #| 
+                    #Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True)
+                    )
             return qs
         return Proposal.objects.none()
 

@@ -884,16 +884,23 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             final_status = True
         return final_status
 
-    def endorse_approved(self, request):
-        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-        self.save()
-        logger.info(f'Endorsement approved for the Proposal: [{self}] by the endorser: [{request.user}].')
+    #check proposal for any remaining site licensee mooring requests - update to with assessor otherwise    
+    def check_endorsements(self, request):
+        if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            raise serializers.ValidationError("proposal not awaiting endorsement")
+        from mooringlicensing.helpers import is_internal
+        #only proceed if status is awaiting endorsement and request user is an endorser (or internal)
+        site_licensee_mooring_request = self.site_licensee_mooring_request.all()
+        if not (is_internal(request) or site_licensee_mooring_request.filter(site_licensee_email=request.user.email).exists()):
+            raise serializers.ValidationError("user not authorised to check endorsements")
 
-    def endorse_declined(self, request):
-        self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
-        self.declined_by_endorser = True
-        self.save()
-        logger.info(f'Endorsement declined for the Proposal: [{self}] by the endorser: [{request.user}].')
+        if not (site_licensee_mooring_request.filter(declined_by_endorser=False,approved_by_endorser=False).exists()):
+            #if all requests are endorsed or declined, set proposal status with assessor
+            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            self.save()
+            logger.info(f'All site licensee mooring requests endorsed or declined for the Proposal: [{self}].')
+
+            send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_customer_status(self):
         matrix = {
@@ -4594,12 +4601,43 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
     mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
     endorser_reminder_sent = models.BooleanField(default=False)
     declined_by_endorser = models.BooleanField(default=False)
+    approved_by_endorser = models.BooleanField(default=False)
 
     enabled = models.BooleanField(default=True) #enabled for proposal by submitter/applicant
     created = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def endorse_approved(self, request):
+        if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            raise serializers.ValidationError("proposal not awaiting endorsement")
+        from mooringlicensing.helpers import is_internal
+        if not is_internal(request) and self.site_licensee_email != request.user.email:
+            raise serializers.ValidationError("user not authorised to approve endorsement")
+        
+        if (self.declined_by_endorser or self.approved_by_endorser):
+            raise serializers.ValidationError("site licensee mooring request already approved/declined")
+        self.approved_by_endorser = True
+        self.declined_by_endorser = False
+        self.save()
+        logger.info(f'Endorsement approved for the Proposal: [{self.proposal}], Mooring: [{self.mooring}] by the endorser: [{request.user}].')
+        self.proposal.check_endorsements(request)
+
+    def endorse_declined(self, request):
+        if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            raise serializers.ValidationError("proposal not awaiting endorsement")
+        from mooringlicensing.helpers import is_internal
+        if not is_internal(request) and self.site_licensee_email != request.user.email:
+            raise serializers.ValidationError("user not authorised to approve endorsement")
+        
+        if (self.declined_by_endorser or self.approved_by_endorser):
+            raise serializers.ValidationError("site licensee mooring request already approved/declined")
+        self.declined_by_endorser = True
+        self.approved_by_endorser = False
+        self.save()
+        logger.info(f'Endorsement declined for the Proposal: [{self.proposal}], Mooring: [{self.mooring}] by the endorser: [{request.user}].')
+        self.proposal.check_endorsements(request)
 
 class MooringLogDocument(Document):
     log_entry = models.ForeignKey('MooringLogEntry',related_name='documents', on_delete=models.CASCADE)

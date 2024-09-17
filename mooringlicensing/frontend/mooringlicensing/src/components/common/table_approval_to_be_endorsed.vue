@@ -63,7 +63,7 @@ export default {
             filter_by_endorsement: true,
 
             // Datatable settings
-            to_be_endorsed_headers: ['Id', 'Proposal Id', 'Proposal', 'Mooring', 'Applicant', 'Status', 'Action','uuid'],
+            to_be_endorsed_headers: ['Id', 'Proposal Id', 'Proposal', 'Mooring', 'Applicant', 'Status', 'Action','uuid','declined','endored'],
             to_be_endorsed_options: {
                 autoWidth: false,
                 language: {
@@ -137,7 +137,13 @@ export default {
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.proposal_status
+                            if (full.approved_by_endorser) {
+                                return full.proposal_status + " - Endorsed for " + full.mooring_name
+                            } else if (full.declined_by_endorser) {
+                                return full.proposal_status + " - Declined for " + full.mooring_name
+                            } else {
+                                return full.proposal_status
+                            }
                         }
                     },
                     {
@@ -151,7 +157,11 @@ export default {
                             let links = '';
                             // links +=  `<a href='/aua_for_endorsement/${full.uuid}/view/'>View</a><br/>`;
                             links +=  `<a href='/external/proposal/${full.uuid}/'>View</a><br/>`;
-                            if(full.proposal_status === constants.AWAITING_ENDORSEMENT && full.can_endorse){
+                            if(full.proposal_status === constants.AWAITING_ENDORSEMENT 
+                                && full.can_endorse
+                                && !full.declined_by_endorser 
+                                && !full.approved_by_endorser
+                            ){
                                 // links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
                                 // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
                                 // links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
@@ -169,6 +179,24 @@ export default {
                         visible: false,
                         'render': function(row, type, full){
                             return full.uuid
+                        }
+                    },
+                    {
+                        data: "declined_by_endorser",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.declined_by_endorser
+                        }
+                    },
+                    {
+                        data: "approved_by_endorser",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.approved_by_endorser
                         }
                     },
                 ],
