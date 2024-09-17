@@ -894,7 +894,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if not (is_internal(request) or site_licensee_mooring_request.filter(site_licensee_email=request.user.email).exists()):
             raise serializers.ValidationError("user not authorised to check endorsements")
 
-        if not (site_licensee_mooring_request.filter(declined_by_endorser=False,approved_by_endorser=False).exists()):
+        if not (site_licensee_mooring_request.filter(declined_by_endorser=False,approved_by_endorser=False,enabled=True).exists()):
             #if all requests are endorsed or declined, set proposal status with assessor
             self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             self.save()
