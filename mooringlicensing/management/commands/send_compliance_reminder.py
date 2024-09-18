@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.db.models import Q
 from django.conf import settings
 from mooringlicensing.components.compliances.models import Compliance
-from ledger_api_client.models import EmailUser
 
 import logging
 
@@ -19,10 +19,9 @@ class Command(BaseCommand):
 
         errors = []
         updates = []
-        today = timezone.localtime(timezone.now()).date()
         logger.info('Running command {}'.format(__name__))
 
-        for c in Compliance.objects.filter(processing_status=Compliance.PROCESSING_STATUS_DUE):
+        for c in Compliance.objects.filter(Q(processing_status=Compliance.PROCESSING_STATUS_DUE) | Q(processing_status=Compliance.PROCESSING_STATUS_OVERDUE)):
             try:
                 c.send_reminder()
                 c.save()

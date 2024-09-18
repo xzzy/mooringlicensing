@@ -4,6 +4,8 @@ from django.db.models import Q, Min, CharField, Value
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
 from django.http import HttpResponse
+from django.db.models import Q, Min, CharField, Value, Max
+from mooringlicensing.components.main.models import GlobalSettings
 from confy import env
 import datetime
 import pytz
@@ -1171,30 +1173,6 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_vessel
 
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def create_new_sticker(self, request, *args, **kwargs):
-        instance = self.get_object()
-
-        mailed_date = None
-        if request.data['mailed_date']:
-            mailed_date = datetime.strptime(request.data['mailed_date'], '%d/%m/%Y').date()
-
-        sticker_number = request.data['sticker_number']
-        sticker_number = int(sticker_number)
-
-        data = {}
-        data['number'] = sticker_number
-        data['mailing_date'] = mailed_date
-        data['dcv_permit'] = instance.id
-        data['status'] = Sticker.STICKER_STATUS_CURRENT
-
-        serializer = StickerForDcvSaveSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        sticker = serializer.save()
-        logger.info(f'Create Sticker: [{sticker}].')
-
-        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         data = request.data
@@ -1289,56 +1267,212 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
             dcv_vessel.dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
 
         return dcv_vessel
+    
+    @detail_route(methods=['GET'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler   
+    def stickers(self, request, *args, **kwargs):
+        instance = self.get_object()
+        stickers = instance.stickers.filter(
+            status__in=[
+            Sticker.STICKER_STATUS_READY, 
+            Sticker.STICKER_STATUS_NOT_READY_YET, 
+            Sticker.STICKER_STATUS_CURRENT, 
+            Sticker.STICKER_STATUS_AWAITING_PRINTING])
+        serializer = StickerSerializer(stickers, many=True)
+        return Response({'stickers': serializer.data})
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def create_new_sticker(self, request, *args, **kwargs):
-        instance = self.get_object()
+        if is_internal(self.request):
+            instance = self.get_object()
 
-        mailed_date = None
-        if request.data['mailed_date']:
-            mailed_date = datetime.strptime(request.data['mailed_date'], '%d/%m/%Y').date()
+            mailed_date = None
+            if request.data['mailed_date']:
+                mailed_date = datetime.strptime(request.data['mailed_date'], '%d/%m/%Y').date()
+            try:
+                max_sticker_num = int(Sticker.objects.filter(dcv_permit__isnull=False).aggregate(Max('number'))['number__max'])
+            except:
+                max_sticker_num = GlobalSettings.default_values[GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT]
+            
+            sticker_number = max_sticker_num + 1
+            data = {}
+            data['number'] = sticker_number
+            data['mailing_date'] = mailed_date
+            data['dcv_permit'] = instance.id
+            data['status'] = Sticker.STICKER_STATUS_CURRENT
+            change_sticker_address = request.data.get('change_sticker_address', False)
+            #address change (only applied if above True)
+            data['postal_address_line1'] = request.data.get('postal_address_line1','')
+            data['postal_address_line2'] = request.data.get('postal_address_line2','')
+            data['postal_address_line3'] = request.data.get('postal_address_line3','')
+            data['postal_address_locality'] = request.data.get('postal_address_locality','')
+            data['postal_address_state'] = request.data.get('postal_address_state','')
+            data['postal_address_country'] = request.data.get('postal_address_country','AU')
+            data['postal_address_postcode'] = request.data.get('postal_address_postcode','')
+            if change_sticker_address and '' in [
+                    data['postal_address_line1'],
+                    data['postal_address_locality'],
+                    data['postal_address_state'],
+                    data['postal_address_country'],
+                    data['postal_address_postcode']
+                ]:
+                raise serializers.ValidationError("Required address details not provided")  
+            elif not change_sticker_address:
+                dcv_permit_obj = DcvPermit.objects.get(id=instance.id)
+                data['postal_address_line1'] = dcv_permit_obj.postal_address_line1
+                data['postal_address_line2'] = dcv_permit_obj.postal_address_line2
+                data['postal_address_line3'] = dcv_permit_obj.postal_address_line3
+                data['postal_address_locality'] = dcv_permit_obj.postal_address_suburb
+                data['postal_address_state'] = dcv_permit_obj.postal_address_state
+                data['postal_address_country'] = dcv_permit_obj.postal_address_country
+                data['postal_address_postcode'] = dcv_permit_obj.postal_address_postcode         
 
-        sticker_number = request.data['sticker_number']
-        sticker_number = int(sticker_number)
+            serializer = StickerForDcvSaveSerializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            sticker = serializer.save()
+            logger.info(f'Create Sticker: [{sticker}].')
 
-        data = {}
-        data['number'] = sticker_number
-        data['mailing_date'] = mailed_date
-        data['dcv_permit'] = instance.id
-        data['status'] = Sticker.STICKER_STATUS_CURRENT
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to create stickers")
+        
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def request_new_stickers(self, request, *args, **kwargs):
+        if is_internal(self.request):
+        #internal
+            dcv_permit = self.get_object()
+            details = request.data['details']
+            # sticker_ids = [sticker['id'] for sticker in request.data['stickers']]
+            sticker_ids = []
+            for sticker in request.data['stickers']:
+                if sticker['checked'] == True:
+                    sticker_ids.append(sticker['id'])
 
-        serializer = StickerForDcvSaveSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        sticker = serializer.save()
-        logger.info(f'Create Sticker: [{sticker}].')
+            sticker_action_details = []
+            stickers = Sticker.objects.filter(dcv_permit=dcv_permit, id__in=sticker_ids, status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
+            printed_stickers = stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+            if not printed_stickers.exists():
+                raise serializers.ValidationError("Unable to request new sticker - existing stickers must be printed first before a new sticker is requested")
+            data = {}
+            today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+            for sticker in stickers:
+                print("sticker address")
+                print(sticker.postal_address_line1)
+                data['action'] = 'Request new sticker'
+                data['user'] = request.user.id
+                data['reason'] = details['reason']
+                data['date_of_lost_sticker'] = today.strftime('%d/%m/%Y')
 
-        return Response(serializer.data)
+                #new address checkbox
+                data['change_sticker_address'] = request.data.get('change_sticker_address', False)
+                #address change (only applied if above True)
+                data['new_postal_address_line1'] = request.data.get('postal_address_line1','')
+                data['new_postal_address_line2'] = request.data.get('postal_address_line2','')
+                data['new_postal_address_line3'] = request.data.get('postal_address_line3','')
+                data['new_postal_address_locality'] = request.data.get('postal_address_locality','')
+                data['new_postal_address_state'] = request.data.get('postal_address_state','')
+                data['new_postal_address_country'] = request.data.get('postal_address_country','AU')
+                data['new_postal_address_postcode'] = request.data.get('postal_address_postcode','')
+                if data['change_sticker_address'] and '' in [
+                        data['new_postal_address_line1'],
+                        data['new_postal_address_locality'],
+                        data['new_postal_address_state'],
+                        data['new_postal_address_country'],
+                        data['new_postal_address_postcode']
+                    ]:
+                    raise serializers.ValidationError("Required address details not provided")  
+                elif not data['change_sticker_address']:
+                    data['new_postal_address_line1'] = sticker.postal_address_line1
+                    data['new_postal_address_line2'] = sticker.postal_address_line2
+                    data['new_postal_address_line3'] = sticker.postal_address_line3
+                    data['new_postal_address_locality'] = sticker.postal_address_locality
+                    data['new_postal_address_state'] = sticker.postal_address_state
+                    data['new_postal_address_country'] = sticker.postal_address_country
+                    data['new_postal_address_postcode'] = sticker.postal_address_postcode
+                    data['sticker'] = sticker.id                    
 
-    def create(self, request, *args, **kwargs):
-        #add if internal
-        data = request.data
-        dcv_organisation, created = self.handle_dcv_organisation(request.data)
-        dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
-        fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
+                serializer = StickerActionDetailSerializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                new_sticker_action_detail = serializer.save()
+                sticker_action_details.append(new_sticker_action_detail.id)
+            return Response({'sticker_action_detail_ids': sticker_action_details})
+        else:
+            raise serializers.ValidationError("not authorised to request new sticker")
+        
+    @detail_route(methods=['POST'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    @basic_exception_handler
+    def change_sticker_addresses(self, request, *args, **kwargs):
+        if is_internal(self.request):
+            #internal
+            dcv_permit = self.get_object()
+            sticker_ids = []
+            for sticker in request.data['stickers']:
+                if sticker['checked'] == True:
+                    sticker_ids.append(sticker['id'])
 
-        data['submitter'] = request.user.id
-        data['applicant'] = data.get('applicant')
-        data['dcv_vessel_id'] = dcv_vessel.id
-        data['dcv_organisation_id'] = dcv_organisation.id
-        data['fee_season_id'] = fee_season_requested.get('id')
-        data['line1'] = data.get('postal_address')['line1']
-        data['line2'] = data.get('postal_address')['line2']
-        data['line3'] = data.get('postal_address')['line2']
-        data['locality'] = data.get('postal_address')['locality']
-        data['postcode'] = data.get('postal_address')['postcode']
-        data['state'] = data.get('postal_address')['state']
-        data['country'] = data.get('postal_address')['country']
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        dcv_permit = serializer.save()
-        logger.info(f'Create DcvPermit: [{dcv_permit}].')
-        return Response(serializer.data)
+            stickers = Sticker.objects.filter(dcv_permit=dcv_permit, id__in=sticker_ids, 
+                status__in=(
+                    Sticker.STICKER_STATUS_READY, 
+                    Sticker.STICKER_STATUS_NOT_READY_YET,))
+            if not stickers.exists():
+                raise serializers.ValidationError("Unable to change address of sticker - already in process of being printed/mailed")
+            data = {}
+            for sticker in stickers:
+                data['id'] = sticker.id
+                data['postal_address_line1'] = request.data.get('new_postal_address_line1','')
+                data['postal_address_line2'] = request.data.get('new_postal_address_line2','')
+                data['postal_address_line3'] = request.data.get('new_postal_address_line3','')
+                data['postal_address_locality'] = request.data.get('new_postal_address_locality','')
+                data['postal_address_state'] = request.data.get('new_postal_address_state','')
+                data['postal_address_country'] = request.data.get('new_postal_address_country','AU')
+                data['postal_address_postcode'] = request.data.get('new_postal_address_postcode','')
+                if '' in [data['postal_address_line1'],
+                        data['postal_address_locality'],
+                        data['postal_address_state'],
+                        data['postal_address_country'],
+                        data['postal_address_postcode']
+                        ]:
+                    raise serializers.ValidationError("Required address details not provided")
+                
+                serializer = StickerPostalAddressSaveSerializer(sticker,data=data)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+            return Response()
+        else:
+            raise serializers.ValidationError("not authorised to change address")
+        
+
+    def create(self, request, *args, **kwargs):    
+        if is_internal(self.request):
+            data = request.data
+            dcv_organisation, created = self.handle_dcv_organisation(request.data)
+            dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
+            fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
+
+            data['submitter'] = request.user.id
+            data['applicant'] = data.get('applicant')
+            data['dcv_vessel_id'] = dcv_vessel.id
+            data['dcv_organisation_id'] = dcv_organisation.id
+            data['fee_season_id'] = fee_season_requested.get('id')
+            data['line1'] = data.get('postal_address')['line1']
+            data['line2'] = data.get('postal_address')['line2']
+            data['line3'] = data.get('postal_address')['line2']
+            data['locality'] = data.get('postal_address')['locality']
+            data['postcode'] = data.get('postal_address')['postcode']
+            data['state'] = data.get('postal_address')['state']
+            data['country'] = data.get('postal_address')['country']
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            dcv_permit = serializer.save()
+            logger.info(f'Create DcvPermit: [{dcv_permit}].')
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to create permit as an internal user")
+            
 
 
 class DcvPermitFilterBackend(DatatablesFilterBackend):
