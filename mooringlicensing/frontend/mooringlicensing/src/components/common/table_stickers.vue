@@ -154,7 +154,7 @@ export default {
                     // return full.vessel.rego_no
                     return '<a href="/internal/vessel/' + full.vessel.id + '" target="_blank">' + full.vessel.rego_no + '</a>'
                 },
-                name: 'vessel_rego_number',
+                name: 'vessel_ownership__vessel__rego_no',
             }
         },
         column_holder: function(){

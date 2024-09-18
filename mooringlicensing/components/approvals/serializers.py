@@ -2,6 +2,7 @@ import logging
 import pytz
 from datetime import datetime
 from mooringlicensing.settings import TIME_ZONE
+from mooringlicensing.components.main.models import GlobalSettings
 
 from django.conf import settings
 from ledger_api_client.ledger_models import Invoice
@@ -1274,15 +1275,21 @@ class StickerForDcvSaveSerializer(serializers.ModelSerializer):
             'number',
             'dcv_permit',
             'mailing_date',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
         )
 
     def validate(self, data):
         field_errors = {}
         non_field_errors = []
 
-        from mooringlicensing.components.main.models import GlobalSettings
-        min_number = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT).value
-        if data['number'] < min_number:
+        min_number = GlobalSettings.default_values[GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT]
+        if int(data['number']) < min_number:
             field_errors['number'] = ['DCV Sticker number must be greater than ' + GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT,]
 
         # Raise errors
@@ -1471,6 +1478,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     dcv_permit_documents = serializers.SerializerMethodField()
     stickers = serializers.SerializerMethodField()
     display_create_sticker_action = serializers.SerializerMethodField()
+    display_request_sticker_action = serializers.SerializerMethodField()
+    display_update_sticker_address_action = serializers.SerializerMethodField()
     vessel_rego = serializers.CharField(source='dcv_vessel.rego_no')
     payment_status = serializers.SerializerMethodField()
 
@@ -1491,6 +1500,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'dcv_permit_documents',
             'stickers',
             'display_create_sticker_action',
+            'display_request_sticker_action',
+            'display_update_sticker_address_action',
             'vessel_rego',
             'payment_status',
         )
@@ -1509,6 +1520,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'dcv_permit_documents',
             'stickers',
             'display_create_sticker_action',
+            'display_request_sticker_action',
+            'display_update_sticker_address_action',
             'vessel_rego',
             'payment_status',
         )
@@ -1548,6 +1561,18 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
         display = True
         if obj.stickers.exclude(status__in=[Sticker.STICKER_STATUS_LOST,]).count():
             display = False
+        return display
+    
+    def get_display_request_sticker_action(self, obj):
+        display = False
+        if obj.stickers.exclude(status__in=[Sticker.STICKER_STATUS_LOST,]).count():
+            display = True
+        return display
+    
+    def get_display_update_sticker_address_action(self, obj):
+        display = False
+        if obj.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_AWAITING_PRINTING]).count() > 0:
+            display = True
         return display
 
     def get_dcv_permit_documents(self, obj):
