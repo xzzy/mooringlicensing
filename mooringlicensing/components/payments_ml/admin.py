@@ -56,16 +56,18 @@ class FeePeriodForm(forms.ModelForm):
 
     def clean_name(self):
         data = self.cleaned_data['name']
-        if not self.instance.is_editable:
-            if data != self.instance.name:
-                raise forms.ValidationError('Fee period\'s name cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.name:
+                    raise forms.ValidationError('Fee period\'s name cannot be changed once used for payment calculation')
         return data
 
     def clean_start_date(self):
         data = self.cleaned_data['start_date']
-        if not self.instance.is_editable:
-            if data != self.instance.start_date:
-                raise forms.ValidationError('Fee period\'s start date cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.start_date:
+                    raise forms.ValidationError('Fee period\'s start date cannot be changed once used for payment calculation')
         return data
 
     def clean(self):
@@ -120,9 +122,10 @@ class FeeItemForm(forms.ModelForm):
 
     def clean_amount(self):
         data = self.cleaned_data['amount']
-        if not self.instance.is_editable:
-            if data != self.instance.amount:
-                raise forms.ValidationError('Fee item cannot be changed once used for payment calculation')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.amount:
+                    raise forms.ValidationError('Fee item cannot be changed once used for payment calculation')
         return data
 
 

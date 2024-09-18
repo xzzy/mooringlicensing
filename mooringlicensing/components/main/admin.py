@@ -14,23 +14,26 @@ class VesselSizeCategoryForm(forms.ModelForm):
 
     def clean_name(self):
         data = self.cleaned_data.get('name')
-        if not self.instance.is_editable:
-            if data != self.instance.name:
-                raise forms.ValidationError('Name cannot be changed once used for payment calculation.')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.name:
+                    raise forms.ValidationError('Name cannot be changed once used for payment calculation.')
         return data
 
     def clean_start_size(self):
         data = self.cleaned_data.get('start_size')
-        if not self.instance.is_editable:
-            if data != self.instance.start_size:
-                raise forms.ValidationError('Start size cannot be changed once used for payment calculation.')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.start_size:
+                    raise forms.ValidationError('Start size cannot be changed once used for payment calculation.')
         return data
 
     def clean_include_start_size(self):
         data = self.cleaned_data.get('include_start_size')
-        if not self.instance.is_editable:
-            if data != self.instance.include_start_size:
-                raise forms.ValidationError('Include start size cannot be changed once used for payment calculation.')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.include_start_size:
+                    raise forms.ValidationError('Include start size cannot be changed once used for payment calculation.')
         return data
 
     def clean(self):
@@ -47,8 +50,9 @@ class VesselSizeCategoryFormset(forms.models.BaseInlineFormSet):
         null_vessel_count = 0
         size_list = []
 
-        if not self.instance.is_editable:
-            raise forms.ValidationError('{} cannot be changed once used for payment calculation.'.format(self.instance))
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                raise forms.ValidationError('{} cannot be changed once used for payment calculation.'.format(self.instance))
 
         for form in self.forms:
             if form.cleaned_data['null_vessel']:
@@ -78,11 +82,12 @@ class VesselSizeCategoryGroupForm(forms.ModelForm):
     def clean_name(self):
         data = self.cleaned_data.get('name')
 
-        if not self.instance.is_editable:
-            if data != self.instance.name:
-                raise forms.ValidationError('Name cannot be changed once used for payment calculation.')
-        if not data:
-            raise forms.ValidationError('Please enter the name field.')
+        if self.instance != None and self.instance.pk:
+            if not self.instance.is_editable:
+                if data != self.instance.name:
+                    raise forms.ValidationError('Name cannot be changed once used for payment calculation.')
+            if not data:
+                raise forms.ValidationError('Please enter the name field.')
 
         return data
 
