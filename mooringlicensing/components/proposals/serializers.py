@@ -1441,6 +1441,10 @@ class ProposedApprovalSerializer(serializers.Serializer):
             child=serializers.JSONField(),
             required=False,
             )
+    requested_mooring_on_approval = serializers.ListField(
+            child=serializers.JSONField(),
+            required=False,
+            )
     vessel_ownership = serializers.ListField(
             child=serializers.JSONField(),
             required=False,

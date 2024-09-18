@@ -750,7 +750,7 @@ export default {
                 }
                 if (this.authorisedUserApplication && this.requestedMoorings && this.siteLicensee) {
                     for (let moa of this.requestedMoorings) {
-                        this.approval.requested_mooring_on_approval.push({ "id": moa.id, "checked": moa.checked });
+                        this.approval.requested_mooring_on_approval.push({ "id": moa.mooring_id, "checked": moa.checked });
                     }
                 }
                 if (this.mooringLicenceApplication && this.mooringLicenceVessels) {

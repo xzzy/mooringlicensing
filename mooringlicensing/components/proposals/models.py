@@ -1584,22 +1584,43 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 
                 mooring_on_approval = temp
 
+                requested_mooring_on_approval = details.get('requested_mooring_on_approval')
+                requested_mooring_on_approval.reverse()
+                requested_id_list = []
+                requested_checked_list = []
+                temp = []
+
+                for i in requested_mooring_on_approval:
+                    if "id" in i and "checked" in i and not i["id"] in requested_id_list:
+                        temp.append(i)
+                        requested_checked_list.append(i["checked"])
+                        requested_id_list.append(i["id"])
+
+                requested_mooring_on_approval = temp
+
                 if mooring_id:
                     try:
                         ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                     except:
-                        if self.application_type.code == "aua":
+                        if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
                             raise serializers.ValidationError("Mooring id provided is invalid")
-                elif not mooring_on_approval or mooring_on_approval == []:
-                    if self.application_type.code == "aua":
-                        raise serializers.ValidationError("No mooring provided")
-                else:
-                    #check if mooring on approval list has at least one checked value
-                    if not True in checked_list:
-                        if self.application_type.code == "aua":
+                #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
+                elif self.application_type.code == "aua":
+                    if not mooring_on_approval or mooring_on_approval == []:
+                        if self.mooring_authorisation_preference == "site_licensee":
+                            if not requested_mooring_on_approval or requested_mooring_on_approval == []:
+                                raise serializers.ValidationError("No mooring provided")
+                        else:
                             raise serializers.ValidationError("No mooring provided")
+
+                        #check if mooring on approval list has at least one checked value
+                        if self.mooring_authorisation_preference != "site_licensee" and not True in checked_list:
+                            raise serializers.ValidationError("No mooring provided")
+                        elif self.mooring_authorisation_preference == "site_licensee" and not True in requested_checked_list:
+                            raise serializers.ValidationError("No mooring provided")
+
                         
-                check_mooring_ids = id_list
+                check_mooring_ids = id_list + requested_id_list
                 check_mooring_ids.append(mooring_id)
                 check_vessel = self.vessel_ownership.vessel
                 check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
@@ -1612,7 +1633,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
 
-
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
                     'mooring_bay_id': details.get('mooring_bay_id'),
@@ -1621,6 +1641,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email'),
                     'mooring_on_approval': mooring_on_approval,
+                    'requested_mooring_on_approval': requested_mooring_on_approval,
                     'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
@@ -1843,14 +1864,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 from mooringlicensing.components.approvals.models import Sticker
-                logger.info(f'Processing final_approval...for the proposal: [{self}].')
+                logger.info(f'Processing final_approval... for the proposal: [{self}].')
 
                 self.proposed_decline_status = False
 
                 if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
-                        raise Exception('Cannot approve proposal...  There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
+                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
 
                 # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -1884,22 +1905,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     
                     mooring_on_approval = temp
 
+                    requested_mooring_on_approval = details.get('requested_mooring_on_approval')
+                    requested_mooring_on_approval.reverse()
+                    requested_id_list = []
+                    requested_checked_list = []
+                    temp = []
+
+                    for i in requested_mooring_on_approval:
+                        if "id" in i and "checked" in i and not i["id"] in requested_id_list:
+                            temp.append(i)
+                            requested_checked_list.append(i["checked"])
+                            requested_id_list.append(i["id"])
+
+                    requested_mooring_on_approval = temp
+
                     if mooring_id:
                         try:
                             ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                         except:
-                            if self.application_type.code == "aua":
+                            if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
                                 raise serializers.ValidationError("Mooring id provided is invalid")
-                    elif not mooring_on_approval or mooring_on_approval == []:
-                        if self.application_type.code == "aua":
-                            raise serializers.ValidationError("No mooring provided")
-                    else:
-                        #check if mooring on approval list has at least one checked value
-                        if not True in checked_list:
-                            if self.application_type.code == "aua":
+                    #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
+                    elif self.application_type.code == "aua":
+                        if not mooring_on_approval or mooring_on_approval == []:
+                            if self.mooring_authorisation_preference == "site_licensee":
+                                if not requested_mooring_on_approval or requested_mooring_on_approval == []:
+                                    raise serializers.ValidationError("No mooring provided")
+                            else:
                                 raise serializers.ValidationError("No mooring provided")
 
-                    check_mooring_ids = id_list
+                            #check if mooring on approval list has at least one checked value
+                            if self.mooring_authorisation_preference != "site_licensee" and not True in checked_list:
+                                raise serializers.ValidationError("No mooring provided")
+                            elif self.mooring_authorisation_preference == "site_licensee" and not True in requested_checked_list:
+                                raise serializers.ValidationError("No mooring provided")
+
+                    check_mooring_ids = id_list + requested_id_list
                     check_mooring_ids.append(mooring_id)
                     check_vessel = self.vessel_ownership.vessel
                     check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
@@ -1919,6 +1960,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email'),
                         'mooring_on_approval': mooring_on_approval,
+                        'requested_mooring_on_approval': requested_mooring_on_approval,
                         'vessel_ownership': details.get('vessel_ownership'),
                     }
                     self.save()
@@ -3699,8 +3741,9 @@ class AuthorisedUserApplication(Proposal):
             if ria_selected_mooring:
                 approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
             else:
-                if approval.current_proposal.mooring:
-                    approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+                for moa in self.proposed_issuance_approval.get('requested_mooring_on_approval'):
+                    requested_mooring = Mooring.objects.get(id=moa.get("id"))
+                    approval.add_mooring(mooring=requested_mooring, site_licensee=True)
             # updating checkboxes
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
                 for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):

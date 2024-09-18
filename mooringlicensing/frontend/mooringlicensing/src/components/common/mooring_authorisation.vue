@@ -173,7 +173,7 @@ import draggable from 'vuedraggable';
                     let newSiteLicensee = {
                         email: vm.siteLicenseeEmail,
                         mooring_id: vm.mooringSiteId,
-                        mooring: vm.mooringSiteName,
+                        mooring_name: vm.mooringSiteName,
                     }
                     if (!vm.proposal.site_licensee_moorings.find(e => e.mooring_id === newSiteLicensee.mooring_id)) {
                         vm.proposal.site_licensee_moorings.push(newSiteLicensee);
