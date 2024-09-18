@@ -139,7 +139,7 @@ import draggable from 'vuedraggable';
                         data: "email",
                     },
                     {
-                        data: "mooring",
+                        data: "mooring_name",
                     },
                     {
                         data: "mooring_id",

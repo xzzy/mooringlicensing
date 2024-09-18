@@ -46,6 +46,7 @@ from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 from mooringlicensing.ledger_api_utils import retrieve_system_user
+from mooringlicensing.components.users.utils import get_user_name
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -244,7 +245,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 site_licensee_moorings.append(
                     {
                     "email":i.site_licensee_email, 
-                    "mooring":i.mooring.name,
+                    "mooring_name":i.mooring.name,
                     "mooring_id":i.mooring.id
                     }
                 )
@@ -465,12 +466,10 @@ class ListProposalSerializer(BaseProposalSerializer):
     application_type_dict = serializers.SerializerMethodField()
 
     assessor_process = serializers.SerializerMethodField()
-    mooring = MooringSerializer()
     uuid = serializers.SerializerMethodField()
     document_upload_url = serializers.SerializerMethodField()
     can_view_payment_details = serializers.SerializerMethodField()
     invoice_links = serializers.SerializerMethodField()
-    #can_endorse = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -491,15 +490,11 @@ class ListProposalSerializer(BaseProposalSerializer):
             'lodgement_number',
             'assessor_process',
             'invoices',
-            'mooring_id',
-            'mooring',
             'uuid',
             'document_upload_url',
             'can_view_payment_details',
             'invoice_links',
             'mooring_authorisation_preference',
-            'declined_by_endorser',
-            #'can_endorse',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -520,15 +515,11 @@ class ListProposalSerializer(BaseProposalSerializer):
             'lodgement_number',
             'assessor_process',
             'invoices',
-            'mooring_id',
-            'mooring',
             'uuid',
             'document_upload_url',
             'can_view_payment_details',
             'invoice_links',
             'mooring_authorisation_preference',
-            'declined_by_endorser',
-            'can_endorse',
         )
 
     def get_submitter(self, obj):
@@ -1071,13 +1062,39 @@ class InternalProposalSerializer(BaseProposalSerializer):
     def get_site_licensee_moorings(self, obj):
 
         site_licensee_moorings = []
+        su_qs = SystemUser.objects
         for i in obj.site_licensee_mooring_request.filter(enabled=True):
+
+            checked = i.approved_by_endorser
+            if obj.proposed_issuance_approval and 'requested_mooring_on_approval' in obj.proposed_issuance_approval:
+                for item in obj.proposed_issuance_approval['requested_mooring_on_approval']:
+                    if  i.id == item['id']:
+                        checked = item['checked']
+
+            site_licensee = ""
+            site_licensee_system_user = su_qs.filter(email=i.site_licensee_email)
+            if site_licensee_system_user.exists():
+                site_licensee = get_user_name(site_licensee_system_user.first())["full_name"]
+            endorsement = "Not Actioned"
+            if i.approved_by_endorser:
+                endorsement = "Endorsed"
+            elif i.declined_by_endorser:
+                endorsement = "Declined"
+
             if i.mooring:
                 site_licensee_moorings.append(
                     {
+                    "id":i.id,
                     "email":i.site_licensee_email, 
-                    "mooring":i.mooring.name,
-                    "mooring_id":i.mooring.id
+                    "mooring_name":i.mooring.name,
+                    "mooring_id":i.mooring.id,
+                    "bay":i.mooring.mooring_bay.name,
+                    "checked": checked,
+                    'vessel_size_weight': i.mooring.vessel_weight_limit,
+                    'vessel_size_limit': i.mooring.vessel_size_limit,
+                    'vessel_draft_limit': i.mooring.vessel_draft_limit,
+                    "site_licensee": site_licensee,
+                    "endorsement": endorsement,
                     }
                 )
 
@@ -1213,9 +1230,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     "site_licensee": 'RIA Allocated' if not moa.site_licensee else 'User Requested',
                     "status": 'Current' if not moa.end_date else 'Historical',
                     "checked": checked,
-                    'vessel_size_weight': str(moa.mooring.vessel_weight_limit),
-                    'vessel_size_limit': str(moa.mooring.vessel_size_limit),
-                    'vessel_draft_limit': str(moa.mooring.vessel_draft_limit),
+                    'vessel_size_weight': moa.mooring.vessel_weight_limit,
+                    'vessel_size_limit': moa.mooring.vessel_size_limit,
+                    'vessel_draft_limit': moa.mooring.vessel_draft_limit,
                     "suitable_for_mooring": suitable_for_mooring,
                     "mooring_licence_current": moa.mooring.mooring_licence.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED] if moa.mooring.mooring_licence else None,
                 })

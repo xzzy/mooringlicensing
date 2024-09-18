@@ -7,15 +7,18 @@
                         <!-- <alert v-if="isApprovalLevelDocument" type="warning"><strong>{{warningString}}</strong></alert> -->
                         <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                         <div class="col-sm-12">
-                            <div class="form-group" v-if="displayBayField">
+                            <div class="form-group" v-if="displayBayField && siteLicensee">
+                                <div class="row col-sm-12">
+                                    <datatable ref="requestedMooringsTable" :id="requestedMooringsTableId" :dtOptions="requestedMooringsDtOptions"
+                                        :dtHeaders="requestedMooringsDtHeaders" />
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="displayBayField && !siteLicensee">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="mooring_bay">Bay</label>
                                     </div>
-                                    <div v-if="siteLicensee" class="col-sm-9" id="mooring_bay">
-                                        <input disabled :value="siteLicenseeMooring.mooring_bay_name" name="mooring_bay" />
-                                    </div>
-                                    <div v-else class="col-sm-6">
+                                    <div class="col-sm-6">
                                         <select class="form-control" v-model="approval.mooring_bay_id"
                                             id="mooring_bay_lookup">
                                             <option v-for="bay in mooringBays" v-bind:value="bay.id">
@@ -25,15 +28,12 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-group" v-if="displayMooringSiteIdField">
+                            <div class="form-group" v-if="displayMooringSiteIdField && !siteLicensee">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left" for="mooring_site_id">Mooring Site ID</label>
                                     </div>
-                                    <div v-if="siteLicensee" class="col-sm-9">
-                                        <input disabled :value="siteLicenseeMooring.name" id="mooring_site_id" />
-                                    </div>
-                                    <div v-else class="col-sm-6">
+                                    <div class="col-sm-6">
                                         <select id="mooring_lookup" name="mooring_lookup" ref="mooring_lookup"
                                             class="form-control" style="width:100%" />
                                     </div>
@@ -84,22 +84,10 @@
                                         :dtHeaders="vesselsDtHeaders" />
                                 </div>
                             </div>
-                            <!-- div class="form-group" v-if="display_sticker_number_field">
-                                <div class="row">
-                                    <div class="col-sm-3">
-                                        <label class="control-label pull-left" for="Bay">Sticker number</label>
-                                    </div>
-                                    <div class="col-sm-9">
-                                        TODO: implement
-                                    </div>
-                                </div>
-                            </div -->
 
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        <!--label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">Details</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed Details</label-->
                                         <label class="control-label pull-left" for="Name">{{ detailsText }}</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -111,24 +99,13 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-                                        <!--label v-if="processing_status == 'With Approver'" class="control-label pull-left"  for="Name">BCC email</label>
-                                        <label v-else class="control-label pull-left"  for="Name">Proposed BCC email</label-->
+
                                         <label class="control-label pull-left" for="Name">{{ ccText }}</label>
                                     </div>
                                     <div class="col-sm-9">
                                         <input type="text" class="form-control" name="approval_cc" style="width:70%;"
                                             ref="bcc_email" v-model="approval.cc_email">
                                     </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="row">
-                                    <!--TODO remove?-->
-                                    <!--div class="col-sm-12">
-                                        <label v-if="submitter_email && applicant_email" class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}} and {{applicant_email}}.</label>
-                                        <label v-else class="control-label pull-left"  for="Name">After approving this application, approval will be emailed to {{submitter_email}}.</label>
-                                    </div-->
-
                                 </div>
                             </div>
                         </div>
@@ -148,7 +125,6 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import datatable from '@vue-utils/datatable.vue'
@@ -196,9 +172,6 @@ export default {
         mooringBays: {
             type: Array,
         },
-        siteLicenseeMooring: {
-            type: Object,
-        }
     },
     data: function () {
         let vm = this;
@@ -208,10 +181,6 @@ export default {
             approval: {
                 mooring_id: null,
                 mooring_bay_id: null,
-                /*
-                mooring_on_approval: [],
-                vessel_ownership: [],
-                */
             },
             state: 'proposed_approval',
             issuingApproval: false,
@@ -232,9 +201,8 @@ export default {
                 allowInputToggle: true
             },
             warningString: 'Please attach Level of Approval document before issuing Approval',
-            // siteLicenseeMooring: {},
-            // mooringBays: [],
             mooringsTableId: 'moorings_table' + vm._uid,
+            requestedMooringsTableId: 'requested_moorings_table' + vm._uid,
             vesselsTableId: 'vessels_table' + vm._uid,
             mooringsDtHeaders: [
                 'Id',
@@ -262,6 +230,7 @@ export default {
                 processing: true,
                 createdRow: function (row, data, index) {
                     $(row).attr('data-mooring-on-approval-id', data.id)
+
                     if (vm.proposal && (
                         vm.proposal.vessel_length > data.vessel_size_limit ||
                         vm.proposal.vessel_draft > data.vessel_draft_limit ||
@@ -288,18 +257,6 @@ export default {
                         //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
-                            /*
-                            let disabled_str = ''
-                            if (vm.readonly || !full.mooring_licence_current || !full.suitable_for_mooring){
-                                disabled_str = ' disabled '
-                            }
-                            if (full.checked){
-                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + ' checked/>'
-                            } else {
-                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + disabled_str + '/>'
-                            }
-                            return '';
-                            */
                             if (full.checked) {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + ' checked/>'
                             } else {
@@ -314,7 +271,7 @@ export default {
                         //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
-                            console.log({full})
+                            
                             return full.mooring_name;
                             //return '';
                         }
@@ -350,21 +307,21 @@ export default {
                     {
                         data: 'id',
                         mRender: function (data, type, full) {
-                            console.log({full})
+                            
                             return full.vessel_size_limit;
                         }
                     },
                     {
                         data: 'id',
                         mRender: function (data, type, full) {
-                            console.log({full})
+                            
                             return full.vessel_draft_limit;
                         }
                     },
                     {
                         data: 'id',
                         mRender: function (data, type, full) {
-                            console.log({full})
+                            
                             if (full.weight_draft_limit > 0) {
                                 return full.weight_draft_limit;
                             } else {
@@ -374,6 +331,148 @@ export default {
                     },
                 ],
             },
+
+            requestedMooringsDtHeaders: [
+                'Id',
+                '',
+                'Requested moorings',
+                'Bay',
+                'Site Licensee',
+                'Endorsement',
+                //'Status',
+                'Length limit',
+                'Draft limit',
+                'Weight limit',
+                
+            ],
+            requestedMooringsDtOptions: {
+                serverSide: false,
+                searching: false,
+                searchDelay: 1000,
+                lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                order: [
+                    [1, 'desc'], [0, 'desc'],
+                ],
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                processing: true,
+                createdRow: function (row, data, index) {
+                    $(row).attr('data-requested-mooring-on-approval-id', data.id)
+                    if (vm.proposal && (
+                        vm.proposal.vessel_length > data.vessel_size_limit ||
+                        vm.proposal.vessel_draft > data.vessel_draft_limit ||
+                        (data.vessel_weight_limit > 0 && vm.proposal.vessel_weight > data.vessel_weight_limit)
+                    )) {
+                        $(row).css({
+                            'background-color': '#ff6961'
+                        })
+                    } else if (data.endorsement == "Declined" || data.endorsement == "Not Actioned") {
+                        $(row).css({
+                            'background-color': '#ffa07a'
+                        })
+                    }
+                },
+                columns: [
+                    {
+                        // Id (database id)
+                        visible: false,
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            return full.id;
+                            //return '';
+                        }
+                    },
+                    {
+                        // Checkbox
+                        //visible: vm.show_col_checkbox,
+                        //className: 'dt-body-center',
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            if (full.checked) {
+                                return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"' + ' checked/>'
+                            } else {
+                                return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"' + '/>'
+                            }
+                            return '';
+
+                        }
+                    },
+                    {
+                        // Id (database id)
+                        //visible: vm.show_col_id,
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            
+                            return full.mooring_name;
+                            //return '';
+                        }
+                    },
+                    {
+                        // Id (database id)
+                        //visible: vm.show_col_id,
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            return full.bay;
+                            //return '';
+                        }
+                    },
+                    {
+                        // Id (database id)
+                        //visible: vm.show_col_id,
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            //return full.site_licensee ? 'User requested' : 'RIA allocated';
+                            return full.site_licensee;
+                            //return '';
+                        }
+                    },
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            
+                            return full.endorsement
+                        }
+                    },
+                    //{
+                    //    // Id (database id)
+                    //    //visible: vm.show_col_id,
+                    //    data: 'id',
+                    //    mRender: function (data, type, full) {
+                    //        return full.status;
+                    //        //return '';
+                    //    }
+                    //},
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            
+                            return full.vessel_size_limit;
+                        }
+                    },
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            
+                            return full.vessel_draft_limit;
+                        }
+                    },
+                    {
+                        data: 'id',
+                        mRender: function (data, type, full) {
+                            
+                            if (full.weight_draft_limit > 0) {
+                                return full.weight_draft_limit;
+                            } else {
+                                return "N/A"
+                            }
+                        }
+                    },
+                    
+                ],
+            },
+
             vesselsDtHeaders: [
                 'Id',
                 '',
@@ -476,15 +575,6 @@ export default {
             }
             return licensee;
         },
-        /*
-        siteLicenseeMooring: function() {
-            let mooring = null;
-            if (this.proposal) {
-                mooring = this.proposal.mooring_id;
-            }
-            return mooring;
-        },
-        */
         mooringLicenceApplication: function () {
             let app = false;
             if ([constants.ML_PROPOSAL].includes(this.proposal.application_type_dict.code)) {
@@ -498,6 +588,12 @@ export default {
                 app = true;
             }
             return app;
+        },
+        requestedMoorings: function () {
+            if (this.proposal.site_licensee_moorings.length > 0) {
+                return this.proposal.site_licensee_moorings;
+            }
+            return []
         },
         authorisedUserMoorings: function () {
             if (this.proposal.authorised_user_moorings.length > 0) {
@@ -640,6 +736,9 @@ export default {
                 if (!this.approval.mooring_on_approval) {
                     this.approval.mooring_on_approval = [];
                 }
+                if (!this.approval.requested_mooring_on_approval) {
+                    this.approval.requested_mooring_on_approval = [];
+                }
                 // ensure vessel_ownership is not null
                 if (!this.approval.vessel_ownership) {
                     this.approval.vessel_ownership = [];
@@ -647,6 +746,11 @@ export default {
                 if (this.authorisedUserApplication && this.authorisedUserMoorings) {
                     for (let moa of this.authorisedUserMoorings) {
                         this.approval.mooring_on_approval.push({ "id": moa.id, "checked": moa.checked });
+                    }
+                }
+                if (this.authorisedUserApplication && this.requestedMoorings && this.siteLicensee) {
+                    for (let moa of this.requestedMoorings) {
+                        this.approval.requested_mooring_on_approval.push({ "id": moa.id, "checked": moa.checked });
                     }
                 }
                 if (this.mooringLicenceApplication && this.mooringLicenceVessels) {
@@ -753,8 +857,40 @@ export default {
                 }
             }
         },
+        constructRequestedMooringsTable: function () {
+            console.log('in constructRequestedMooringsTable()')
+            //TODO make changes to work with new table, and modify data serializer
+            // update checkboxes
+            if (this.requestedMoorings && this.approval.requested_mooring_on_approval && this.approval.requested_mooring_on_approval.length > 0) {
+                console.log('construct 1')
+                for (let moa1 of this.approval.requested_mooring_on_approval) {
+                    for (let moa2 of this.requestedMoorings) {
+                        if (moa1.id === moa2.id) {
+                            console.log('inside if')
+                            moa2.checked = moa1.checked;
+                        }
+                    }
+                }
+            } else {
+                console.log('construct 2')
+            }
+            // now draw table
+            if (this.$refs.requestedMooringsTable) {
+                // Clear table
+                this.$refs.requestedMooringsTable.vmDataTable.clear().draw();
+                // Construct table
+                if (this.requestedMoorings.length > 0) {
+                    for (let mooring of this.requestedMoorings) {
+                        this.addRequestedMooringToTable(mooring);
+                    }
+                }
+            }
+        },
         addMooringToTable: function (mooring) {
             this.$refs.mooringsTable.vmDataTable.row.add(mooring).draw();
+        },
+        addRequestedMooringToTable: function (mooring) {
+            this.$refs.requestedMooringsTable.vmDataTable.row.add(mooring).draw();
         },
         getMooringOnApprovalIdFromEvent(e) {
             let mooringOnApprovalId = e.target.getAttribute("data-mooring-on-approval-id");
@@ -763,12 +899,30 @@ export default {
             }
             return mooringOnApprovalId;
         },
+        getRequestedMooringOnApprovalIdFromEvent(e) {
+            let requestedMooringOnApprovalId = e.target.getAttribute("data-requested-mooring-on-approval-id");
+            if (!(requestedMooringOnApprovalId)) {
+                requestedMooringOnApprovalId = e.target.getElementsByTagName('span')[0].getAttribute('data-requested-mooring-on-approval-id');
+            }
+            return requestedMooringOnApprovalId;
+        },
         mooringsCheckboxClicked: function (e) {
             let vm = this;
             let mooringOnApprovalId = this.getMooringOnApprovalIdFromEvent(e);
             let checked_status = e.target.checked;
             for (let mooring of this.authorisedUserMoorings) {
                 if (mooring.id == mooringOnApprovalId) {
+                    mooring.checked = checked_status;
+                }
+            }
+            e.stopPropagation();
+        },
+        requestedMooringsCheckboxClicked: function (e) {
+            let vm = this;
+            let requestedMooringOnApprovalId = this.getRequestedMooringOnApprovalIdFromEvent(e);
+            let checked_status = e.target.checked;
+            for (let mooring of this.requestedMoorings) {
+                if (mooring.id == requestedMooringOnApprovalId) {
                     mooring.checked = checked_status;
                 }
             }
@@ -832,6 +986,7 @@ export default {
             $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
             */
             $("#" + this.mooringsTableId).on('click', 'input[type="checkbox"]', this.mooringsCheckboxClicked);
+            $("#" + this.requestedMooringsTableId).on('click', 'input[type="checkbox"]', this.requestedMooringsCheckboxClicked);
             $("#" + this.vesselsTableId).on('click', 'input[type="checkbox"]', this.vesselsCheckboxClicked);
             /*
             $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
@@ -898,6 +1053,18 @@ export default {
             }
         },
     },
+    watch: {
+        isModalOpen: function() {
+            this.$nextTick(() => {
+                if (this.$refs.mooringsTable) {
+                    this.$refs.mooringsTable.vmDataTable.columns.adjust().responsive.recalc();
+                }
+                if (this.$refs.requestedMooringsTable) {
+                    this.$refs.requestedMooringsTable.vmDataTable.columns.adjust().responsive.recalc();
+                }
+            })
+        }
+    },
     mounted: function () {
         let vm = this;
         vm.form = document.forms.approvalForm;
@@ -915,17 +1082,12 @@ export default {
             this.addEventListeners();
             if (this.authorisedUserApplication) {
                 this.constructMooringsTable();
+                if (this.siteLicensee) {
+                    this.constructRequestedMooringsTable();
+                }
             }
             if (this.mooringLicenceApplication) {
                 this.constructVesselsTable();
-            }
-        });
-    },
-    created: function () {
-        this.$nextTick(() => {
-            // this.fetchMooringBays();
-            if (this.siteLicensee) {
-                // this.fetchSiteLicenseeMooring();
             }
         });
     },

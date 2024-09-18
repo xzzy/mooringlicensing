@@ -379,11 +379,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             models.IntegerField(null=True, blank=True),
             blank=True,null=True,
             )
-    #TODO remove these fields once new model complete
-    site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
-    mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
-    endorser_reminder_sent = models.BooleanField(default=False)
-    declined_by_endorser = models.BooleanField(default=False)
+
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
     waiting_list_allocation = models.ForeignKey('mooringlicensing.WaitingListAllocation',null=True,blank=True, related_name="ria_generated_proposal", on_delete=models.SET_NULL)
