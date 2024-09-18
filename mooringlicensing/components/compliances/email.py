@@ -137,9 +137,9 @@ def send_reminder_email_notification(compliance, is_test=False):
 
         _log_compliance_email(msg, compliance, sender=sender_user)
         if compliance.proposal.org_applicant:
-            _log_org_email(msg, compliance.proposal.org_applicant, compliance.holder_id, sender=sender_user)
+            _log_org_email(msg, compliance.proposal.org_applicant, compliance.holder_obj, sender=sender_user)
         else:
-            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender)
+            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_obj, sender=sender_user)
 
 
 def send_internal_reminder_email_notification(compliance, is_test=False):
@@ -169,7 +169,7 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.holder_id, sender=sender_user)
         else:
-            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender)
+            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender_user)
 
 
 def send_due_email_notification(compliance, is_test=False):
@@ -206,7 +206,7 @@ def send_due_email_notification(compliance, is_test=False):
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.holder_id, sender=sender_user)
         else:
-            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender)
+            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender_user)
 
 
 def send_internal_due_email_notification(compliance, is_test=False):
@@ -236,7 +236,7 @@ def send_internal_due_email_notification(compliance, is_test=False):
         if compliance.proposal.org_applicant:
             _log_org_email(msg, compliance.proposal.org_applicant, compliance.holder_id, sender=sender_user)
         else:
-            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender)
+            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.holder_id, sender=sender_user)
 
 
 def send_compliance_accept_email_notification(compliance,request, is_test=False):

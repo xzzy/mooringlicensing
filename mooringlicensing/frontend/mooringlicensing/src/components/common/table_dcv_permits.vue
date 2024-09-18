@@ -39,7 +39,15 @@
         </div>
         <CreateNewStickerModal
             ref="create_new_sticker_modal"
-            @sendData="sendData"
+            @sendData="sendDataForCreateNewSticker"
+        />
+        <RequestNewDCVStickerModal
+            ref="request_new_dcv_sticker_modal"
+            @sendData="sendDataForRequestNewSticker"
+        />
+        <RequestDCVStickerAddressModal
+            ref="request_dcv_sticker_address_modal"
+            @sendData="sendDataForStickerAddress"
         />
     </div>
 </template>
@@ -49,6 +57,8 @@ import datatable from '@/utils/vue/datatable.vue'
 import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 import CreateNewStickerModal from "@/components/common/create_new_sticker_modal.vue"
+import RequestNewDCVStickerModal from "@/components/common/request_new_dcv_sticker_modal.vue"
+import RequestDCVStickerAddressModal from "@/components/common/request_dcv_sticker_address_modal.vue"
 
 export default {
     name: 'TableDcvPermits',
@@ -79,6 +89,8 @@ export default {
     components:{
         datatable,
         CreateNewStickerModal,
+        RequestNewDCVStickerModal,
+        RequestDCVStickerAddressModal,
     },
     watch: {
         filterDcvOrganisation: function() {
@@ -140,7 +152,6 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log(full)
                     let links = ''
                     if (full.invoices){
                         for (let invoice of full.invoices){
@@ -251,6 +262,12 @@ export default {
                         if (full.display_create_sticker_action){
                             links +=  `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`;
                         }
+                        if (full.display_request_sticker_action){
+                            links += `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
+                        }
+                        if (full.display_update_sticker_address_action){
+                            links += `<a href='#${full.id}' data-request-sticker-address='${full.id}'>Update Sticker Address</a><br/>`
+                        }                        
                     }
                     return links
                 }
@@ -317,9 +334,9 @@ export default {
         }
     },
     methods: {
-        sendData: function(params){
+        sendDataForCreateNewSticker: function(params){
             let vm = this
-            vm.$http.post('/api/dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
+            vm.$http.post('/api/internal_dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
                 res => {
                     // Retrieve the element clicked on
                     let elem_clicked = $("a[data-create-new-sticker='" + params.dcv_permit_id + "']")
@@ -333,15 +350,73 @@ export default {
                     // Update the row data
                     row_data.stickers.push({'number': res.body.number})
                     row_data.display_create_sticker_action = false
+                    row_data.display_request_sticker_action = true
+                    row_data.display_update_sticker_address_action = true
 
                     // Apply the updated data to the row
                     vm.$refs.dcv_permits_datatable.vmDataTable.row(row_index_clicked).data(row_data).invalidate()
-
+                    vm.$refs.create_new_sticker_modal.processing = false
                     vm.$refs.create_new_sticker_modal.isModalOpen = false
+                    vm.$refs.create_new_sticker_modal.change_sticker_address= false
+                    vm.$refs.create_new_sticker_modal.postal_address_line1 = ''
+                    vm.$refs.create_new_sticker_modal.postal_address_line2 = ''
+                    vm.$refs.create_new_sticker_modal.postal_address_line3 = ''
+                    vm.$refs.create_new_sticker_modal.postal_address_locality = ''
+                    vm.$refs.create_new_sticker_modal.postal_address_state = ''
+                    vm.$refs.create_new_sticker_modal.postal_address_country = ''
+                    vm.$refs.create_new_sticker_modal.postal_address_postcode = ''
                 },
                 err => {
                     console.log(err)
-                    vm.$refs.create_new_sticker_modal.isModalOpen = false
+                    vm.$refs.create_new_sticker_modal.errors = true
+                    vm.$refs.create_new_sticker_modal.errorString = helpers.apiVueResourceError(err);
+                    vm.$refs.create_new_sticker_modal.processing = false
+                }
+            )
+        },
+        sendDataForRequestNewSticker: function(params){
+            let vm = this
+            vm.$http.post('/api/internal_dcv_permit/' + params.dcv_permit_id + '/request_new_stickers/', params).then(
+                res => {
+                    vm.$refs.request_new_dcv_sticker_modal.processing = false
+                    vm.$refs.request_new_dcv_sticker_modal.isModalOpen = false
+                    vm.$refs.request_new_dcv_sticker_modal.change_sticker_address= false
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_line1 = ''
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_line2 = ''
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_line3 = ''
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_locality = ''
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_state = ''
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_country = ''
+                    vm.$refs.request_new_dcv_sticker_modal.postal_address_postcode = ''
+                },
+                err => {
+                    console.log(err)
+                    vm.$refs.request_new_dcv_sticker_modal.errors = true
+                    vm.$refs.request_new_dcv_sticker_modal.errorString = helpers.apiVueResourceError(err);
+                    vm.$refs.request_new_dcv_sticker_modal.processing = false
+                }
+            )
+        },
+        sendDataForStickerAddress: function(params){
+            let vm = this
+            vm.$http.post('/api/internal_dcv_permit/' + params.dcv_permit_id + '/change_sticker_addresses/', params).then(
+                res => {
+                    vm.$refs.request_dcv_sticker_address_modal.processing = false
+                    vm.$refs.request_dcv_sticker_address_modal.isModalOpen = false
+                    vm.$refs.request_dcv_sticker_address_modal.change_sticker_address= false
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_line1 = ''
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_line2 = ''
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_line3 = ''
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_locality = ''
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_state = ''
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_country = ''
+                    vm.$refs.request_dcv_sticker_address_modal.postal_address_postcode = ''
+                },
+                err => {
+                    console.log(err)
+                    vm.$refs.request_dcv_sticker_address_modal.errors = true
+                    vm.$refs.request_dcv_sticker_address_modal.errorString = helpers.apiVueResourceError(err);
+                    vm.$refs.request_dcv_sticker_address_modal.processing = false
                 }
             )
         },
@@ -349,6 +424,14 @@ export default {
             console.log('dcv_permit_id: ' + dcv_permit_id)
             this.$refs.create_new_sticker_modal.dcv_permit_id = dcv_permit_id
             this.$refs.create_new_sticker_modal.isModalOpen = true
+        },
+        requestNewSticker: function(dcv_permit_id){
+            this.$refs.request_new_dcv_sticker_modal.dcv_permit_id = dcv_permit_id
+            this.$refs.request_new_dcv_sticker_modal.isModalOpen = true
+        },
+        requestStickerAddress: function(dcv_permit_id){
+            this.$refs.request_dcv_sticker_address_modal.dcv_permit_id = dcv_permit_id
+            this.$refs.request_dcv_sticker_address_modal.isModalOpen = true
         },
         new_application_button_clicked: function(){
             if (this.is_internal) {
@@ -381,13 +464,23 @@ export default {
         addEventListeners: function(){
             let vm = this
 
-            //External Request New Sticker listener
             vm.$refs.dcv_permits_datatable.vmDataTable.on('click', 'a[data-create-new-sticker]', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-create-new-sticker');
                 vm.createNewSticker(id);
             });
+            vm.$refs.dcv_permits_datatable.vmDataTable.on('click', 'a[data-request-new-sticker]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-request-new-sticker');
+                vm.requestNewSticker(id);
+            });
+            vm.$refs.dcv_permits_datatable.vmDataTable.on('click', 'a[data-request-sticker-address]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-request-sticker-address');
+                vm.requestStickerAddress(id);
+            });
         },
+        
     },
     created: function(){
         this.fetchFilterLists()
