@@ -304,7 +304,7 @@ class VesselSizeCategoryGroup(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def save(self, **kwargs):
-        if not self.is_editable:
+        if self.pk and not self.is_editable:
             raise ValidationError('VesselSizeCategoryGroup cannot be changed once used for payment calculation')
         else:
             super(VesselSizeCategoryGroup, self).save(**kwargs)
@@ -362,7 +362,7 @@ class VesselSizeCategory(RevisionedMixin):
         app_label = 'mooringlicensing'
 
     def save(self, **kwargs):
-        if not self.is_editable:
+        if self.pk and not self.is_editable:
             raise ValidationError('VesselSizeCategory cannot be changed once used for payment calculation')
         else:
             super(VesselSizeCategory, self).save(**kwargs)
