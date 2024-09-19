@@ -242,7 +242,6 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
-                    console.log({full})
                     return full.vessel_rego
                 },
                 name: 'dcv_vessel__rego_no',

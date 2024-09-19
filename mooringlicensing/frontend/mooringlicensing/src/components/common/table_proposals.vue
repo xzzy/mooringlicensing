@@ -159,7 +159,7 @@ export default {
         column_lodgement_number: function(){
             return {
                 // 2. Lodgement Number
-                data: "id",
+                data: "lodgement_number",
                 orderable: true,
                 searchable: true,
                 visible: true,
@@ -234,7 +234,7 @@ export default {
         column_lodged_on: function(){
             return {
                 // 6. Lodged
-                data: "id",
+                data: "lodgement_date",
                 orderable: true,
                 searchable: true,
                 visible: true,
@@ -326,7 +326,7 @@ export default {
                     }
                     return ''
                 },
-                name: 'proposalapplicant__first_name, proposalapplicant__last_name, proposalapplicant__email'
+                name: 'proposal_applicant__first_name, proposal_applicant__last_name, proposal_applicant__email'
             }
         },
         column_assigned_to: function(){
@@ -351,8 +351,8 @@ export default {
         column_payment_status: function(){
             return {
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.invoices){

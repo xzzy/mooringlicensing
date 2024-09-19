@@ -128,8 +128,8 @@ export default {
             return {
                 // 2. Lodgement Number
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function (row, type, full) {
                     return 'Mooring';
@@ -140,8 +140,8 @@ export default {
             return {
                 // 3. Licence/Permit
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function (row, type, full) {
                     //return 'not implemented';
@@ -153,8 +153,8 @@ export default {
             return {
                 // 4. Condition
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 createdCell: function (td, cellData, rowData, row, col) {
                     $(td).css("text-align", "center")
                 },
@@ -169,7 +169,7 @@ export default {
         maxVesselLengthColumn: function () {
             return {
                 // 5. Due Date
-                data: "id",
+                data: "vessel_size_limit",
                 orderable: true,
                 searchable: true,
                 createdCell: function (td, cellData, rowData, row, col) {
@@ -178,7 +178,8 @@ export default {
                 visible: true,
                 'render': function (row, type, full) {
                     return full.vessel_size_limit;
-                }
+                },
+                name:'vessel_size_limit'
             }
         },
         maxVesselDraftColumn: function () {
@@ -193,7 +194,8 @@ export default {
                 },
                 'render': function (row, type, full) {
                     return full.vessel_draft_limit;
-                }
+                },
+                name: 'vessel_draft_limit'
             }
         },
         actionColumn: function () {
@@ -292,7 +294,7 @@ export default {
             // Mooring Bays
             vm.$http.get(api_endpoints.mooring_bays).then((response) => {
                 //for (let bay of response.body) {
-                vm.mooringBays = response.body
+                vm.mooringBays = response.body.results
             }, (error) => {
                 console.log(error);
             })

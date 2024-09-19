@@ -562,6 +562,8 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 filter_query &= Q(proposal_type__code=settings.PROPOSAL_TYPE_AMENDMENT)
             elif filter_application_category == 'renewal':
                 filter_query &= Q(proposal_type__code=settings.PROPOSAL_TYPE_RENEWAL)
+            elif filter_application_category == 'swap_moorings':
+                filter_query &= Q(proposal_type__code=settings.PROPOSAL_TYPE_SWAP_MOORINGS)            
 
         filter_application_status = request.GET.get('filter_application_status')
         if filter_application_status and not filter_application_status.lower() == 'all':
