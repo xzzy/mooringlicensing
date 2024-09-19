@@ -1649,9 +1649,64 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
     @detail_route(methods=['GET',], detail=True)
     def internal_proposal(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = InternalProposalSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            serializer = InternalProposalSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+    
+    @detail_route(methods=['POST',], detail=True)
+    def internal_endorse(self, request, *args, **kwargs):
+        if (is_internal(request)):
+            #get id of slmr
+            id = request.data.get('site_licensee_mooring_request_id',None)
+            #get slmr (only continue if enabled)
+            try:
+                slmr_instance = ProposalSiteLicenseeMooringRequest.objects.get(id=id)
+            except:
+                return serializers.ValidationError("Site Licensee Mooring Request does now exist")
+            
+            if slmr_instance.enabled:
+                #set declined to false
+                if slmr_instance.declined_by_endorser:
+                    slmr_instance.declined_by_endorser = False
+                    slmr_instance.save()
+
+                #run endorse function
+                slmr_instance.endorse_approved(request)
+
+            else:
+                return serializers.ValidationError("Site Licensee Mooring Request not listed on Proposal")
+
+            instance = self.get_object()
+            serializer = InternalProposalSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+
+    @detail_route(methods=['POST',], detail=True)
+    def internal_decline(self, request, *args, **kwargs):
+        if (is_internal(request)):
+            #get id of slmr
+            id = request.data.get('site_licensee_mooring_request_id',None)
+            #get slmr (only continue if enabled)
+            try:
+                slmr_instance = ProposalSiteLicenseeMooringRequest.objects.get(id=id)
+            except:
+                return serializers.ValidationError("Site Licensee Mooring Request does now exist")
+            
+            if slmr_instance.enabled:
+                #set endorsed/approved to false
+                if slmr_instance.approved_by_endorser:
+                    slmr_instance.approved_by_endorser = False
+                    slmr_instance.save()
+
+                #run decline function
+                slmr_instance.endorse_declined(request)
+
+            else:
+                return serializers.ValidationError("Site Licensee Mooring Request not listed on Proposal")
+
+            instance = self.get_object()
+            serializer = InternalProposalSerializer(instance, context={'request': request})
+            return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler

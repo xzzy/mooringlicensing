@@ -93,6 +93,7 @@
                         :readonly="readonly"
                         @profile-fetched="populateProfile"
                         @updateSubmitText="updateSubmitText"
+                        @updateProposal="updateProposal"
                     />
                     <MooringLicenceApplication
                         v-if="proposal && proposal.application_type_dict.code==='mla'"
@@ -475,6 +476,10 @@ export default {
         },
     },
     methods: {
+        updateProposal: function(data) {
+            console.log("updateProposal")
+            this.proposal = data;
+        },
         buildPayload: function() {
 
             let payload = {
