@@ -63,7 +63,7 @@ export default {
             filter_by_endorsement: true,
 
             // Datatable settings
-            to_be_endorsed_headers: ['Id', 'Number', 'Mooring', 'Applicant', 'Status', 'Action'],
+            to_be_endorsed_headers: ['Id', 'Proposal Id', 'Proposal', 'Mooring', 'Applicant', 'Status', 'Action','uuid','declined','endored'],
             to_be_endorsed_options: {
                 autoWidth: false,
                 language: {
@@ -73,18 +73,8 @@ export default {
                 serverSide: true,
                 searching: false,
                 ajax: {
-                    "url": api_endpoints.proposals_paginated_list + '?format=datatables',
+                    "url": api_endpoints.site_licensee_mooring_requests + '?format=datatables',
                     "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        d.filter_approval_type = vm.approvalTypesToDisplay.join(',')
-
-                        // Add filters selected
-                        //d.filter_approval_type = vm.filterApprovalType
-                        d.filter_approval_status = vm.filterApprovalStatus
-                        d.filter_by_endorsement = vm.filter_by_endorsement
-                    }
                 },
                 // dom: 'lBfrtip',
                 dom: 'lBfrtp',
@@ -102,51 +92,63 @@ export default {
                         }
                     },
                     {
+                        data: "proposal_id",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.proposal_id
+                        }
+                    },
+                    {
                         // 2. Lodgement Number
-                        data: "id",
+                        data: "proposal_number",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.lodgement_number
+                            return full.proposal_number
                         }
                     },
                     {
                         // 3. Mooring
-                        data: "id",
+                        data: "mooring_name",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            if (full.mooring){
-                                return full.mooring.name
-                            }
-                            return ''
+                            return full.mooring_name
                         }
                     },
                     {
                         // 4. Applicant
-                        data: "id",
+                        data: "applicant_name",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.applicant.legal_first_name + ' ' + full.applicant.legal_last_name
+                            return full.applicant_name
                         }
                     },
                     {
                         // 5. Status
-                        data: "id",
+                        data: "proposal_status",
                         orderable: true,
                         searchable: true,
                         visible: true,
                         'render': function(row, type, full){
-                            return full.customer_status
+                            if (full.approved_by_endorser) {
+                                return full.proposal_status + " - Endorsed for " + full.mooring_name
+                            } else if (full.declined_by_endorser) {
+                                return full.proposal_status + " - Declined for " + full.mooring_name
+                            } else {
+                                return full.proposal_status
+                            }
                         }
                     },
                     {
                         // 10. Action
-                        data: "id",
+                        data: "can_endorse",
                         orderable: true,
                         searchable: true,
                         visible: true,
@@ -155,15 +157,46 @@ export default {
                             let links = '';
                             // links +=  `<a href='/aua_for_endorsement/${full.uuid}/view/'>View</a><br/>`;
                             links +=  `<a href='/external/proposal/${full.uuid}/'>View</a><br/>`;
-                            if(full.customer_status === constants.AWAITING_ENDORSEMENT && full.can_endorse){
+                            if(full.proposal_status === constants.AWAITING_ENDORSEMENT 
+                                && full.can_endorse
+                                && !full.declined_by_endorser 
+                                && !full.approved_by_endorser
+                            ){
                                 // links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
                                 // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
                                 // links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
-                                links +=  `<a href='#${full.id}' data-approve-endorsement='${full.uuid}'>Endorse</a><br/>`
-                                links +=  `<a href='#${full.id}' data-decline-endorsement='${full.uuid}'>Decline</a><br/>`
+                                links +=  `<a href='#${full.id}' data-approve-endorsement='${full.uuid}' data-approve-endorsement-mooring='${full.mooring_name}'>Endorse</a><br/>`
+                                links +=  `<a href='#${full.id}' data-decline-endorsement='${full.uuid}' data-approve-endorsement-mooring='${full.mooring_name}'>Decline</a><br/>`
                                 // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
                             }
                             return links
+                        }
+                    },
+                    {
+                        data: "uuid",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.uuid
+                        }
+                    },
+                    {
+                        data: "declined_by_endorser",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.declined_by_endorser
+                        }
+                    },
+                    {
+                        data: "approved_by_endorser",
+                        orderable: false,
+                        searchable: false,
+                        visible: false,
+                        'render': function(row, type, full){
+                            return full.approved_by_endorser
                         }
                     },
                 ],
@@ -195,15 +228,17 @@ export default {
             vm.$refs.to_be_endorsed_datatable.vmDataTable.on('click', 'a[data-approve-endorsement]', function(e) {
                 e.preventDefault();
                 var uuid = $(this).attr('data-approve-endorsement');
-                vm.approveEndorsement(uuid);
+                var mooring_name = $(this).attr('data-approve-endorsement-mooring');
+                vm.approveEndorsement(uuid,mooring_name);
             })
             vm.$refs.to_be_endorsed_datatable.vmDataTable.on('click', 'a[data-decline-endorsement]', function(e) {
                 e.preventDefault();
                 var uuid = $(this).attr('data-decline-endorsement');
-                vm.declineEndorsement(uuid);
+                var mooring_name = $(this).attr('data-approve-endorsement-mooring');
+                vm.declineEndorsement(uuid,mooring_name);
             })
         },
-        approveEndorsement: function(uuid){
+        approveEndorsement: function(uuid,mooring_name){
             let vm = this
             swal({
                 title: "Endorse Application",
@@ -213,7 +248,7 @@ export default {
                 confirmButtonText: 'Endorse Application',
                 confirmButtonColor:'#dc3545'
             }).then(() => {
-                vm.$http.get('/aua_for_endorsement/' + uuid + '/endorse/')
+                vm.$http.get('/aua_for_endorsement/' + uuid + '/endorse/?mooring_name=' + mooring_name)
                 .then((response) => {
                     swal(
                         'Endorsed',
@@ -228,7 +263,7 @@ export default {
 
             });
         },
-        declineEndorsement: function(uuid){
+        declineEndorsement: function(uuid,mooring_name){
             let vm = this
             swal({
                 title: "Decline approval",
@@ -238,7 +273,7 @@ export default {
                 confirmButtonText: 'Decline Approval',
                 confirmButtonColor:'#dc3545'
             }).then(() => {
-                vm.$http.get('/aua_for_endorsement/' + uuid + '/decline/')
+                vm.$http.get('/aua_for_endorsement/' + uuid + '/decline/?mooring_name=' + mooring_name)
                 .then((response) => {
                     swal(
                         'Declined',

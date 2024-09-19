@@ -8,27 +8,27 @@ from django_countries.serializer_fields import CountryField
 
 class UserForEndorserSerializer(serializers.ModelSerializer):
 
-    first_name = serializers.SerializerMethodField()
-    last_name = serializers.SerializerMethodField()
+    legal_first_name = serializers.SerializerMethodField()
+    legal_last_name = serializers.SerializerMethodField()
 
     class Meta:
         model = SystemUser
         fields = (
             'ledger_id',
-            'last_name',
-            'first_name',
+            'legal_last_name',
+            'legal_first_name',
             'email',
             'phone_number',
             'mobile_number',
         )
     
-    def get_first_name(self,obj):
+    def get_legal_first_name(self,obj):
         if obj.legal_first_name:
             return obj.legal_first_name
         else:
             return obj.first_name
 
-    def get_last_name(self,obj):
+    def get_legal_last_name(self,obj):
         if obj.legal_first_name:
             return obj.legal_last_name
         else:

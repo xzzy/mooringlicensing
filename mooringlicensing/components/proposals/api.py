@@ -34,7 +34,7 @@ from mooringlicensing.components.proposals.utils import (
     get_max_vessel_length_for_main_component,
 )
 from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
-    ProposalType, ProposalApplicant, VesselRegistrationDocument
+    ProposalType, ProposalApplicant, VesselRegistrationDocument, ProposalSiteLicenseeMooringRequest
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
@@ -79,6 +79,7 @@ from mooringlicensing.components.proposals.serializers import (
     ProposedApprovalSerializer,
     AmendmentRequestSerializer,
     ListProposalSerializer,
+    ListProposalSiteLicenseeMooringRequestSerializer,
     ListVesselDetailsSerializer,
     ListVesselOwnershipSerializer,
     VesselSerializer,
@@ -235,6 +236,45 @@ class GetMooring(views.APIView):
                 data = Mooring.private_moorings.filter(name__icontains=search_term).values('id', 'name')
             else:
                 data = Mooring.objects.filter(name__icontains=search_term).values('id', 'name')
+            paginator = Paginator(data, items_per_page)
+            try:
+                current_page = paginator.page(page_number)
+                my_objects = current_page.object_list
+            except EmptyPage:
+                my_objects = []
+            
+            data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in my_objects]
+
+            return Response({
+                "results": data_transform,
+                "pagination": {
+                    "more": current_page.has_next()
+                }
+            })
+        return Response()
+
+
+class GetMooringBySiteLicensee(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('search_term', '')
+        site_licensee_email = request.GET.get('site_licensee_email', '')
+        page_number = request.GET.get('page_number', 1)
+        items_per_page = 10
+        private_moorings = request.GET.get('private_moorings')
+
+        if search_term:
+            if private_moorings:
+                data = Mooring.private_moorings.filter(
+                    name__icontains=search_term,
+                    mooring_licence__approval__current_proposal__proposal_applicant__email=site_licensee_email
+                ).values('id', 'name')
+            else:
+                data = Mooring.objects.filter(
+                    name__icontains=search_term,
+                    mooring_licence__approval__current_proposal__proposal_applicant__email=site_licensee_email
+                ).values('id', 'name')
             paginator = Paginator(data, items_per_page)
             try:
                 current_page = paginator.page(page_number)
@@ -580,9 +620,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         filter_by_endorsement = request.GET.get('filter_by_endorsement', 'false')
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
-            filter_query &= Q(site_licensee_email__iexact=request.user.email)
-        else:
-            filter_query &= ~Q(site_licensee_email__iexact=request.user.email)
+            filter_query &= (Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email,site_licensee_mooring_request__enabled=True))
+        #TODO commented this out - will check if need (but why exclude?)
+        #else:
+        #    filter_query &= ~Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email)
 
         # don't show discarded applications
         if not level == 'internal':
@@ -615,6 +656,24 @@ class ProposalRenderer(DatatablesRenderer):
             data['recordsTotal'] = renderer_context['view']._datatables_total_count
         return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
 
+class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ModelViewSet):
+    pagination_class = DatatablesPageNumberPagination
+    queryset = ProposalSiteLicenseeMooringRequest.objects.none()
+    serializer_class = ListProposalSiteLicenseeMooringRequestSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        request_user = self.request.user
+        if is_internal(self.request):
+            return ProposalSiteLicenseeMooringRequest.objects.all()
+        elif is_customer(self.request):
+            return ProposalSiteLicenseeMooringRequest.objects.filter(
+                site_licensee_email=request_user.email, 
+                mooring__mooring_licence__approval__status="current",
+                mooring__mooring_licence__approval__current_proposal__proposal_applicant__email=request_user.email,
+                enabled=True)
+        return ProposalSiteLicenseeMooringRequest.objects.none()
+         
 
 class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ProposalFilterBackend,)
@@ -639,13 +698,14 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                 user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
                 all = all.filter(Q(org_applicant__in=user_orgs) | 
                         Q(proposal_applicant__email_user_id=target_user.id) | 
-                        Q(site_licensee_email=target_user.email))
+                        Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
             orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
             qs = all.filter(Q(org_applicant__in=orgs) | 
-                    Q(proposal_applicant__email_user_id=request_user.id) | 
-                    Q(site_licensee_email=request_user.email))
+                    Q(proposal_applicant__email_user_id=request_user.id) #| 
+                    #Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True)
+                    )
             return qs
         return Proposal.objects.none()
 
@@ -1591,9 +1651,64 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
     @detail_route(methods=['GET',], detail=True)
     def internal_proposal(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = InternalProposalSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            serializer = InternalProposalSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+    
+    @detail_route(methods=['POST',], detail=True)
+    def internal_endorse(self, request, *args, **kwargs):
+        if (is_internal(request)):
+            #get id of slmr
+            id = request.data.get('site_licensee_mooring_request_id',None)
+            #get slmr (only continue if enabled)
+            try:
+                slmr_instance = ProposalSiteLicenseeMooringRequest.objects.get(id=id)
+            except:
+                return serializers.ValidationError("Site Licensee Mooring Request does now exist")
+            
+            if slmr_instance.enabled:
+                #set declined to false
+                if slmr_instance.declined_by_endorser:
+                    slmr_instance.declined_by_endorser = False
+                    slmr_instance.save()
+
+                #run endorse function
+                slmr_instance.endorse_approved(request)
+
+            else:
+                return serializers.ValidationError("Site Licensee Mooring Request not listed on Proposal")
+
+            instance = self.get_object()
+            serializer = InternalProposalSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+
+    @detail_route(methods=['POST',], detail=True)
+    def internal_decline(self, request, *args, **kwargs):
+        if (is_internal(request)):
+            #get id of slmr
+            id = request.data.get('site_licensee_mooring_request_id',None)
+            #get slmr (only continue if enabled)
+            try:
+                slmr_instance = ProposalSiteLicenseeMooringRequest.objects.get(id=id)
+            except:
+                return serializers.ValidationError("Site Licensee Mooring Request does now exist")
+            
+            if slmr_instance.enabled:
+                #set endorsed/approved to false
+                if slmr_instance.approved_by_endorser:
+                    slmr_instance.approved_by_endorser = False
+                    slmr_instance.save()
+
+                #run decline function
+                slmr_instance.endorse_declined(request)
+
+            else:
+                return serializers.ValidationError("Site Licensee Mooring Request not listed on Proposal")
+
+            instance = self.get_object()
+            serializer = InternalProposalSerializer(instance, context={'request': request})
+            return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler

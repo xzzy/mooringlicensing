@@ -25,7 +25,8 @@ from mooringlicensing.components.proposals.models import (
     Proposal,
     Company,
     CompanyOwnership,
-    Mooring, ProposalApplicant, VesselRegistrationDocument
+    Mooring, ProposalApplicant, VesselRegistrationDocument,
+    ProposalSiteLicenseeMooringRequest
 )
 from mooringlicensing.components.proposals.serializers import (
     SaveVesselDetailsSerializer,
@@ -528,13 +529,53 @@ def save_proponent_data_aua(instance, request, action):
     instance.refresh_from_db()
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+
+    if proposal_data.get("mooring_authorisation_preference") == 'site_licensee':
+        if instance.proposal_type.code == PROPOSAL_TYPE_NEW or not proposal_data.get('keep_existing_mooring'):
+            site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
+            #get all ProposalSiteLicenseeMooringRequest for proposal
+            site_licensee_moorings = instance.site_licensee_mooring_request.all()
+            
+            current_mooring_licences = MooringLicence.objects.filter(approval__status=Approval.APPROVAL_STATUS_CURRENT)
+
+            #for each in site_licensee_moorings_data, check if it exists
+            keep_id_list = []
+            for i in site_licensee_moorings_data:
+                #check if email and mooring id exist together as a valid mooring license
+                valid = current_mooring_licences.filter(
+                    approval__current_proposal__proposal_applicant__email=i["email"],
+                    mooring__id=i["mooring_id"]
+                ).exists()
+                if not valid:
+                    raise serializers.ValidationError("Provided email and mooring are not in a current valid mooring license together")
+                qs = site_licensee_moorings.filter(site_licensee_email=i["email"],mooring_id=i["mooring_id"])
+                if qs.exists():
+                    site_licensee_mooring = qs.first()
+                    if not site_licensee_mooring.enabled:
+                        #if it exists but is not enabled, enable it
+                        site_licensee_mooring.enabled = True
+                        site_licensee_mooring.save()
+                    keep_id_list.append(site_licensee_mooring.id)
+                else:
+                    #if it does not exist
+                    new_site_licence_mooring_request = ProposalSiteLicenseeMooringRequest.objects.create(
+                        proposal=instance,
+                        site_licensee_email=i["email"],
+                        mooring_id=i["mooring_id"],
+                        enabled=True,
+                    )
+                    keep_id_list.append(new_site_licence_mooring_request.pk)
+            #disable any remainder records
+            site_licensee_moorings.exclude(id__in=keep_id_list).update(enabled=False)
+    else: #RIA preferred, disable all site_licensee_mooring_requests (if any)
+        instance.site_licensee_mooring_request.all().update(enabled=False)
+        
     serializer = SaveAuthorisedUserApplicationSerializer(
             instance, 
             data=proposal_data, 
             context={
                 "action": action,
                 "proposal_id": instance.id
-                #"ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
     )
     serializer.is_valid(raise_exception=True)

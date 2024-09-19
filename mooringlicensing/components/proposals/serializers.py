@@ -33,7 +33,8 @@ from mooringlicensing.components.proposals.models import (
     ProposalType,
     Company,
     CompanyOwnership,
-    Mooring, MooringLicenceApplication, AuthorisedUserApplication
+    Mooring, MooringLicenceApplication, AuthorisedUserApplication,
+    ProposalSiteLicenseeMooringRequest,
 )
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
@@ -45,6 +46,7 @@ from rest_framework import serializers
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 from mooringlicensing.ledger_api_utils import retrieve_system_user
+from mooringlicensing.components.users.utils import get_user_name
 
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
@@ -150,6 +152,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     proposal_applicant = ProposalApplicantSerializer()
     uuid = serializers.SerializerMethodField()
     amendment_requests = serializers.SerializerMethodField()
+    site_licensee_moorings = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -206,8 +209,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'preferred_bay_id',
                 'silent_elector',
                 'bay_preferences_numbered',
-                'site_licensee_email',
-                'mooring_id',
+                'site_licensee_moorings',
                 'mooring_authorisation_preference',
                 'company_ownership_name',
                 'company_ownership_percentage',
@@ -234,6 +236,21 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'auto_approve',
                 )
         read_only_fields=('documents','auto_approve')
+
+    def get_site_licensee_moorings(self, obj):
+
+        site_licensee_moorings = []
+        for i in obj.site_licensee_mooring_request.filter(enabled=True):
+            if i.mooring:
+                site_licensee_moorings.append(
+                    {
+                    "email":i.site_licensee_email, 
+                    "mooring_name":i.mooring.name,
+                    "mooring_id":i.mooring.id
+                    }
+                )
+
+        return site_licensee_moorings
 
     def get_amendment_requests(self, obj):
         data = None
@@ -383,6 +400,61 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 return serializer.data
         return ''
 
+class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializer):
+    
+    can_endorse = serializers.SerializerMethodField()
+    proposal_number = serializers.SerializerMethodField()
+    mooring_name = serializers.SerializerMethodField()
+    proposal_status = serializers.SerializerMethodField()
+    applicant_name = serializers.SerializerMethodField()
+    uuid = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProposalSiteLicenseeMooringRequest
+        fields = (
+            'id',
+            'site_licensee_email',
+            'declined_by_endorser',
+            'proposal_id',
+            'proposal_number',
+            'mooring_name',
+            'proposal_status',
+            'can_endorse',
+            'applicant_name',
+            'uuid',
+            'approved_by_endorser',
+            'declined_by_endorser',
+        )
+
+    def get_uuid(self, obj):
+        try:
+            return obj.proposal.child_obj.uuid
+        except:
+            return ''
+
+    def get_applicant_name(self,obj):
+        if obj.proposal and obj.proposal.proposal_applicant:
+            return obj.proposal.proposal_applicant.first_name + " " + obj.proposal.proposal_applicant.last_name
+
+    def get_proposal_number(self,obj):
+        if obj.proposal:
+            return obj.proposal.lodgement_number
+        
+    def get_mooring_name(self,obj):
+        if obj.mooring:
+            return obj.mooring.name
+        
+    def get_proposal_status(self,obj):
+        if obj.proposal:
+            return obj.proposal.get_customer_status_display()
+
+    def get_can_endorse(self,obj):
+        if (obj.mooring and 
+            obj.mooring.mooring_licence and
+            obj.mooring.mooring_licence.approval and
+            obj.mooring.mooring_licence.approval.status == "current"):
+            return True
+        return False
 
 class ListProposalSerializer(BaseProposalSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
@@ -394,12 +466,10 @@ class ListProposalSerializer(BaseProposalSerializer):
     application_type_dict = serializers.SerializerMethodField()
 
     assessor_process = serializers.SerializerMethodField()
-    mooring = MooringSerializer()
     uuid = serializers.SerializerMethodField()
     document_upload_url = serializers.SerializerMethodField()
     can_view_payment_details = serializers.SerializerMethodField()
     invoice_links = serializers.SerializerMethodField()
-    can_endorse = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -420,15 +490,11 @@ class ListProposalSerializer(BaseProposalSerializer):
             'lodgement_number',
             'assessor_process',
             'invoices',
-            'mooring_id',
-            'mooring',
             'uuid',
             'document_upload_url',
             'can_view_payment_details',
             'invoice_links',
             'mooring_authorisation_preference',
-            'declined_by_endorser',
-            'can_endorse',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -449,15 +515,11 @@ class ListProposalSerializer(BaseProposalSerializer):
             'lodgement_number',
             'assessor_process',
             'invoices',
-            'mooring_id',
-            'mooring',
             'uuid',
             'document_upload_url',
             'can_view_payment_details',
             'invoice_links',
             'mooring_authorisation_preference',
-            'declined_by_endorser',
-            'can_endorse',
         )
 
     def get_submitter(self, obj):
@@ -550,14 +612,18 @@ class ListProposalSerializer(BaseProposalSerializer):
             elif user in obj.allowed_assessors:
                 return True
         return False
-    def get_can_endorse(self,obj):
-        try:
-            mooring_status = Approval.objects.get(id=obj.mooring.mooring_licence.id).status
-            if(mooring_status == 'current'):
-                return True
-            return False
-        except:
-            return False
+    
+    #TODO move to serializer for ProposalSiteLicenseeMooringRequest
+    #def get_can_endorse(self,obj):
+    #    if 'request' in self.context:
+    #        request = self.context['request']
+    #        user = request.user
+    #        site_licensee_mooring_requests = obj.site_licensee_mooring_request.filter(site_licensee_email=user.email)
+    #        if(
+    #            site_licensee_mooring_requests.filter(mooring__mooring_licence__approval__status="current").exists()
+    #        ):
+    #            return True
+    #    return False
         
 
 
@@ -606,8 +672,6 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'berth_mooring',
             'dot_name',
             'insurance_choice',
-            'site_licensee_email',
-            'mooring_id',
             'mooring_authorisation_preference',
             'company_ownership_name',
             'company_ownership_percentage',
@@ -644,25 +708,6 @@ class ProposalSerializer(BaseProposalSerializer):
 
     def get_readonly(self,obj):
         return obj.can_user_view
-
-
-#class SaveProposalSerializer(BaseProposalSerializer):
-#    preferred_bay_id = serializers.IntegerField(write_only=True, required=False)
-#    mooring_id = serializers.IntegerField(write_only=True, required=False)
-#
-#    class Meta:
-#        model = Proposal
-#        fields = (
-#                'id',
-#                'insurance_choice',
-#                'preferred_bay_id',
-#                'silent_elector',
-#                'bay_preferences_numbered',
-#                'site_licensee_email',
-#                'mooring_id',
-#                'mooring_authorisation_preference',
-#                )
-#        read_only_fields=('id',)
 
 
 class SaveWaitingListApplicationSerializer(serializers.ModelSerializer):
@@ -798,7 +843,7 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
 
 class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
-    mooring_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    #mooring_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = Proposal
@@ -807,8 +852,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
                 'insurance_choice',
                 'mooring_authorisation_preference',
                 'bay_preferences_numbered',
-                'site_licensee_email',
-                'mooring_id',
                 'customer_status',
                 'processing_status',
                 'temporary_document_collection_id',
@@ -838,21 +881,6 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
             # if not data.get("mooring_authorisation_preference") and not data.get("keep_existing_mooring"):
             if not data.get("mooring_authorisation_preference"):
                 custom_errors["Mooring Details"] = "You must complete this tab"
-            # if data.get("mooring_authorisation_preference") == 'site_licensee' and not data.get('keep_existing_mooring'):
-            else:
-                if data.get("mooring_authorisation_preference") == 'site_licensee':
-                    if proposal.proposal_type.code == PROPOSAL_TYPE_NEW or not data.get('keep_existing_mooring'):
-                        site_licensee_email = data.get("site_licensee_email")
-                        mooring_id = data.get("mooring_id")
-                        if not site_licensee_email:
-                            custom_errors["Site Licensee Email"] = "This field should not be blank"
-                        if not mooring_id:
-                            custom_errors["Mooring Site ID"] = "This field should not be blank"
-                        # check that the site_licensee_email matches the Mooring Licence holder
-                        if mooring_id and Mooring.objects.get(id=mooring_id):
-                            mooring_licence = Mooring.objects.get(id=mooring_id).mooring_licence
-                            if not mooring_licence or mooring_licence.applicant_obj.email.lower().strip() != site_licensee_email.lower().strip():
-                                custom_errors["Site Licensee Email"] = "This site licensee email does not hold the licence for the selected mooring"
         if custom_errors.keys():
             raise serializers.ValidationError(custom_errors)
         return data
@@ -927,6 +955,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     approval_vessel_rego_no = serializers.SerializerMethodField()
     vessel_on_proposal = serializers.SerializerMethodField()
     proposed_issuance_approval = serializers.SerializerMethodField()
+    site_licensee_moorings = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -983,8 +1012,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'preferred_bay_id',
                 'silent_elector',
                 'bay_preferences_numbered',
-                'site_licensee_email',
-                'mooring_id',
+                'site_licensee_moorings',
                 'mooring_authorisation_preference',
                 'previous_application_id',
                 'previous_application_vessel_details_id',
@@ -1030,6 +1058,47 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'documents',
             'requirements',
         )
+
+    def get_site_licensee_moorings(self, obj):
+
+        site_licensee_moorings = []
+        su_qs = SystemUser.objects
+        for i in obj.site_licensee_mooring_request.filter(enabled=True):
+
+            checked = i.approved_by_endorser
+            if obj.proposed_issuance_approval and 'requested_mooring_on_approval' in obj.proposed_issuance_approval:
+                for item in obj.proposed_issuance_approval['requested_mooring_on_approval']:
+                    if  i.id == item['id']:
+                        checked = item['checked']
+
+            site_licensee = ""
+            site_licensee_system_user = su_qs.filter(email=i.site_licensee_email)
+            if site_licensee_system_user.exists():
+                site_licensee = get_user_name(site_licensee_system_user.first())["full_name"]
+            endorsement = "Not Actioned"
+            if i.approved_by_endorser:
+                endorsement = "Endorsed"
+            elif i.declined_by_endorser:
+                endorsement = "Declined"
+
+            if i.mooring:
+                site_licensee_moorings.append(
+                    {
+                    "id":i.id,
+                    "email":i.site_licensee_email, 
+                    "mooring_name":i.mooring.name,
+                    "mooring_id":i.mooring.id,
+                    "bay":i.mooring.mooring_bay.name,
+                    "checked": checked,
+                    'vessel_size_weight': i.mooring.vessel_weight_limit,
+                    'vessel_size_limit': i.mooring.vessel_size_limit,
+                    'vessel_draft_limit': i.mooring.vessel_draft_limit,
+                    "site_licensee": site_licensee,
+                    "endorsement": endorsement,
+                    }
+                )
+
+        return site_licensee_moorings
 
     def get_allowed_assessors(self, obj):
         if 'request' in self.context and is_internal(self.context['request']):
@@ -1161,9 +1230,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
                     "site_licensee": 'RIA Allocated' if not moa.site_licensee else 'User Requested',
                     "status": 'Current' if not moa.end_date else 'Historical',
                     "checked": checked,
-                    'vessel_size_weight': str(moa.mooring.vessel_weight_limit),
-                    'vessel_size_limit': str(moa.mooring.vessel_size_limit),
-                    'vessel_draft_limit': str(moa.mooring.vessel_draft_limit),
+                    'vessel_size_weight': moa.mooring.vessel_weight_limit,
+                    'vessel_size_limit': moa.mooring.vessel_size_limit,
+                    'vessel_draft_limit': moa.mooring.vessel_draft_limit,
                     "suitable_for_mooring": suitable_for_mooring,
                     "mooring_licence_current": moa.mooring.mooring_licence.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED] if moa.mooring.mooring_licence else None,
                 })
@@ -1369,6 +1438,10 @@ class ProposedApprovalSerializer(serializers.Serializer):
     mooring_bay_id = serializers.IntegerField(required=False, allow_null=True)
     ria_mooring_name = serializers.CharField(required=False, allow_blank=True)
     mooring_on_approval = serializers.ListField(
+            child=serializers.JSONField(),
+            required=False,
+            )
+    requested_mooring_on_approval = serializers.ListField(
             child=serializers.JSONField(),
             required=False,
             )

@@ -12,7 +12,7 @@ from mooringlicensing.components.proposals.email import send_endorser_reminder_e
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal, AuthorisedUserApplication
 from mooringlicensing.management.commands.utils import construct_email_message
-from mooringlicensing.settings import CODE_DAYS_FOR_ENDORSER_AUA
+from mooringlicensing.settings import CODE_DAYS_FOR_ENDORSER_AUA_REMINDER
 
 logger = logging.getLogger('cron_tasks')
 cron_email = logging.getLogger('cron_email')
@@ -28,7 +28,7 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
+        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA_REMINDER)
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
             # No number of days found
@@ -46,14 +46,14 @@ class Command(BaseCommand):
         queries = Q()
         queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT)
         queries &= Q(lodgement_date__lt=boundary_date)
-        queries &= Q(endorser_reminder_sent=False)
+        #queries &= Q(endorser_reminder_sent=False)
         # if debug:
         #     queries = queries | Q(id=proposal_id)
 
         for a in AuthorisedUserApplication.objects.filter(queries):
             try:
                 send_endorser_reminder_email(a)
-                a.endorser_reminder_sent = True
+                #a.endorser_reminder_sent = True
                 a.save()
                 logger.info('Reminder to endorser sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)

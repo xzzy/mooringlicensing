@@ -574,38 +574,48 @@ def send_endorser_reminder_email(proposal, request=None):
     decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
     proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
 
-    try:
-        endorser = EmailUser.objects.get(email=proposal.site_licensee_email)
-    except:
-        # Should not reach here
-        return
+    msgs = []
+    for site_licensee_mooring in proposal.site_licensee_mooring_request.filter(enabled=True,endorser_reminder_sent=False):
+        try:
+            endorser = EmailUser.objects.get(email=site_licensee_mooring.site_licensee_email)
+        except:
+            # Should not reach here
+            continue
 
-    mooring_name = proposal.mooring.name if proposal.mooring else ''
-    due_date = proposal.get_due_date_for_endorsement_by_target_date()
+        mooring_name = site_licensee_mooring.mooring.name if proposal.mooring else ''
+        due_date = proposal.get_due_date_for_endorsement_by_target_date()
 
-    # Configure recipients, contents, etc
-    context = {
-        'public_url': get_public_url(request),
-        'proposal': proposal,
-        'recipient': proposal.applicant_obj,
-        'endorser': endorser,
-        'applicant': proposal.applicant_obj,
-        'endorse_url': make_http_https(endorse_url),
-        'decline_url': make_http_https(decline_url),
-        'proposal_url': make_http_https(proposal_url),
-        'mooring_name': mooring_name,
-        'due_date': due_date,
-    }
-    to_address = proposal.site_licensee_email
-    cc = []
-    bcc = []
+        # Configure recipients, contents, etc
+        context = {
+            'public_url': get_public_url(request),
+            'proposal': proposal,
+            'recipient': proposal.applicant_obj,
+            'endorser': endorser,
+            'applicant': proposal.applicant_obj,
+            'endorse_url': make_http_https(endorse_url),
+            'decline_url': make_http_https(decline_url),
+            'proposal_url': make_http_https(proposal_url),
+            'mooring_name': mooring_name,
+            'due_date': due_date,
+        }
+        to_address = site_licensee_mooring.site_licensee_email
+        cc = []
+        bcc = []
 
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    if msg:
-        sender = get_user_as_email_user(msg.from_email)
-        log_proposal_email(msg, proposal, sender)
-    return msg
+        # Send email
+        try:
+            msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+            if msg:
+                sender = get_user_as_email_user(msg.from_email)
+                log_proposal_email(msg, proposal, sender)
+                site_licensee_mooring.endorser_reminder_sent = True
+                site_licensee_mooring.save()
+                msgs.append(msg)
+        except Exception as e:
+            err_msg = 'Error sending reminder to endorser for Proposal {}'.format(proposal.lodgement_number)
+            logger.error('{}\n{}'.format(err_msg, str(e)))
+
+    return msgs
 
 
 def send_approval_renewal_email_notification(approval):

@@ -81,7 +81,7 @@
                             :forEndorser="forEndorser"
                   />
               </div>
-              <div class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
+              <div v-if="!forEndorser" class="tab-pane fade" id="pills-insurance" role="tabpanel" aria-labelledby="pills-insurance-tab">
                   <Insurance
                   :proposal="proposal"
                   id="insurance"

@@ -42,6 +42,7 @@ class Command(BaseCommand):
         subprocess.call('python manage_ml.py send_mooring_licence_application_submit_due_reminder', shell=True)
         subprocess.call('python manage_ml.py send_accept_mooring_licence_reminder', shell=True)
         subprocess.call('python manage_ml.py remove_unpaid_dcv_admissions', shell=True)
+        subprocess.call('python manage_ml.py check_proposal_endorsements', shell=True)
 
         logger.info('===== Completed command: {} ====='.format(__name__))
         cron_email.info('</div>')

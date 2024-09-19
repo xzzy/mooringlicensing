@@ -231,7 +231,6 @@ class ProposalSignedLicenceAgreementDocument(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
-
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
     APPLICANT_TYPE_ORGANISATION = 'ORG'
     APPLICANT_TYPE_PROXY = 'PRX'
@@ -374,17 +373,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     preferred_bay = models.ForeignKey('MooringBay', null=True, blank=True, on_delete=models.SET_NULL)
     ## Electoral Roll component field
     silent_elector = models.BooleanField(null=True) # if False, user is on electoral roll
-    ## Mooring Authorisation fields mooring_suthorisation_preferences, bay_preferences_numbered, site_licensee_email and mooring
     # AUA
     mooring_authorisation_preference = models.CharField(max_length=20, choices=MOORING_AUTH_PREFERENCES, blank=True)
     bay_preferences_numbered = ArrayField(
             models.IntegerField(null=True, blank=True),
             blank=True,null=True,
             )
-    site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
-    mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL)
-    endorser_reminder_sent = models.BooleanField(default=False)
-    declined_by_endorser = models.BooleanField(default=False)
+
     ## MLA
     allocated_mooring = models.ForeignKey('Mooring', null=True, blank=True, on_delete=models.SET_NULL, related_name="ria_generated_proposal")
     waiting_list_allocation = models.ForeignKey('mooringlicensing.WaitingListAllocation',null=True,blank=True, related_name="ria_generated_proposal", on_delete=models.SET_NULL)
@@ -885,16 +880,28 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             final_status = True
         return final_status
 
-    def endorse_approved(self, request):
-        self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-        self.save()
-        logger.info(f'Endorsement approved for the Proposal: [{self}] by the endorser: [{request.user}].')
+    #check proposal for any remaining site licensee mooring requests - update to with assessor otherwise    
+    def check_endorsements(self, request):
+        from mooringlicensing.helpers import is_internal
+        if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            if (is_internal(request) and (
+                self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
+                self.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER
+            )):
+                return
+            raise serializers.ValidationError("proposal not awaiting endorsement")
+        #only proceed if status is awaiting endorsement and request user is an endorser (or internal)
+        site_licensee_mooring_request = self.site_licensee_mooring_request.all()
+        if not (is_internal(request) or site_licensee_mooring_request.filter(site_licensee_email=request.user.email).exists()):
+            raise serializers.ValidationError("user not authorised to check endorsements")
 
-    def endorse_declined(self, request):
-        self.processing_status = Proposal.PROCESSING_STATUS_DECLINED
-        self.declined_by_endorser = True
-        self.save()
-        logger.info(f'Endorsement declined for the Proposal: [{self}] by the endorser: [{request.user}].')
+        if not (site_licensee_mooring_request.filter(declined_by_endorser=False,approved_by_endorser=False,enabled=True).exists()):
+            #if all requests are endorsed or declined, set proposal status with assessor
+            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+            self.save()
+            logger.info(f'All site licensee mooring requests endorsed or declined for the Proposal: [{self}].')
+
+            send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_customer_status(self):
         matrix = {
@@ -1582,22 +1589,43 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 
                 mooring_on_approval = temp
 
+                requested_mooring_on_approval = details.get('requested_mooring_on_approval')
+                requested_mooring_on_approval.reverse()
+                requested_id_list = []
+                requested_checked_list = []
+                temp = []
+
+                for i in requested_mooring_on_approval:
+                    if "id" in i and "checked" in i and not i["id"] in requested_id_list:
+                        temp.append(i)
+                        requested_checked_list.append(i["checked"])
+                        requested_id_list.append(i["id"])
+
+                requested_mooring_on_approval = temp
+
                 if mooring_id:
                     try:
                         ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                     except:
-                        if self.application_type.code == "aua":
+                        if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
                             raise serializers.ValidationError("Mooring id provided is invalid")
-                elif not mooring_on_approval or mooring_on_approval == []:
-                    if self.application_type.code == "aua":
-                        raise serializers.ValidationError("No mooring provided")
-                else:
-                    #check if mooring on approval list has at least one checked value
-                    if not True in checked_list:
-                        if self.application_type.code == "aua":
+                #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
+                elif self.application_type.code == "aua":
+                    if not mooring_on_approval or mooring_on_approval == []:
+                        if self.mooring_authorisation_preference == "site_licensee":
+                            if not requested_mooring_on_approval or requested_mooring_on_approval == []:
+                                raise serializers.ValidationError("No mooring provided")
+                        else:
                             raise serializers.ValidationError("No mooring provided")
+
+                        #check if mooring on approval list has at least one checked value
+                        if self.mooring_authorisation_preference != "site_licensee" and not True in checked_list:
+                            raise serializers.ValidationError("No mooring provided")
+                        elif self.mooring_authorisation_preference == "site_licensee" and not True in requested_checked_list:
+                            raise serializers.ValidationError("No mooring provided")
+
                         
-                check_mooring_ids = id_list
+                check_mooring_ids = id_list + requested_id_list
                 check_mooring_ids.append(mooring_id)
                 check_vessel = self.vessel_ownership.vessel
                 check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
@@ -1610,7 +1638,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
 
-
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
                     'mooring_bay_id': details.get('mooring_bay_id'),
@@ -1619,6 +1646,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'details': details.get('details'),
                     'cc_email': details.get('cc_email'),
                     'mooring_on_approval': mooring_on_approval,
+                    'requested_mooring_on_approval': requested_mooring_on_approval,
                     'vessel_ownership': details.get('vessel_ownership'),
                 }
                 self.proposed_decline_status = False
@@ -1841,14 +1869,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 from mooringlicensing.components.approvals.models import Sticker
-                logger.info(f'Processing final_approval...for the proposal: [{self}].')
+                logger.info(f'Processing final_approval... for the proposal: [{self}].')
 
                 self.proposed_decline_status = False
 
                 if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
-                        raise Exception('Cannot approve proposal...  There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
+                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
 
                 # Validation & update proposed_issuance_approval
                 if (self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
@@ -1882,22 +1910,42 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     
                     mooring_on_approval = temp
 
+                    requested_mooring_on_approval = details.get('requested_mooring_on_approval')
+                    requested_mooring_on_approval.reverse()
+                    requested_id_list = []
+                    requested_checked_list = []
+                    temp = []
+
+                    for i in requested_mooring_on_approval:
+                        if "id" in i and "checked" in i and not i["id"] in requested_id_list:
+                            temp.append(i)
+                            requested_checked_list.append(i["checked"])
+                            requested_id_list.append(i["id"])
+
+                    requested_mooring_on_approval = temp
+
                     if mooring_id:
                         try:
                             ria_mooring_name = Mooring.objects.get(id=mooring_id).name
                         except:
-                            if self.application_type.code == "aua":
+                            if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
                                 raise serializers.ValidationError("Mooring id provided is invalid")
-                    elif not mooring_on_approval or mooring_on_approval == []:
-                        if self.application_type.code == "aua":
-                            raise serializers.ValidationError("No mooring provided")
-                    else:
-                        #check if mooring on approval list has at least one checked value
-                        if not True in checked_list:
-                            if self.application_type.code == "aua":
+                    #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
+                    elif self.application_type.code == "aua":
+                        if not mooring_on_approval or mooring_on_approval == []:
+                            if self.mooring_authorisation_preference == "site_licensee":
+                                if not requested_mooring_on_approval or requested_mooring_on_approval == []:
+                                    raise serializers.ValidationError("No mooring provided")
+                            else:
                                 raise serializers.ValidationError("No mooring provided")
 
-                    check_mooring_ids = id_list
+                            #check if mooring on approval list has at least one checked value
+                            if self.mooring_authorisation_preference != "site_licensee" and not True in checked_list:
+                                raise serializers.ValidationError("No mooring provided")
+                            elif self.mooring_authorisation_preference == "site_licensee" and not True in requested_checked_list:
+                                raise serializers.ValidationError("No mooring provided")
+
+                    check_mooring_ids = id_list + requested_id_list
                     check_mooring_ids.append(mooring_id)
                     check_vessel = self.vessel_ownership.vessel
                     check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
@@ -1917,6 +1965,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         'details': details.get('details'),
                         'cc_email': details.get('cc_email'),
                         'mooring_on_approval': mooring_on_approval,
+                        'requested_mooring_on_approval': requested_mooring_on_approval,
                         'vessel_ownership': details.get('vessel_ownership'),
                     }
                     self.save()
@@ -3387,15 +3436,18 @@ class AuthorisedUserApplication(Proposal):
             logger.error("Proposal {}: Vessel must be at least {}m in length".format(self, min_vessel_size_str))
             raise serializers.ValidationError("Vessel must be at least {}m in length".format(min_vessel_size_str))
 
-        # check new site licensee mooring
+        # check new site licensee moorings
         proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
-        mooring_id = proposal_data.get('mooring_id')
-        if mooring_id and proposal_data.get('site_licensee_email'):
-            mooring = Mooring.objects.get(id=mooring_id)
+            
+        site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
+        moorings = Mooring.objects
+        for i in site_licensee_moorings_data:
+            mooring = moorings.filter(mooring__id=i["mooring_id"]).first()
             if (self.vessel_details.vessel_applicable_length > mooring.vessel_size_limit or
             self.vessel_details.vessel_draft > mooring.vessel_draft_limit):
                 logger.error("Proposal {}: Vessel unsuitable for mooring".format(self))
                 raise serializers.ValidationError("Vessel unsuitable for mooring")
+
         if self.approval:
             # Amend / Renewal
             if proposal_data.get('keep_existing_mooring'):
@@ -3694,8 +3746,9 @@ class AuthorisedUserApplication(Proposal):
             if ria_selected_mooring:
                 approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
             else:
-                if approval.current_proposal.mooring:
-                    approval.add_mooring(mooring=approval.current_proposal.mooring, site_licensee=True)
+                for moa in self.proposed_issuance_approval.get('requested_mooring_on_approval'):
+                    requested_mooring = Mooring.objects.get(id=moa.get("id"))
+                    approval.add_mooring(mooring=requested_mooring, site_licensee=True)
             # updating checkboxes
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
                 for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
@@ -4584,6 +4637,61 @@ class Mooring(RevisionedMixin):
         if vessel_details.vessel_applicable_length > self.vessel_size_limit or vessel_details.vessel_draft > self.vessel_draft_limit:
             suitable = False
         return suitable
+
+
+class ProposalSiteLicenseeMooringRequest(models.Model):
+    proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="site_licensee_mooring_request")
+    site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
+    mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
+    endorser_reminder_sent = models.BooleanField(default=False)
+    declined_by_endorser = models.BooleanField(default=False)
+    approved_by_endorser = models.BooleanField(default=False)
+
+    enabled = models.BooleanField(default=True) #enabled for proposal by submitter/applicant
+    created = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'mooringlicensing'
+
+    def endorse_approved(self, request):
+        from mooringlicensing.helpers import is_internal
+        if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            if not (is_internal(request) and (
+                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
+                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER
+            )):
+                raise serializers.ValidationError("proposal not awaiting endorsement")
+        
+        if not is_internal(request) and self.site_licensee_email != request.user.email:
+            raise serializers.ValidationError("user not authorised to approve endorsement")
+        
+        if (self.declined_by_endorser or self.approved_by_endorser):
+            raise serializers.ValidationError("site licensee mooring request already approved/declined")
+        self.approved_by_endorser = True
+        self.declined_by_endorser = False
+        self.save()
+        logger.info(f'Endorsement approved for the Proposal: [{self.proposal}], Mooring: [{self.mooring}] by the endorser: [{request.user}].')
+        self.proposal.check_endorsements(request)
+
+    def endorse_declined(self, request):
+        from mooringlicensing.helpers import is_internal
+        if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            if not (is_internal(request) and (
+                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
+                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER
+            )):
+                raise serializers.ValidationError("proposal not awaiting endorsement")
+        
+        if not is_internal(request) and self.site_licensee_email != request.user.email:
+            raise serializers.ValidationError("user not authorised to approve endorsement")
+        
+        if (self.declined_by_endorser or self.approved_by_endorser):
+            raise serializers.ValidationError("site licensee mooring request already approved/declined")
+        self.declined_by_endorser = True
+        self.approved_by_endorser = False
+        self.save()
+        logger.info(f'Endorsement declined for the Proposal: [{self.proposal}], Mooring: [{self.mooring}] by the endorser: [{request.user}].')
+        self.proposal.check_endorsements(request)
 
 class MooringLogDocument(Document):
     log_entry = models.ForeignKey('MooringLogEntry',related_name='documents', on_delete=models.CASCADE)
