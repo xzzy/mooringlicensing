@@ -1,6 +1,7 @@
 import logging
 from django.core.management.base import BaseCommand
 from mooringlicensing.components.proposals.models import ProposalSiteLicenseeMooringRequest, Proposal
+from django.db.models import F
 
 logger = logging.getLogger('cron_tasks')
 
@@ -10,6 +11,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         logger.info('Running command {}'.format(__name__))
         #get all enabled ProposalSiteLicenseeMooringRequests attached to a proposal with status "awaiting_endorsement"
+        site_licensee_mooring_requests = ProposalSiteLicenseeMooringRequest.objects.filter(
+            enabled=True,
+            proposal__processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+        )
+
+        #disabled all site licensee mooring requests that no longer have a current mooring with the recorded site licensee email
+        site_licensee_mooring_requests.exclude(
+            mooring__mooring_licence__approval__status="current",
+        ).update(enabled=False)
+        site_licensee_mooring_requests.exclude(
+            mooring__mooring_licence__approval__current_proposal__proposal_applicant__email=F('site_licensee_email')
+        ).update(enabled=False)
+
+        #re-retrieve after disabling invalid requests
         site_licensee_mooring_requests = ProposalSiteLicenseeMooringRequest.objects.filter(
             enabled=True,
             proposal__processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
