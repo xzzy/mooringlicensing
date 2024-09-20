@@ -2601,17 +2601,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.previous_application:
             if (self.mooring_authorisation_preference != self.previous_application.mooring_authorisation_preference):
                 return True
-            elif self.mooring_authorisation_preference == 'ria':
-                #this is a rare instance where a client-side decision can directly affect auto-approval
-                #if the user wants to add an additional (ria specified) mooring then we return the mooring as changed
-                if request and "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
-                    return True
-            elif self.mooring_authorisation_preference == 'site_licensee':
-                #mooring_id if site license
-                #TODO licensee need to checked as well? probably not
-                if (self.mooring_id != self.previous_application.mooring_id):
-                    return True
-
+            
+            if request and "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
+                return True
+            
         return False
 
 class ProposalApplicant(RevisionedMixin):
