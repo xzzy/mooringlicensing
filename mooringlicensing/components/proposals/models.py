@@ -1996,6 +1996,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     total_amount = sum(line_item['price_incl_tax'] for line_item in line_items)
 
                     if total_amount == 0:
+
+                        #TODO investigate why this is breaking - something happens to the proposal when paid for that does not happen here?
+
                         # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
                         # Ledger skips the payment step, which calling the function below
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=request)
@@ -4636,7 +4639,7 @@ class Mooring(RevisionedMixin):
 class ProposalSiteLicenseeMooringRequest(models.Model):
     proposal = models.ForeignKey(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="site_licensee_mooring_request")
     site_licensee_email = models.CharField(max_length=200, blank=True, null=True)
-    mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL)
+    mooring = models.ForeignKey(Mooring, null=True, blank=True, on_delete=models.SET_NULL, related_name="site_licensee_mooring_request")
     endorser_reminder_sent = models.BooleanField(default=False)
     declined_by_endorser = models.BooleanField(default=False)
     approved_by_endorser = models.BooleanField(default=False)
@@ -5817,7 +5820,7 @@ reversion.register(MooringLicenceApplication, follow=['documents', 'succeeding_p
 reversion.register(ProposalLogDocument, follow=[])
 reversion.register(ProposalLogEntry, follow=['documents'])
 reversion.register(MooringBay, follow=['proposal_set', 'mooring_set'])
-reversion.register(Mooring, follow=['proposal_set', 'ria_generated_proposal', 'comms_logs', 'action_logs', 'mooringonapproval_set', 'approval_set'])
+reversion.register(Mooring, follow=['ria_generated_proposal', 'comms_logs', 'action_logs', 'mooringonapproval_set', 'approval_set'])
 reversion.register(MooringLogDocument, follow=[])
 reversion.register(MooringLogEntry, follow=['documents'])
 reversion.register(MooringUserAction, follow=[])
