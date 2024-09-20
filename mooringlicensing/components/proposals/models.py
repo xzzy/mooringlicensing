@@ -2603,7 +2603,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 return True
             
             if request and "keep_existing_mooring" in request.data.get("proposal") and not request.data.get("proposal")["keep_existing_mooring"]:
-                return True
+                if self.mooring_authorisation_preference != 'site_licensee' or request.data.get("proposal")["site_licensee_moorings"] != []:
+                    return True
             
         return False
 
