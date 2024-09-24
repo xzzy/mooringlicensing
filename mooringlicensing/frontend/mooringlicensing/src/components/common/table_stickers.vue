@@ -159,8 +159,8 @@ export default {
         },
         column_holder: function(){
             return {
-                data: "approval",
-                orderable: false,
+                data: "id",
+                orderable: true,
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
@@ -172,7 +172,7 @@ export default {
                         return ''
                     }
                 },
-                name: 'approval__current_proposal__proposalapplicant__first_name, approval__current_proposal__proposalapplicant__last_name, approval__current_proposal__proposalapplicant__email'
+                name: 'approval__current_proposal__proposal_applicant__first_name, approval__current_proposal__proposal_applicant__last_name, approval__current_proposal__proposal_applicant__email'
             }
         },
         column_number: function(){
