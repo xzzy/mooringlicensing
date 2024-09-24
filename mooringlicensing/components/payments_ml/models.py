@@ -672,7 +672,10 @@ class FeeItem(models.Model):
     admission_type = models.ForeignKey('AdmissionType', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return f'${self.amount}(incremental:{self.incremental_amount}): {self.fee_constructor.application_type}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
+        if (self.fee_constructor):
+            return f'${self.amount}(incremental:{self.incremental_amount}): {self.fee_constructor.application_type}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
+        else:
+            return f'${self.amount}(incremental:{self.incremental_amount}): {None}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
 
     def get_max_allowed_length(self, vessel_length):
         logger.info(f'get_max_allowed_length() is called in the fee_item: {self}')
