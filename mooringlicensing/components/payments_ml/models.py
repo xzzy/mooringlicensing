@@ -672,7 +672,10 @@ class FeeItem(models.Model):
     admission_type = models.ForeignKey('AdmissionType', null=True, blank=True, on_delete=models.SET_NULL)
 
     def __str__(self):
-        return f'${self.amount}(incremental:{self.incremental_amount}): {self.fee_constructor.application_type}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
+        if (self.fee_constructor):
+            return f'${self.amount}(incremental:{self.incremental_amount}): {self.fee_constructor.application_type}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
+        else:
+            return f'${self.amount}(incremental:{self.incremental_amount}): {None}, {self.fee_period}, {self.vessel_size_category}, {self.proposal_type}'
 
     def get_max_allowed_length(self, vessel_length):
         logger.info(f'get_max_allowed_length() is called in the fee_item: {self}')
@@ -697,9 +700,14 @@ class FeeItem(models.Model):
 
     @property
     def application_type(self):
-        return self.fee_constructor.application_type
+        if self.fee_constructor:
+            return self.fee_constructor.application_type
+        return None
 
     def get_corresponding_fee_item(self, proposal_type):
+        if not self.fee_constructor:
+            raise Exception('FeeConstructor for FeeItem for fee_period: {}, vessel_size_category: {}, proposal_type: {} not found.'.format(self.fee_period, self.vessel_size_category, self.proposal_type))
+
         fee_item = self.fee_constructor.feeitem_set.filter(
             fee_period=self.fee_period,
             vessel_size_category=self.vessel_size_category,
@@ -724,6 +732,9 @@ class FeeItem(models.Model):
             if smaller_vessel_size_category:
                 # There is a smaller vessel size category of this incremental fee item.
                 # Absolute amount of this fee item is calculated by adding the incremental amount per meter to the absolute amount of the previous fee item.
+                if not self.fee_constructor:
+                    raise Exception('FeeConstructor for FeeItem for fee_period: {}, vessel_size_category: {}, proposal_type: {} not found.'.format(self.fee_period, self.vessel_size_category, self.proposal_type))
+
                 smaller_fee_item = self.fee_constructor.feeitem_set.filter(fee_period=self.fee_period, proposal_type=self.proposal_type, vessel_size_category=smaller_vessel_size_category)
                 if smaller_fee_item.count() == 1:
                     smaller_fee_item = smaller_fee_item.first()
