@@ -13,6 +13,8 @@ from mooringlicensing.components.proposals.models import AnnualAdmissionApplicat
 
 class FeePeriodFormSet(forms.models.BaseInlineFormSet):
     def clean(self):
+        if not self.is_valid():
+            raise forms.ValidationError('Invalid form submission')
         num_of_periods = len(self.cleaned_data)
         if num_of_periods < 1:
             # No periods configured for this season
