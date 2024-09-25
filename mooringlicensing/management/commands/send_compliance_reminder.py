@@ -31,7 +31,7 @@ class Command(BaseCommand):
             for setting in old_settings:
                 setting.delete()
         except:
-            print("Settings Already cleaned")
+            print("")
     
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()

@@ -141,7 +141,7 @@ class GlobalSettings(models.Model):
     KEY_ML_AU_LIST_TEMPLATE_FILE = 'ml_au_list_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
-    KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
+    # KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
     KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST = 'external_dashboard_sections_list'
     KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP = 'number_of_moorings_to_return_for_lookup'
     KEY_FEE_AMOUNT_OF_SWAP_MOORINGS = 'fee_amount_of_swap_moorings'
@@ -166,7 +166,7 @@ class GlobalSettings(models.Model):
         (KEY_ML_AU_LIST_TEMPLATE_FILE, 'Mooring Site Licence Authorised User Summary template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
-        (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit'),
+        # (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit'),
         (KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST, 'External dashboard sections list'),
         (KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP, 'Number of moorings to return for lookup'),
         (KEY_FEE_AMOUNT_OF_SWAP_MOORINGS, 'Fee amount of swap moorings'),
@@ -183,7 +183,7 @@ class GlobalSettings(models.Model):
         KEY_ML_AU_LIST_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML - AU Summary.docx'),
         KEY_MINIMUM_VESSEL_LENGTH: 3.76,
         KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.40,
-        KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
+        # KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
         KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST: 'LicencesAndPermitsTable, ApplicationsTable, CompliancesTable, WaitingListTable, AuthorisedUserApplicationsTable',
         KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP: 10,
         KEY_FEE_AMOUNT_OF_SWAP_MOORINGS: 317.00,

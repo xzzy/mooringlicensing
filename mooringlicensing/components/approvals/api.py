@@ -1292,11 +1292,12 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
             if request.data['mailed_date']:
                 mailed_date = datetime.strptime(request.data['mailed_date'], '%d/%m/%Y').date()
             try:
-                max_sticker_num = int(Sticker.objects.filter(dcv_permit__isnull=False).aggregate(Max('number'))['number__max'])
+                max_sticker_num = int(Sticker.objects.all().aggregate(Max('number'))['number__max'])
             except:
-                max_sticker_num = GlobalSettings.default_values[GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT]
+                max_sticker_num = 0
             
             sticker_number = max_sticker_num + 1
+            sticker_number = '{0:07d}'.format(sticker_number)
             data = {}
             data['number'] = sticker_number
             data['mailing_date'] = mailed_date
