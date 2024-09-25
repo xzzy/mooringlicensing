@@ -4807,6 +4807,8 @@ class Vessel(RevisionedMixin):
         #common blocks
         #another application of the same type that is not accepted, (printing sticker,) discarded, or declined 
         #another approval of the same type that is current or suspended - unless this is an amendment or renewal of a previous application
+        #another application of any kind where the vessel is owned by another user that is not accepted, (printing sticker,) discarded, or declined
+        #another approval of any other kind (though effectively all kinds) where the vessel is owned by another user that is current or suspended TODO
 
         #WL, AA, (and ML but that is taken care of above) blocks
         #a mooring license application that is not accepted, (printing sticker,) discarded, or declined 
@@ -4834,6 +4836,17 @@ class Vessel(RevisionedMixin):
         blocking_aua = []
         blocking_mla = []
 
+        if vessel_ownership.owner and vessel_ownership.owner.emailuser:
+            raise serializers.ValidationError("Invalid vessel ownership")
+
+        blocking_ownerships = Proposal.objects.filter(proposals_filter).exclude(vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
+        for bp in blocking_ownerships:
+            logger.debug(f'blocking_ownership: [{bp}]')
+
+        if blocking_ownerships:
+            logger.info(f'Blocking ownerships(s): [{blocking_ownerships}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active application with another owner")
+
         if proposal_being_processed.application_type_code == 'aua':
             blocking_proposals = AuthorisedUserApplication.objects.filter(proposals_filter)
         elif proposal_being_processed.application_type_code == 'aaa':
@@ -4856,13 +4869,13 @@ class Vessel(RevisionedMixin):
             logger.debug(f'blocking_mla: [{bp}]')      
 
         if blocking_proposals:
-            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
+            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another active " + proposal_being_processed.application_type.description)
         if blocking_aua:
-            logger.info(f'Blocking Authorised User Application(s): [{blocking_aua}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
+            logger.info(f'Blocking Authorised User Application(s): [{blocking_aua}] found.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another active Authorised User Application")
         if blocking_mla:
-            logger.info(f'Blocking Mooring License Application: [{blocking_mla}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
+            logger.info(f'Blocking Mooring License Application: [{blocking_mla}] found.')
             raise serializers.ValidationError("This vessel is already listed with RIA under another active Mooring License Application")
 
         #license/permit/approval block
@@ -4878,7 +4891,12 @@ class Vessel(RevisionedMixin):
         blocking_approvals = []
         blocking_aup = []
         blocking_ml = []
-        
+
+        blocking_approved_ownerships = Approval.objects.filter(approval_filter).exclude(current_proposal__vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
+        if blocking_approved_ownerships:
+            logger.info(f'Blocking ownerships(s): [{blocking_approved_ownerships}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
+            raise serializers.ValidationError("This vessel is already listed under a current Licence/Permit under another owner")
+
         if proposal_being_processed.application_type_code == 'aua':
             blocking_approvals = AuthorisedUserPermit.objects.filter(approval_filter)
         elif proposal_being_processed.application_type_code == 'aaa':
