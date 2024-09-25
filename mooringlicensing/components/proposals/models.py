@@ -1782,7 +1782,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     ):
                     compliance.processing_status='discarded'
                     compliance.customer_status = 'discarded'
-                    compliance.reminder_sent=True
                     compliance.post_reminder_sent=True
                     compliance.save()
                 #approval_compliances.delete()
@@ -2116,7 +2115,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             for c in cs:
                                 c.processing_status='discarded'
                                 c.customer_status = 'discarded'
-                                c.reminder_sent=True
                                 c.post_reminder_sent=True
                                 c.save()
                         if r.is_deleted == False:
@@ -3777,7 +3775,6 @@ class AuthorisedUserApplication(Proposal):
                 #approval_compliances.delete()
                 compliance.processing_status='discarded'
                 compliance.customer_status = 'discarded'
-                compliance.reminder_sent=True
                 compliance.post_reminder_sent=True
                 compliance.save()
             self.generate_compliances(approval, request)
@@ -4358,7 +4355,6 @@ class MooringLicenceApplication(Proposal):
                 #approval_compliances.delete()
                     compliance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
                     compliance.customer_status = Compliance.CUSTOMER_STATUS_DISCARDED
-                    compliance.reminder_sent=True
                     compliance.post_reminder_sent=True
                     compliance.save()
                 self.generate_compliances(approval, request)

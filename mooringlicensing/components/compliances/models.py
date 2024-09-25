@@ -79,8 +79,8 @@ class Compliance(RevisionedMixin):
     requirement = models.ForeignKey(ProposalRequirement, blank=True, null=True, related_name='compliance_requirement', on_delete=models.SET_NULL)
     lodgement_date = models.DateTimeField(blank=True, null=True)
     submitter = models.IntegerField(blank=True, null=True)
-    reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
+    due_reminder_count = models.PositiveSmallIntegerField('Number of times a due reminder has been sent', default=0)
     fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     class Meta:
@@ -294,7 +294,8 @@ class ComplianceUserAction(UserAction):
     ACTION_UNASSIGN = "Unassign"
     ACTION_DECLINE_REQUEST = "Decline request"
     ACTION_ID_REQUEST_AMENDMENTS = "Request amendments"
-    ACTION_REMINDER_SENT = "Reminder sent for compliance {}"
+    ACTION_REMINDER_SENT = "Reminder sent for due compliance {}"
+    ACTION_OVERDUE_REMINDER_SENT = "Post due date reminder sent for Compliance {}"
     ACTION_STATUS_CHANGE = "Change status to Due for compliance {}"
     # Assessors
     ACTION_CONCLUDE_REQUEST = "Conclude request {}"

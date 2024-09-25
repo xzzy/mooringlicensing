@@ -3,7 +3,7 @@
 {% block content_body %}
 Dear {{ recipient.first_name }} {{ recipient.last_name }},
 You are reminded of the invitation to apply for a mooring site licence based on your current Waiting List Allocation {{ approval.lodgement_number }}. Your opportunity to apply for a mooring licence will be discarded if you do not submit your mooring licence application before this date.
-You are required to submit your application within {{ number_of_days }} number of days before {{ due_date }}.
+You are required to submit your application {% if number_of_days == 1 %} by tomorrow {% else %}within {{ number_of_days }} number of days {% endif %}before {{ due_date }}.
 
 Please click <a href="{{ url }}">here</a> to access the application.
 

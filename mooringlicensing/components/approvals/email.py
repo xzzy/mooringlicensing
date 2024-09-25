@@ -201,16 +201,18 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
             _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
 
     return msg
+from django.utils import timezone
+def send_reminder_submission_of_mla_mail(approval, days_first_reminder, days_second_reminder, days_final_reminder, total_expire_period, request=None):
+    today = timezone.localtime(timezone.now())
+    due_date = approval.issue_date + timedelta(total_expire_period)
+    days_left = (due_date.date() - today.date()).days
 
-def send_reminder_to_accept_ml_offer_mail(approval, days_before_expire, total_expire_period, notice_count, request=None):
-    
-    if notice_count and notice_count == 1:
-        subject = 'First Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'
-    if notice_count and notice_count == 2:
-        subject = 'Second Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'
-    if notice_count and notice_count == 3:
-        subject = 'Final Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'
-    
+    if days_left == days_first_reminder:
+        subject = 'First Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'     
+    elif days_left == days_second_reminder:
+        subject = 'Second Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'       
+    elif days_left == days_final_reminder:
+        subject = 'Final Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'  
     if subject:    
         email = TemplateEmailBase(
             subject=subject,
@@ -226,8 +228,8 @@ def send_reminder_to_accept_ml_offer_mail(approval, days_before_expire, total_ex
             'recipient': approval.applicant_obj,
             'url': get_public_url(request),
             'approval' : approval,
-            'number_of_days' : days_before_expire,
-            'due_date' : approval.issue_date + timedelta(total_expire_period)
+            'number_of_days' : days_left,
+            'due_date' : due_date
         }
 
         sender = settings.DEFAULT_FROM_EMAIL
