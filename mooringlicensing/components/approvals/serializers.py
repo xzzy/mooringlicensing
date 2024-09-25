@@ -1287,10 +1287,8 @@ class StickerForDcvSaveSerializer(serializers.ModelSerializer):
     def validate(self, data):
         field_errors = {}
         non_field_errors = []
-
-        min_number = GlobalSettings.default_values[GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT]
-        if int(data['number']) < min_number:
-            field_errors['number'] = ['DCV Sticker number must be greater than ' + GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT,]
+        if int(data['number']) < 1:
+            field_errors['number'] = ['Sticker number must be greater than 0']
 
         # Raise errors
         if field_errors:

@@ -3449,10 +3449,8 @@ class Sticker(models.Model):
 
     @property
     def next_number(self):
-        min_dcv_sticker_number = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT).value
-        min_dcv_sticker_number = int(min_dcv_sticker_number)
         try:
-            ids = [int(i) for i in Sticker.objects.all().values_list('number', flat=True) if i and int(i) < min_dcv_sticker_number]
+            ids = [int(i) for i in Sticker.objects.all().values_list('number', flat=True) if i]
             return max(ids) + 1 if ids else 1
         except Exception as e:
             print(e)
