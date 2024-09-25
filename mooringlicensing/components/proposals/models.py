@@ -4834,16 +4834,16 @@ class Vessel(RevisionedMixin):
         blocking_aua = []
         blocking_mla = []
 
-        if self.application_type_code == 'aua':
+        if proposal_being_processed.application_type_code == 'aua':
             blocking_proposals = AuthorisedUserApplication.objects.filter(proposals_filter)
-        elif self.application_type_code == 'aaa':
+        elif proposal_being_processed.application_type_code == 'aaa':
             blocking_proposals = AnnualAdmissionApplication.objects.filter(proposals_filter)
             blocking_aua = AuthorisedUserApplication.objects.filter(proposals_filter)
             blocking_mla = MooringLicenceApplication.objects.filter(proposals_filter)
-        elif self.application_type_code == 'wla':
+        elif proposal_being_processed.application_type_code == 'wla':
             blocking_proposals = WaitingListApplication.objects.filter(proposals_filter)
             blocking_mla = MooringLicenceApplication.objects.filter(proposals_filter)
-        elif self.application_type_code == 'mla':
+        elif proposal_being_processed.application_type_code == 'mla':
             blocking_proposals = MooringLicenceApplication.objects.filter(proposals_filter)
         else:
             raise serializers.ValidationError("Invalid application type")
@@ -4857,13 +4857,13 @@ class Vessel(RevisionedMixin):
 
         if blocking_proposals:
             logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another active application")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active " + proposal_being_processed.application_type.description)
         if blocking_aua:
             logger.info(f'Blocking Authorised User Application(s): [{blocking_aua}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another active authorised user application")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active Authorised User Application")
         if blocking_mla:
             logger.info(f'Blocking Mooring License Application: [{blocking_mla}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another active mooring license application")
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active Mooring License Application")
 
         #license/permit/approval block
         approval_filter = Q()
@@ -4879,29 +4879,29 @@ class Vessel(RevisionedMixin):
         blocking_aup = []
         blocking_ml = []
         
-        if self.application_type_code == 'aua':
+        if proposal_being_processed.application_type_code == 'aua':
             blocking_approvals = AuthorisedUserPermit.objects.filter(approval_filter)
-        elif self.application_type_code == 'aaa':
+        elif proposal_being_processed.application_type_code == 'aaa':
             blocking_approvals = AnnualAdmissionPermit.objects.filter(approval_filter)
             blocking_aup = AuthorisedUserPermit.objects.filter(approval_filter)
             blocking_ml = MooringLicence.objects.filter(approval_filter)
-        elif self.application_type_code == 'wla':
+        elif proposal_being_processed.application_type_code == 'wla':
             blocking_approvals = WaitingListAllocation.objects.filter(approval_filter)
             blocking_ml = MooringLicence.objects.filter(approval_filter)
-        elif self.application_type_code == 'mla':
+        elif proposal_being_processed.application_type_code == 'mla':
             blocking_approvals = MooringLicence.objects.filter(approval_filter)
         else:
             raise serializers.ValidationError("Invalid application type")
 
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("This vessel is listed under a current Licence/Permit with another owner")
+            raise serializers.ValidationError("This vessel is already listed under a current " + proposal_being_processed.approval_class.description)
         if blocking_aup:
             logger.info(f'Blocking Authorised User Permit(s): [{blocking_aup}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("This vessel is listed under a current Authorised User Permit with another owner")
+            raise serializers.ValidationError("This vessel is listed under a current Authorised User Permit - cannot submit a new " + proposal_being_processed.application_type.description)
         if blocking_ml:
             logger.info(f'Blocking Mooring License: [{blocking_ml}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("This vessel is listed under a current Mooring License with another owner")
+            raise serializers.ValidationError("This vessel is listed under a current Mooring License - cannot submit a new " + proposal_being_processed.application_type.description)
         
     @property
     def latest_vessel_details(self):
