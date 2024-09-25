@@ -4808,7 +4808,7 @@ class Vessel(RevisionedMixin):
         #another application of the same type that is not accepted, (printing sticker,) discarded, or declined 
         #another approval of the same type that is current or suspended - unless this is an amendment or renewal of a previous application
         #another application of any kind where the vessel is owned by another user that is not accepted, (printing sticker,) discarded, or declined
-        #another approval of any other kind (though effectively all kinds) where the vessel is owned by another user that is current or suspended TODO
+        #another approval of any other kind (though effectively all kinds) where the vessel is owned by another user that is current or suspended
 
         #WL, AA, (and ML but that is taken care of above) blocks
         #a mooring license application that is not accepted, (printing sticker,) discarded, or declined 
@@ -4836,7 +4836,7 @@ class Vessel(RevisionedMixin):
         blocking_aua = []
         blocking_mla = []
 
-        if vessel_ownership.owner and vessel_ownership.owner.emailuser:
+        if not vessel_ownership.owner or not vessel_ownership.owner.emailuser:
             raise serializers.ValidationError("Invalid vessel ownership")
 
         blocking_ownerships = Proposal.objects.filter(proposals_filter).exclude(vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
