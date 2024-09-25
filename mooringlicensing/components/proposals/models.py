@@ -3091,11 +3091,10 @@ class WaitingListApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        #MLA and WLA do not need a vessel to be submitted
-        return True
-        #if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
-        #    return True
-        # return False
+        #if a vessel is sold, WLA/MLA can be amended/renewed without a new one
+        if self.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,]:
+            return True
+        return False
 
     def process_after_approval(self, request=None, total_amount=0):
         pass
@@ -3359,8 +3358,9 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        # if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,):
-        #     return True
+        #if a vessel has been sold, a amendment/renewal can be made without submitting a new one
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,PROPOSAL_TYPE_RENEWAL):
+            return True
         return False
 
     def does_have_valid_associations(self):
@@ -3884,8 +3884,9 @@ class AuthorisedUserApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        # if self.proposal_type.code in (PROPOSAL_TYPE_RENEWAL,):
-        #     return True
+        #if a vessel has been sold, a amendment/renewal can be made without submitting a new one
+        if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,):
+            return True
         return False
 
     def does_have_valid_associations(self):
@@ -4414,11 +4415,9 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def does_accept_null_vessel(self):
-        #MLA and WLA do not need a vessel to be submitte
-        return True
-        #if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
-        #    return True
-        #return False
+        if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
+            return True
+        return False
 
     def does_have_valid_associations(self):
         """
@@ -4797,84 +4796,127 @@ class Vessel(RevisionedMixin):
     ## at submit
     def check_blocking_ownership(self, vessel_ownership, proposal_being_processed):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
-        from mooringlicensing.components.approvals.models import Approval, MooringLicence
+        from mooringlicensing.components.approvals.models import (
+            Approval, MooringLicence, AuthorisedUserPermit, AnnualAdmissionPermit, WaitingListAllocation
+        )
 
-        #NOTE below check has been disabled
-        #a vessel CAN have multiple owners, subject to owner percentage, multiple owners cannot exist across multipe licenses (TODO review reqs)
-        # a vessel can be owned by multiple owners if their percentage is low enough
-        #if proposal_being_processed.proposal_applicant:
-        #    if self.filtered_vesselownership_set.exclude(owner__emailuser=proposal_being_processed.proposal_applicant.email_user_id):
-        #        raise serializers.ValidationError("This vessel is already listed with RIA under another owner")
-        #else:
-        #    raise serializers.ValidationError("No valid proposal applicant provided")
-        
-        #vessels can be:
-        # 1 on multiple active approvals IF owned by the same person
-        # 2 on only ONE active proposal at a time
+        #common blocks
+        #another application of the same type that is not accepted, (printing sticker,) discarded, or declined 
+        #another approval of the same type that is current or suspended - unless this is an amendment or renewal of a previous application
+        #another application of any kind where the vessel is owned by another user that is not accepted, (printing sticker,) discarded, or declined
+        #another approval of any other kind (though effectively all kinds) where the vessel is owned by another user that is current or suspended
 
-        ## Requirement: If vessel is owned by multiple parties then there must be no
-        # 1. other application in status other than issued, declined or discarded where the applicant is another owner than this applicant
-        proposals_filter = Q()  # This is condition for the proposal to be blocking proposal.
+        #WL, AA, (and ML but that is taken care of above) blocks
+        #a mooring license application that is not accepted, (printing sticker,) discarded, or declined 
+        #a current or suspended mooring approval
+
+        #AA blocks
+        #an authorised User application that is not accepted, (printing sticker,) discarded, or declined (does not apply in reverse)
+        #a current or suspended Authorised User Permit (does not apply in reverse)
+
+        #application/proposal block
+        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+        proposals_filter = Q()
         proposals_filter &= Q(vessel_ownership__vessel=self)  # Blocking proposal is for the same vessel
+        proposals_filter &= (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date=None)) # The vessel has not been sold yet
         proposals_filter &= ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
             Proposal.PROCESSING_STATUS_APPROVED,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER, #it is possible for an approval to expire before the sticker has printed
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER, #printing sticker is treated the same as approved
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_EXPIRED,
             Proposal.PROCESSING_STATUS_DISCARDED,
         ])
-        proposals_filter &= ~Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed, of course
-        if proposal_being_processed.previous_application:
-            proposals_filter &= ~Q(id=proposal_being_processed.previous_application.id)  # also exclude the "previous application", should this application be a renewal or amendment
+        proposals_filter &= ~Q(id=proposal_being_processed.id)  # Blocking proposal is not the proposal being processed
 
-        blocking_proposals = Proposal.objects.filter(proposals_filter)
+        blocking_proposals = []
+        blocking_aua = []
+        blocking_mla = []
+
+        if not vessel_ownership.owner or not vessel_ownership.owner.emailuser:
+            raise serializers.ValidationError("Invalid vessel ownership")
+
+        blocking_ownerships = Proposal.objects.filter(proposals_filter).exclude(vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
+        for bp in blocking_ownerships:
+            logger.debug(f'blocking_ownership: [{bp}]')
+
+        if blocking_ownerships:
+            logger.info(f'Blocking ownerships(s): [{blocking_ownerships}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active application with another owner")
+
+        if proposal_being_processed.application_type_code == 'aua':
+            blocking_proposals = AuthorisedUserApplication.objects.filter(proposals_filter)
+        elif proposal_being_processed.application_type_code == 'aaa':
+            blocking_proposals = AnnualAdmissionApplication.objects.filter(proposals_filter)
+            blocking_aua = AuthorisedUserApplication.objects.filter(proposals_filter)
+            blocking_mla = MooringLicenceApplication.objects.filter(proposals_filter)
+        elif proposal_being_processed.application_type_code == 'wla':
+            blocking_proposals = WaitingListApplication.objects.filter(proposals_filter)
+            blocking_mla = MooringLicenceApplication.objects.filter(proposals_filter)
+        elif proposal_being_processed.application_type_code == 'mla':
+            blocking_proposals = MooringLicenceApplication.objects.filter(proposals_filter)
+        else:
+            raise serializers.ValidationError("Invalid application type")
+        
         for bp in blocking_proposals:
             logger.debug(f'blocking_proposal: [{bp}]')
+        for bp in blocking_aua:
+            logger.debug(f'blocking_aua: [{bp}]')
+        for bp in blocking_mla:
+            logger.debug(f'blocking_mla: [{bp}]')      
 
         if blocking_proposals:
-            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another active application")
+            logger.info(f'Blocking proposal(s): [{blocking_proposals}] found.')
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active " + proposal_being_processed.application_type.description)
+        if blocking_aua:
+            logger.info(f'Blocking Authorised User Application(s): [{blocking_aua}] found.')
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active Authorised User Application")
+        if blocking_mla:
+            logger.info(f'Blocking Mooring License Application: [{blocking_mla}] found.')
+            raise serializers.ValidationError("This vessel is already listed with RIA under another active Mooring License Application")
 
-        # 2. Annual Admission Permit, Authorised User Permit or Mooring Licence in status other than expired, cancelled, or surrendered
-        #    where Permit or Licence holder is an owner other than the applicant of this Waiting List application
-        ## ML Filter <== Is this just for WLApplication...???
-        ml_filter = Q(
-            ~Q(
-                Q(status__in=[
+        #license/permit/approval block
+        approval_filter = Q()
+        approval_filter &= Q(current_proposal__vessel_ownership__vessel=self) # Approval is for the same vessel
+        approval_filter &= (Q(current_proposal__vessel_ownership__end_date__gt=today) | Q(current_proposal__vessel_ownership__end_date=None)) # The vessel has not been sold yet
+        approval_filter &= ~Q(id=proposal_being_processed.approval.id) if proposal_being_processed.approval else Q() # We don't want to include the approval that this the proposal is for
+        approval_filter &= ~Q(status__in=[
                     Approval.APPROVAL_STATUS_CANCELLED,
                     Approval.APPROVAL_STATUS_EXPIRED,
-                    Approval.APPROVAL_STATUS_SURRENDERED]) |
-                Q(proposal__vessel_ownership=vessel_ownership) |
-                Q(proposal=proposal_being_processed)
-            ) &
-            Q(vesselownershiponapproval__approval__current_proposal__processing_status__in=[
-                Proposal.PROCESSING_STATUS_PRINTING_STICKER,
-                Proposal.PROCESSING_STATUS_APPROVED]) &
-            Q(vesselownershiponapproval__vessel_ownership__end_date__isnull=True) &
-            Q(vesselownershiponapproval__end_date__isnull=True) &
-            Q(vesselownershiponapproval__vessel_ownership__vessel=self)
-        )
-        blocking_approvals = MooringLicence.objects.filter(ml_filter)
-        if blocking_approvals:
-            logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Mooring Site Licence.')
-            raise serializers.ValidationError("This vessel is listed under a current Mooring Site Licence with another owner")
+                    Approval.APPROVAL_STATUS_SURRENDERED])
+        
+        blocking_approvals = []
+        blocking_aup = []
+        blocking_ml = []
 
-        ## 3. Other Approvals filter
-        today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-        approval_filter = Q()
-        # Approval is for the same vessel
-        approval_filter &= Q(current_proposal__vessel_ownership__vessel=self)
-        # The vessel has not been sold yet
-        approval_filter &= (Q(current_proposal__vessel_ownership__end_date__gt=today) | Q(current_proposal__vessel_ownership__end_date=None))
-        # Approval holder is different person
-        approval_filter &= ~Q(current_proposal__vessel_ownership=vessel_ownership)
-        # We don't want to include the approval this proposal is for.
-        approval_filter &= ~Q(id=proposal_being_processed.approval.id) if proposal_being_processed.approval else Q()
-        blocking_approvals = Approval.objects.filter(approval_filter)
+        blocking_approved_ownerships = Approval.objects.filter(approval_filter).exclude(current_proposal__vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
+        if blocking_approved_ownerships:
+            logger.info(f'Blocking ownerships(s): [{blocking_approved_ownerships}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
+            raise serializers.ValidationError("This vessel is already listed under a current Licence/Permit under another owner")
+
+        if proposal_being_processed.application_type_code == 'aua':
+            blocking_approvals = AuthorisedUserPermit.objects.filter(approval_filter)
+        elif proposal_being_processed.application_type_code == 'aaa':
+            blocking_approvals = AnnualAdmissionPermit.objects.filter(approval_filter)
+            blocking_aup = AuthorisedUserPermit.objects.filter(approval_filter)
+            blocking_ml = MooringLicence.objects.filter(approval_filter)
+        elif proposal_being_processed.application_type_code == 'wla':
+            blocking_approvals = WaitingListAllocation.objects.filter(approval_filter)
+            blocking_ml = MooringLicence.objects.filter(approval_filter)
+        elif proposal_being_processed.application_type_code == 'mla':
+            blocking_approvals = MooringLicence.objects.filter(approval_filter)
+        else:
+            raise serializers.ValidationError("Invalid application type")
+
         if blocking_approvals:
             logger.info(f'Blocking approval(s): [{blocking_approvals}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
-            raise serializers.ValidationError("This vessel is listed under a current Licence/Permit with another owner")
-
+            raise serializers.ValidationError("This vessel is already listed under a current " + proposal_being_processed.approval_class.description)
+        if blocking_aup:
+            logger.info(f'Blocking Authorised User Permit(s): [{blocking_aup}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
+            raise serializers.ValidationError("This vessel is listed under a current Authorised User Permit - cannot submit a new " + proposal_being_processed.application_type.description)
+        if blocking_ml:
+            logger.info(f'Blocking Mooring License: [{blocking_ml}] found.  Another owner of this vessel: [{self}] holds a current Licence/Permit.')
+            raise serializers.ValidationError("This vessel is listed under a current Mooring License - cannot submit a new " + proposal_being_processed.application_type.description)
+        
     @property
     def latest_vessel_details(self):
         return self.filtered_vesseldetails_set.first()
