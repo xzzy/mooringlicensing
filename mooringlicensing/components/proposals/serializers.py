@@ -1070,7 +1070,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
             checked = i.approved_by_endorser
             if obj.proposed_issuance_approval and 'requested_mooring_on_approval' in obj.proposed_issuance_approval:
                 for item in obj.proposed_issuance_approval['requested_mooring_on_approval']:
-                    if  i.id == item['id']:
+                    if  i.mooring_id == item['id']:
                         checked = item['checked']
 
             site_licensee = ""
