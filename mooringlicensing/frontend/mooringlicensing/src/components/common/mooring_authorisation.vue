@@ -156,8 +156,7 @@ import draggable from 'vuedraggable';
                             links += `<a href='/internal/moorings/${full.mooring_id}/'  target="_blank" style="cursor: pointer;">View</a><br/>`;
                             links += `<a onclick="window.removeSiteLicenseeMooring('${full.mooring_id}')" style="cursor: pointer;">Remove</a><br/>`;
 
-                            if (vm.proposal.processing_status == "Awaiting Endorsement" || vm.proposal.processing_status == "With Assessor" || 
-                                vm.proposal.processing_status == "With Approver" && full.endorsement !== undefined) {
+                            if ((vm.proposal.processing_status == "Awaiting Endorsement" || vm.proposal.processing_status == "With Assessor" || vm.proposal.processing_status == "With Assessor (Requirements)") && full.endorsement !== undefined) {
                                 if (full.endorsement == "Not Actioned") {
                                     links += `<a onclick="window.internalEndorse('${full.id}')" style="cursor: pointer;">Endorse on Licensee Behalf</a><br/>`;
                                     links += `<a onclick="window.internalDecline('${full.id}')" style="cursor: pointer;">Decline on Licensee Behalf</a><br/>`;

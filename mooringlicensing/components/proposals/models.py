@@ -888,7 +888,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         from mooringlicensing.helpers import is_internal
         if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
             if (is_internal(request) and (
-                self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                self.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
+                self.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
             )):
                 return
             raise serializers.ValidationError("proposal not awaiting endorsement")
@@ -1884,7 +1885,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.refresh_from_db()
         self.child_obj.refresh_from_db()
 
-    def final_approval_for_AUA_MLA(self, request=None, details=None):
+    def final_approval_for_AUA_MLA(self, request=None):
         from mooringlicensing.components.approvals.models import MooringOnApproval
         with transaction.atomic():
             try:
@@ -1910,85 +1911,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
                     if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
-
-                ## update proposed_issuance_approval
-                if details:
-                    ria_mooring_name = ''
-                    mooring_id = details.get('mooring_id')
-                    mooring_on_approval = details.get('mooring_on_approval')
-                    mooring_on_approval.reverse()
-                    id_list = []
-                    checked_list = []
-                    temp = []
-
-                    #sanitise mooring on approval - count only entry per id and only the latest among each id
-                    for i in mooring_on_approval:
-                        if "id" in i and "checked" in i and not i["id"] in id_list:
-                            temp.append(i)
-                            checked_list.append(i["checked"])
-                            id_list.append(i["id"])
-                    
-                    mooring_on_approval = temp
-
-                    requested_mooring_on_approval = details.get('requested_mooring_on_approval')
-                    requested_mooring_on_approval.reverse()
-                    requested_id_list = []
-                    requested_checked_list = []
-                    temp = []
-
-                    for i in requested_mooring_on_approval:
-                        if "id" in i and "checked" in i and not i["id"] in requested_id_list:
-                            temp.append(i)
-                            requested_checked_list.append(i["checked"])
-                            requested_id_list.append(i["id"])
-
-                    requested_mooring_on_approval = temp
-
-                    if mooring_id:
-                        try:
-                            ria_mooring_name = Mooring.objects.get(id=mooring_id).name
-                        except:
-                            if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
-                                raise serializers.ValidationError("Mooring id provided is invalid")
-                    #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
-                    elif self.application_type.code == "aua":
-                        if not mooring_on_approval or mooring_on_approval == []:
-                            if self.mooring_authorisation_preference == "site_licensee":
-                                if not requested_mooring_on_approval or requested_mooring_on_approval == []:
-                                    raise serializers.ValidationError("No mooring provided")
-                            else:
-                                raise serializers.ValidationError("No mooring provided")
-
-                            #check if mooring on approval list has at least one checked value
-                            if self.mooring_authorisation_preference != "site_licensee" and not True in checked_list:
-                                raise serializers.ValidationError("No mooring provided")
-                            elif self.mooring_authorisation_preference == "site_licensee" and not True in requested_checked_list:
-                                raise serializers.ValidationError("No mooring provided")
-
-                    check_mooring_ids = id_list + requested_id_list
-                    check_mooring_ids.append(mooring_id)
-                    check_vessel = self.vessel_ownership.vessel
-                    check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
-                    for i in check_moorings:
-                        if not i.mooring:
-                            raise serializers.ValidationError("Mooring does not exist")
-                        vessel_details = check_vessel.latest_vessel_details
-                        if (vessel_details.vessel_length > i.mooring.vessel_size_limit or
-                            vessel_details.vessel_draft > i.mooring.vessel_draft_limit or
-                            (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
-                            raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
-
-                    self.proposed_issuance_approval = {
-                        'mooring_bay_id': details.get('mooring_bay_id'),
-                        'mooring_id': mooring_id,
-                        'ria_mooring_name': ria_mooring_name,
-                        'details': details.get('details'),
-                        'cc_email': details.get('cc_email'),
-                        'mooring_on_approval': mooring_on_approval,
-                        'requested_mooring_on_approval': requested_mooring_on_approval,
-                        'vessel_ownership': details.get('vessel_ownership'),
-                    }
-                    self.save()
 
                 # if no request, must be a system reissue - skip payment section
                 # when reissuing, no new invoices should be created
@@ -2120,7 +2042,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.child_obj.code in (WaitingListApplication.code, AnnualAdmissionApplication.code):
             self.final_approval_for_WLA_AAA(request, details)
         elif self.child_obj.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-            return self.final_approval_for_AUA_MLA(request, details)
+            return self.final_approval_for_AUA_MLA(request)
 
     def generate_compliances(self,approval, request):
         today = timezone.now().date()
@@ -4655,11 +4577,12 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
         app_label = 'mooringlicensing'
 
     def endorse_approved(self, request):
+        #TODO change is_internal to assessor check
         from mooringlicensing.helpers import is_internal
         if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
             if not (is_internal(request) and (
-                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
-                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER
+                self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
+                self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
             )):
                 raise serializers.ValidationError("proposal not awaiting endorsement")
         
@@ -4675,11 +4598,12 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
         self.proposal.check_endorsements(request)
 
     def endorse_declined(self, request):
+        #TODO change is_internal to assessor check
         from mooringlicensing.helpers import is_internal
         if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
             if not (is_internal(request) and (
-                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
-                self.proposal.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER
+                self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
+                self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
             )):
                 raise serializers.ValidationError("proposal not awaiting endorsement")
         
