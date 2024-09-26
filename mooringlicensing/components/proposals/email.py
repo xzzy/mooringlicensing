@@ -1479,7 +1479,6 @@ def send_sticker_printing_batch_email(batches):
 
     return msg
 
-#TODO refactor this
 def send_endorsement_of_authorised_user_application_email(request, proposal):
     email = TemplateEmailBase(
         subject='Endorsement of Authorised user application',
@@ -1500,6 +1499,7 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
 
         #iterate through each site licensee mooring request
         mooring_name = site_licensee_mooring_request.mooring.name if site_licensee_mooring_request.mooring else ''
+        print(proposal)
         due_date = proposal.get_due_date_for_endorsement_by_target_date()
 
         # Configure recipients, contents, etc

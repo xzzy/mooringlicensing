@@ -956,6 +956,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     vessel_on_proposal = serializers.SerializerMethodField()
     proposed_issuance_approval = serializers.SerializerMethodField()
     site_licensee_moorings = serializers.SerializerMethodField()
+    has_unactioned_endorsements = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -1053,6 +1054,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'amendment_requests',
                 'uuid',
                 'allocated_mooring',
+                'has_unactioned_endorsements',
                 )
         read_only_fields = (
             'documents',
@@ -1290,6 +1292,9 @@ class InternalProposalSerializer(BaseProposalSerializer):
             'assessor_can_assess': obj.can_assess(user),
         }
     
+    def get_has_unactioned_endorsements(self,obj):
+        return obj.site_licensee_mooring_request.filter(enabled=True, declined_by_endorser=False, approved_by_endorser=False).exists()
+
     #TODO clean up auth check functions - remove redundant checks and rename to make more sense
     def get_approver_mode(self,obj):
         request = self.context['request']

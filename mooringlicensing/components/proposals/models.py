@@ -1208,7 +1208,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return self.child_obj.is_approver(user)
 
     def can_assess(self, user):
-        if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS,Proposal.PROCESSING_STATUS_DRAFT]:
+        if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS,Proposal.PROCESSING_STATUS_DRAFT,Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT]:
             return self.child_obj.is_assessor(user)
         elif self.processing_status in [Proposal.PROCESSING_STATUS_WITH_APPROVER, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, Proposal.PROCESSING_STATUS_PRINTING_STICKER]:
             return self.child_obj.is_approver(user)
@@ -1416,7 +1416,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     #run function to move to awaiting_endorsement (include auth check in model func)
                     self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
                     self.save()
-                    send_endorsement_of_authorised_user_application_email(request, self)
+                    send_endorsement_of_authorised_user_application_email(request, self.child_obj)
                 else:
                     serializers.ValidationError("No site licensee moorings requests that require action")
             else:

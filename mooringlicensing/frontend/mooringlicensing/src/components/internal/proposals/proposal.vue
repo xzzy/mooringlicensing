@@ -30,6 +30,8 @@
                     @toggleProposal="toggleProposal"
                     @toggleRequirements="toggleRequirements"
                     @switchStatus="switchStatus"
+                    @bypassEndorsement="bypassEndorsement"
+                    @requestEndorsement="requestEndorsement"
                     @backToAssessorRequirements="backToAssessorRequirements"
                     @amendmentRequest="amendmentRequest"
                     @proposedDecline="proposedDecline"
@@ -419,6 +421,7 @@ export default {
             else{
                 return this.proposal && 
                 (
+                    this.proposal.processing_status == 'Awaiting Endorsement' ||
                     this.proposal.processing_status == 'With Approver' || 
                     this.proposal.processing_status == 'With Assessor' || 
                     this.proposal.processing_status == 'With Assessor (Requirements)') && 
@@ -849,6 +852,69 @@ export default {
             console.log('in declineProposal')
             this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
             this.$refs.proposed_decline.isModalOpen = true;
+        },
+        bypassEndorsement: function(){
+            console.log("bypassEndorsement")
+            let vm = this;
+
+            if(vm.proposal.processing_status == 'Awaiting Endorsement' && 
+            [constants.AU_PROPOSAL].includes(vm.proposal.application_type_dict.code)){
+
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/bypass_endorsement')),{
+                    emulateJSON:true,
+                })
+                .then((response) => {
+                    console.log('0 response.body: ')
+                    console.log(response.body)
+                    vm.proposal = response.body;
+                    vm.original_proposal = helpers.copyObject(response.body);
+                    vm.approver_comment='';
+                    vm.$nextTick(() => {
+                        vm.initialiseAssignedOfficerSelect(true);
+                        vm.updateAssignedOfficerSelect();
+                    });
+                }, (error) => {
+                    vm.proposal = helpers.copyObject(vm.original_proposal)
+                    swal(
+                        'Proposal Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+
+            }
+        },
+        requestEndorsement: function(){
+            console.log("requestEndorsement")
+            let vm = this;
+
+            if(vm.proposal.processing_status == 'With Assessor' && 
+            [constants.AU_PROPOSAL].includes(vm.proposal.application_type_dict.code) &&
+            vm.proposal.has_unactioned_endorsements){
+
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/request_endorsement')),{
+                    emulateJSON:true,
+                })
+                .then((response) => {
+                    console.log('0 response.body: ')
+                    console.log(response.body)
+                    vm.proposal = response.body;
+                    vm.original_proposal = helpers.copyObject(response.body);
+                    vm.approver_comment='';
+                    vm.$nextTick(() => {
+                        vm.initialiseAssignedOfficerSelect(true);
+                        vm.updateAssignedOfficerSelect();
+                    });
+                }, (error) => {
+                    vm.proposal = helpers.copyObject(vm.original_proposal)
+                    swal(
+                        'Proposal Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+
+            }
         },
         backToAssessorRequirements: function(){
             console.log('Open modal here!')

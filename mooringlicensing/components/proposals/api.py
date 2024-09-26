@@ -1756,13 +1756,13 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = serializer_class(instance,context={'request':request})
         return Response(serializer.data)
 
-    detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def bypass_endorsement(self, request, *args, **kwargs):
         instance = self.get_object()
         if is_internal(request):
             #check if an AUA awaiting endorsement
-            if instance.application_type_code == 'aua' and instance.status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+            if instance.application_type_code == 'aua' and instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
                 #run function to move to with_assessor (include auth check in model func)
                 instance.bypass_endorsement(request)
             else:
@@ -1774,13 +1774,13 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             serializers.ValidationError("User not authorised to bypass endorsement")
     
-    detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def request_endorsement(self, request, *args, **kwargs):
         instance = self.get_object()
         if is_internal(request):
             #check if an AUA with site licensee mooring requests, that have not been actioned, with assessor
-            if instance.application_type_code == 'aua' and instance.status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
+            if instance.application_type_code == 'aua' and instance.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                 if instance.site_licensee_mooring_request.filter(enabled=True,declined_by_endorser=False,approved_by_endorser=False).exists():
                     #run function to move to awaiting_endorsement (include auth check in model func)
                     instance.request_endorsement(request)
