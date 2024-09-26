@@ -1398,6 +1398,32 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             elif self.processing_status == self.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
                 self.log_user_action(ProposalUserAction.ACTION_ENTER_REQUIREMENTS.format(self.lodgement_number), request)
 
+    def bypass_endorsement(self,request):
+        if self.is_assessor(request.user):
+            if type(self.child_obj) == AuthorisedUserApplication and self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                self.save()
+                send_notification_email_upon_submit_to_assessor(request, self)
+            else:
+                serializers.ValidationError("Invalid application type")
+        else:
+            raise ValidationError('Not authorised to bypass endorsement')
+
+    def request_endorsement(self,request):
+        if self.is_assessor(request.user):
+            if type(self.child_obj) == AuthorisedUserApplication and self.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
+                if self.site_licensee_mooring_request.filter(enabled=True,declined_by_endorser=False,approved_by_endorser=False).exists():
+                    #run function to move to awaiting_endorsement (include auth check in model func)
+                    self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
+                    self.save()
+                    send_endorsement_of_authorised_user_application_email(request, self)
+                else:
+                    serializers.ValidationError("No site licensee moorings requests that require action")
+            else:
+                serializers.ValidationError("Invalid application type")
+        else:
+            raise ValidationError('Not authorised to request endorsement')
+
     def reissue_approval(self, request):
         with transaction.atomic():
             vessels = []

@@ -1479,7 +1479,7 @@ def send_sticker_printing_batch_email(batches):
 
     return msg
 
-
+#TODO refactor this
 def send_endorsement_of_authorised_user_application_email(request, proposal):
     email = TemplateEmailBase(
         subject='Endorsement of Authorised user application',
