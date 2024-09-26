@@ -460,6 +460,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return str(self.lodgement_number)
 
     def withdraw(self, request, *args, **kwargs):
+        #TODO add auth - only the applicant or an assessor should be able to withdraw (also add status check?)
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
@@ -469,6 +470,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.process_after_withdrawn()
 
     def destroy(self, request, *args, **kwargs):
+        #TODO add auth - only the applicant or an assessor should be able to discard (also add status check?)
         self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
         self.save()
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
@@ -481,6 +483,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         send_application_discarded_email(self, request)
 
     def copy_vessel_details(self, proposal):
+        #TODO add auth - this is used when creating a mooring license from a waiting list allocation - should only be allowed for groups that can offer mooring
         proposal.rego_no = self.rego_no
         proposal.vessel_id = self.vessel_id
         proposal.vessel_type = self.vessel_type
@@ -885,8 +888,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         from mooringlicensing.helpers import is_internal
         if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
             if (is_internal(request) and (
-                self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
-                self.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER
+                self.processing_status != Proposal.PROCESSING_STATUS_WITH_ASSESSOR
             )):
                 return
             raise serializers.ValidationError("proposal not awaiting endorsement")
@@ -1096,14 +1098,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
     @property
-    def assessor_assessment(self):
-        qs = self.assessment.all()  # <== Is this correct???
-        if qs:
-            return qs[0]
-        else:
-            return None
-
-    @property
     def permit(self):
         return self.approval.licence_document._file.url if self.approval else None
 
@@ -1310,8 +1304,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def assing_approval_level_document(self, request):
+    def assign_approval_level_document(self, request):
         with transaction.atomic():
+            #TODO add auth - approver only
             try:
                 approval_level_document = request.data['approval_level_document']
                 if approval_level_document != 'null':
@@ -2204,6 +2199,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise
 
     def add_vessels_and_moorings_from_licence(self):
+        #TODO add auth
         if self.approval and type(self) is MooringLicenceApplication:
             for vooa in self.approval.vesselownershiponapproval_set.filter(
                     Q(end_date__isnull=True) &
@@ -2218,6 +2214,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.save()
 
     def clone_proposal_with_status_reset(self):
+        #TODO add auth
         with transaction.atomic():
             try:
                 proposal = type(self.child_obj).objects.create()
@@ -2237,6 +2234,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise
 
     def renew_approval(self,request):
+        #TODO add auth - original applicant or assessor only
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -2284,6 +2282,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise e
 
     def amend_approval(self,request):
+        #TODO add auth - original applicant or assessor only
         with transaction.atomic():
             previous_proposal = self
             try:
@@ -2482,22 +2481,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise ValueError('Unknown proposal type of the proposal: {}'.format(self))
 
         return target_date
-
-    #def auto_approve_check(self, request):
-    #    # New AnnualAdmission can be auto_approved
-    #    if type(self.child_obj) == AnnualAdmissionApplication and self.proposal_type.code == 'new':
-    #        self.auto_approve = True
-    #        self.save()
-    #    ## WLA
-    #    if (type(self.child_obj) == WaitingListApplication and 
-    #            self.previous_application_status_filter and 
-    #            self.preferred_bay != self.previous_application_status_filter.preferred_bay
-    #            ):
-    #        self.auto_approve = False
-    #        self.save()
-
-    #    if self.auto_approve:
-    #        self.final_approval_for_WLA_AAA(request, details={})
 
     def vessel_on_proposal(self):
         from mooringlicensing.components.approvals.models import MooringLicence
