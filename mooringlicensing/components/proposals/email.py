@@ -1487,47 +1487,46 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
         txt_template='mooringlicensing/emails/send_endorsement_of_aua.txt',
     )
     url = settings.SITE_URL if settings.SITE_URL else ''
-    # endorse_url = url + reverse('endorse-url', kwargs={'uuid_str': proposal.uuid})
-    # decline_url = url + reverse('decline-url', kwargs={'uuid_str': proposal.uuid})
-    # proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
     login_url = MOORING_LICENSING_EXTERNAL_URL + reverse('external')
 
-    try:
-        endorser = EmailUser.objects.get(email=proposal.site_licensee_email)
-    except:
-        # Should not reach here
-        return
+    msgs = []
+    for site_licensee_mooring_request in proposal.site_licensee_mooring_request.filter(enabled=True,declined_by_endorser=False,approved_by_endorser=False):
+        #replace with multiple site licensee emails
+        try:
+            endorser = EmailUser.objects.get(email=site_licensee_mooring_request.site_licensee_email)
+        except:
+            # Should not reach here
+            return
 
-    mooring_name = proposal.mooring.name if proposal.mooring else ''
-    due_date = proposal.get_due_date_for_endorsement_by_target_date()
+        #iterate through each site licensee mooring request
+        mooring_name = site_licensee_mooring_request.mooring.name if site_licensee_mooring_request.mooring else ''
+        due_date = proposal.get_due_date_for_endorsement_by_target_date()
 
-    # Configure recipients, contents, etc
-    context = {
-        'public_url': get_public_url(request),
-        'proposal': proposal,
-        'recipient': proposal.applicant_obj,
-        'endorser': endorser,
-        'applicant': proposal.applicant_obj,
-        # 'endorse_url': make_http_https(endorse_url),
-        # 'decline_url': make_http_https(decline_url),
-        # 'proposal_url': make_http_https(proposal_url),
-        'mooring_name': mooring_name,
-        'due_date': due_date,
-        'login_url': login_url,
-    }
+        # Configure recipients, contents, etc
+        context = {
+            'public_url': get_public_url(request),
+            'proposal': proposal,
+            'recipient': proposal.applicant_obj,
+            'endorser': endorser,
+            'applicant': proposal.applicant_obj,
+            'mooring_name': mooring_name,
+            'due_date': due_date,
+            'login_url': login_url,
+        }
 
-    to_address = proposal.site_licensee_email
-    cc = []
-    bcc = []
+        to_address = proposal.site_licensee_email
+        cc = []
+        bcc = []
 
-    # Send email
-    msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
-    if msg:
-        # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-        sender = get_user_as_email_user(msg.from_email)
-        log_proposal_email(msg, proposal, sender)
+        # Send email
+        msg = email.send(to_address, context=context, attachments=[], cc=cc, bcc=bcc,)
+        if msg:
+            # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
+            sender = get_user_as_email_user(msg.from_email)
+            log_proposal_email(msg, proposal, sender)
+            msgs.append(msg)
 
-    return msg
+    return msgs
 
 def send_application_discarded_email(proposal, request):
     email = TemplateEmailBase(
