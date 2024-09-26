@@ -1514,7 +1514,7 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
             'login_url': login_url,
         }
 
-        to_address = proposal.site_licensee_email
+        to_address = site_licensee_mooring_request.site_licensee_email
         cc = []
         bcc = []
 
