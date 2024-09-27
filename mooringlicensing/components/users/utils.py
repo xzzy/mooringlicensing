@@ -9,15 +9,18 @@ from django.utils.encoding import smart_str
 from mooringlicensing.components.users.models import EmailUserLogEntry, private_storage
 from ledger_api_client.managed_models import SystemUser
 
-def create_system_user(email_user_id, email, first_name, last_name):
+def create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None):
     return SystemUser.objects.create(
         ledger_id_id=email_user_id,
         email=email,
         first_name=first_name,
         last_name=last_name,
+        legal_dob=dob,
+        phone_number=phone,
+        mobile_number=mobile,
     )
 
-def get_or_create_system_user(email_user_id, email, first_name, last_name, update=False):
+def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None, update=False):
     qs = SystemUser.objects.filter(ledger_id_id=email_user_id)
     if qs.exists():
         system_user = qs.first()
@@ -25,6 +28,9 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, updat
             system_user.email = email
             system_user.first_name = first_name
             system_user.last_name = last_name
+            system_user.legal_dob = dob
+            system_user.phone_number = phone
+            system_user.mobile_number = mobile
             system_user.save()
         return system_user, False 
     else:
@@ -33,6 +39,9 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, updat
             email=email,
             first_name=first_name,
             last_name=last_name,
+            legal_dob=dob,
+            phone_number=phone,
+            mobile_number=mobile,
         )
         return system_user, True
 

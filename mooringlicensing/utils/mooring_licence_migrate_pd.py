@@ -18,11 +18,12 @@ import json
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
+from ledger_api_client.managed_models import SystemUser
 
 from ledger_api_client.utils import get_or_create
 from mooringlicensing.components.payments_ml.models import FeeSeason
 
-from mooringlicensing.components.users.utils import create_system_user, get_or_create_system_user
+from mooringlicensing.components.users.utils import create_system_user, get_or_create_system_user, get_user_name
 
 from mooringlicensing.components.proposals.models import (
     Proposal,
@@ -504,30 +505,51 @@ class MooringLicenceReader():
 
     def create_proposal_applicant(self, proposal, user, user_row):
         postal_same_as_res = user_row.address==user_row.postal_address or user_row.postal_address==''
+        try:
+            system_user = SystemUser.objects.get(ledger_id=user)
+        except Exception as e:
+            print("error getting system user:",e)
+            
+        names = get_user_name(system_user)
+
+        if not system_user.legal_dob:
+            dob = parse(user_row.dob).date() if user_row.dob else None
+        else:
+            dob = system_user.legal_dob
+
+        if not system_user.phone_number:
+            phone = system_user.phone_number
+        else:
+            phone = self.__get_phone_number(user_row)
+
+        if not system_user.mobile_number:
+            mobile = system_user.mobile_number
+        else:
+            mobile = self.__get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
-           first_name=user_row.first_name,
-           last_name=user_row.last_name,
-           dob=parse(user_row.dob).date() if user_row.dob else None,
+           first_name=names["first_name"],
+           last_name=names["last_name"],
+           dob=dob,
 
            residential_line1=user_row.address,
            residential_locality=user_row.suburb,
            residential_state=user_row.state,
            residential_postcode=user_row.postcode,
 
-           postal_same_as_residential=postal_same_as_res,
-           postal_line1=user_row.postal_address if not postal_same_as_res else '',
-           postal_locality=user_row.postal_suburb,
-           postal_state=user_row.postal_state if not postal_same_as_res else '',
-           postal_postcode=user_row.postal_postcode if not postal_same_as_res else '',
+           postal_line1=user_row.postal_address if not postal_same_as_res else user_row.address,
+           postal_locality=user_row.postal_suburb if not postal_same_as_res else user_row.suburb,
+           postal_state=user_row.postal_state if not postal_same_as_res else user_row.state,
+           postal_postcode=user_row.postal_postcode if not postal_same_as_res else user_row.postcode,
 
-           phone_number=self.__get_phone_number(user_row),
-           mobile_number=self.__get_mobile_number(user_row),
+           phone_number=phone,
+           mobile_number=mobile,
 
            email=user.email,
         )
 
+        #TODO rework
         #if user.email in self.user_created:
         user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
         if len(user_dict) > 0:
@@ -536,27 +558,52 @@ class MooringLicenceReader():
             res = requests.post(url, data=user_dict)
 
     def create_proposal_applicant_aa(self, proposal, user, user_row):
-        postal_same_as_res = True
+
+        try:
+            system_user = SystemUser.objects.get(ledger_id=user)
+        except Exception as e:
+            print("error getting system user:",e)
+            
+        names = get_user_name(system_user)
+
+        if not system_user.legal_dob:
+            dob = parse(user_row.dob).date() if user_row.dob else None
+        else:
+            dob = system_user.legal_dob
+
+        if not system_user.phone_number:
+            phone = system_user.phone_number
+        else:
+            phone = self.__get_phone_number(user_row)
+
+        if not system_user.mobile_number:
+            mobile = system_user.mobile_number
+        else:
+            mobile = self.__get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
-           first_name=user_row.first_name,
-           last_name=user_row.last_name,
-           dob=parse(user_row.dob).date() if user_row.dob else None,
+           first_name=names["first_name"],
+           last_name=names["last_name"],
+           dob=dob,
 
            residential_line1=user_row.address,
            residential_locality=user_row.suburb,
            residential_state=user_row.state,
            residential_postcode=user_row.postcode,
 
-           postal_same_as_residential=postal_same_as_res,
+           postal_line1=user_row.address,
+           postal_locality=user_row.suburb,
+           postal_state=user_row.state,
+           postal_postcode=user_row.postcode,
 
-           phone_number=self.__get_phone_number(user_row),
-           mobile_number=self.__get_mobile_number(user_row),
+           phone_number=phone,
+           mobile_number=mobile,
 
            email=user.email,
         )
 
+        #TODO rework
         #if user.email in self.user_created:
         user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
         if len(user_dict) > 0:
@@ -648,6 +695,7 @@ class MooringLicenceReader():
 
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
+                dob = parse(user_row.dob).date() if user_row.dob else None
 
                 resp = get_or_create(email)       
                 user_id = None             
@@ -656,12 +704,14 @@ class MooringLicenceReader():
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
                         #create system user
-                        system_user = create_system_user(user_id, email, first_name, last_name)
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
                         self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
                         #get or create system user
-                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name)
+                        if not dob:
+                            dob = resp['data']['dob']
+                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
                         if created:
                             self.system_user_created.append(email)
                         else:
@@ -1223,7 +1273,7 @@ class MooringLicenceReader():
                 proposal=MooringLicenceApplication.objects.create(
                     #proposal_type_id=1, # new application
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
-                    submitter=user.id,
+                    submitter=user.id, #TODO submitter is not always the applicant, work out what this should be here 
                     lodgement_date=datetime.datetime.now().astimezone(),
                     migrated=True,
                     vessel_details=vessel_details,
