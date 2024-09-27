@@ -366,14 +366,13 @@ export default {
             return show;
         },
         readonly: function() {
-            if (this.proposal.assessor_mode.has_assessor_mode || this.proposal.approver_mode.has_approver_mode) {
+            if (this.proposal.assessor_mode.has_assessor_mode) {
                 return false
             }
             return true
         },
         submittable: function() {
-            if ((this.proposal.assessor_mode.has_assessor_mode || 
-                this.proposal.approver_mode.has_approver_mode) &&
+            if ((this.proposal.assessor_mode.has_assessor_mode) &&
                 (this.proposal.processing_status == 'Draft' || 
                 this.proposal.processing_status == 'Awaiting Payment')) {
                 return true

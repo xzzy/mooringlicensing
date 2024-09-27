@@ -20,7 +20,7 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <select class="form-control" v-model="approval.mooring_bay_id"
-                                            id="mooring_bay_lookup">
+                                            id="mooring_bay_lookup" :disabled="readonly">
                                             <option v-for="bay in mooringBays" v-bind:value="bay.id">
                                                 {{ bay.name }}
                                             </option>
@@ -35,7 +35,7 @@
                                     </div>
                                     <div class="col-sm-6">
                                         <select id="mooring_lookup" name="mooring_lookup" ref="mooring_lookup"
-                                            class="form-control" style="width:100%" />
+                                            class="form-control" style="width:100%" :disabled="readonly"/>
                                     </div>
                                 </div>
                             </div>
@@ -92,19 +92,18 @@
                                     </div>
                                     <div class="col-sm-9">
                                         <textarea name="approval_details" class="form-control" style="width:70%;"
-                                            v-model="approval.details"></textarea>
+                                            v-model="approval.details" :readonly="readonly"></textarea>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-
                                         <label class="control-label pull-left" for="Name">{{ ccText }}</label>
                                     </div>
                                     <div class="col-sm-9">
                                         <input type="text" class="form-control" name="approval_cc" style="width:70%;"
-                                            ref="bcc_email" v-model="approval.cc_email">
+                                            ref="bcc_email" v-model="approval.cc_email" :readonly="readonly">
                                     </div>
                                 </div>
                             </div>
@@ -171,6 +170,10 @@ export default {
         },
         mooringBays: {
             type: Array,
+        },
+        readonly:{
+            type: Boolean,
+            default: true,
         },
     },
     data: function () {
@@ -257,10 +260,14 @@ export default {
                         //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
+                            let disabled_str = ''
+                            if (vm.readonly) {
+                                disabled_str = ' disabled '
+                            }
                             if (full.checked) {
-                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + ' checked/>'
+                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"'  + disabled_str +  ' checked/>'
                             } else {
-                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"' + '/>'
+                                return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"'  + disabled_str +  '/>'
                             }
                             return '';
 
@@ -390,10 +397,14 @@ export default {
                         //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
+                            let disabled_str = ''
+                            if (vm.readonly) {
+                                disabled_str = ' disabled '
+                            }
                             if (full.checked) {
-                                return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"' + ' checked/>'
+                                return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"'  + disabled_str +  ' checked/>'
                             } else {
-                                return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"' + '/>'
+                                return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"'  + disabled_str +  '/>'
                             }
                             return '';
 
