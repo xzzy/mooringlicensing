@@ -1856,7 +1856,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def approval_level_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance = instance.assing_approval_level_document(request)
+        instance = instance.assign_approval_level_document(request)
         serializer = InternalProposalSerializer(instance,context={'request':request})
         return Response(serializer.data)
 

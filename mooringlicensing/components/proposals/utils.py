@@ -353,7 +353,6 @@ def save_proponent_data(instance, request, action, being_auto_approved=False):
          instance.proposal_applicant.email_user_id == request.user.id and 
          (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT) or being_auto_approved)
         or instance.has_assessor_mode(request.user)
-        or instance.has_approver_mode(request.user)
     ):
         if action == 'submit':
             logger.info('Proposal {} has been submitted'.format(instance.lodgement_number))
@@ -388,8 +387,7 @@ def save_proponent_data_aaa(instance, request, action):
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
         if ((action == 'submit' or (
-            (instance.has_assessor_mode(request.user)
-            or instance.has_approver_mode(request.user)) and 
+            instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
@@ -433,8 +431,7 @@ def save_proponent_data_wla(instance, request, action):
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
         if ((action == 'submit' or (
-            (instance.has_assessor_mode(request.user)
-            or instance.has_approver_mode(request.user)) and 
+            instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
@@ -473,8 +470,7 @@ def save_proponent_data_mla(instance, request, action):
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
         if ((action == 'submit' or (
-            (instance.has_assessor_mode(request.user)
-            or instance.has_approver_mode(request.user)) and 
+            instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
@@ -520,8 +516,7 @@ def save_proponent_data_aua(instance, request, action):
     vessel_data = deepcopy(request.data.get("vessel"))
     if vessel_data:
         if ((action == 'submit' or (
-            (instance.has_assessor_mode(request.user)
-            or instance.has_approver_mode(request.user)) and 
+            instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
             submit_vessel_data(instance, request, vessel_data)
         else:
