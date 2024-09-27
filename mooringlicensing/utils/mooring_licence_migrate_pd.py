@@ -22,6 +22,8 @@ from decimal import Decimal
 from ledger_api_client.utils import get_or_create
 from mooringlicensing.components.payments_ml.models import FeeSeason
 
+from mooringlicensing.components.users.utils import create_system_user, get_or_create_system_user
+
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalApplicant,
@@ -266,7 +268,7 @@ class MooringLicenceReader():
         mlr.run_migration
 
     FROM mgt-command:
-        python manage_ds.py mooring_migration_script --filename mooringlicensing/utils/csv/MooringDets20221201-083202.txt
+        python manage_ml.py mooring_migration_script --filename mooringlicensing/utils/csv/MooringDets20221201-083202.txt
 
 
     Check for unique permit numbers
@@ -317,7 +319,9 @@ class MooringLicenceReader():
         # create_users
         self.pers_ids = []
         self.user_created = []
+        self.system_user_created = []
         self.user_existing = []
+        self.system_user_existing = []
         self.user_errors = []
         self.no_email = []
 
@@ -619,13 +623,7 @@ class MooringLicenceReader():
     def _create_users_df(self, df):
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-            #if row.status != 'Vacant':
             try:
-#                if row.name == '206441':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 if not row.name :
                     continue
 
@@ -651,21 +649,32 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
 
-                resp = get_or_create(email)                    
+                resp = get_or_create(email)       
+                user_id = None             
                 if resp['status'] == 200:
+                    user_id = resp['data']['emailuser_id']
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
+                        #create system user
+                        system_user = create_system_user(user_id, email, first_name, last_name)
+                        self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
+                        #get or create system user
+                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name)
+                        if created:
+                            self.system_user_created.append(email)
+                        else:
+                            self.system_user_existing.append(email)
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
 
-                user_id = resp['data']['emailuser_id']
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                import ipdb
+                ipdb.set_trace()
                 self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
@@ -703,43 +712,23 @@ class MooringLicenceReader():
                 if resp['status'] == 200:
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
+                        #create system user
+                        system_user = create_system_user(user_id, email, first_name, last_name)
+                        self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
+                        #get or create system user
+                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name)
+                        if created:
+                            self.system_user_created.append(email)
+                        else:
+                            self.system_user_existing.append(email)
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
 
                 user_id = resp['data']['emailuser_id']
                 self.pers_ids.append((user_id, row.name))
-
-#                self.pers_ids.append((user.id, row.name))
-#                users = EmailUser.objects.filter(email=email)
-#                if users.count() == 0:
-#                    user = EmailUser.objects.create(
-#                        email=email,
-#                        first_name=first_name,
-#                        last_name=last_name,
-#                        #phone_number=self.__get_work_number(user_row),
-#                        phone_number=self.__get_phone_number(user_row),
-#                        mobile_number=self.__get_mobile_number(user_row)
-#                    )
-#
-#                    country = Country.objects.get(printable_name__icontains='AUSTRALIA')
-# 
-#                    self.user_created.append(email)
-#                else:
-#                    user = users[0]
-#                    # update user details
-#                    user.first_name = first_name
-#                    user.last_name = last_name
-#                    #user.phone_number = self.__get_work_number(user_row)
-#                    user.phone_number = self.__get_phone_number(user_row),
-#                    user.mobile_number = self.__get_mobile_number(user_row)
-#
-#                    country = Country.objects.get(printable_name__icontains='AUSTRALIA')
-#              
-#                self.pers_ids.append((user.id, row.name))
-
 
             except Exception as e:
                 import ipdb; ipdb.set_trace()

@@ -7,6 +7,34 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_str
 
 from mooringlicensing.components.users.models import EmailUserLogEntry, private_storage
+from ledger_api_client.managed_models import SystemUser
+
+def create_system_user(email_user_id, email, first_name, last_name):
+    return SystemUser.objects.create(
+        ledger_id_id=email_user_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+    )
+
+def get_or_create_system_user(email_user_id, email, first_name, last_name, update=False):
+    qs = SystemUser.objects.filter(ledger_id_id=email_user_id)
+    if qs.exists():
+        system_user = qs.first()
+        if update:            
+            system_user.email = email
+            system_user.first_name = first_name
+            system_user.last_name = last_name
+            system_user.save()
+        return system_user, False 
+    else:
+        system_user = SystemUser.objects.create(
+            ledger_id_id=email_user_id,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+        )
+        return system_user, True
 
 def get_user_name(user):
     """
