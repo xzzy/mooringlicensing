@@ -885,9 +885,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     #check proposal for any remaining site licensee mooring requests - update to with assessor otherwise    
     def check_endorsements(self, request):
-        from mooringlicensing.helpers import is_internal
         if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
-            if (is_internal(request) and (
+            if (self.is_assessor(request.user) and (
                 self.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
                 self.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
             )):
@@ -895,7 +894,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             raise serializers.ValidationError("proposal not awaiting endorsement")
         #only proceed if status is awaiting endorsement and request user is an endorser (or internal)
         site_licensee_mooring_request = self.site_licensee_mooring_request.all()
-        if not (is_internal(request) or site_licensee_mooring_request.filter(site_licensee_email=request.user.email).exists()):
+        if not (self.is_assessor(request.user) or site_licensee_mooring_request.filter(site_licensee_email=request.user.email).exists()):
             raise serializers.ValidationError("user not authorised to check endorsements")
 
         if not (site_licensee_mooring_request.filter(declined_by_endorser=False,approved_by_endorser=False,enabled=True).exists()):
@@ -4577,16 +4576,14 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
         app_label = 'mooringlicensing'
 
     def endorse_approved(self, request):
-        #TODO change is_internal to assessor check
-        from mooringlicensing.helpers import is_internal
         if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
-            if not (is_internal(request) and (
+            if not (self.proposal.is_assessor(request.user) and (
                 self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
                 self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
             )):
                 raise serializers.ValidationError("proposal not awaiting endorsement")
         
-        if not is_internal(request) and self.site_licensee_email != request.user.email:
+        if not self.proposal.is_assessor(request.user) and self.site_licensee_email != request.user.email:
             raise serializers.ValidationError("user not authorised to approve endorsement")
         
         if (self.declined_by_endorser or self.approved_by_endorser):
@@ -4598,16 +4595,14 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
         self.proposal.check_endorsements(request)
 
     def endorse_declined(self, request):
-        #TODO change is_internal to assessor check
-        from mooringlicensing.helpers import is_internal
         if not self.proposal or self.proposal.processing_status != Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
-            if not (is_internal(request) and (
+            if not (self.proposal.is_assessor(request.user) and (
                 self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR or
                 self.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
             )):
                 raise serializers.ValidationError("proposal not awaiting endorsement")
         
-        if not is_internal(request) and self.site_licensee_email != request.user.email:
+        if not self.proposal.is_assessor(request.user) and self.site_licensee_email != request.user.email:
             raise serializers.ValidationError("user not authorised to approve endorsement")
         
         if (self.declined_by_endorser or self.approved_by_endorser):
