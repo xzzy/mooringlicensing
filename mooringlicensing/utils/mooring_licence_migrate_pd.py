@@ -1752,7 +1752,6 @@ class MooringLicenceReader():
                         )
                         dcv_vessel.dcv_organisations.add(dcv_organisation)
 
-                    #TODO DCV permit address
                     dcv_permit = DcvPermit.objects.create(
                         submitter = user.id,
                         lodgement_datetime = datetime.datetime.now(datetime.timezone.utc),
@@ -1859,9 +1858,7 @@ class MooringLicenceReader():
         fee_season = FeeSeason.objects.filter(application_type__code='aaa', name=FEE_SEASON)[0]
 
         errors = []
-        vessel_not_found = []
         vessel_details_not_found = []
-        user_not_found = []
         rego_aa_created = []
         total_aa_created = []
 
@@ -1869,9 +1866,6 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_aa.iterrows(), total=self.df_aa.shape[0]):
             try:
-                #if row.rego_no == '666':
-                #    import ipdb; ipdb.set_trace()
-
                 rego_no = row['rego_no']
                 email = row['email']
                 sticker_no = row['sticker_no']
@@ -1879,21 +1873,12 @@ class MooringLicenceReader():
                 vessel_name = row['vessel_name']
                 vessel_length = row['vessel_length']
 
-                #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
                     user = EmailUser.objects.get(email=email.lower().strip())
-#                    user.first_name = first_name
-#                    user.last_name = last_name
-#                    user.save()
                 except Exception as e:
                     user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
-
-#['id', 'date_created', 'first_name', 'last_name', 'address', 'suburb',
-#       'state', 'postcode', 'sticker_no', 'rego_no', 'email', 'mobile_number',
-#       'work_number', 'vessel_name', 'vessel_length', 'year', 'status',
-#       'booking_period', 'country']
 
                 vessel_dict = self.vessels_dict.get(rego_no)
                 if vessel_dict is None:
@@ -1912,7 +1897,6 @@ class MooringLicenceReader():
                 else:
                     try:
                         vessel_details = VesselDetails.objects.get(vessel__rego_no=rego_no)
-                        #vessel_ownership = VesselOwnership.objects.get(vessel__rego_no=rego_no)
                         owner = Owner.objects.get(emailuser=user.id)
                         vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel__rego_no=rego_no)
                     except Exception as e:
@@ -1928,12 +1912,6 @@ class MooringLicenceReader():
                             pct_interest=100, 
                         )
 
-                        #vessel_details_not_found.append((user.email, rego_no))
-                        #continue
-
-                #if user.email == 'kdeluca@iinet.net.au':
-                #    import ipdb; ipdb.set_trace()
-
                 # update length from AA Spreadsheet file
                 vessel_details.vessel_name=vessel_name
                 vessel_details.vessel_length=Decimal(vessel_length) if vessel_length else Decimal(0)
@@ -1942,7 +1920,6 @@ class MooringLicenceReader():
                 total_aa_created.append(rego_no)
 
                 proposal=AnnualAdmissionApplication.objects.create(
-                    #proposal_type_id=1, # new application
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
                     lodgement_date=TODAY,
@@ -1968,8 +1945,7 @@ class MooringLicenceReader():
                     },
                 )
 
-                #import ipdb; ipdb.set_trace()
-                self.create_proposal_applicant_aa(proposal, user, row)
+                proposal_applicant = self.create_proposal_applicant_aa(proposal, user, row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1977,20 +1953,16 @@ class MooringLicenceReader():
                     what='Annual Admission - Migrated Application',
                 )
 
-                #approval = WaitingListAllocation.objects.create(
                 approval = AnnualAdmissionPermit.objects.create(
                     status='current',
-                    #internal_status=None,
                     current_proposal=proposal,
                     issue_date = TODAY,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
                     export_to_mooring_booking=True,
                 )
-                #print(f'wla_order: {position_no}')
 
                 aua=ApprovalUserAction.objects.create(
                     approval=approval,
@@ -2000,9 +1972,8 @@ class MooringLicenceReader():
 
                 proposal.approval = approval
                 proposal.save()
-                #proposal.allocated_mooring.mooring_licence = approval
-                #proposal.allocated_mooring.save()
 
+                #TODO check if approval history needed
 #                approval_history = ApprovalHistory.objects.create(
 #                    reason='new',
 #                    approval=approval,
@@ -2023,10 +1994,12 @@ class MooringLicenceReader():
                         mailing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
                     )
-#                    approval_history.stickers.add(sticker.id)
-
-                #approval.generate_doc()
 
             except Exception as e:
                 errors.append(str(e))
