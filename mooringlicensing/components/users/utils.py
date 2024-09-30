@@ -7,7 +7,7 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_str
 
 from mooringlicensing.components.users.models import EmailUserLogEntry, private_storage
-from ledger_api_client.managed_models import SystemUser
+from ledger_api_client.managed_models import SystemUser, SystemUserAddress
 
 def create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None):
     return SystemUser.objects.create(
@@ -19,6 +19,19 @@ def create_system_user(email_user_id, email, first_name, last_name, dob, phone=N
         phone_number=phone,
         mobile_number=mobile,
     )
+
+def get_or_create_system_user_address(system_user, system_address_dict, use_for_postal=False):
+    """
+        takes SystemUser object and SystemUserAddress dict, 
+        checks if a corresponding SystemUserAddress records exists, 
+        and create that SystemUserAddress record if it does not exist
+    """
+    qs = SystemUserAddress.objects.filter(system_user=system_user, **system_address_dict)
+    if not qs.exists():
+        SystemUserAddress.create(system_user=system_user, **system_address_dict, use_for_postal=use_for_postal)
+    elif use_for_postal and not qs.filter(use_for_postal=use_for_postal):
+        qs.update(use_for_postal=True)
+        
 
 def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None, update=False):
     qs = SystemUser.objects.filter(ledger_id_id=email_user_id)

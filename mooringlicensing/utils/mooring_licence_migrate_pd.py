@@ -23,7 +23,10 @@ from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
 from mooringlicensing.components.payments_ml.models import FeeSeason
 
-from mooringlicensing.components.users.utils import create_system_user, get_or_create_system_user, get_user_name
+from mooringlicensing.components.users.utils import (
+    create_system_user, get_or_create_system_user, 
+    get_user_name, get_or_create_system_user_address,
+    )
 
 from mooringlicensing.components.proposals.models import (
     Proposal,
@@ -549,13 +552,11 @@ class MooringLicenceReader():
            email=user.email,
         )
 
-        #TODO rework
-        #if user.email in self.user_created:
-        user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
-        if len(user_dict) > 0:
-            # update address, phone details
-            url = f'{settings.LEDGER_API_URL}/ledgergw/remote/update-userid/{user.id}/{settings.LEDGER_API_KEY}/'
-            res = requests.post(url, data=user_dict)
+        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(system_user, proposal_applicant)
+        get_or_create_system_user_address(system_user,residential_address_dict)
+        if use_for_postal:
+            get_or_create_system_user_address(system_user,postal_address_dict)
+
 
     def create_proposal_applicant_aa(self, proposal, user, user_row):
 
@@ -603,50 +604,39 @@ class MooringLicenceReader():
            email=user.email,
         )
 
-        #TODO rework
-        #if user.email in self.user_created:
-        user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
-        if len(user_dict) > 0:
-            # update address, phone details
-            url = f'{settings.LEDGER_API_URL}/ledgergw/remote/update-userid/{user.id}/{settings.LEDGER_API_KEY}/'
-            res = requests.post(url, data=user_dict)
-
-    def create_proposal_applicant_dict(self, user, applicant):
-        ''' user is ProposalApplicant '''
-
-        payload = {}
-        if not user.postal_address:
-            postal_address = {
-                "postal_line1": applicant.postal_line1,
-                "postal_locality": applicant.postal_locality,
-                "postal_state": applicant.postal_state,
-                "postal_postcode": applicant.postal_postcode,
-                "postal_same_as_residential": applicant.postal_same_as_residential,
-                "postal_country": 'AU',
-            }
-            payload['postal_address'] = json.dumps(postal_address)
-
-            if not user.postal_same_as_residential:
-                residential_address = {
-                    "residential_line1": applicant.residential_line1,
-                    "residential_locality": applicant.residential_locality,
-                    "residential_state": applicant.residential_state,
-                    "residential_postcode": applicant.residential_postcode,
-                    "residential_country": 'AU',
-                }
-                payload['residential_address'] = json.dumps(residential_address)
+        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(system_user, proposal_applicant)
+        get_or_create_system_user_address(system_user,residential_address_dict)
+        if use_for_postal:
+            get_or_create_system_user_address(system_user,postal_address_dict)
 
 
-        if not user.dob:
-            payload['dob'] = applicant.dob.strftime('%d/%m/%Y')
+    def create_system_user_address_dict(self, applicant):
+        residential_address_dict = {
+            "line1": applicant.residential_line1,
+            "locality": applicant.residential_locality,
+            "state": applicant.residential_state,
+            "postcode": applicant.residential_postcode,
+            "country": 'AU',
+            "address_type":"residential_address",
+        }
+
+        use_for_postal = (
+            applicant.postal_line1==applicant.residential_line1 and
+            applicant.postal_locality==applicant.residential_locality and
+            applicant.postal_state==applicant.residential_state and
+            applicant.postal_postcode==applicant.residential_postcode
+        )
             
-        if not user.phone_number:
-            payload['phone_number'] = applicant.phone_number
-            
-        if not user.mobile_number:
-            payload['mobile_number'] = applicant.mobile_number
-            
-        return payload
+        postal_address_dict = {
+            "line1": applicant.postal_line1,
+            "locality": applicant.postal_locality,
+            "state": applicant.postal_state,
+            "postcode": applicant.postal_postcode,
+            "country": 'AU',
+            "address_type":"postal_address",
+        }
+
+        return residential_address_dict, postal_address_dict, use_for_postal
 
     def create_users(self):
         logger.info('Creating DCV users ...')
