@@ -1568,8 +1568,6 @@ class MooringLicenceReader():
 
     def create_waiting_list(self):
         expiry_date = EXPIRY_DATE
-        #start_date = START_DATE
-        #date_applied = DATE_APPLIED
 
         errors = []
         vessel_not_found = []
@@ -1580,17 +1578,6 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_wl.iterrows(), total=self.df_wl.shape[0]):
             try:
-                #if row.mooring_no == 'TB999':
-                #    continue
-
-                #if row.pers_no == '212841':
-                #if row.pers_no == '212397':
-                #if row.pers_no == '212425':
-#                if row.pers_no == '213766':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 pers_no = row['pers_no']
                 mooring_bay = MooringBay.objects.get(code=row['bay'])
 
@@ -1599,9 +1586,6 @@ class MooringLicenceReader():
                 last_name = row.last_name.lower().title().strip()
                 try:
                     user = EmailUser.objects.get(email=email.lower())
-#                    user.first_name = first_name
-#                    user.last_name = last_name
-#                    user.save()
                 except Exception as e:
                     user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
 
@@ -1617,7 +1601,6 @@ class MooringLicenceReader():
 
                 start_date = parse(row.date_applied).replace(tzinfo=timezone.utc)
                 proposal=WaitingListApplication.objects.create(
-                    #proposal_type_id=1,
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
                     lodgement_date=start_date, #TODAY,
@@ -1646,6 +1629,7 @@ class MooringLicenceReader():
                     user_row = self.df_user[self.df_user['pers_no']==row.pers_no].squeeze() # as Pandas Series
                 except Exception as e:
                     import ipdb; ipdb.set_trace()
+                
                 self.create_proposal_applicant(proposal, user, user_row)
 
                 ua=ProposalUserAction.objects.create(
@@ -1654,26 +1638,18 @@ class MooringLicenceReader():
                     what='Waiting List - Migrated Application',
                 )
 
-#                try:
-#                    start_date = parse(row.date_applied).replace(tzinfo=timezone.utc) if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
-#                except:
-#                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-
                 approval = WaitingListAllocation.objects.create(
                     status=Approval.APPROVAL_STATUS_CURRENT,
                     internal_status=Approval.INTERNAL_STATUS_WAITING,
                     current_proposal=proposal,
                     issue_date = start_date, #TODAY,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
                     wla_order=row['bay_pos_no'],
-                    #wla_queue_date=TODAY + datetime.timedelta(seconds=int(row['bay_pos_no'])),
                     wla_queue_date=start_date + datetime.timedelta(seconds=int(row['bay_pos_no'])),
                 )
-                #print(f'wla_order: {position_no}')
                 wl_created.append(approval.id)
 
                 aua=ApprovalUserAction.objects.create(
@@ -1685,6 +1661,7 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
+                #TODO determine why history is not include
 #                try:
 #                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
 #                except:
@@ -1758,6 +1735,11 @@ class MooringLicenceReader():
                     vessel_not_found.append(pers_no)
                     continue
 
+                try:
+                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no].squeeze() # as Pandas Series
+                except Exception as e:
+                    import ipdb; ipdb.set_trace()
+
                 for rego_no, sticker_no in vessels_dcv:
                     try:
                         dcv_vessel = DcvVessel.objects.get(rego_no=rego_no)
@@ -1770,6 +1752,7 @@ class MooringLicenceReader():
                         )
                         dcv_vessel.dcv_organisations.add(dcv_organisation)
 
+                    #TODO DCV permit address
                     dcv_permit = DcvPermit.objects.create(
                         submitter = user.id,
                         lodgement_datetime = datetime.datetime.now(datetime.timezone.utc),
@@ -1778,33 +1761,27 @@ class MooringLicenceReader():
                         end_date = expiry_date,
                         dcv_vessel = dcv_vessel,
                         dcv_organisation =dcv_organisation,
-                        migrated = True
+                        migrated = True,
+                        postal_address_line1 = user_row.postal_address if user_row.postal_address else user_row.address,
+                        postal_address_suburb = user_row.postal_suburb if user_row.postal_address else user_row.suburb,
+                        postal_address_postcode = user_row.postal_postcode if user_row.postal_address else user_row.postcode,
+                        postal_address_state = user_row.postal_state if user_row.postal_address else user_row.state,
+                        postal_address_country = 'AU',
                     )
 
-#                    approval_history = ApprovalHistory.objects.create(
-#                        reason='new',
-#                        approval=approval,
-#                        vessel_ownership = vessel_ownership,
-#                        proposal = proposal,
-#                        start_date = start_date,
-#                    )
-
-                    #import ipdb; ipdb.set_trace()
                     if sticker_no:
                         sticker = Sticker.objects.create(
                             number=sticker_no,
                             status=Sticker.STICKER_STATUS_CURRENT, # 'current'
                             dcv_permit=dcv_permit,
-                            #vessel_ownership=vessel_ownership,
-                            #printing_date=TODAY,
-                            #mailing_date=datetime.datetime.strptime(date_issued, '%d/%m/%Y').date() if date_issued else None,
                             mailing_date=TODAY,
-                            #sticker_printing_batch=None,
-                            #sticker_printing_response=None,
+                            
+                            postal_address_line1=dcv_permit.postal_address_line1,
+                            postal_address_locality=dcv_permit.postal_address_suburb,
+                            postal_address_state=dcv_permit.postal_address_state,
+                            postal_address_country=dcv_permit.postal_address_country,
+                            postal_address_postcode=dcv_permit.postal_address_postcode,
                         )
-
-                    #import ipdb; ipdb.set_trace()
-                    #dcv_permit.generate_dcv_permit_doc()
                     dcv_created.append(dcv_permit.id)
 
 
