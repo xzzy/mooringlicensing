@@ -43,6 +43,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalUserAction,
     Mooring,
     MooringBay,
+    ProposalSiteLicenseeMooringRequest,
 )
 from mooringlicensing.components.approvals.models import (
     Approval, 
@@ -557,6 +558,8 @@ class MooringLicenceReader():
         if use_for_postal:
             get_or_create_system_user_address(system_user,postal_address_dict)
 
+        return proposal_applicant
+
 
     def create_proposal_applicant_aa(self, proposal, user, user_row):
 
@@ -608,6 +611,8 @@ class MooringLicenceReader():
         get_or_create_system_user_address(system_user,residential_address_dict)
         if use_for_postal:
             get_or_create_system_user_address(system_user,postal_address_dict)
+
+        return proposal_applicant
 
 
     def create_system_user_address_dict(self, applicant):
@@ -1179,12 +1184,8 @@ class MooringLicenceReader():
                 ves_name = ves_row['Name ' + postfix]
                 ves_type = ves_row['Type ' + postfix]
                 rego_no = ves_row['DoT Rego ' + postfix]
-                #pct_interest = ves_row['%Interest ' + postfix]
-                #tot_length = ves_row['Reg Length ' + postfix]
-                #draft = ves_row['Draft ' + postfix]
-                #tonnage = ves_row['Tonnage ' + postfix]
-                sticker_number = ves_row['Lic Sticker Number ' + postfix] #if ves_row['Lic Sticker Number ' + postfix] else None
-                sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] #if ves_row['Licencee Sticker Sent ' + postfix] else None
+                sticker_number = ves_row['Lic Sticker Number ' + postfix] 
+                sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] 
  
                 ves_type = VESSEL_TYPE_MAPPING.get(ves_type, 'other')
 
@@ -1263,7 +1264,7 @@ class MooringLicenceReader():
                     dot_name=rego_no,
                 )
 
-                self.create_proposal_applicant(proposal, user, user_row)
+                proposal_applicant = self.create_proposal_applicant(proposal, user, user_row)
 
                 ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1299,15 +1300,6 @@ class MooringLicenceReader():
                     vessel_ownership=vessel_ownership,
                 )
 
-                #TODO: remove - MOA are used for AUP not ML
-                #moa = MooringOnApproval.objects.create(
-                #    approval=approval,
-                #    mooring=mooring,
-                #    sticker=None,
-                #    site_licensee=True, # ???
-                #    end_date=expiry_date
-                #)
-
                 try:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                 except:
@@ -1327,7 +1319,6 @@ class MooringLicenceReader():
                     mailing_date = None
 
                 if sticker_number:
-                    #TODO include sticker address
                     sticker = Sticker.objects.create(
                         number=sticker_number,
                         status=Sticker.STICKER_STATUS_CURRENT, # 'current'
@@ -1338,6 +1329,12 @@ class MooringLicenceReader():
                         mailing_date=mailing_date,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
                     )
 
                     approval_history.stickers.add(sticker.id)
@@ -1374,37 +1371,20 @@ class MooringLicenceReader():
         bay_preferences_numbered = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
         vessel_type = 'other'
 
-        #for index, row in tqdm(self.df_authuser.iterrows(), total=self.df_authuser.shape[0]):
         df_authuser = self.df_authuser[(self.df_authuser['vessel_rego']!='0')].groupby('vessel_rego').first()
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
-            #if row.status != 'Vacant':
             try:
-#                if row.pers_no_l != '206441':
-#                    #import ipdb; ipdb.set_trace()
-#                    continue
 
-                #if row.pers_no_l == '019626':
-                #    print(f"rego_no: {row['vessel_rego']}")
-                #    import ipdb; ipdb.set_trace()
                 rego_no = row.name
                     
-                if row.mooring_no == 'TB999':
-                    # exclude mooring
-                    continue
-
-                #if row.pers_no_u == '210758':
-                #    import ipdb; ipdb.set_trace()
-
-#                if rego_no=='GV331' and row.mooring_no=='PB008':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
-               
+                #TODO remove as a debug?
+                #if row.mooring_no == 'TB999':
+                #    # exclude mooring
+                #    continue
+                
                 mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
                 mooring = Mooring.objects.filter(name=row['mooring_no'])[0]
-                #licensee = EmailUser.objects.get(first_name=row['first_name_l'].lower().capitalize(), last_name=row['last_name_l'].lower().capitalize())
-                #email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l'])].iloc[0]['email'].strip()
+
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
                     licensee = EmailUser.objects.get(email=email_l.lower())
@@ -1420,15 +1400,9 @@ class MooringLicenceReader():
                     user = EmailUser.objects.get(email=email_u.lower())
                 except Exception as e:
                     user = EmailUser.objects.get(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize()) 
-                #email_u = self.df_user[(self.df_user['first_name']=='Alisa') & (self.df_user['last_name']=='Simich')].iloc[0]['email']
-                #email_u = self.df_user[(self.df_user['first_name']==row['first_name_u']) & (self.df_user['last_name']==row['last_name_u'])].iloc[0]['email']
-                #user = EmailUser.objects.get(email=email_u)
 
-                #sticker_number = row['sticker'],
-                #rego_no = row['vessel_rego']
+
                 rego_no = row.name
-                #if sticker_number == 31779:
-                #    import ipdb; ipdb.set_trace()
                 sticker_info = self.vessels_au.get(rego_no)
                 if sticker_info:
                     sticker_number = sticker_info['au_sticker']
@@ -1449,33 +1423,12 @@ class MooringLicenceReader():
                 vessel_ownership = vessel.vesselownership_set.all()[0]
                 vessel_details = vessel.vesseldetails_set.all()[0]
 
-#                if email_u == 31779:
-#                auth_user = AuthorisedUserApplication.objects.filter(
-#                    site_licensee_email=licensee.email,
-#                    mooring=mooring,
-#                    vessel_details=vessel_details,
-#                    vessel_ownership=vessel_ownership,
-#                    rego_no=rego_no,
-#                )
-#                if len(auth_user)>0:
-#                    # already exists
-#                    continue
-
-#                if rego_no=='GV331' and row.mooring_no=='PB008':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
-
                 proposal=AuthorisedUserApplication.objects.create(
-                    #proposal_type_id=1, # new application
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=TODAY, #datetime.datetime.now(),
+                    lodgement_date=TODAY,
                     mooring_authorisation_preference=mooring_authorisation_preference,
-                    site_licensee_email=licensee.email,
                     keep_existing_mooring=True,
-                    mooring=mooring,
                     bay_preferences_numbered=bay_preferences_numbered,
                     migrated=True,
                     vessel_details=vessel_details,
@@ -1483,8 +1436,6 @@ class MooringLicenceReader():
                     rego_no=rego_no,
                     vessel_type=vessel_type,
                     vessel_name=row['vessel_name'],
-                    #vessel_length=row['vessel_length'],
-                    #vessel_draft=row['vessel_draft'],
                     vessel_length=vessel_details.vessel_length,
                     vessel_draft=vessel_details.vessel_draft,
                     vessel_beam=vessel_details.vessel_beam,
@@ -1494,7 +1445,6 @@ class MooringLicenceReader():
                     percentage=vessel_ownership.percentage,
                     individual_owner=True,
                     dot_name=vessel_ownership.dot_name,
-                    #proposed_issuance_approval={},
                     processing_status='approved',
                     customer_status='approved',
                     proposed_issuance_approval={
@@ -1508,12 +1458,22 @@ class MooringLicenceReader():
                     },
                 )
 
+                #add site_licensee_mooring_request - we assume all migrated endorsements have been approved
+                ProposalSiteLicenseeMooringRequest.create(
+                    proposal=proposal,
+                    site_licensee_email=licensee.email,
+                    mooring=mooring,
+                    endorser_reminder_sent=True,
+                    approved_by_endorser=True,
+                )
+
                 #import ipdb; ipdb.set_trace()
                 try:
                     user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u].squeeze() # as Pandas Series
                 except Exception as e:
                     import ipdb; ipdb.set_trace()
-                self.create_proposal_applicant(proposal, user, user_row)
+                
+                proposal_applicant=self.create_proposal_applicant(proposal, user, user_row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1526,20 +1486,16 @@ class MooringLicenceReader():
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
 
-                #approval = WaitingListAllocation.objects.create(
                 approval = AuthorisedUserPermit.objects.create(
                     status='current',
-                    #internal_status=None,
                     current_proposal=proposal,
                     issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
                     export_to_mooring_booking=True,
                 )
-                #print(f'wla_order: {position_no}')
 
                 proposal.approval = approval
                 proposal.save()
@@ -1556,6 +1512,7 @@ class MooringLicenceReader():
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
+                #TODO determine why no history here?
 #                approval_history = ApprovalHistory.objects.create(
 #                    reason='new',
 #                    approval=approval,
@@ -1574,27 +1531,25 @@ class MooringLicenceReader():
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
                         printing_date=None, #TODAY,
-                        #mailing_date=sticker_sent, #TODAY,
-                        #mailing_date=datetime.datetime.strptime(date_issued, '%d/%m/%Y').date() if date_issued else None,
                         mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
                     )
-#                approval_history.stickers.add(sticker.id)
 
-                #auth_user_moorings = self.df_authuser[(self.df_authuser['pers_no_u']==pers_no_u)]
-                #auth_user_moorings = self.df_authuser[(self.df_authuser['pers_no_u']==pers_no_u) & (self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no'])
-                #auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)]
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
-                #for idx, auth_user in tqdm(self.df_authuser.iterrows(), total=self.df_authuser.shape[0]):
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
                     moa = MooringOnApproval.objects.create(
                         approval=approval,
                         mooring=mooring[0],
                         sticker=sticker,
-                        site_licensee=False, #site_licensee,
-                        #end_date=expiry_date
+                        site_licensee=False,
                     )
 
                 #approval.generate_doc()
