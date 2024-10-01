@@ -506,7 +506,6 @@ class MooringLicenceReader():
             self.create_licence_pdf()
         except Exception as e:
             print(e)
-            import ipdb; ipdb.set_trace()
         t2_end = time.time()
         print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
 
@@ -846,9 +845,6 @@ class MooringLicenceReader():
             return ves_details
 
         def try_except(value):
-            #if pers_no=='213162':
-            #    import ipdb; ipdb.set_trace()
-
             try:
                 val = float(value)
             except Exception:
@@ -860,9 +856,6 @@ class MooringLicenceReader():
         postfix = ['Nominated Ves', 'Ad Ves 2', 'Ad Ves 3', 'Ad Ves 4', 'Ad Ves 5', 'Ad Ves 6', 'Ad Ves 7']
         for user_id, pers_no in tqdm(self.pers_ids):
             try:
-                #if pers_no=='202600':
-                #    import ipdb; ipdb.set_trace()
-
                 ves_rows = self.df_ves[self.df_ves['Person No']==pers_no]
                 if len(ves_rows) > 1:
                     ves_rows = ves_rows[(ves_rows['Au Sticker No Nominated Ves']!='')]
@@ -893,11 +886,6 @@ class MooringLicenceReader():
                         au_sticker=ves['Au Sticker No ' + postfix[i]]
                         c_sticker=ves['C Sticker No ' + postfix[i]]
                         au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
-
-#                        if rego_no in ['DY167', '81900']:
-#                            import ipdb; ipdb.set_trace()
-#                        else:
-#                            continue
 
                         try:
                             ves_type = VESSEL_TYPE_MAPPING[ves_type]
@@ -939,8 +927,6 @@ class MooringLicenceReader():
                         #au_vessels.update({rego_no:au_sticker, sticker_sent:})
                         self.vessels_au.update({rego_no: dict(au_sticker=au_sticker, au_sticker_sent=au_sticker_date)})
                         c_vessels.append((rego_no, c_sticker))
-                        #if pers_no=='200700':
-                        #    import ipdb; ipdb.set_trace()
 
                     #self.vessels_au.update({pers_no:au_vessels})
                     self.vessels_dcv.update({pers_no:c_vessels})
@@ -970,9 +956,6 @@ class MooringLicenceReader():
                 return False
 
         def try_except(value):
-            #if pers_no=='213162':
-            #    import ipdb; ipdb.set_trace()
-
             try:
                 val = float(value)
             except Exception:
@@ -985,11 +968,6 @@ class MooringLicenceReader():
         df_wl = self.df_wl.groupby('vessel_rego').first()
         for index, row in tqdm(df_wl.iterrows(), total=df_wl.shape[0]):
             try:
-#                if row.pers_no=='088452':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 rego_no = row.name
                 if is_invalid_rego(rego_no):
                     # User is on waiting list without a vessel - assign a dummy vessel
@@ -1007,17 +985,10 @@ class MooringLicenceReader():
                     user_row = user_row[:1]
                 user_row = user_row.squeeze() # convert to Pandas Series
 
-                #if not user_row.empty and user_row.pers_no=='000036':
-                #    import ipdb; ipdb.set_trace()
-
                 email = user_row.email.lower().replace(' ','')
                 if not email:
                     self.no_email.append(user_row.pers_no)
                     continue
-
-#                if email != 'ftroop351@gmail.com':
-#                    #import ipdb; ipdb.set_trace()
-#                    continue
 
                 users = EmailUser.objects.filter(email=email)
                 if users.count() == 0:
@@ -1109,9 +1080,6 @@ class MooringLicenceReader():
                     c_sticker=ves['C Sticker No ' + postfix[i]]
                     au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
 
-                    #if rego_no=='DO904':
-                    #    import ipdb; ipdb.set_trace()
-
                     self.vessels_dict.update({rego_no:
                         {
                             'length':        tot_length,
@@ -1132,9 +1100,6 @@ class MooringLicenceReader():
                     print(f'ERROR: vessels_dict: {str(e)}')
                     if e.args[0]=='Name Ad Ves 2':
                         continue
-                    else:
-                        import ipdb; ipdb.set_trace()
-                        pass
                     
 
 
@@ -1391,11 +1356,6 @@ class MooringLicenceReader():
             try:
 
                 rego_no = row.name
-                    
-                #TODO remove as a debug?
-                #if row.mooring_no == 'TB999':
-                #    # exclude mooring
-                #    continue
                 
                 mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
                 mooring = Mooring.objects.filter(name=row['mooring_no'])[0]
@@ -1419,6 +1379,7 @@ class MooringLicenceReader():
 
                 rego_no = row.name
                 sticker_info = self.vessels_au.get(rego_no)
+                sticker_number = None
                 if sticker_info:
                     sticker_number = sticker_info['au_sticker']
                     sticker_sent = sticker_info['au_sticker_sent']
@@ -1474,7 +1435,7 @@ class MooringLicenceReader():
                 )
 
                 #add site_licensee_mooring_request - we assume all migrated endorsements have been approved
-                ProposalSiteLicenseeMooringRequest.create(
+                ProposalSiteLicenseeMooringRequest.objects.create(
                     proposal=proposal,
                     site_licensee_email=licensee.email,
                     mooring=mooring,
@@ -1482,11 +1443,10 @@ class MooringLicenceReader():
                     approved_by_endorser=True,
                 )
 
-                #import ipdb; ipdb.set_trace()
                 try:
                     user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u].squeeze() # as Pandas Series
                 except Exception as e:
-                    import ipdb; ipdb.set_trace()
+                    print(e)
                 
                 proposal_applicant=self.create_proposal_applicant(proposal, user, user_row)
 
@@ -1567,19 +1527,17 @@ class MooringLicenceReader():
                         site_licensee=False,
                     )
 
-                #approval.generate_doc()
-
             except Exception as e:
+                print(e)
                 errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'aup_created: {len(aup_created)}')
         print(f'au_stickers: au_stickers, {len(au_stickers)}')
         print(f'no_au_stickers: no_au_stickers, {len(no_au_stickers)}')
+        for i in errors:
+            print(i)
 
     def create_waiting_list(self):
         expiry_date = EXPIRY_DATE
