@@ -28,7 +28,7 @@ def get_or_create_system_user_address(system_user, system_address_dict, use_for_
     """
     qs = SystemUserAddress.objects.filter(system_user=system_user, **system_address_dict)
     if not qs.exists():
-        SystemUserAddress.create(system_user=system_user, **system_address_dict, use_for_postal=use_for_postal)
+        SystemUserAddress.objects.create(system_user=system_user, **system_address_dict, use_for_postal=use_for_postal)
     elif use_for_postal and not qs.filter(use_for_postal=use_for_postal):
         qs.update(use_for_postal=True)
         

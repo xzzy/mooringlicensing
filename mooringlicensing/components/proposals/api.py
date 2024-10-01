@@ -686,8 +686,9 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         request_user = self.request.user
-        #all = Proposal.objects.all()
-        all = Proposal.objects.exclude(migrated=True)
+        all = Proposal.objects.all()
+        #TODO do we need to exclude migrated proposals?
+        #all = Proposal.objects.exclude(migrated=True)
 
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
 
@@ -1204,7 +1205,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             queryset = Proposal.objects.filter(
                 Q(org_applicant_id__in=user_orgs) | 
                 Q(proposal_applicant__email_user_id=request_user.id)
-            ).exclude(migrated=True)
+            )
+            #TODO do we need to exclude migrated proposals?
+            #.exclude(migrated=True)
 
             # For the endoser to view the endosee's proposal
             if 'uuid' in self.request.query_params:

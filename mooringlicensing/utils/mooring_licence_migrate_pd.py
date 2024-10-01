@@ -261,11 +261,16 @@ class MooringLicenceReader():
 
         mlr.create_users()
         mlr.create_vessels()
-        mlr.create_vessels_wl()
         mlr.create_mooring_licences()
         mlr.create_authuser_permits()
         mlr.create_waiting_list()
         mlr.create_dcv()
+
+        mlr.create_pdf_ml()
+        mlr.create_pdf_aup()
+        mlr.create_pdf_wl()
+        mlr.create_pdf_aa()
+        mlr.create_pdf_dcv()
 
     OR
         from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
@@ -296,7 +301,9 @@ class MooringLicenceReader():
 
         Sticker.objects.all().delete()
         Approval.objects.all().delete()
+        ApprovalHistory.objects.all().delete()
         Proposal.objects.all().delete()
+        ProposalApplicant.objects.all().delete()
         Vessel.objects.all().delete()
         Owner.objects.all().delete()
         Mooring.objects.all().delete()
@@ -549,9 +556,10 @@ class MooringLicenceReader():
            mobile_number=mobile,
 
            email=user.email,
+           email_user_id=user.id,
         )
 
-        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(system_user, proposal_applicant)
+        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
         get_or_create_system_user_address(system_user,residential_address_dict)
         if use_for_postal:
             get_or_create_system_user_address(system_user,postal_address_dict)
@@ -604,7 +612,7 @@ class MooringLicenceReader():
            email=user.email,
         )
 
-        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(system_user, proposal_applicant)
+        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
         get_or_create_system_user_address(system_user,residential_address_dict)
         if use_for_postal:
             get_or_create_system_user_address(system_user,postal_address_dict)
@@ -1349,7 +1357,6 @@ class MooringLicenceReader():
 
             except Exception as e:
                 logger.error(f'ERROR: {row.name}. {str(e)}')
-                import ipdb; ipdb.set_trace()
                 self.user_errors.append(user_row.email)
 
         print(f'ml_user_not_found:  {self.ml_user_not_found}')
