@@ -230,7 +230,7 @@ AA_COLUMN_MAPPING = {
 }
 
 
-
+#TODO review, remove if not needed
 def get_user_as_email_user(sender):
     try:
         sender_user = EmailUser.objects.get(email__icontains=sender)
@@ -294,6 +294,7 @@ class MooringLicenceReader():
         AnnualAdmissionApplication.objects.all().delete()
         ------
 
+        Sticker.objects.all().delete()
         Approval.objects.all().delete()
         Proposal.objects.all().delete()
         Vessel.objects.all().delete()
@@ -351,10 +352,6 @@ class MooringLicenceReader():
             row.home_number.replace(' ', '')
             return row.home_number
 
-    def __get_work_number(self, row):
-        return row.work_number.replace(' ', '')
-
-
     def __get_mobile_number(self, row):
         return row.mobile_number.replace(' ', '')
 
@@ -366,14 +363,13 @@ class MooringLicenceReader():
         #         country=Country.objects.get(iso_3166_1_a2='AU')
         #     return country.code
 
-
         # Rename the cols from Spreadsheet headers to Model fields names
         df_user = self.df_user.rename(columns=USER_COLUMN_MAPPING)
         df_user[df_user.columns] = df_user.apply(lambda x: x.str.strip() if isinstance(x, str) else x)
  
         # clean everything else
         df_user.fillna('', inplace=True)
-        df_user.replace({np.NaN: ''}, inplace=True)
+        df_user.replace({np.nan: ''}, inplace=True)
 
         #return df[:500]
         return df_user
@@ -386,7 +382,7 @@ class MooringLicenceReader():
  
         # clean everything else
         df_ml.fillna('', inplace=True)
-        df_ml.replace({np.NaN: ''}, inplace=True)
+        df_ml.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         df_ml = df_ml[(df_ml['cancelled']=='N') & (df_ml['first_name_l'].isna()==False)]
@@ -398,7 +394,7 @@ class MooringLicenceReader():
 
         # clean everything else
         self.df_ves.fillna('', inplace=True)
-        self.df_ves.replace({np.NaN: ''}, inplace=True)
+        self.df_ves.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         #df_ml = df_ml[(df_ml['cancelled']=='N') & (df_ml['first_name_l'].isna()==False)]
@@ -415,7 +411,7 @@ class MooringLicenceReader():
  
         # clean everything else
         df_authuser.fillna('', inplace=True)
-        df_authuser.replace({np.NaN: ''}, inplace=True)
+        df_authuser.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         df_authuser = df_authuser[(df_authuser['cancelled']=='N')]
@@ -433,7 +429,7 @@ class MooringLicenceReader():
  
         # clean everything else
         df_wl.fillna('', inplace=True)
-        df_wl.replace({np.NaN: ''}, inplace=True)
+        df_wl.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         df_wl = df_wl[(df_wl['app_status']=='W')]
@@ -462,7 +458,7 @@ class MooringLicenceReader():
  
         # clean everything else
         df_aa.fillna('', inplace=True)
-        df_aa.replace({np.NaN: ''}, inplace=True)
+        df_aa.replace({np.nan: ''}, inplace=True)
 
         # create dict of vessel details by rego_no --> self.vessels_dict['DO904']
         logger.info('Creating Vessels details Dictionary ...')
@@ -480,6 +476,7 @@ class MooringLicenceReader():
         self.create_dcv()
         self.create_annual_admissions()
 
+    #TODO remove
     def _run_migration(self):
 
         # create the users and organisations, if they don't already exist
@@ -2013,6 +2010,7 @@ class MooringLicenceReader():
         print(f'Vessel Details Not Found: {len(vessel_details_not_found)}')
 
 
+    #TODO remove
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
         #import ipdb; ipdb.set_trace()
@@ -2154,21 +2152,8 @@ class MooringLicenceReader():
 
         return approval
 
-#    def create_licence_pdf(self):
-#        approvals_migrated = Approval.objects.filter(migrated=True)
-#        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
-#        for idx, a in enumerate(approvals_migrated):
-#            a.generate_doc()
-#            print('{}, Created PDF for Approval {}'.format(idx, a))
-#
-#    def create_dcv_licence_pdf(self):
-#        approvals_migrated = DcvPermit.objects.filter(migrated=True)
-#        print('Total DCV Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
-#        for idx, a in enumerate(approvals_migrated):
-#            a.generate_dcv_permit_doc()
-#            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
 
-
+    #TODO include in run_migration?
     def create_licence_pdfs(self):
         MooringLicenceReader.create_pdf_ml()
         MooringLicenceReader.create_pdf_aup()
@@ -2228,12 +2213,13 @@ class MooringLicenceReader():
             except Exception as e:
                 logger.error(e)
 
-
+#TODO fix or replace - call from run_migration?
 def create_invoice(proposal, payment_method='other'):
         """
         This will create and invoice and order from a basket bypassing the session
         and payment bpoint code constraints.
         """
+        #TODO replace
         from ledger.checkout.utils import createCustomBasket
         from ledger.payments.invoice.utils import CreateInvoiceBasket
         from ledger.accounts.models import EmailUser
@@ -2256,7 +2242,7 @@ def create_invoice(proposal, payment_method='other'):
 
         return order
     
-
+#TODO review and/or remove
 def write_proposal_applicants(filename, path='/tmp/'):
     qs=ProposalApplicant.objects.all().values('email','first_name', 'last_name', 'dob', 'phone_number', 'mobile_number').distinct('email')
 
@@ -2265,6 +2251,3 @@ def write_proposal_applicants(filename, path='/tmp/'):
         write.writerow(['email','first_name','last_name','dob', 'phone_number', 'mobile_number'])
         for i in qs:
             write.writerows([i.values()])
-
-
-
