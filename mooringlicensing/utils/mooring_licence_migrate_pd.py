@@ -330,6 +330,7 @@ class MooringLicenceReader():
         self.system_user_existing = []
         self.user_errors = []
         self.no_email = []
+        self.user_error_details = []
 
         # create_vessels
         self.vessels_created = []
@@ -557,7 +558,6 @@ class MooringLicenceReader():
 
         return proposal_applicant
 
-
     def create_proposal_applicant_aa(self, proposal, user, user_row):
 
         try:
@@ -611,7 +611,6 @@ class MooringLicenceReader():
 
         return proposal_applicant
 
-
     def create_system_user_address_dict(self, applicant):
         residential_address_dict = {
             "line1": applicant.residential_line1,
@@ -658,7 +657,6 @@ class MooringLicenceReader():
         logger.info('Creating AA users ...')
         self._create_users_df_aa(self.df_aa)
 
-
     def _create_users_df(self, df):
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
@@ -687,7 +685,11 @@ class MooringLicenceReader():
 
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
-                dob = parse(user_row.dob).date() if user_row.dob else None
+
+                try:
+                    dob = parse(user_row.dob).date() if user_row.dob else None
+                except:
+                    dob = None
 
                 resp = get_or_create(email)       
                 user_id = None             
@@ -702,7 +704,7 @@ class MooringLicenceReader():
                         self.user_existing.append(email)
                         #get or create system user
                         if not dob:
-                            dob = resp['data']['dob']
+                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
                         system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
                         if created:
                             self.system_user_created.append(email)
@@ -715,8 +717,7 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                import ipdb
-                ipdb.set_trace()
+                self.user_error_details.append(row.name + " - " + user_row.email+" : "+str(e))
                 self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
@@ -744,7 +745,10 @@ class MooringLicenceReader():
 
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
-                dob = parse(user_row.dob).date() if user_row.dob else None
+                try:
+                    dob = parse(user_row.dob).date() if user_row.dob else None
+                except:
+                    dob = None
 
                 resp = get_or_create(email)                    
                 if resp['status'] == 200:
@@ -756,6 +760,8 @@ class MooringLicenceReader():
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
                         #get or create system user
+                        if not dob:
+                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
                         system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
                         if created:
                             self.system_user_created.append(email)
@@ -769,7 +775,7 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                self.user_error_details.append(row.name + " - " + user_row.email+" : "+str(e))
                 self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
@@ -1050,7 +1056,6 @@ class MooringLicenceReader():
         print(f'vessels created:  {len(self.vessels_created)}')
         print(f'vessels errors:   {self.vessels_errors}')
         print(f'vessels errors:   {len(self.vessels_errors)}')
-
 
     def create_vessels_dict(self):
 
@@ -1794,7 +1799,6 @@ class MooringLicenceReader():
         print(f'user_not_found: {len(user_not_found)}')
         print(f'dcv_created: {len(dcv_created)}')
 
-
     def _create_single_vessel(self, user, rego_no, ves_name, ves_type, length, draft, beam, weight, pct_interest, berth_mooring=''):
 
         def try_except(value):
@@ -1840,7 +1844,6 @@ class MooringLicenceReader():
             )
 
         return vessel, vessel_details, vessel_ownership
-
 
     def create_annual_admissions(self):
         """
@@ -2008,7 +2011,6 @@ class MooringLicenceReader():
         print(f'total_aa_created: {len(total_aa_created)}')
         print(f'Vessel Details Not Found: {vessel_details_not_found}')
         print(f'Vessel Details Not Found: {len(vessel_details_not_found)}')
-
 
     #TODO remove
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
