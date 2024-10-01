@@ -713,6 +713,7 @@ class MooringLicenceReader():
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
+                    self.user_error_details.append(row.name + " - " + user_row.email+" : Ledger Response: " + str(resp))
 
                 self.pers_ids.append((user_id, row.name))
 
@@ -729,6 +730,8 @@ class MooringLicenceReader():
         print(f'no_email errors:   {len(self.no_email)}')
         print(f'users errors:   {self.user_errors}')
         print(f'no_email errors:   {self.no_email}')
+        for i in self.user_error_details:
+            print(i)
 
     def _create_users_df_aa(self, df):
         """ Reads the annual_admissions file created from the Mooring Booking System """
@@ -770,6 +773,7 @@ class MooringLicenceReader():
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
+                    self.user_error_details.append(row.name + " - " + user_row.email+" : Ledger Response: " + str(resp))
 
                 user_id = resp['data']['emailuser_id']
                 self.pers_ids.append((user_id, row.name))
@@ -787,6 +791,8 @@ class MooringLicenceReader():
         print(f'no_email errors:   {len(self.no_email)}')
         print(f'users errors:   {self.user_errors}')
         print(f'no_email errors:   {self.no_email}')
+        for i in self.user_error_details:
+            print(i)
 
     def create_vessels(self):
         self._create_vessels()
