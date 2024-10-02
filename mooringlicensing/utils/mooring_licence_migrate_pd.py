@@ -737,7 +737,7 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                self.user_error_details.append(row.name + " - " + user_row.email+" : "+str(e))
+                self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
                 self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
@@ -759,6 +759,8 @@ class MooringLicenceReader():
             try:
                 #user_row = self.df_user[self.df_user['pers_no']==row.name] #.squeeze() # as Pandas Series
                 user_row = row.copy()
+
+                #TODO no email col?
 
                 email = user_row.email.lower().replace(' ','')
                 if not email:
@@ -798,9 +800,11 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                self.user_error_details.append(row.name + " - " + user_row.email+" : "+str(e))
-                self.user_errors.append(user_row.email)
-                logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
+                if hasattr(user_row, "email"):
+                    self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
+                    self.user_errors.append(user_row.email)
+                else:
+                    self.user_error_details.append(str(row.name)+" : "+str(e))
 
         print(f'users created:  {len(self.user_created)}')
         print(f'users existing: {len(self.user_existing)}')
