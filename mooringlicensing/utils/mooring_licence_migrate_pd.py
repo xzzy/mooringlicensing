@@ -512,27 +512,34 @@ class MooringLicenceReader():
         print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
 
     def create_proposal_applicant(self, proposal, user, user_row):
+        
+        #TODO it is possible for the user row to have been squeezed, meaning there can be multiple addresses
+
         postal_same_as_res = user_row.address==user_row.postal_address or user_row.postal_address==''
+        
         try:
             system_user = SystemUser.objects.get(ledger_id=user)
+            names = get_user_name(system_user)
+            if not system_user.legal_dob:
+                dob = parse(user_row.dob).date() if user_row.dob else None
+            else:
+                dob = system_user.legal_dob
+
+            if not system_user.phone_number:
+                phone = system_user.phone_number
+            else:
+                phone = self.__get_phone_number(user_row)
+
+            if not system_user.mobile_number:
+                mobile = system_user.mobile_number
+            else:
+                mobile = self.__get_mobile_number(user_row)
         except Exception as e:
             print("error getting system user:",e)
-            
-        names = get_user_name(system_user)
-
-        if not system_user.legal_dob:
+            system_user = None
+            names = {"first_name": user.first_name, "last_name": user.last_name}
             dob = parse(user_row.dob).date() if user_row.dob else None
-        else:
-            dob = system_user.legal_dob
-
-        if not system_user.phone_number:
-            phone = system_user.phone_number
-        else:
             phone = self.__get_phone_number(user_row)
-
-        if not system_user.mobile_number:
-            mobile = system_user.mobile_number
-        else:
             mobile = self.__get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
@@ -559,9 +566,10 @@ class MooringLicenceReader():
         )
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
-        get_or_create_system_user_address(system_user,residential_address_dict)
-        if use_for_postal:
-            get_or_create_system_user_address(system_user,postal_address_dict)
+        if system_user:
+            get_or_create_system_user_address(system_user,residential_address_dict)
+            if use_for_postal:
+                get_or_create_system_user_address(system_user,postal_address_dict)
 
         return proposal_applicant
 
@@ -569,24 +577,27 @@ class MooringLicenceReader():
 
         try:
             system_user = SystemUser.objects.get(ledger_id=user)
+            names = get_user_name(system_user)
+            if not system_user.legal_dob:
+                dob = parse(user_row.dob).date() if user_row.dob else None
+            else:
+                dob = system_user.legal_dob
+
+            if not system_user.phone_number:
+                phone = system_user.phone_number
+            else:
+                phone = self.__get_phone_number(user_row)
+
+            if not system_user.mobile_number:
+                mobile = system_user.mobile_number
+            else:
+                mobile = self.__get_mobile_number(user_row)
         except Exception as e:
             print("error getting system user:",e)
-            
-        names = get_user_name(system_user)
-
-        if not system_user.legal_dob:
+            system_user = None
+            names = {"first_name": user.first_name, "last_name": user.last_name}
             dob = parse(user_row.dob).date() if user_row.dob else None
-        else:
-            dob = system_user.legal_dob
-
-        if not system_user.phone_number:
-            phone = system_user.phone_number
-        else:
             phone = self.__get_phone_number(user_row)
-
-        if not system_user.mobile_number:
-            mobile = system_user.mobile_number
-        else:
             mobile = self.__get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
@@ -612,9 +623,10 @@ class MooringLicenceReader():
         )
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
-        get_or_create_system_user_address(system_user,residential_address_dict)
-        if use_for_postal:
-            get_or_create_system_user_address(system_user,postal_address_dict)
+        if system_user:
+            get_or_create_system_user_address(system_user,residential_address_dict)
+            if use_for_postal:
+                get_or_create_system_user_address(system_user,postal_address_dict)
 
         return proposal_applicant
 
@@ -1358,13 +1370,21 @@ class MooringLicenceReader():
                 rego_no = row.name
                 
                 mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
-                mooring = Mooring.objects.filter(name=row['mooring_no'])[0]
+                mooring_qs = Mooring.objects.filter(name=row['mooring_no'])
+                if mooring_qs.exists():
+                    mooring = mooring_qs.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Mooring with No. " + str(row['mooring_no']) + " does not exist") 
+                    continue
 
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    licensee = EmailUser.objects.get(email=email_l.lower())
+                    licensee = EmailUser.objects.get(email=email_l.lower()) #TODO iexact
                 except Exception as e:
-                    licensee = EmailUser.objects.get(first_name=row['first_name_l'].lower().capitalize(), last_name=row['last_name_l'].lower().capitalize()) 
+                    #licensee = EmailUser.objects.get(first_name=row['first_name_l'].lower().capitalize(), last_name=row['last_name_l'].lower().capitalize()) 
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
+                    continue
+
                 #user = EmailUser.objects.filter(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize())[0]
                 if not row['first_name_u']:
                     # This record represents Mooring Licence Holder - No need for an Auth User Permit
@@ -1372,10 +1392,11 @@ class MooringLicenceReader():
 
                 email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    user = EmailUser.objects.get(email=email_u.lower())
+                    user = EmailUser.objects.get(email=email_u.lower()) #TODO iexact
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize()) 
-
+                    #user = EmailUser.objects.get(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize()) 
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_l.lower()) + " does not exist") 
+                    continue
 
                 rego_no = row.name
                 sticker_info = self.vessels_au.get(rego_no)
@@ -1396,8 +1417,15 @@ class MooringLicenceReader():
                     vessel_not_found.append(f'{row.pers_no_u} - {email_u}: {rego_no}')
                     continue
 
-                vessel_ownership = vessel.vesselownership_set.all()[0]
-                vessel_details = vessel.vesseldetails_set.all()[0]
+                if (vessel.vesselownership_set.exists()):
+                    vessel_ownership = vessel.vesselownership_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded ownership") 
+                
+                if (vessel.vesseldetails_set.exists()):
+                    vessel_details = vessel.vesseldetails_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
                 proposal=AuthorisedUserApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
@@ -1443,10 +1471,21 @@ class MooringLicenceReader():
                     approved_by_endorser=True,
                 )
 
-                try:
-                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u].squeeze() # as Pandas Series
-                except Exception as e:
-                    print(e)
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u] #.squeeze() # as Pandas Series
+
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    user_row = user_row[(user_row['paid_up']=='Y')]
+
+                if user_row.empty:
+                    continue
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+
+                user_row = user_row.squeeze() # convert to Pandas Series
                 
                 proposal_applicant=self.create_proposal_applicant(proposal, user, user_row)
 
@@ -1529,7 +1568,7 @@ class MooringLicenceReader():
 
             except Exception as e:
                 print(e)
-                errors.append(str(e))
+                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
