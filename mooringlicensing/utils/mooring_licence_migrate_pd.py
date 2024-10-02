@@ -68,10 +68,10 @@ logger = logging.getLogger(__name__)
 NL = '\n'
 
 TODAY = datetime.datetime.now(datetime.timezone.utc).date()
-EXPIRY_DATE = datetime.date(2024,8,31)
-START_DATE = datetime.date(2023,9,1)
-DATE_APPLIED = '2023-09-01'
-FEE_SEASON = '2023 - 2024'
+EXPIRY_DATE = datetime.date(2025,8,31)
+START_DATE = datetime.date(2024,9,1)
+DATE_APPLIED = '2024-09-01'
+FEE_SEASON = '2024 - 2025'
 
 #ApplicationType.objects.all().values_list('code')
 #Out[26]: <QuerySet [('wla',), ('aaa',), ('aua',), ('mla',), ('dcvp',), ('dcv',), ('replacement_sticker',), ('mooring_swap',)]>
@@ -1379,7 +1379,7 @@ class MooringLicenceReader():
 
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    licensee = EmailUser.objects.get(email=email_l.lower()) #TODO iexact
+                    licensee = EmailUser.objects.get(email=email_l.lower()) #TODO use iexact
                 except Exception as e:
                     #licensee = EmailUser.objects.get(first_name=row['first_name_l'].lower().capitalize(), last_name=row['last_name_l'].lower().capitalize()) 
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
@@ -1392,10 +1392,10 @@ class MooringLicenceReader():
 
                 email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    user = EmailUser.objects.get(email=email_u.lower()) #TODO iexact
+                    user = EmailUser.objects.get(email=email_u.lower()) #TODO use iexact
                 except Exception as e:
                     #user = EmailUser.objects.get(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize()) 
-                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_l.lower()) + " does not exist") 
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_u.lower()) + " does not exist") 
                     continue
 
                 rego_no = row.name
@@ -1597,9 +1597,10 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email=email.lower())
+                    user = EmailUser.objects.get(email=email.lower()) #TODO use iexact
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
+                    continue
 
                 rego_no = row['vessel_rego']
                 try:
@@ -1608,10 +1609,18 @@ class MooringLicenceReader():
                     vessel_not_found.append(f'{pers_no} - {email}: {rego_no}')
                     continue
 
-                vessel_ownership = vessel.vesselownership_set.all()[0]
-                vessel_details = vessel.vesseldetails_set.all()[0]
+                if (vessel.vesselownership_set.exists()):
+                    vessel_ownership = vessel.vesselownership_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded ownership") 
+                
+                if (vessel.vesseldetails_set.exists()):
+                    vessel_details = vessel.vesseldetails_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
-                start_date = parse(row.date_applied).replace(tzinfo=timezone.utc)
+                start_date = parse(row.date_applied).replace(tzinfo=datetime.timezone.utc)
+
                 proposal=WaitingListApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
@@ -1637,10 +1646,21 @@ class MooringLicenceReader():
                     customer_status='approved',
                 )
 
-                try:
-                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no].squeeze() # as Pandas Series
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]#.squeeze() # as Pandas Series
+
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    user_row = user_row[(user_row['paid_up']=='Y')]
+
+                if user_row.empty:
+                    continue
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+
+                user_row = user_row.squeeze() # convert to Pandas Series
                 
                 self.create_proposal_applicant(proposal, user, user_row)
 
@@ -1690,16 +1710,15 @@ class MooringLicenceReader():
                 #approval.generate_doc()
 
             except Exception as e:
-                errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
+                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'user_not_found: {user_not_found}')
         print(f'user_not_found: {len(user_not_found)}')
         print(f'wl_created: {len(wl_created)}')
+        for i in errors:
+            print(i)
 
     def create_dcv(self):
         expiry_date = EXPIRY_DATE
@@ -1716,9 +1735,6 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_dcv.iterrows(), total=self.df_dcv.shape[0]):
             try:
-                #import ipdb; ipdb.set_trace()
-                if row.pers_no == '201043':
-                    import ipdb; ipdb.set_trace()
 
                 pers_no = row['pers_no']
                 email = row['email']
@@ -1733,13 +1749,13 @@ class MooringLicenceReader():
                     user.last_name = last_name
                     user.save()
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
+                    errors.append("User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
+                    continue
 
                 try:
                     dcv_organisation = DcvOrganisation.objects.get(name=org_name)
                 except ObjectDoesNotExist:
                     dcv_organisation = DcvOrganisation.objects.create(name=org_name)
-
 
                 try:
                     vessels_dcv = self.vessels_dcv[pers_no]
@@ -1747,10 +1763,21 @@ class MooringLicenceReader():
                     vessel_not_found.append(pers_no)
                     continue
 
-                try:
-                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no].squeeze() # as Pandas Series
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    user_row = user_row[(user_row['paid_up']=='Y')]
+
+                if user_row.empty:
+                    continue
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+
+                user_row = user_row.squeeze() # convert to Pandas Series
 
                 for rego_no, sticker_no in vessels_dcv:
                     try:
@@ -1795,19 +1822,17 @@ class MooringLicenceReader():
                         )
                     dcv_created.append(dcv_permit.id)
 
-
-
             except Exception as e:
+                errors.append("User Id " + str(user.id) + ": " + str(e)) 
                 errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'user_not_found: {user_not_found}')
         print(f'user_not_found: {len(user_not_found)}')
         print(f'dcv_created: {len(dcv_created)}')
+        for i in errors:
+            print(i)
 
     def _create_single_vessel(self, user, rego_no, ves_name, ves_type, length, draft, beam, weight, pct_interest, berth_mooring=''):
 
