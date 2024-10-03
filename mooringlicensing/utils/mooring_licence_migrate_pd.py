@@ -825,9 +825,8 @@ class MooringLicenceReader():
                         except ObjectDoesNotExist:
                             vessel = Vessel.objects.create(rego_no=rego_no)
 
-                        try:
-                            vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
-                        except ObjectDoesNotExist:
+                        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
+                        if not vessel_ownership:
                             pct_interest = int(round(float(try_except(pct_interest)),0))
                             if pct_interest < 25:
                                 self.pct_interest_errors.append((pers_no, rego_no, pct_interest))
@@ -1103,11 +1102,11 @@ class MooringLicenceReader():
                     vessel_not_found.append(rego_no)
                     continue
 
-                try:
-                    vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
-                except Exception as e:
+                vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
+                if not vessel_ownership:
                     vessel_ownership_not_found.append(rego_no)
                     continue
+                
                 try:
                     vessel_details = VesselDetails.objects.get(vessel=vessel)
                 except MultipleObjectsReturned:
@@ -2094,11 +2093,11 @@ class MooringLicenceReader():
         return approval
 
     def create_licence_pdfs(self):
-        MooringLicenceReader.create_pdf_ml()
-        MooringLicenceReader.create_pdf_aup()
-        MooringLicenceReader.create_pdf_wl()
-        MooringLicenceReader.create_pdf_aa()
-        MooringLicenceReader.create_pdf_dcv()
+        self.create_pdf_ml()
+        self.create_pdf_aup()
+        self.create_pdf_wl()
+        self.create_pdf_aa()
+        self.create_pdf_dcv()
     
     @classmethod
     def create_pdf_ml(self):
