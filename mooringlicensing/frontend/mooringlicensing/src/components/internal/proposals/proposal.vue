@@ -15,9 +15,14 @@
                     :disable_add_entry="false"
                 />
 
-                <Submission v-if="canSeeSubmission"
+                <Submission v-if="canSeeSubmission && proposal.submitter.legal_first_name"
                     :submitter_first_name="proposal.submitter.legal_first_name"
                     :submitter_last_name="proposal.submitter.legal_last_name"
+                    :lodgement_date="proposal.lodgement_date"
+                />
+                <Submission v-else-if="canSeeSubmission"
+                    :submitter_first_name="proposal.submitter.first_name"
+                    :submitter_last_name="proposal.submitter.last_name"
                     :lodgement_date="proposal.lodgement_date"
                 />
 

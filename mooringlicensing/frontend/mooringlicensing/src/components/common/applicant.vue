@@ -40,15 +40,19 @@
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 control-label">Legal Given Name(s)</label>
                                     <div class="col-sm-6">
-                                        <input disabled type="text" class="form-control" placeholder=""
+                                        <input v-if="user.legal_first_name" disabled type="text" class="form-control" placeholder=""
                                             v-model="user.legal_first_name">
+                                        <input v-else disabled type="text" class="form-control" placeholder=""
+                                            v-model="user.first_name">
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <label for="" class="col-sm-3 control-label">Legal Surname</label>
                                     <div class="col-sm-6">
-                                        <input disabled type="text" class="form-control" placeholder=""
+                                        <input v-if="user.legal_last_name" disabled type="text" class="form-control" placeholder=""
                                             v-model="user.legal_last_name">
+                                        <input v-else disabled type="text" class="form-control" placeholder=""
+                                            v-model="user.last_name">
                                     </div>
                                 </div>
 
