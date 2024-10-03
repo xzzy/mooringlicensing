@@ -319,7 +319,7 @@ class MooringLicenceReader():
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='|', dtype=str)
         self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='|', dtype=str)
         self.df_wl=pd.read_csv(path+fname_wl, delimiter='|', dtype=str)
-        self.df_aa=pd.read_csv(path+fname_aa, delimiter='|', dtype=str)
+        self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
 
         self.df_user=self._read_users()
         self.df_ml=self._read_ml()
@@ -756,11 +756,9 @@ class MooringLicenceReader():
         """ Reads the annual_admissions file created from the Mooring Booking System """
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-            try:
+            #try:
                 #user_row = self.df_user[self.df_user['pers_no']==row.name] #.squeeze() # as Pandas Series
                 user_row = row.copy()
-
-                #TODO no email col?
 
                 email = user_row.email.lower().replace(' ','')
                 if not email:
@@ -774,8 +772,10 @@ class MooringLicenceReader():
                 except:
                     dob = None
 
-                resp = get_or_create(email)                    
+                resp = get_or_create(email)     
+                user_id = None              
                 if resp['status'] == 200:
+                    user_id = resp['data']['emailuser_id']    
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
                         #create system user
@@ -794,17 +794,16 @@ class MooringLicenceReader():
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
-                    self.user_error_details.append(row.name + " - " + user_row.email+" : Ledger Response: " + str(resp))
-
-                user_id = resp['data']['emailuser_id']
+                    self.user_error_details.append(str(row.name) + " - " + user_row.email+" : Ledger Response: " + str(resp))
+                
                 self.pers_ids.append((user_id, row.name))
 
-            except Exception as e:
-                if hasattr(user_row, "email"):
-                    self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
-                    self.user_errors.append(user_row.email)
-                else:
-                    self.user_error_details.append(str(row.name)+" : "+str(e))
+            #except Exception as e:
+            #    if hasattr(user_row, "email"):
+            #        self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
+            #        self.user_errors.append(user_row.email)
+            #    else:
+            #        self.user_error_details.append(str(row.name)+" : "+str(e))
 
         print(f'users created:  {len(self.user_created)}')
         print(f'users existing: {len(self.user_existing)}')
