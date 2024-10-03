@@ -13,6 +13,7 @@
                             <div class="col-sm-12">
                                 <div class="separator"></div>
                             </div>
+                            
                             <div v-if="!isFinalised" class="col-sm-12 top-buffer-s">
                                 <strong>Currently assigned to</strong><br/>
                                 <div class="form-group">
@@ -135,6 +136,16 @@
                                     <div class="row" v-if="display_action_back_to_assessor">
                                         <div class="col-sm-12" v-if="proposal.proposed_decline_status">
 -->
+                                    <div class="row" v-if="display_bypass_endorsement">
+                                        <div class="col-sm-12">
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                :disabled="can_user_edit" 
+                                                @click.prevent="bypassEndorsement()"
+                                            >Bypass Endorsement</button>
+                                        </div>
+                                    </div>
+
                                     <div class="row" v-if="display_action_back_to_assessor">
                                         <div class="col-sm-12">
                                             <button 
@@ -178,6 +189,15 @@
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 @click.prevent="declineProposal()"
                                             >Decline</button><br/>
+                                        </div>
+                                    </div>
+
+                                    <div class="row" v-if="display_request_endorsement">
+                                        <div class="col-sm-12">
+                                            <button 
+                                                class="btn btn-primary top-buffer-s w-btn" 
+                                                @click.prevent="requestEndorsement()"
+                                            >Request Endorsement</button><br/>
                                         </div>
                                     </div>
 <!--
@@ -292,6 +312,29 @@ export default {
             } catch(err) {}
             return display
         },
+        display_bypass_endorsement: function(){
+            let display = false
+            try {
+                if([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                    if(this.proposal.processing_status === constants.AWAITING_ENDORSEMENT){
+                        display = true
+                    }
+                }
+            } catch(err) {}
+            return display
+        },
+        display_request_endorsement: function(){
+            let display = false
+            try {
+                if([constants.AU_PROPOSAL].includes(this.proposal.application_type_dict.code)){
+                    if(this.proposal.processing_status === constants.WITH_ASSESSOR && 
+                    this.proposal.has_unactioned_endorsements){
+                        display = true
+                    }
+                }
+            } catch(err) {}
+            return display
+        },
         display_action_back_to_assessor: function(){
             let display = false
             try {
@@ -347,6 +390,12 @@ export default {
         }
     },
     methods: {
+        bypassEndorsement: function(){
+            this.$emit('bypassEndorsement')
+        },
+        requestEndorsement: function(){
+            this.$emit('requestEndorsement')
+        },
         backToAssessorRequirements: function(){
             this.$emit('backToAssessorRequirements')
         },

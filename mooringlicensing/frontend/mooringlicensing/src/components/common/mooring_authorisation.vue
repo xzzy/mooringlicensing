@@ -40,7 +40,7 @@
                         <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
                     </div>
                 </div>
-                <div class="col-lg-2 pull-right">
+                <div class="col-lg-2 pull-right" v-if="!readonly">
                     <button @click.prevent="addSiteLicensee()" class="btn btn-primary">Add</button>
                 </div>
                 <div class="row form-group">
@@ -154,10 +154,11 @@ import draggable from 'vuedraggable';
                         'render': function(row, type, full){
                             let links = '';
                             links += `<a href='/internal/moorings/${full.mooring_id}/'  target="_blank" style="cursor: pointer;">View</a><br/>`;
-                            links += `<a onclick="window.removeSiteLicenseeMooring('${full.mooring_id}')" style="cursor: pointer;">Remove</a><br/>`;
+                            if (!vm.readonly) {
+                                links += `<a onclick="window.removeSiteLicenseeMooring('${full.mooring_id}')" style="cursor: pointer;">Remove</a><br/>`;
+                            }
 
-                            if (vm.proposal.processing_status == "Awaiting Endorsement" || vm.proposal.processing_status == "With Assessor" || 
-                                vm.proposal.processing_status == "With Approver" && full.endorsement !== undefined) {
+                            if ((vm.proposal.processing_status == "Awaiting Endorsement" || vm.proposal.processing_status == "With Assessor" || vm.proposal.processing_status == "With Assessor (Requirements)") && full.endorsement !== undefined) {
                                 if (full.endorsement == "Not Actioned") {
                                     links += `<a onclick="window.internalEndorse('${full.id}')" style="cursor: pointer;">Endorse on Licensee Behalf</a><br/>`;
                                     links += `<a onclick="window.internalDecline('${full.id}')" style="cursor: pointer;">Decline on Licensee Behalf</a><br/>`;
