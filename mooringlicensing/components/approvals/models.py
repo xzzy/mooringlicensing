@@ -3051,7 +3051,6 @@ class DcvPermit(RevisionedMixin):
 
         return line_items, db_processes_after_success
 
-    #TODO does a DCV permit *need* an address associated with it? can it be the ledger address or should it specified?
     def get_context_for_licence_permit(self):
         context = {
             'lodgement_number': self.lodgement_number,
@@ -3067,7 +3066,7 @@ class DcvPermit(RevisionedMixin):
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),
             'public_url': get_public_url(),
-            'submitter_fullname': self.submitter.get_full_name(),
+            'submitter_fullname': self.applicant_obj.get_full_name(), #TODO need submitter AND applicant names - use applicant for now
         }
         return context
 

@@ -1687,6 +1687,7 @@ class MooringLicenceReader():
 
                     dcv_permit = DcvPermit.objects.create(
                         submitter = user.id,
+                        applicant = user.id,
                         lodgement_datetime = datetime.datetime.now(datetime.timezone.utc),
                         fee_season = fee_season,
                         start_date = start_date,
