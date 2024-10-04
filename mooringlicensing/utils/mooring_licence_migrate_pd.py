@@ -545,6 +545,7 @@ class MooringLicenceReader():
            mobile_number=mobile,
 
            email=user.email,
+           email_user_id=user.id,
         )
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
