@@ -637,6 +637,7 @@ class MooringLicenceReader():
                     dob = None
 
                 resp = get_or_create(email)       
+                
                 user_id = None             
                 if resp['status'] == 200:
                     user_id = resp['data']['emailuser_id']
@@ -683,11 +684,20 @@ class MooringLicenceReader():
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
-                user_row = row.copy()
-
+                user_row = self.df_user[self.df_user['email']==row.email]
+                if user_row.empty:
+                    user_row = row.copy()
+                else:
+                    if len(user_row)>1:
+                        # if still greater than 1, take first
+                        user_row = user_row[:1]
+                    user_row = user_row.squeeze() # convert to Pandas Series
+                    
                 email = user_row.email.lower().replace(' ','')
                 if not email:
-                    self.no_email.append(user_row.pers_no)
+                    self.no_email.append(user_row.id)
+                    self.user_errors.append(user_row.email)
+                    self.user_error_details.append(str(row.name) + " - " + user_row.email+" : Ledger Response: " + str(resp))
                     continue
 
                 first_name = user_row.first_name.lower().title().strip()
@@ -697,7 +707,8 @@ class MooringLicenceReader():
                 except:
                     dob = None
 
-                resp = get_or_create(email)     
+                resp = get_or_create(email)    
+
                 user_id = None              
                 if resp['status'] == 200:
                     user_id = resp['data']['emailuser_id']    
