@@ -10,7 +10,7 @@ from dateutil.parser import parse
 from decimal import Decimal
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
-from mooringlicensing.components.payments_ml.models import FeeSeason
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCalculation, FeeItemApplicationFee, FeeItem, FeeSeason
 
 from mooringlicensing.components.users.utils import (
     create_system_user, get_or_create_system_user, 
@@ -1174,6 +1174,8 @@ class MooringLicenceReader():
 
                 proposal_applicant = self.create_proposal_applicant(proposal, user, user_row)
 
+                create_application_fee(proposal)
+
                 ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
@@ -1401,6 +1403,8 @@ class MooringLicenceReader():
                 
                 proposal_applicant=self.create_proposal_applicant(proposal, user, user_row)
 
+                create_application_fee(proposal)
+
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
@@ -1575,6 +1579,8 @@ class MooringLicenceReader():
                 user_row = user_row.squeeze() # convert to Pandas Series
                 
                 self.create_proposal_applicant(proposal, user, user_row)
+
+                create_application_fee(proposal)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1899,6 +1905,8 @@ class MooringLicenceReader():
 
                 proposal_applicant = self.create_proposal_applicant_aa(proposal, user, row)
 
+                create_application_fee(proposal)
+
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
@@ -1963,147 +1971,6 @@ class MooringLicenceReader():
         for i in errors:
             print(i)
 
-    #TODO remove (keeping for now as a reference)
-    def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
-        from disturbance.components.approvals.models import Approval
-        #import ipdb; ipdb.set_trace()
-        try:
-            site_number = int(data.permit_number) if data.permit_number else int(data.licensed_site)
-        except Exception as e:
-            import ipdb; ipdb.set_trace()
-            print('ERROR: There is no site_number - Must provide a site number in migration spreadsheeet. {e}')
-
-        try:
-            expiry_date = data['expiry_date'] if data['expiry_date'] else datetime.date.today()
-            start_date = data['start_date'] if data['start_date'] else datetime.date.today()
-            issue_date = data['issue_date'] if data['issue_date'] else start_date
-            site_status = 'not_to_be_reissued' if data['status'].lower().strip() == 'not to be reissued' else data['status'].lower().strip()
-
-        except Exception as e:
-            import ipdb; ipdb.set_trace()
-            print(e)
-
-        try:
-
-            #import ipdb; ipdb.set_trace()
-            if applicant:
-                proposal, p_created = Proposal.objects.get_or_create(
-                                application_type=self.application_type,
-                                activity='Apiary',
-                                submitter=submitter,
-                                applicant=applicant,
-                                schema=self.proposal_type.schema,
-                            )
-                approval, approval_created = Approval.objects.update_or_create(
-                                applicant=applicant,
-                                status=Approval.STATUS_CURRENT,
-                                apiary_approval=True,
-                                defaults = {
-                                    'issue_date':issue_date,
-                                    'expiry_date':expiry_date,
-                                    'start_date':start_date,
-                                    #'submitter':submitter,
-                                    'current_proposal':proposal,
-                                    }
-                            )
-            else:
-                import ipdb; ipdb.set_trace()
-
-            #if 'PM' not in proposal.lodgement_number:
-            #    proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
-            proposal.approval= approval
-            proposal.processing_status='approved'
-            proposal.customer_status='approved'
-            proposal.migrated=True
-            proposal.proposed_issuance_approval = {
-                    'start_date': start_date.strftime('%d-%m-%Y'),
-                    'expiry_date': expiry_date.strftime('%d-%m-%Y'),
-                    'details': 'Migrated',
-                    'cc_email': 'Migrated',
-            }
-
-            approval.migrated=True
-
-            # create invoice for payment of zero dollars
-#            order = create_invoice(proposal)
-#            invoice = Invoice.objects.get(order_number=order.number) 
-#            proposal.fee_invoice_references = [invoice.reference]
-            proposal.fee_invoice_references = [10000001]
-
-            proposal.save()
-            approval.save()
-
-            # create apiary sites and intermediate table entries
-            #geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            #import ipdb; ipdb.set_trace()
-            apiary_site = ApiarySite.objects.create(
-                    id=site_number,
-                    is_vacant=True if site_status=='vacant' else False
-                    )
-            site_category = get_category(geometry)
-            intermediary_approval_site = ApiarySiteOnApproval.objects.create(
-                                            #id=site_number,
-                                            apiary_site=apiary_site,
-                                            approval=approval,
-                                            wkb_geometry=geometry,
-                                            site_category = site_category,
-                                            licensed_site=True if data['licensed_site'] else False,
-                                            batch_no=data['batch_no'],
-                                            approval_cpc_date=data['approval_cpc_date'] if data.approval_cpc_date else None,
-                                            approval_minister_date=data['approval_minister_date'] if data.approval_minister_date else None,
-                                            map_ref=data['map_ref'],
-                                            forest_block=data['forest_block'],
-                                            cog=data['cog'],
-                                            roadtrack=data['roadtrack'],
-                                            zone=data['zone'],
-                                            catchment=data['catchment'],
-                                            #dra_permit=data['dra_permit'],
-                                            site_status=site_status,
-                                            )
-            #import ipdb; ipdb.set_trace()
-            pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
-
-            intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
-                                            #id=site_number,
-                                            apiary_site=apiary_site,
-                                            #approval=approval,
-                                            proposal_apiary=pa,
-                                            wkb_geometry_draft=geometry,
-                                            site_category_draft = site_category,
-                                            wkb_geometry_processed=geometry,
-                                            site_category_processed = site_category,
-                                            licensed_site=True if data['licensed_site'] else False,
-                                            batch_no=data['batch_no'],
-                                            #approval_cpc_date=data['approval_cpc_date'],
-                                            #approval_minister_date=data['approval_minister_date'],
-                                            approval_cpc_date=data['approval_cpc_date'] if data.approval_cpc_date else None,
-                                            approval_minister_date=data['approval_minister_date'] if data.approval_minister_date else None,
-                                            map_ref=data['map_ref'],
-                                            forest_block=data['forest_block'],
-                                            cog=data['cog'],
-                                            roadtrack=data['roadtrack'],
-                                            zone=data['zone'],
-                                            catchment=data['catchment'],
-                                            site_status=site_status,
-                                            #dra_permit=data['dra_permit'],
-                                            )
-            #import ipdb; ipdb.set_trace()
-
-            apiary_site.latest_approval_link=intermediary_approval_site
-            apiary_site.latest_proposal_link=intermediary_proposal_site
-            if site_status == 'vacant':
-                apiary_site.approval_link_for_vacant=intermediary_approval_site
-                apiary_site.proposal_link_for_vacant=intermediary_proposal_site
-            apiary_site.save()
-
-
-        except Exception as e:
-            logger.error('{}'.format(e))
-            import ipdb; ipdb.set_trace()
-            return None
-
-        return approval
 
     def create_licence_pdfs(self):
         self.create_pdf_ml()
@@ -2163,31 +2030,54 @@ class MooringLicenceReader():
             except Exception as e:
                 logger.error(e)
 
-#TODO fix or replace - call from run_migration?
-def create_invoice(proposal, payment_method='other'):
-        """
-        This will create and invoice and order from a basket bypassing the session
-        and payment bpoint code constraints.
-        """
-        #TODO replace
-        from ledger.checkout.utils import createCustomBasket
-        from ledger.payments.invoice.utils import CreateInvoiceBasket
-        from ledger.accounts.models import EmailUser
 
-        now = timezone.now().date()
-        line_items = [
-            {'ledger_description': 'Migration Licence Charge Waiver - {} - {}'.format(now, proposal.lodgement_number),
-             'oracle_code': 'N/A', #proposal.application_type.oracle_code_application,
-             'price_incl_tax':  Decimal(0.0),
-             'price_excl_tax':  Decimal(0.0),
-             'quantity': 1,
-            }
-        ]
+def create_application_fee(proposal):
 
-        user = EmailUser.objects.get(email__icontains='das@dbca.wa.gov.au')
-        invoice_text = 'Migrated Permit/Licence Invoice'
+    application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=255, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
+    lines, db_processes_after_success = proposal.create_fee_lines()
+    new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
-        basket  = createCustomBasket(line_items, user, settings.PAYMENT_SYSTEM_ID)
-        order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+    db_operations = new_fee_calculation.data
 
-        return order
+    if 'for_existing_invoice' in db_operations and db_operations['for_existing_invoice']:
+        # For existing invoices, fee_item_application_fee.amount_paid should be updated, once paid
+        for idx in db_operations['fee_item_application_fee_ids']:
+            fee_item_application_fee = FeeItemApplicationFee.objects.get(id=int(idx))
+            fee_item_application_fee.amount_paid = fee_item_application_fee.amount_to_be_paid
+            fee_item_application_fee.save()
+    else:
+
+        if 'fee_item_id' in db_operations:
+            fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
+            if fee_items:
+                amount_paid = None
+                amount_to_be_paid = None
+                if 'fee_amount_adjusted' in db_operations:
+                    fee_amount_adjusted = db_operations['fee_amount_adjusted']
+                    amount_to_be_paid = Decimal(fee_amount_adjusted)
+                    amount_paid = amount_to_be_paid
+                    fee_item = fee_items.first()
+                fee_item_application_fee = FeeItemApplicationFee.objects.create(
+                    fee_item=fee_item,
+                    application_fee=application_fee,
+                    vessel_details=proposal.vessel_details,
+                    amount_to_be_paid=amount_to_be_paid,
+                    amount_paid=amount_paid,
+                )
+                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] created.')
+        if isinstance(db_operations, list):
+            for item in db_operations:
+                fee_item = FeeItem.objects.get(id=item['fee_item_id'])
+                fee_amount_adjusted = item['fee_amount_adjusted']
+                amount_to_be_paid = Decimal(fee_amount_adjusted)
+                amount_paid = amount_to_be_paid
+                vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
+                vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
+                fee_item_application_fee = FeeItemApplicationFee.objects.create(
+                    fee_item=fee_item,
+                    application_fee=application_fee,
+                    vessel_details=vessel_details,
+                    amount_to_be_paid=amount_to_be_paid,
+                    amount_paid=amount_paid,
+                )
+                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')
