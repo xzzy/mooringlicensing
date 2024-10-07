@@ -1347,6 +1347,7 @@ class StickerSerializer(serializers.ModelSerializer):
     dcv_permit = DcvPermitSimpleSerializer()
     invoices = serializers.SerializerMethodField()
     can_view_payment_details = serializers.SerializerMethodField()
+    migrated = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1376,6 +1377,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'postal_address_state',
             'postal_address_country',
             'postal_address_postcode',
+            'migrated',
         )
         datatables_always_serialize = (
             'id',
@@ -1403,6 +1405,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'postal_address_state',
             'postal_address_country',
             'postal_address_postcode',
+            'migrated',
         )
 
     def get_fee_season(self, obj):
@@ -1454,6 +1457,11 @@ class StickerSerializer(serializers.ModelSerializer):
         if sticker.sticker_printing_batch and sticker.sticker_printing_batch.emailed_datetime:
             return sticker.sticker_printing_batch.emailed_datetime.date()
         return None
+    
+    def get_migrated(self,sticker):
+        if sticker.approval:
+            return sticker.approval.migrated
+        return False
 
 
 class StickerPostalAddressSaveSerializer(serializers.ModelSerializer):
