@@ -1135,7 +1135,7 @@ class MooringLicenceReader():
                 proposal=MooringLicenceApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=datetime.datetime.now().astimezone(),
+                    lodgement_date=datetime.datetime.now().astimezone(), #TODO get actual
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1168,7 +1168,7 @@ class MooringLicenceReader():
                             }],
                         "mooring_on_approval": []
                     },
-                    date_invited=None,
+                    date_invited=None, #TODO get actual?
                     dot_name=rego_no,
                 )
 
@@ -1186,7 +1186,7 @@ class MooringLicenceReader():
                     status='current',
                     current_proposal=proposal,
                     issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    start_date = start_date,
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1220,7 +1220,7 @@ class MooringLicenceReader():
                     approval=approval,
                     vessel_ownership = vessel_ownership,
                     proposal = proposal,
-                    start_date = start_date,
+                    start_date = start_date, #TODO get actual
                 )
 
                 try:
@@ -1344,7 +1344,7 @@ class MooringLicenceReader():
                 proposal=AuthorisedUserApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=TODAY,
+                    lodgement_date=TODAY, #TODO get actual
                     mooring_authorisation_preference=mooring_authorisation_preference,
                     keep_existing_mooring=True,
                     bay_preferences_numbered=bay_preferences_numbered,
@@ -1416,11 +1416,16 @@ class MooringLicenceReader():
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
 
+                try:
+                    issue_date = datetime.datetime.strptime(date_issued, '%Y-%m-%d %H:%M:%S').date()
+                except:
+                    issue_date = datetime.datetime.strptime(date_issued, '%Y-%m-%d').date()
+
                 approval = AuthorisedUserPermit.objects.create(
                     status='current',
                     current_proposal=proposal,
-                    issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    start_date = start_date,
+                    issue_date = issue_date,
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1447,7 +1452,6 @@ class MooringLicenceReader():
                     approval=approval,
                     vessel_ownership = vessel_ownership,
                     proposal = proposal,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                     start_date = start_date,
                 )
 
@@ -1495,6 +1499,8 @@ class MooringLicenceReader():
 
     def create_waiting_list(self):
         expiry_date = EXPIRY_DATE
+        start_date = START_DATE
+        date_applied = DATE_APPLIED
 
         errors = []
         vessel_not_found = []
@@ -1534,12 +1540,15 @@ class MooringLicenceReader():
                 else:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
-                start_date = parse(row.date_applied).replace(tzinfo=datetime.timezone.utc)
+                try:
+                    lodgement_date = datetime.datetime.strptime(row.date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                except:
+                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 proposal=WaitingListApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=start_date, #TODAY,
+                    lodgement_date=lodgement_date,
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1587,12 +1596,17 @@ class MooringLicenceReader():
                     what='Waiting List - Migrated Application',
                 )
 
+                try:
+                    date_allocated = datetime.datetime.strptime(row.date_allocated, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                except:
+                    date_allocated = datetime.datetime.strptime(start_date, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+
                 approval = WaitingListAllocation.objects.create(
                     status=Approval.APPROVAL_STATUS_CURRENT,
                     internal_status=Approval.INTERNAL_STATUS_WAITING,
                     current_proposal=proposal,
-                    issue_date = start_date, #TODAY,
-                    start_date = start_date,
+                    issue_date = date_allocated,
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1610,16 +1624,18 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
+                #TODO fix
                 try:
                     start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+
                 approval_history = ApprovalHistory.objects.create(
                     reason='new',
                     approval=approval,
                     vessel_ownership = vessel_ownership,
                     proposal = proposal,
-                    start_date = start_date,
+                    start_date = start_date, #TODO get actual
                 )
 
             except Exception as e:
@@ -1703,9 +1719,9 @@ class MooringLicenceReader():
                     dcv_permit = DcvPermit.objects.create(
                         submitter = user.id,
                         applicant = user.id,
-                        lodgement_datetime = datetime.datetime.now(datetime.timezone.utc),
+                        lodgement_datetime = datetime.datetime.now(datetime.timezone.utc), #TODO get actual
                         fee_season = fee_season,
-                        start_date = start_date,
+                        start_date = start_date, #TODO get actual
                         end_date = expiry_date,
                         dcv_vessel = dcv_vessel,
                         dcv_organisation =dcv_organisation,
@@ -1913,8 +1929,8 @@ class MooringLicenceReader():
                 approval = AnnualAdmissionPermit.objects.create(
                     status='current',
                     current_proposal=proposal,
-                    issue_date = TODAY,
-                    start_date = start_date,
+                    issue_date = TODAY, #TODO get actual
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
