@@ -1679,8 +1679,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
 
 class ApprovalHistorySerializer(serializers.ModelSerializer):
-    #reason = serializers.SerializerMethodField()
-    approval_letter = serializers.CharField(source='approval_letter._file.url')
+    approval_letter = serializers.SerializerMethodField()
     sticker_numbers = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_type_description = serializers.SerializerMethodField()
@@ -1713,8 +1712,9 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
                 'approval_letter',
                 )
 
-    #def get_reason(self, obj):
-     #   return ''
+    def get_approval_letter(self ,obj):
+        if obj.approval_letter and obj.approval_letter._file:
+            return obj.approval_letter._file.url
 
     def get_approval_status(self, obj):
         return obj.approval.get_status_display()

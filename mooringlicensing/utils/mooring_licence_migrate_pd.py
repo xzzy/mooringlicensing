@@ -1442,15 +1442,14 @@ class MooringLicenceReader():
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
-                #TODO determine why no history here?
-#                approval_history = ApprovalHistory.objects.create(
-#                    reason='new',
-#                    approval=approval,
-#                    vessel_ownership = vessel_ownership,
-#                    proposal = proposal,
-#                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                    start_date = start_date,
-#                )
+                approval_history = ApprovalHistory.objects.create(
+                    reason='new',
+                    approval=approval,
+                    vessel_ownership = vessel_ownership,
+                    proposal = proposal,
+                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                    start_date = start_date,
+                )
 
                 sticker = None
                 if sticker_number:
@@ -1611,19 +1610,17 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
-                #TODO determine why history is not include
-#                try:
-#                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                except:
-#                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-
-#                approval_history = ApprovalHistory.objects.create(
-#                    reason='new',
-#                    approval=approval,
-#                    vessel_ownership = vessel_ownership,
-#                    proposal = proposal,
-#                    start_date = start_date,
-#                )
+                try:
+                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                except:
+                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+                approval_history = ApprovalHistory.objects.create(
+                    reason='new',
+                    approval=approval,
+                    vessel_ownership = vessel_ownership,
+                    proposal = proposal,
+                    start_date = start_date,
+                )
 
             except Exception as e:
                 errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
@@ -1933,15 +1930,14 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
-                #TODO check if approval history needed
-#                approval_history = ApprovalHistory.objects.create(
-#                    reason='new',
-#                    approval=approval,
-#                    vessel_ownership = vessel_ownership,
-#                    proposal = proposal,
-#                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                    start_date = start_date,
-#                )
+                approval_history = ApprovalHistory.objects.create(
+                    reason='new',
+                    approval=approval,
+                    vessel_ownership = vessel_ownership,
+                    proposal = proposal,
+                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                    start_date = start_date,
+                )
 
                 if sticker_no:
                     sticker = Sticker.objects.create(
