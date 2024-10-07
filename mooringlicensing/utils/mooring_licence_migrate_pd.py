@@ -1958,6 +1958,16 @@ class MooringLicenceReader():
                     )
                 else:
                     #create non-exported sticker record
+                    sticker = Sticker.objects.create(
+                        approval=approval,
+                        proposal_initiated=proposal,
+                        vessel_ownership=vessel_ownership,
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
+                    )
 
             except Exception as e:
                 errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
