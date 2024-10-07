@@ -2022,6 +2022,7 @@ class MooringLicenceReader():
                     a.generate_dcv_permit_doc()
                 elif not hasattr(a, 'licence_document') or a.licence_document is None: 
                     a.generate_doc()
+                    #TODO retroactively update history (update last history record of approval)
                 print(f'{idx}, Created PDF for {permit_name}: {a}')
             except Exception as e:
                 logger.error(e)

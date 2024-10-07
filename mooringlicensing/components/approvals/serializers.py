@@ -293,7 +293,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField()
     applicant = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
-    licence_document = serializers.CharField(source='licence_document._file.url')
+    licence_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
     internal_status = serializers.SerializerMethodField()
@@ -373,6 +373,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'licence_document',
             'is_approver',
         )
+
+    def get_licence_document(self, obj):
+        if obj.licence_document and obj.licence_document._file:
+            return obj.licence_document._file.url
 
     def get_allowed_assessors(self, obj):
         if 'request' in self.context and is_internal(self.context['request']):
