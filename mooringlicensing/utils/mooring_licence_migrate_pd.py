@@ -1282,7 +1282,7 @@ class MooringLicenceReader():
 
         df_authuser = self.df_authuser[(self.df_authuser['vessel_rego']!='0')].groupby('vessel_rego').first()
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
-            try:
+            #try:
 
                 rego_no = row.name
                 
@@ -1324,7 +1324,7 @@ class MooringLicenceReader():
                 else:
                     au_stickers.append(rego_no)
 
-                date_issued = row['date_issued'].split(' ')[0]
+                
                 try:
                     vessel = Vessel.objects.get(rego_no=rego_no)
                 except Exception as e:
@@ -1417,9 +1417,9 @@ class MooringLicenceReader():
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
 
                 try:
-                    issue_date = datetime.datetime.strptime(date_issued, '%Y-%m-%d %H:%M:%S').date()
+                    issue_date = datetime.datetime.strptime(row['date_issued'].split(' ')[0], '%d-%m-%Y')
                 except:
-                    issue_date = datetime.datetime.strptime(date_issued, '%Y-%m-%d').date()
+                    issue_date = start_date
 
                 approval = AuthorisedUserPermit.objects.create(
                     status='current',
@@ -1443,7 +1443,7 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
@@ -1485,9 +1485,9 @@ class MooringLicenceReader():
                         site_licensee=False,
                     )
 
-            except Exception as e:
-                print(e)
-                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+            #except Exception as e:
+            #    print(e)
+            #    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
