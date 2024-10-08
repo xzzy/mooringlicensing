@@ -50,14 +50,20 @@
                       <form class="form-horizontal">
                         <div class="form-group">
                           <label for="" class="col-sm-3 control-label">Given name(s)</label>
-                          <div class="col-sm-6">
+                          <div class="col-sm-6" v-if="profile.legal_first_name">
                               <input readonly type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.legal_first_name" required="">
+                          </div>
+                          <div class="col-sm-6" v-else>
+                              <input readonly type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
                           </div>
                         </div>
                         <div class="form-group">
                           <label for="" class="col-sm-3 control-label" >Surname</label>
-                          <div class="col-sm-6">
+                          <div class="col-sm-6" v-if="profile.legal_first_name">
                               <input readonly type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.legal_last_name">
+                          </div>
+                          <div class="col-sm-6" v-else>
+                              <input readonly type="text" class="form-control" id="first_name" name="Surname" placeholder="" v-model="profile.last_name" required="">
                           </div>
                         </div>
                         <div class="row form-group" v-if="!forEndorser">
@@ -460,7 +466,11 @@ export default {
         getApplicantDisplay: function () {           
             let vm = this; 
             console.log("getApplicantDisplay")
-            let display = vm.profile.legal_first_name + " " + vm.profile.legal_last_name + " (DOB: "+vm.profile.legal_dob+")";
+            if (vm.profile.legal_first_name) {
+                let display = vm.profile.legal_first_name + " " + vm.profile.legal_last_name + " (DOB: "+vm.profile.legal_dob+")";
+            } else {
+                let display = vm.profile.first_name + " " + vm.profile.last_name + " (DOB: "+vm.profile.legal_dob+")";
+            }
             var newOption = new Option(display, vm.profile.id, false, true);
             $('#person_lookup').append(newOption);         
         },

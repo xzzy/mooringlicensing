@@ -1,26 +1,21 @@
-from ledger_api_client.ledger_models import EmailUserRO as EmailUser, Invoice, Address
+from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.db import IntegrityError, transaction
 from django.contrib.gis.geos import GEOSGeometry
 from django.utils import timezone
-from ledger_api_client.country_models import Country
-import csv
-import os
 import datetime
-import time
-import string
 import pandas as pd
 import numpy as np
-import requests
-import json
-
 from dateutil.parser import parse
-from dateutil.relativedelta import relativedelta
 from decimal import Decimal
-
+from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
 from mooringlicensing.components.payments_ml.models import FeeSeason
+
+from mooringlicensing.components.users.utils import (
+    create_system_user, get_or_create_system_user, 
+    get_user_name, get_or_create_system_user_address,
+    )
 
 from mooringlicensing.components.proposals.models import (
     Proposal,
@@ -37,6 +32,7 @@ from mooringlicensing.components.proposals.models import (
     ProposalUserAction,
     Mooring,
     MooringBay,
+    ProposalSiteLicenseeMooringRequest,
 )
 from mooringlicensing.components.approvals.models import (
     Approval, 
@@ -61,13 +57,10 @@ logger = logging.getLogger(__name__)
 NL = '\n'
 
 TODAY = datetime.datetime.now(datetime.timezone.utc).date()
-EXPIRY_DATE = datetime.date(2024,8,31)
-START_DATE = datetime.date(2023,9,1)
-DATE_APPLIED = '2023-09-01'
-FEE_SEASON = '2023 - 2024'
-
-#ApplicationType.objects.all().values_list('code')
-#Out[26]: <QuerySet [('wla',), ('aaa',), ('aua',), ('mla',), ('dcvp',), ('dcv',), ('replacement_sticker',), ('mooring_swap',)]>
+EXPIRY_DATE = datetime.date(2025,8,31)
+START_DATE = datetime.date(2024,9,1)
+DATE_APPLIED = '2024-09-01'
+FEE_SEASON = '2024 - 2025'
 
 VESSEL_TYPE_MAPPING = {
     'A': 'Catamaran',
@@ -222,17 +215,6 @@ AA_COLUMN_MAPPING = {
     'Country':                          'country',
 }
 
-
-
-def get_user_as_email_user(sender):
-    try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    except:
-        EmailUser.objects.create(email=sender, password='')
-        sender_user = EmailUser.objects.get(email__icontains=sender)
-    return sender_user
-
-
 class MooringLicenceReader():
     """
     First need to run clean().
@@ -254,11 +236,17 @@ class MooringLicenceReader():
 
         mlr.create_users()
         mlr.create_vessels()
-        mlr.create_vessels_wl()
         mlr.create_mooring_licences()
         mlr.create_authuser_permits()
         mlr.create_waiting_list()
         mlr.create_dcv()
+        mlr.create_annual_admissions()
+
+        mlr.create_pdf_ml()
+        mlr.create_pdf_aup()
+        mlr.create_pdf_wl()
+        mlr.create_pdf_aa()
+        mlr.create_pdf_dcv()
 
     OR
         from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
@@ -266,7 +254,7 @@ class MooringLicenceReader():
         mlr.run_migration
 
     FROM mgt-command:
-        python manage_ds.py mooring_migration_script --filename mooringlicensing/utils/csv/MooringDets20221201-083202.txt
+        python manage_ml.py mooring_migration_script --filename mooringlicensing/utils/csv/MooringDets20221201-083202.txt
 
 
     Check for unique permit numbers
@@ -278,19 +266,20 @@ class MooringLicenceReader():
     from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
     mlr=MooringLicenceReader('PersonDets.txt','MooringDets.txt','VesselDets.txt','UserDets.txt','ApplicationDets.txt','annual_admissions_booking_report.csv',path='/app/shared/clean/clean_22Dec2022/')
 
-
     CLEAR DB Records:
         MooringLicenceApplication.objects.all().delete()
         AuthorisedUserApplication.objects.all().delete()
         WaitingListApplication.objects.all().delete()
         DcvPermit.objects.all().delete()
         AnnualAdmissionApplication.objects.all().delete()
-        ------
-
+        Sticker.objects.all().delete()
         Approval.objects.all().delete()
+        ApprovalHistory.objects.all().delete()
         Proposal.objects.all().delete()
+        ProposalApplicant.objects.all().delete()
         Vessel.objects.all().delete()
         Owner.objects.all().delete()
+        VesselOwnership.objects.all().delete()
         Mooring.objects.all().delete()
         MooringBay.objects.all().delete()
 
@@ -304,7 +293,7 @@ class MooringLicenceReader():
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='|', dtype=str)
         self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='|', dtype=str)
         self.df_wl=pd.read_csv(path+fname_wl, delimiter='|', dtype=str)
-        self.df_aa=pd.read_csv(path+fname_aa, delimiter='|', dtype=str)
+        self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
 
         self.df_user=self._read_users()
         self.df_ml=self._read_ml()
@@ -317,9 +306,12 @@ class MooringLicenceReader():
         # create_users
         self.pers_ids = []
         self.user_created = []
+        self.system_user_created = []
         self.user_existing = []
+        self.system_user_existing = []
         self.user_errors = []
         self.no_email = []
+        self.user_error_details = []
 
         # create_vessels
         self.vessels_created = []
@@ -342,59 +334,39 @@ class MooringLicenceReader():
             row.home_number.replace(' ', '')
             return row.home_number
 
-    def __get_work_number(self, row):
-        return row.work_number.replace(' ', '')
-
-
     def __get_mobile_number(self, row):
         return row.mobile_number.replace(' ', '')
 
     def _read_users(self):
-        # def _get_country_code(x):
-        #     try:
-        #         country=Country.objects.get(iso_3166_1_a2=x.get('country'))
-        #     except Exception as e:
-        #         country=Country.objects.get(iso_3166_1_a2='AU')
-        #     return country.code
-
-
         # Rename the cols from Spreadsheet headers to Model fields names
         df_user = self.df_user.rename(columns=USER_COLUMN_MAPPING)
         df_user[df_user.columns] = df_user.apply(lambda x: x.str.strip() if isinstance(x, str) else x)
  
         # clean everything else
         df_user.fillna('', inplace=True)
-        df_user.replace({np.NaN: ''}, inplace=True)
+        df_user.replace({np.nan: ''}, inplace=True)
 
-        #return df[:500]
         return df_user
 
     def _read_ml(self):
-
         # Rename the cols from Spreadsheet headers to Model fields names
         df_ml = self.df_ml.rename(columns=ML_COLUMN_MAPPING)
         df_ml[df_ml.columns] = df_ml.apply(lambda x: x.str.strip() if isinstance(x, str) else x)
  
         # clean everything else
         df_ml.fillna('', inplace=True)
-        df_ml.replace({np.NaN: ''}, inplace=True)
+        df_ml.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         df_ml = df_ml[(df_ml['cancelled']=='N') & (df_ml['first_name_l'].isna()==False)]
 
-        #return df[:500]
         return df_ml
 
     def _read_ves(self):
-
         # clean everything else
         self.df_ves.fillna('', inplace=True)
-        self.df_ves.replace({np.NaN: ''}, inplace=True)
+        self.df_ves.replace({np.nan: ''}, inplace=True)
 
-        # filter cancelled and rows with no name
-        #df_ml = df_ml[(df_ml['cancelled']=='N') & (df_ml['first_name_l'].isna()==False)]
-
-        #return df[:500]
         return self.df_ves
 
     def _read_au(self):
@@ -406,12 +378,11 @@ class MooringLicenceReader():
  
         # clean everything else
         df_authuser.fillna('', inplace=True)
-        df_authuser.replace({np.NaN: ''}, inplace=True)
+        df_authuser.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         df_authuser = df_authuser[(df_authuser['cancelled']=='N')]
 
-        #return df[:500]
         return df_authuser
 
     def _read_wl(self):
@@ -424,7 +395,7 @@ class MooringLicenceReader():
  
         # clean everything else
         df_wl.fillna('', inplace=True)
-        df_wl.replace({np.NaN: ''}, inplace=True)
+        df_wl.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
         df_wl = df_wl[(df_wl['app_status']=='W')]
@@ -435,9 +406,6 @@ class MooringLicenceReader():
 
     def _read_dcv(self):
         """ Read PersonDets file - for DCV Permits details """
-        if len(self.df_user)==0:
-            _read_user()
-
         df_dcv = self.df_user[(self.df_user['company']!='') & (self.df_user['paid_up']=='Y') & (self.df_user['licences_type']=='C')]
         return df_dcv
 
@@ -453,13 +421,12 @@ class MooringLicenceReader():
  
         # clean everything else
         df_aa.fillna('', inplace=True)
-        df_aa.replace({np.NaN: ''}, inplace=True)
+        df_aa.replace({np.nan: ''}, inplace=True)
 
         # create dict of vessel details by rego_no --> self.vessels_dict['DO904']
         logger.info('Creating Vessels details Dictionary ...')
         self.create_vessels_dict()
 
-        #df_dcv = self.df_user[(self.df_user['company']!='') & (self.df_user['paid_up']=='Y') & (self.df_user['licences_type']=='C')]
         return df_aa
 
     def run_migration(self):
@@ -470,132 +437,151 @@ class MooringLicenceReader():
         self.create_waiting_list()
         self.create_dcv()
         self.create_annual_admissions()
-
-    def _run_migration(self):
-
-        # create the users and organisations, if they don't already exist
-        t0_start = time.time()
-        self.create_users()
-        self.create_organisations()
-        t0_end = time.time()
-        print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
-
-        # create the Migratiom models
-        t1_start = time.time()
-        self.create_licences()
-        t1_end = time.time()
-        print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
-
-        # create the Licence/Permit PDFs
-        t2_start = time.time()
-        try:
-            self.create_licence_pdf()
-        except Exception as e:
-            print(e)
-            import ipdb; ipdb.set_trace()
-        t2_end = time.time()
-        print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
-
-        print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
+        self.create_licence_pdfs()
 
     def create_proposal_applicant(self, proposal, user, user_row):
         postal_same_as_res = user_row.address==user_row.postal_address or user_row.postal_address==''
+        
+        try:
+            system_user = SystemUser.objects.get(ledger_id=user)
+            names = get_user_name(system_user)
+            if not system_user.legal_dob:
+                dob = parse(user_row.dob).date() if user_row.dob else None
+            else:
+                dob = system_user.legal_dob
+
+            if not system_user.phone_number:
+                phone = system_user.phone_number
+            else:
+                phone = self.__get_phone_number(user_row)
+
+            if not system_user.mobile_number:
+                mobile = system_user.mobile_number
+            else:
+                mobile = self.__get_mobile_number(user_row)
+        except Exception as e:
+            print("error getting system user:",e)
+            system_user = None
+            names = {"first_name": user.first_name, "last_name": user.last_name}
+            dob = parse(user_row.dob).date() if user_row.dob else None
+            phone = self.__get_phone_number(user_row)
+            mobile = self.__get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
-           first_name=user_row.first_name,
-           last_name=user_row.last_name,
-           dob=parse(user_row.dob).date() if user_row.dob else None,
+           first_name=names["first_name"],
+           last_name=names["last_name"],
+           dob=dob,
 
            residential_line1=user_row.address,
            residential_locality=user_row.suburb,
            residential_state=user_row.state,
            residential_postcode=user_row.postcode,
 
-           postal_same_as_residential=postal_same_as_res,
-           postal_line1=user_row.postal_address if not postal_same_as_res else '',
-           postal_locality=user_row.postal_suburb,
-           postal_state=user_row.postal_state if not postal_same_as_res else '',
-           postal_postcode=user_row.postal_postcode if not postal_same_as_res else '',
+           postal_line1=user_row.postal_address if not postal_same_as_res else user_row.address,
+           postal_locality=user_row.postal_suburb if not postal_same_as_res else user_row.suburb,
+           postal_state=user_row.postal_state if not postal_same_as_res else user_row.state,
+           postal_postcode=user_row.postal_postcode if not postal_same_as_res else user_row.postcode,
 
-           phone_number=self.__get_phone_number(user_row),
-           mobile_number=self.__get_mobile_number(user_row),
+           phone_number=phone,
+           mobile_number=mobile,
 
            email=user.email,
+           email_user_id=user.id,
         )
 
-        #if user.email in self.user_created:
-        user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
-        if len(user_dict) > 0:
-            # update address, phone details
-            url = f'{settings.LEDGER_API_URL}/ledgergw/remote/update-userid/{user.id}/{settings.LEDGER_API_KEY}/'
-            res = requests.post(url, data=user_dict)
+        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
+        if system_user:
+            get_or_create_system_user_address(system_user,residential_address_dict)
+            if use_for_postal:
+                get_or_create_system_user_address(system_user,postal_address_dict)
+
+        return proposal_applicant
 
     def create_proposal_applicant_aa(self, proposal, user, user_row):
-        postal_same_as_res = True
+
+        try:
+            system_user = SystemUser.objects.get(ledger_id=user)
+            names = get_user_name(system_user)
+            if not system_user.legal_dob:
+                dob = parse(user.dob).date() if user.dob else None
+            else:
+                dob = system_user.legal_dob
+
+            if not system_user.phone_number:
+                phone = system_user.phone_number
+            else:
+                phone = self.__get_phone_number(user_row)
+
+            if not system_user.mobile_number:
+                mobile = system_user.mobile_number
+            else:
+                mobile = self.__get_mobile_number(user_row)
+        except Exception as e:
+            print("error getting system user:",e)
+            system_user = None
+            names = {"first_name": user.first_name, "last_name": user.last_name}
+            dob = parse(user.dob).date() if user.dob else None
+            phone = self.__get_phone_number(user_row)
+            mobile = self.__get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
-           first_name=user_row.first_name,
-           last_name=user_row.last_name,
-           dob=parse(user_row.dob).date() if user_row.dob else None,
+           first_name=names["first_name"],
+           last_name=names["last_name"],
+           dob=dob,
 
            residential_line1=user_row.address,
            residential_locality=user_row.suburb,
            residential_state=user_row.state,
            residential_postcode=user_row.postcode,
 
-           postal_same_as_residential=postal_same_as_res,
+           postal_line1=user_row.address,
+           postal_locality=user_row.suburb,
+           postal_state=user_row.state,
+           postal_postcode=user_row.postcode,
 
-           phone_number=self.__get_phone_number(user_row),
-           mobile_number=self.__get_mobile_number(user_row),
+           phone_number=phone,
+           mobile_number=mobile,
 
            email=user.email,
         )
 
-        #if user.email in self.user_created:
-        user_dict = self.create_proposal_applicant_dict(user, proposal_applicant)
-        if len(user_dict) > 0:
-            # update address, phone details
-            url = f'{settings.LEDGER_API_URL}/ledgergw/remote/update-userid/{user.id}/{settings.LEDGER_API_KEY}/'
-            res = requests.post(url, data=user_dict)
+        residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
+        if system_user:
+            get_or_create_system_user_address(system_user,residential_address_dict)
+            if use_for_postal:
+                get_or_create_system_user_address(system_user,postal_address_dict)
 
-    def create_proposal_applicant_dict(self, user, applicant):
-        ''' user is ProposalApplicant '''
+        return proposal_applicant
 
-        payload = {}
-        if not user.postal_address:
-            postal_address = {
-                "postal_line1": applicant.postal_line1,
-                "postal_locality": applicant.postal_locality,
-                "postal_state": applicant.postal_state,
-                "postal_postcode": applicant.postal_postcode,
-                "postal_same_as_residential": applicant.postal_same_as_residential,
-                "postal_country": 'AU',
-            }
-            payload['postal_address'] = json.dumps(postal_address)
+    def create_system_user_address_dict(self, applicant):
+        residential_address_dict = {
+            "line1": applicant.residential_line1,
+            "locality": applicant.residential_locality,
+            "state": applicant.residential_state,
+            "postcode": applicant.residential_postcode,
+            "country": 'AU',
+            "address_type":"residential_address",
+        }
 
-            if not user.postal_same_as_residential:
-                residential_address = {
-                    "residential_line1": applicant.residential_line1,
-                    "residential_locality": applicant.residential_locality,
-                    "residential_state": applicant.residential_state,
-                    "residential_postcode": applicant.residential_postcode,
-                    "residential_country": 'AU',
-                }
-                payload['residential_address'] = json.dumps(residential_address)
-
-
-        if not user.dob:
-            payload['dob'] = applicant.dob.strftime('%d/%m/%Y')
+        use_for_postal = (
+            applicant.postal_line1==applicant.residential_line1 and
+            applicant.postal_locality==applicant.residential_locality and
+            applicant.postal_state==applicant.residential_state and
+            applicant.postal_postcode==applicant.residential_postcode
+        )
             
-        if not user.phone_number:
-            payload['phone_number'] = applicant.phone_number
-            
-        if not user.mobile_number:
-            payload['mobile_number'] = applicant.mobile_number
-            
-        return payload
+        postal_address_dict = {
+            "line1": applicant.postal_line1,
+            "locality": applicant.postal_locality,
+            "state": applicant.postal_state,
+            "postcode": applicant.postal_postcode,
+            "country": 'AU',
+            "address_type":"postal_address",
+        }
+
+        return residential_address_dict, postal_address_dict, use_for_postal
 
     def create_users(self):
         logger.info('Creating DCV users ...')
@@ -615,17 +601,10 @@ class MooringLicenceReader():
         logger.info('Creating AA users ...')
         self._create_users_df_aa(self.df_aa)
 
-
     def _create_users_df(self, df):
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-            #if row.status != 'Vacant':
             try:
-#                if row.name == '206441':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 if not row.name :
                     continue
 
@@ -651,41 +630,58 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
 
-                resp = get_or_create(email)                    
+                try:
+                    dob = parse(user_row.dob).date() if user_row.dob else None
+                except:
+                    dob = None
+
+                resp = get_or_create(email)       
+                user_id = None             
                 if resp['status'] == 200:
+                    user_id = resp['data']['emailuser_id']
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
+                        #create system user
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
+                        self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
+                        #get or create system user
+                        if not dob:
+                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
+                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                        if created:
+                            self.system_user_created.append(email)
+                        else:
+                            self.system_user_existing.append(email)
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
+                    self.user_error_details.append(row.name + " - " + user_row.email+" : Ledger Response: " + str(resp))
 
-                user_id = resp['data']['emailuser_id']
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
                 self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
         print(f'users created:  {len(self.user_created)}')
         print(f'users existing: {len(self.user_existing)}')
         print(f'users errors:   {len(self.user_errors)}')
+        print(f'system users created:  {len(self.system_user_created)}')
+        print(f'system users existing: {len(self.system_user_existing)}')
         print(f'no_email errors:   {len(self.no_email)}')
         print(f'users errors:   {self.user_errors}')
         print(f'no_email errors:   {self.no_email}')
+        for i in self.user_error_details:
+            print(i)
 
     def _create_users_df_aa(self, df):
         """ Reads the annual_admissions file created from the Mooring Booking System """
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
-            #if row.status != 'Vacant':
             try:
-                #if row.name == '206846':
-                #    import ipdb; ipdb.set_trace()
-
-                #user_row = self.df_user[self.df_user['pers_no']==row.name] #.squeeze() # as Pandas Series
                 user_row = row.copy()
 
                 email = user_row.email.lower().replace(' ','')
@@ -693,65 +689,56 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                #if email == 'rod@wmpg.com.au':
-                #    import ipdb; ipdb.set_trace()
-
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
+                try:
+                    dob = parse(user_row.dob).date() if user_row.dob else None
+                except:
+                    dob = None
 
-                resp = get_or_create(email)                    
+                resp = get_or_create(email)     
+                user_id = None              
                 if resp['status'] == 200:
+                    user_id = resp['data']['emailuser_id']    
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
+                        #create system user
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
+                        self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
+                        #get or create system user
+                        if not dob:
+                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
+                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                        if created:
+                            self.system_user_created.append(email)
+                        else:
+                            self.system_user_existing.append(email)
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
-
-                user_id = resp['data']['emailuser_id']
+                    self.user_error_details.append(str(row.name) + " - " + user_row.email+" : Ledger Response: " + str(resp))
+                
                 self.pers_ids.append((user_id, row.name))
 
-#                self.pers_ids.append((user.id, row.name))
-#                users = EmailUser.objects.filter(email=email)
-#                if users.count() == 0:
-#                    user = EmailUser.objects.create(
-#                        email=email,
-#                        first_name=first_name,
-#                        last_name=last_name,
-#                        #phone_number=self.__get_work_number(user_row),
-#                        phone_number=self.__get_phone_number(user_row),
-#                        mobile_number=self.__get_mobile_number(user_row)
-#                    )
-#
-#                    country = Country.objects.get(printable_name__icontains='AUSTRALIA')
-# 
-#                    self.user_created.append(email)
-#                else:
-#                    user = users[0]
-#                    # update user details
-#                    user.first_name = first_name
-#                    user.last_name = last_name
-#                    #user.phone_number = self.__get_work_number(user_row)
-#                    user.phone_number = self.__get_phone_number(user_row),
-#                    user.mobile_number = self.__get_mobile_number(user_row)
-#
-#                    country = Country.objects.get(printable_name__icontains='AUSTRALIA')
-#              
-#                self.pers_ids.append((user.id, row.name))
-
-
             except Exception as e:
-                import ipdb; ipdb.set_trace()
-                self.user_errors.append(user_row.email)
-                logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
+                if hasattr(user_row, "email"):
+                    self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
+                    self.user_errors.append(user_row.email)
+                else:
+                    self.user_error_details.append(str(row.name)+" : "+str(e))
 
         print(f'users created:  {len(self.user_created)}')
         print(f'users existing: {len(self.user_existing)}')
         print(f'users errors:   {len(self.user_errors)}')
+        print(f'system users created:  {len(self.system_user_created)}')
+        print(f'system users existing: {len(self.system_user_existing)}')
         print(f'no_email errors:   {len(self.no_email)}')
         print(f'users errors:   {self.user_errors}')
         print(f'no_email errors:   {self.no_email}')
+        for i in self.user_error_details:
+            print(i)
 
     def create_vessels(self):
         self._create_vessels()
@@ -776,30 +763,19 @@ class MooringLicenceReader():
 
           
             ves_list_raw = ves_row[[field1, field2, field3, field4, field5, field6, field7]].values.flatten().tolist()
-            #return [i.rstrip(pers_no) for i in ves_list_raw if i.rstrip(pers_no)]  
             return [i[:-len(pers_no)] for i in ves_list_raw if i!=pers_no]  
 
         def ves_fields(ves_row):
             ves_details = []
             for colname_postfix in ['Nominated Ves', 'Ad Ves 2', 'Ad Ves 3', 'Ad Ves 4', 'Ad Ves 5', 'Ad Ves 6', 'Ad Ves 7']:
-                #cols = [col for col in ves_row.columns if (colname_postfix in col)]
                 cols = [col for col in ves_row.index if (colname_postfix in col)]
-
-                #ves_detail = ves_row[cols].to_dict(orient='records')[0]
-                #ves_detail = ves_row[cols].to_dict(orient='records')
                 ves_detail = ves_row[cols].to_dict()
-
-                #if ves_row['H. I. N. ' + colname_postfix].iloc[0] != '' or ves_row['DoT Rego ' + colname_postfix].iloc[0] != '':
                 if ves_row['H. I. N. ' + colname_postfix] != '' or ves_row['DoT Rego ' + colname_postfix] != '':
                     ves_details.append(ves_detail)
-                #ves_details.append(ves_detail)
 
             return ves_details
 
         def try_except(value):
-            #if pers_no=='213162':
-            #    import ipdb; ipdb.set_trace()
-
             try:
                 val = float(value)
             except Exception:
@@ -811,9 +787,6 @@ class MooringLicenceReader():
         postfix = ['Nominated Ves', 'Ad Ves 2', 'Ad Ves 3', 'Ad Ves 4', 'Ad Ves 5', 'Ad Ves 6', 'Ad Ves 7']
         for user_id, pers_no in tqdm(self.pers_ids):
             try:
-                #if pers_no=='202600':
-                #    import ipdb; ipdb.set_trace()
-
                 ves_rows = self.df_ves[self.df_ves['Person No']==pers_no]
                 if len(ves_rows) > 1:
                     ves_rows = ves_rows[(ves_rows['Au Sticker No Nominated Ves']!='')]
@@ -825,13 +798,10 @@ class MooringLicenceReader():
                     ves_list = ves_fields(row)
 
                     try:
-                        #owner = Owner.objects.get(emailuser_id=user_id)
                         owner = Owner.objects.get(emailuser=user_id)
                     except ObjectDoesNotExist:
-                        #owner = Owner.objects.create(emailuser_id=user_id)
                         owner = Owner.objects.create(emailuser=user_id)
 
-                    au_vessels = {}
                     c_vessels = []
                     for i, ves in enumerate(ves_list):
                         ves_name=ves['Name ' + postfix[i]]
@@ -845,11 +815,6 @@ class MooringLicenceReader():
                         c_sticker=ves['C Sticker No ' + postfix[i]]
                         au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
 
-#                        if rego_no in ['DY167', '81900']:
-#                            import ipdb; ipdb.set_trace()
-#                        else:
-#                            continue
-
                         try:
                             ves_type = VESSEL_TYPE_MAPPING[ves_type]
                         except Exception as e:
@@ -860,9 +825,8 @@ class MooringLicenceReader():
                         except ObjectDoesNotExist:
                             vessel = Vessel.objects.create(rego_no=rego_no)
 
-                        try:
-                            vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
-                        except ObjectDoesNotExist:
+                        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
+                        if not vessel_ownership:
                             pct_interest = int(round(float(try_except(pct_interest)),0))
                             if pct_interest < 25:
                                 self.pct_interest_errors.append((pers_no, rego_no, pct_interest))
@@ -887,13 +851,9 @@ class MooringLicenceReader():
                                 vessel_weight=try_except(tonnage),
                                 berth_mooring=''
                             )
-                        #au_vessels.update({rego_no:au_sticker, sticker_sent:})
                         self.vessels_au.update({rego_no: dict(au_sticker=au_sticker, au_sticker_sent=au_sticker_date)})
                         c_vessels.append((rego_no, c_sticker))
-                        #if pers_no=='200700':
-                        #    import ipdb; ipdb.set_trace()
 
-                    #self.vessels_au.update({pers_no:au_vessels})
                     self.vessels_dcv.update({pers_no:c_vessels})
                     self.vessels_created.append((pers_no, len(c_vessels), c_vessels))
 
@@ -921,9 +881,6 @@ class MooringLicenceReader():
                 return False
 
         def try_except(value):
-            #if pers_no=='213162':
-            #    import ipdb; ipdb.set_trace()
-
             try:
                 val = float(value)
             except Exception:
@@ -931,16 +888,9 @@ class MooringLicenceReader():
             return val
 
         self.dummy_vessels = []
-        #for user_id, pers_no in tqdm(self.pers_ids):
-        #df_wl = self.df_wl[(self.df_wl['vessel_rego']!='0')].groupby('vessel_rego').first()
         df_wl = self.df_wl.groupby('vessel_rego').first()
         for index, row in tqdm(df_wl.iterrows(), total=df_wl.shape[0]):
             try:
-#                if row.pers_no=='088452':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 rego_no = row.name
                 if is_invalid_rego(rego_no):
                     # User is on waiting list without a vessel - assign a dummy vessel
@@ -958,17 +908,10 @@ class MooringLicenceReader():
                     user_row = user_row[:1]
                 user_row = user_row.squeeze() # convert to Pandas Series
 
-                #if not user_row.empty and user_row.pers_no=='000036':
-                #    import ipdb; ipdb.set_trace()
-
                 email = user_row.email.lower().replace(' ','')
                 if not email:
                     self.no_email.append(user_row.pers_no)
                     continue
-
-#                if email != 'ftroop351@gmail.com':
-#                    #import ipdb; ipdb.set_trace()
-#                    continue
 
                 users = EmailUser.objects.filter(email=email)
                 if users.count() == 0:
@@ -982,10 +925,8 @@ class MooringLicenceReader():
 
 
                 try:
-                    #owner = Owner.objects.get(emailuser_id=user_id)
                     owner = Owner.objects.get(emailuser=user.id)
                 except ObjectDoesNotExist:
-                    #owner = Owner.objects.create(emailuser_id=user_id)
                     owner = Owner.objects.create(emailuser=user.id)
 
                 ves_type = 'other'
@@ -1012,8 +953,6 @@ class MooringLicenceReader():
                         berth_mooring=''
                     )
 
-                #self.vessels_created.append((row.pers_no, 1, c_vessels))
-
             except Exception as e:
                 self.vessels_errors.append((row.pers_no, str(e)))
                 continue
@@ -1021,7 +960,6 @@ class MooringLicenceReader():
         print(f'vessels created:  {len(self.vessels_created)}')
         print(f'vessels errors:   {self.vessels_errors}')
         print(f'vessels errors:   {len(self.vessels_errors)}')
-
 
     def create_vessels_dict(self):
 
@@ -1061,9 +999,6 @@ class MooringLicenceReader():
                     c_sticker=ves['C Sticker No ' + postfix[i]]
                     au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
 
-                    #if rego_no=='DO904':
-                    #    import ipdb; ipdb.set_trace()
-
                     self.vessels_dict.update({rego_no:
                         {
                             'length':        tot_length,
@@ -1084,9 +1019,6 @@ class MooringLicenceReader():
                     print(f'ERROR: vessels_dict: {str(e)}')
                     if e.args[0]=='Name Ad Ves 2':
                         continue
-                    else:
-                        import ipdb; ipdb.set_trace()
-                        pass
                     
 
 
@@ -1106,12 +1038,6 @@ class MooringLicenceReader():
         df = self.df_ml.groupby('mooring_no').first()
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
-                
-#                if row.pers_no == '206441':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 if not row.name or len([_str for _str in ['KINGSTON REEF','NN64','PB 02','RIA'] if row.name in _str])>0:
                     continue
 
@@ -1121,7 +1047,6 @@ class MooringLicenceReader():
                     continue
 
                 if len(user_row)>1:
-                    #user_row = user_row[(user_row['paid_up']=='Y') | (user_row['current_mooring_no']!='')]
                     user_row = user_row[(user_row['paid_up']=='Y')]
 
                 if user_row.empty:
@@ -1131,17 +1056,10 @@ class MooringLicenceReader():
                     user_row = user_row[:1]
                 user_row = user_row.squeeze() # convert to Pandas Series
 
-                #if not user_row.empty and user_row.pers_no=='000036':
-                #    import ipdb; ipdb.set_trace()
-
                 email = user_row.email.lower().replace(' ','')
                 if not email:
                     self.no_email.append(user_row.pers_no)
                     continue
-
-#                if email != 'ftroop351@gmail.com':
-#                    #import ipdb; ipdb.set_trace()
-#                    continue
 
                 users = EmailUser.objects.filter(email=email)
                 if users.count() == 0:
@@ -1153,41 +1071,24 @@ class MooringLicenceReader():
                     user = users[0]
                     self.user_existing.append(email)
 
-
                 ves_row = self.df_ves[self.df_ves['Person No']==row.pers_no]
                 if len(ves_row) > 1:
                     self.ml_no_ves_rows.append((user_row.pers_no, len(ves_row)))
                     ves_row = ves_row.iloc[0]
                 else:
                     ves_row = ves_row.squeeze()
-#
-#                ves_list = ves_fields(ves_row)
-
-
- 
-                berth_mooring = ''
-                #vessel_data.append([pers_no, email, user.dob, rego_no, dot_name, percentage, vessel_type, vessel_name, vessel_overall_length, vessel_draft, vessel_weight, berth_mooring])
 
                 postfix = 'Nominated Ves'
                 ves_name = ves_row['Name ' + postfix]
                 ves_type = ves_row['Type ' + postfix]
                 rego_no = ves_row['DoT Rego ' + postfix]
-                pct_interest = ves_row['%Interest ' + postfix]
-                tot_length = ves_row['Reg Length ' + postfix]
-                draft = ves_row['Draft ' + postfix]
-                tonnage = ves_row['Tonnage ' + postfix]
-                sticker_number = ves_row['Lic Sticker Number ' + postfix] #if ves_row['Lic Sticker Number ' + postfix] else None
-                sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] #if ves_row['Licencee Sticker Sent ' + postfix] else None
+                sticker_number = ves_row['Lic Sticker Number ' + postfix] 
+                sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] 
  
                 ves_type = VESSEL_TYPE_MAPPING.get(ves_type, 'other')
-#                sticker_numbers    = ves_fields('Lic Sticker Number', ves_row, pers_no)
-#                sticker_sent       = ves_fields('Licencee Sticker Sent', ves_row, pers_no)
 
                 if ves_name=='':
                     continue 
-
-                #if not user_row.empty and user_row.pers_no=='000036':
-                #    import ipdb; ipdb.set_trace()
 
                 try:
                     owner = Owner.objects.get(emailuser=user.id)
@@ -1201,11 +1102,11 @@ class MooringLicenceReader():
                     vessel_not_found.append(rego_no)
                     continue
 
-                try:
-                    vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
-                except Exception as e:
+                vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
+                if not vessel_ownership:
                     vessel_ownership_not_found.append(rego_no)
                     continue
+                
                 try:
                     vessel_details = VesselDetails.objects.get(vessel=vessel)
                 except MultipleObjectsReturned:
@@ -1216,23 +1117,10 @@ class MooringLicenceReader():
                 if Mooring.objects.filter(name=row.name).count()>0:
                     mooring = Mooring.objects.filter(name=row.name)[0]
                 else:
-                    #print(f'Mooring not found: {row.name}')
-                    #errors.append(dict(idx=index, record=ves_row))
                     mooring_not_found.append(row.name)
                     continue
 
-
-#                mla=MooringLicenceApplication.objects.filter(
-#                    vessel_details=vessel_details,
-#                    vessel_ownership=vessel_ownership,
-#                    rego_no=rego_no,
-#                ).exclude(current_proposal=Proposal.PROCESSING_STATUS_DECLINED)
-#                if mla.count()>0:
-#                    # already exists
-#                    continue
-
                 proposal=MooringLicenceApplication.objects.create(
-                    #proposal_type_id=1, # new application
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
                     lodgement_date=datetime.datetime.now().astimezone(),
@@ -1250,7 +1138,6 @@ class MooringLicenceReader():
                     preferred_bay= mooring.mooring_bay,
                     percentage=vessel_ownership.percentage,
                     individual_owner=True,
-                    #proposed_issuance_approval={},
                     processing_status='approved',
                     customer_status='approved',
                     allocated_mooring=mooring,
@@ -1269,30 +1156,22 @@ class MooringLicenceReader():
                             }],
                         "mooring_on_approval": []
                     },
-                    date_invited=None, #date_invited,
+                    date_invited=None,
                     dot_name=rego_no,
                 )
 
-                self.create_proposal_applicant(proposal, user, user_row)
+                proposal_applicant = self.create_proposal_applicant(proposal, user, user_row)
 
-                #if not user_row.empty and user_row.pers_no=='000036':
-                #    import ipdb; ipdb.set_trace()
-
-                date_invited = ''
-
-                pua=ProposalUserAction.objects.create(
+                ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
                     what='Mooring Site Licence - Migrated Application',
                 )
 
-
                 approval = MooringLicence.objects.create(
                     status='current',
-                    #internal_status=None,
                     current_proposal=proposal,
                     issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
@@ -1300,8 +1179,7 @@ class MooringLicenceReader():
                     export_to_mooring_booking=True,
                 )
 
-                aua=ApprovalUserAction.objects.create(
-
+                ApprovalUserAction.objects.create(
                     approval=approval,
                     who=user.id,
                     what='Mooring Site Licence - Migrated Application',
@@ -1318,14 +1196,6 @@ class MooringLicenceReader():
                     vessel_ownership=vessel_ownership,
                 )
 
-                moa = MooringOnApproval.objects.create(
-                    approval=approval,
-                    mooring=mooring,
-                    sticker=None,
-                    site_licensee=True, # ???
-                    end_date=expiry_date
-                )
-
                 try:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                 except:
@@ -1336,40 +1206,37 @@ class MooringLicenceReader():
                     approval=approval,
                     vessel_ownership = vessel_ownership,
                     proposal = proposal,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                     start_date = start_date,
                 )
-
-                #if row.pers_no == '000036':
-                #    import ipdb; ipdb.set_trace()
 
                 try:
                     mailing_date = datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None
                 except:
                     mailing_date = None
 
-
                 if sticker_number:
                     sticker = Sticker.objects.create(
                         number=sticker_number,
-                        status=Sticker.STICKER_STATUS_CURRENT, # 'current'
+                        status=Sticker.STICKER_STATUS_CURRENT,
                         approval=approval,
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
-                        printing_date=None, #TODAY,
-                        #mailing_date=sticker_sent, #TODAY,
-                        #mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
+                        printing_date=None,
                         mailing_date=mailing_date,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
                     )
 
                     approval_history.stickers.add(sticker.id)
-                #approval.generate_doc()
 
             except Exception as e:
                 logger.error(f'ERROR: {row.name}. {str(e)}')
-                import ipdb; ipdb.set_trace()
                 self.user_errors.append(user_row.email)
 
         print(f'ml_user_not_found:  {self.ml_user_not_found}')
@@ -1399,62 +1266,41 @@ class MooringLicenceReader():
         bay_preferences_numbered = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
         vessel_type = 'other'
 
-        #for index, row in tqdm(self.df_authuser.iterrows(), total=self.df_authuser.shape[0]):
         df_authuser = self.df_authuser[(self.df_authuser['vessel_rego']!='0')].groupby('vessel_rego').first()
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
-            #if row.status != 'Vacant':
             try:
-#                if row.pers_no_l != '206441':
-#                    #import ipdb; ipdb.set_trace()
-#                    continue
 
-                #if row.pers_no_l == '019626':
-                #    print(f"rego_no: {row['vessel_rego']}")
-                #    import ipdb; ipdb.set_trace()
                 rego_no = row.name
-                    
-                if row.mooring_no == 'TB999':
-                    # exclude mooring
+                
+                mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
+                mooring_qs = Mooring.objects.filter(name=row['mooring_no'])
+                if mooring_qs.exists():
+                    mooring = mooring_qs.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Mooring with No. " + str(row['mooring_no']) + " does not exist") 
                     continue
 
-                #if row.pers_no_u == '210758':
-                #    import ipdb; ipdb.set_trace()
-
-#                if rego_no=='GV331' and row.mooring_no=='PB008':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
-               
-                mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
-                mooring = Mooring.objects.filter(name=row['mooring_no'])[0]
-                #licensee = EmailUser.objects.get(first_name=row['first_name_l'].lower().capitalize(), last_name=row['last_name_l'].lower().capitalize())
-                #email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l'])].iloc[0]['email'].strip()
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    licensee = EmailUser.objects.get(email=email_l.lower())
+                    licensee = EmailUser.objects.get(email=email_l.lower()) #TODO use iexact
                 except Exception as e:
-                    licensee = EmailUser.objects.get(first_name=row['first_name_l'].lower().capitalize(), last_name=row['last_name_l'].lower().capitalize()) 
-                #user = EmailUser.objects.filter(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize())[0]
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
+                    continue
+
                 if not row['first_name_u']:
                     # This record represents Mooring Licence Holder - No need for an Auth User Permit
                     continue
 
                 email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    user = EmailUser.objects.get(email=email_u.lower())
+                    user = EmailUser.objects.get(email=email_u.lower()) #TODO use iexact
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=row['first_name_u'].lower().capitalize(), last_name=row['last_name_u'].lower().capitalize()) 
-                #email_u = self.df_user[(self.df_user['first_name']=='Alisa') & (self.df_user['last_name']=='Simich')].iloc[0]['email']
-                #email_u = self.df_user[(self.df_user['first_name']==row['first_name_u']) & (self.df_user['last_name']==row['last_name_u'])].iloc[0]['email']
-                #user = EmailUser.objects.get(email=email_u)
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_u.lower()) + " does not exist") 
+                    continue
 
-                #sticker_number = row['sticker'],
-                #rego_no = row['vessel_rego']
                 rego_no = row.name
-                #if sticker_number == 31779:
-                #    import ipdb; ipdb.set_trace()
                 sticker_info = self.vessels_au.get(rego_no)
+                sticker_number = None
                 if sticker_info:
                     sticker_number = sticker_info['au_sticker']
                     sticker_sent = sticker_info['au_sticker_sent']
@@ -1471,36 +1317,22 @@ class MooringLicenceReader():
                     vessel_not_found.append(f'{row.pers_no_u} - {email_u}: {rego_no}')
                     continue
 
-                vessel_ownership = vessel.vesselownership_set.all()[0]
-                vessel_details = vessel.vesseldetails_set.all()[0]
-
-#                if email_u == 31779:
-#                auth_user = AuthorisedUserApplication.objects.filter(
-#                    site_licensee_email=licensee.email,
-#                    mooring=mooring,
-#                    vessel_details=vessel_details,
-#                    vessel_ownership=vessel_ownership,
-#                    rego_no=rego_no,
-#                )
-#                if len(auth_user)>0:
-#                    # already exists
-#                    continue
-
-#                if rego_no=='GV331' and row.mooring_no=='PB008':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
+                if (vessel.vesselownership_set.exists()):
+                    vessel_ownership = vessel.vesselownership_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded ownership") 
+                
+                if (vessel.vesseldetails_set.exists()):
+                    vessel_details = vessel.vesseldetails_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
                 proposal=AuthorisedUserApplication.objects.create(
-                    #proposal_type_id=1, # new application
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=TODAY, #datetime.datetime.now(),
+                    lodgement_date=TODAY,
                     mooring_authorisation_preference=mooring_authorisation_preference,
-                    site_licensee_email=licensee.email,
                     keep_existing_mooring=True,
-                    mooring=mooring,
                     bay_preferences_numbered=bay_preferences_numbered,
                     migrated=True,
                     vessel_details=vessel_details,
@@ -1508,8 +1340,6 @@ class MooringLicenceReader():
                     rego_no=rego_no,
                     vessel_type=vessel_type,
                     vessel_name=row['vessel_name'],
-                    #vessel_length=row['vessel_length'],
-                    #vessel_draft=row['vessel_draft'],
                     vessel_length=vessel_details.vessel_length,
                     vessel_draft=vessel_details.vessel_draft,
                     vessel_beam=vessel_details.vessel_beam,
@@ -1519,7 +1349,6 @@ class MooringLicenceReader():
                     percentage=vessel_ownership.percentage,
                     individual_owner=True,
                     dot_name=vessel_ownership.dot_name,
-                    #proposed_issuance_approval={},
                     processing_status='approved',
                     customer_status='approved',
                     proposed_issuance_approval={
@@ -1533,12 +1362,32 @@ class MooringLicenceReader():
                     },
                 )
 
-                #import ipdb; ipdb.set_trace()
-                try:
-                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u].squeeze() # as Pandas Series
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
-                self.create_proposal_applicant(proposal, user, user_row)
+                #add site_licensee_mooring_request - we assume all migrated endorsements have been approved
+                ProposalSiteLicenseeMooringRequest.objects.create(
+                    proposal=proposal,
+                    site_licensee_email=licensee.email,
+                    mooring=mooring,
+                    endorser_reminder_sent=True,
+                    approved_by_endorser=True,
+                )
+
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u] #.squeeze() # as Pandas Series
+
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    user_row = user_row[(user_row['paid_up']=='Y')]
+
+                if user_row.empty:
+                    continue
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+
+                user_row = user_row.squeeze() # convert to Pandas Series
+                
+                proposal_applicant=self.create_proposal_applicant(proposal, user, user_row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1551,20 +1400,16 @@ class MooringLicenceReader():
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
 
-                #approval = WaitingListAllocation.objects.create(
                 approval = AuthorisedUserPermit.objects.create(
                     status='current',
-                    #internal_status=None,
                     current_proposal=proposal,
                     issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
                     export_to_mooring_booking=True,
                 )
-                #print(f'wla_order: {position_no}')
 
                 proposal.approval = approval
                 proposal.save()
@@ -1581,6 +1426,7 @@ class MooringLicenceReader():
                 except:
                     start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
+                #TODO determine why no history here?
 #                approval_history = ApprovalHistory.objects.create(
 #                    reason='new',
 #                    approval=approval,
@@ -1599,47 +1445,41 @@ class MooringLicenceReader():
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
                         printing_date=None, #TODAY,
-                        #mailing_date=sticker_sent, #TODAY,
-                        #mailing_date=datetime.datetime.strptime(date_issued, '%d/%m/%Y').date() if date_issued else None,
                         mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
                     )
-#                approval_history.stickers.add(sticker.id)
 
-                #auth_user_moorings = self.df_authuser[(self.df_authuser['pers_no_u']==pers_no_u)]
-                #auth_user_moorings = self.df_authuser[(self.df_authuser['pers_no_u']==pers_no_u) & (self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no'])
-                #auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)]
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
-                #for idx, auth_user in tqdm(self.df_authuser.iterrows(), total=self.df_authuser.shape[0]):
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
                     moa = MooringOnApproval.objects.create(
                         approval=approval,
                         mooring=mooring[0],
                         sticker=sticker,
-                        site_licensee=False, #site_licensee,
-                        #end_date=expiry_date
+                        site_licensee=False,
                     )
 
-                #approval.generate_doc()
-
             except Exception as e:
-                errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
+                print(e)
+                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'aup_created: {len(aup_created)}')
         print(f'au_stickers: au_stickers, {len(au_stickers)}')
         print(f'no_au_stickers: no_au_stickers, {len(no_au_stickers)}')
+        for i in errors:
+            print(i)
 
     def create_waiting_list(self):
         expiry_date = EXPIRY_DATE
-        #start_date = START_DATE
-        #date_applied = DATE_APPLIED
 
         errors = []
         vessel_not_found = []
@@ -1650,17 +1490,6 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_wl.iterrows(), total=self.df_wl.shape[0]):
             try:
-                #if row.mooring_no == 'TB999':
-                #    continue
-
-                #if row.pers_no == '212841':
-                #if row.pers_no == '212397':
-                #if row.pers_no == '212425':
-#                if row.pers_no == '213766':
-#                    import ipdb; ipdb.set_trace()
-#                else:
-#                    continue
-
                 pers_no = row['pers_no']
                 mooring_bay = MooringBay.objects.get(code=row['bay'])
 
@@ -1668,12 +1497,10 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email=email.lower())
-#                    user.first_name = first_name
-#                    user.last_name = last_name
-#                    user.save()
+                    user = EmailUser.objects.get(email=email.lower()) #TODO use iexact
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
+                    continue
 
                 rego_no = row['vessel_rego']
                 try:
@@ -1682,12 +1509,19 @@ class MooringLicenceReader():
                     vessel_not_found.append(f'{pers_no} - {email}: {rego_no}')
                     continue
 
-                vessel_ownership = vessel.vesselownership_set.all()[0]
-                vessel_details = vessel.vesseldetails_set.all()[0]
+                if (vessel.vesselownership_set.exists()):
+                    vessel_ownership = vessel.vesselownership_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded ownership") 
+                
+                if (vessel.vesseldetails_set.exists()):
+                    vessel_details = vessel.vesseldetails_set.first()
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
-                start_date = parse(row.date_applied).replace(tzinfo=timezone.utc)
+                start_date = parse(row.date_applied).replace(tzinfo=datetime.timezone.utc)
+
                 proposal=WaitingListApplication.objects.create(
-                    #proposal_type_id=1,
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
                     lodgement_date=start_date, #TODAY,
@@ -1712,10 +1546,22 @@ class MooringLicenceReader():
                     customer_status='approved',
                 )
 
-                try:
-                    user_row = self.df_user[self.df_user['pers_no']==row.pers_no].squeeze() # as Pandas Series
-                except Exception as e:
-                    import ipdb; ipdb.set_trace()
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]#.squeeze() # as Pandas Series
+
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    user_row = user_row[(user_row['paid_up']=='Y')]
+
+                if user_row.empty:
+                    continue
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+
+                user_row = user_row.squeeze() # convert to Pandas Series
+                
                 self.create_proposal_applicant(proposal, user, user_row)
 
                 ua=ProposalUserAction.objects.create(
@@ -1724,26 +1570,18 @@ class MooringLicenceReader():
                     what='Waiting List - Migrated Application',
                 )
 
-#                try:
-#                    start_date = parse(row.date_applied).replace(tzinfo=timezone.utc) if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone.utc)
-#                except:
-#                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-
                 approval = WaitingListAllocation.objects.create(
                     status=Approval.APPROVAL_STATUS_CURRENT,
                     internal_status=Approval.INTERNAL_STATUS_WAITING,
                     current_proposal=proposal,
                     issue_date = start_date, #TODAY,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
                     wla_order=row['bay_pos_no'],
-                    #wla_queue_date=TODAY + datetime.timedelta(seconds=int(row['bay_pos_no'])),
                     wla_queue_date=start_date + datetime.timedelta(seconds=int(row['bay_pos_no'])),
                 )
-                #print(f'wla_order: {position_no}')
                 wl_created.append(approval.id)
 
                 aua=ApprovalUserAction.objects.create(
@@ -1755,6 +1593,7 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
+                #TODO determine why history is not include
 #                try:
 #                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
 #                except:
@@ -1768,19 +1607,16 @@ class MooringLicenceReader():
 #                    start_date = start_date,
 #                )
 
-                #approval.generate_doc()
-
             except Exception as e:
-                errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
+                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'user_not_found: {user_not_found}')
         print(f'user_not_found: {len(user_not_found)}')
         print(f'wl_created: {len(wl_created)}')
+        for i in errors:
+            print(i)
 
     def create_dcv(self):
         expiry_date = EXPIRY_DATE
@@ -1793,19 +1629,13 @@ class MooringLicenceReader():
         user_not_found = []
         dcv_created = []
 
-        #vessel_type = 'other'
-
         for index, row in tqdm(self.df_dcv.iterrows(), total=self.df_dcv.shape[0]):
             try:
-                #import ipdb; ipdb.set_trace()
-                if row.pers_no == '201043':
-                    import ipdb; ipdb.set_trace()
 
                 pers_no = row['pers_no']
                 email = row['email']
                 org_name = row['company']
 
-                #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
@@ -1814,19 +1644,35 @@ class MooringLicenceReader():
                     user.last_name = last_name
                     user.save()
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
+                    errors.append("User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
+                    continue
 
                 try:
                     dcv_organisation = DcvOrganisation.objects.get(name=org_name)
                 except ObjectDoesNotExist:
                     dcv_organisation = DcvOrganisation.objects.create(name=org_name)
 
-
                 try:
                     vessels_dcv = self.vessels_dcv[pers_no]
                 except Exception as e:
                     vessel_not_found.append(pers_no)
                     continue
+
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+
+                if user_row.empty:
+                    continue
+
+                if len(user_row)>1:
+                    user_row = user_row[(user_row['paid_up']=='Y')]
+
+                if user_row.empty:
+                    continue
+                if len(user_row)>1:
+                    # if still greater than 1, take first
+                    user_row = user_row[:1]
+
+                user_row = user_row.squeeze() # convert to Pandas Series
 
                 for rego_no, sticker_no in vessels_dcv:
                     try:
@@ -1836,7 +1682,6 @@ class MooringLicenceReader():
                         dcv_vessel = DcvVessel.objects.create(
                             rego_no = rego_no,
                             vessel_name = vessel_details.vessel_name,
-                            #dcv_organisation = dcv_organisation,
                         )
                         dcv_vessel.dcv_organisations.add(dcv_organisation)
 
@@ -1848,49 +1693,40 @@ class MooringLicenceReader():
                         end_date = expiry_date,
                         dcv_vessel = dcv_vessel,
                         dcv_organisation =dcv_organisation,
-                        migrated = True
+                        migrated = True,
+                        postal_address_line1 = user_row.postal_address if user_row.postal_address else user_row.address,
+                        postal_address_suburb = user_row.postal_suburb if user_row.postal_address else user_row.suburb,
+                        postal_address_postcode = user_row.postal_postcode if user_row.postal_address else user_row.postcode,
+                        postal_address_state = user_row.postal_state if user_row.postal_address else user_row.state,
+                        postal_address_country = 'AU',
                     )
 
-#                    approval_history = ApprovalHistory.objects.create(
-#                        reason='new',
-#                        approval=approval,
-#                        vessel_ownership = vessel_ownership,
-#                        proposal = proposal,
-#                        start_date = start_date,
-#                    )
-
-                    #import ipdb; ipdb.set_trace()
                     if sticker_no:
                         sticker = Sticker.objects.create(
                             number=sticker_no,
                             status=Sticker.STICKER_STATUS_CURRENT, # 'current'
                             dcv_permit=dcv_permit,
-                            #vessel_ownership=vessel_ownership,
-                            #printing_date=TODAY,
-                            #mailing_date=datetime.datetime.strptime(date_issued, '%d/%m/%Y').date() if date_issued else None,
                             mailing_date=TODAY,
-                            #sticker_printing_batch=None,
-                            #sticker_printing_response=None,
+                            
+                            postal_address_line1=dcv_permit.postal_address_line1,
+                            postal_address_locality=dcv_permit.postal_address_suburb,
+                            postal_address_state=dcv_permit.postal_address_state,
+                            postal_address_country=dcv_permit.postal_address_country,
+                            postal_address_postcode=dcv_permit.postal_address_postcode,
                         )
-
-                    #import ipdb; ipdb.set_trace()
-                    #dcv_permit.generate_dcv_permit_doc()
                     dcv_created.append(dcv_permit.id)
 
-
-
             except Exception as e:
+                errors.append("User Id " + str(user.id) + ": " + str(e)) 
                 errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
         print(f'user_not_found: {user_not_found}')
         print(f'user_not_found: {len(user_not_found)}')
         print(f'dcv_created: {len(dcv_created)}')
-
+        for i in errors:
+            print(i)
 
     def _create_single_vessel(self, user, rego_no, ves_name, ves_type, length, draft, beam, weight, pct_interest, berth_mooring=''):
 
@@ -1912,9 +1748,8 @@ class MooringLicenceReader():
         except ObjectDoesNotExist:
             owner = Owner.objects.create(emailuser=user)
 
-        try:
-            vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel=vessel)
-        except ObjectDoesNotExist:
+        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
+        if not vessel_ownership:
             pct_interest = int(round(float(try_except(pct_interest)),0))
             if pct_interest < 25:
                 pct_interest = 100
@@ -1938,7 +1773,6 @@ class MooringLicenceReader():
 
         return vessel, vessel_details, vessel_ownership
 
-
     def create_annual_admissions(self):
         """
             mlr=MooringLicenceReader('PersonDets20221222-125823.txt', 'MooringDets20221222-125546.txt', 'VesselDets20221222-125823.txt', 'UserDets20221222-130353.txt', 'ApplicationDets20221222-125157.txt','annual_admissions_booking_report_20230125084027.csv')
@@ -1948,13 +1782,11 @@ class MooringLicenceReader():
         """
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED
-        fee_season = FeeSeason.objects.filter(application_type__code='aaa', name=FEE_SEASON)[0]
+        date_applied = DATE_APPLIED #TODO use or remove
+        fee_season = FeeSeason.objects.filter(application_type__code='aaa', name=FEE_SEASON)[0] #TODO use or remove (may be required)
 
         errors = []
-        vessel_not_found = []
         vessel_details_not_found = []
-        user_not_found = []
         rego_aa_created = []
         total_aa_created = []
 
@@ -1962,9 +1794,6 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_aa.iterrows(), total=self.df_aa.shape[0]):
             try:
-                #if row.rego_no == '666':
-                #    import ipdb; ipdb.set_trace()
-
                 rego_no = row['rego_no']
                 email = row['email']
                 sticker_no = row['sticker_no']
@@ -1972,21 +1801,11 @@ class MooringLicenceReader():
                 vessel_name = row['vessel_name']
                 vessel_length = row['vessel_length']
 
-                #email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
-                first_name = row.first_name.lower().title().strip()
-                last_name = row.last_name.lower().title().strip()
                 try:
                     user = EmailUser.objects.get(email=email.lower().strip())
-#                    user.first_name = first_name
-#                    user.last_name = last_name
-#                    user.save()
                 except Exception as e:
-                    user = EmailUser.objects.get(first_name=first_name, last_name=last_name) 
-
-#['id', 'date_created', 'first_name', 'last_name', 'address', 'suburb',
-#       'state', 'postcode', 'sticker_no', 'rego_no', 'email', 'mobile_number',
-#       'work_number', 'vessel_name', 'vessel_length', 'year', 'status',
-#       'booking_period', 'country']
+                    errors.append("User with email " + str(email.lower()) + " does not exist") 
+                    continue
 
                 vessel_dict = self.vessels_dict.get(rego_no)
                 if vessel_dict is None:
@@ -2005,9 +1824,20 @@ class MooringLicenceReader():
                 else:
                     try:
                         vessel_details = VesselDetails.objects.get(vessel__rego_no=rego_no)
-                        #vessel_ownership = VesselOwnership.objects.get(vessel__rego_no=rego_no)
                         owner = Owner.objects.get(emailuser=user.id)
-                        vessel_ownership = VesselOwnership.objects.get(owner=owner, vessel__rego_no=rego_no)
+                        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel__rego_no=rego_no).order_by("-created").first()
+                        if not vessel_ownership:
+                            vessel, vessel_details, vessel_ownership = self._create_single_vessel(
+                                user.id, 
+                                rego_no, 
+                                ves_name=vessel_name, # use vessel_name from AA Moorings Spreasheet
+                                ves_type=vessel_type,
+                                length=vessel_length, # use vessel_length from AA Moorings Spreasheet
+                                draft=Decimal(0.0), 
+                                beam=Decimal(0.0), 
+                                weight=Decimal(0.0), 
+                                pct_interest=100, 
+                            )
                     except Exception as e:
                         vessel, vessel_details, vessel_ownership = self._create_single_vessel(
                             user.id, 
@@ -2021,12 +1851,6 @@ class MooringLicenceReader():
                             pct_interest=100, 
                         )
 
-                        #vessel_details_not_found.append((user.email, rego_no))
-                        #continue
-
-                #if user.email == 'kdeluca@iinet.net.au':
-                #    import ipdb; ipdb.set_trace()
-
                 # update length from AA Spreadsheet file
                 vessel_details.vessel_name=vessel_name
                 vessel_details.vessel_length=Decimal(vessel_length) if vessel_length else Decimal(0)
@@ -2035,7 +1859,6 @@ class MooringLicenceReader():
                 total_aa_created.append(rego_no)
 
                 proposal=AnnualAdmissionApplication.objects.create(
-                    #proposal_type_id=1, # new application
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
                     lodgement_date=TODAY,
@@ -2061,8 +1884,7 @@ class MooringLicenceReader():
                     },
                 )
 
-                #import ipdb; ipdb.set_trace()
-                self.create_proposal_applicant_aa(proposal, user, row)
+                proposal_applicant = self.create_proposal_applicant_aa(proposal, user, row)
 
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -2070,20 +1892,16 @@ class MooringLicenceReader():
                     what='Annual Admission - Migrated Application',
                 )
 
-                #approval = WaitingListAllocation.objects.create(
                 approval = AnnualAdmissionPermit.objects.create(
                     status='current',
-                    #internal_status=None,
                     current_proposal=proposal,
                     issue_date = TODAY,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date(),
                     start_date = start_date,
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
                     export_to_mooring_booking=True,
                 )
-                #print(f'wla_order: {position_no}')
 
                 aua=ApprovalUserAction.objects.create(
                     approval=approval,
@@ -2093,9 +1911,8 @@ class MooringLicenceReader():
 
                 proposal.approval = approval
                 proposal.save()
-                #proposal.allocated_mooring.mooring_licence = approval
-                #proposal.allocated_mooring.save()
 
+                #TODO check if approval history needed
 #                approval_history = ApprovalHistory.objects.create(
 #                    reason='new',
 #                    approval=approval,
@@ -2116,23 +1933,24 @@ class MooringLicenceReader():
                         mailing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
                     )
-#                    approval_history.stickers.add(sticker.id)
-
-                #approval.generate_doc()
 
             except Exception as e:
-                errors.append(str(e))
-                import ipdb; ipdb.set_trace()
-                pass
-                #raise Exception(str(e))
+                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'rego_aa_created: {len(rego_aa_created)}')
         print(f'total_aa_created: {len(total_aa_created)}')
         print(f'Vessel Details Not Found: {vessel_details_not_found}')
         print(f'Vessel Details Not Found: {len(vessel_details_not_found)}')
+        for i in errors:
+            print(i)
 
-
+    #TODO remove (keeping for now as a reference)
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
         from disturbance.components.approvals.models import Approval
         #import ipdb; ipdb.set_trace()
@@ -2274,27 +2092,12 @@ class MooringLicenceReader():
 
         return approval
 
-#    def create_licence_pdf(self):
-#        approvals_migrated = Approval.objects.filter(migrated=True)
-#        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
-#        for idx, a in enumerate(approvals_migrated):
-#            a.generate_doc()
-#            print('{}, Created PDF for Approval {}'.format(idx, a))
-#
-#    def create_dcv_licence_pdf(self):
-#        approvals_migrated = DcvPermit.objects.filter(migrated=True)
-#        print('Total DCV Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
-#        for idx, a in enumerate(approvals_migrated):
-#            a.generate_dcv_permit_doc()
-#            print('{}, Created PDF for DCV Approval {}'.format(idx, a))
-
-
     def create_licence_pdfs(self):
-        MooringLicenceReader.create_pdf_ml()
-        MooringLicenceReader.create_pdf_aup()
-        MooringLicenceReader.create_pdf_wl()
-        MooringLicenceReader.create_pdf_aa()
-        MooringLicenceReader.create_pdf_dcv()
+        self.create_pdf_ml()
+        self.create_pdf_aup()
+        self.create_pdf_wl()
+        self.create_pdf_aa()
+        self.create_pdf_dcv()
     
     @classmethod
     def create_pdf_ml(self):
@@ -2330,7 +2133,6 @@ class MooringLicenceReader():
     def _create_pdf_licence(approvals_migrated):
         """ MooringLicenceReader._create_pdf_licence(MooringLicence.objects.filter(migrated=True), current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
         """
-        #approvals_migrated = MooringLicence.objects.filter(migrated=True)
         permit_name = approvals_migrated[0].__class__.__name__
         print(f'Total {permit_name}: {approvals_migrated.count()} - {approvals_migrated}')
         if isinstance(approvals_migrated[0], DcvPermit):
@@ -2348,12 +2150,13 @@ class MooringLicenceReader():
             except Exception as e:
                 logger.error(e)
 
-
+#TODO fix or replace - call from run_migration?
 def create_invoice(proposal, payment_method='other'):
         """
         This will create and invoice and order from a basket bypassing the session
         and payment bpoint code constraints.
         """
+        #TODO replace
         from ledger.checkout.utils import createCustomBasket
         from ledger.payments.invoice.utils import CreateInvoiceBasket
         from ledger.accounts.models import EmailUser
@@ -2375,16 +2178,3 @@ def create_invoice(proposal, payment_method='other'):
         order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
 
         return order
-    
-
-def write_proposal_applicants(filename, path='/tmp/'):
-    qs=ProposalApplicant.objects.all().values('email','first_name', 'last_name', 'dob', 'phone_number', 'mobile_number').distinct('email')
-
-    with open(path+filename, 'w') as file:
-        write = csv.writer(file)
-        write.writerow(['email','first_name','last_name','dob', 'phone_number', 'mobile_number'])
-        for i in qs:
-            write.writerows([i.values()])
-
-
-

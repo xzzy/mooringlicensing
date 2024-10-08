@@ -7,6 +7,56 @@ from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_str
 
 from mooringlicensing.components.users.models import EmailUserLogEntry, private_storage
+from ledger_api_client.managed_models import SystemUser, SystemUserAddress
+
+def create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None):
+    return SystemUser.objects.create(
+        ledger_id_id=email_user_id,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        legal_dob=dob,
+        phone_number=phone,
+        mobile_number=mobile,
+    )
+
+def get_or_create_system_user_address(system_user, system_address_dict, use_for_postal=False):
+    """
+        takes SystemUser object and SystemUserAddress dict, 
+        checks if a corresponding SystemUserAddress records exists, 
+        and create that SystemUserAddress record if it does not exist
+    """
+    qs = SystemUserAddress.objects.filter(system_user=system_user, **system_address_dict)
+    if not qs.exists():
+        SystemUserAddress.objects.create(system_user=system_user, **system_address_dict, use_for_postal=use_for_postal)
+    elif use_for_postal and not qs.filter(use_for_postal=use_for_postal):
+        qs.update(use_for_postal=True)
+        
+
+def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None, update=False):
+    qs = SystemUser.objects.filter(ledger_id_id=email_user_id)
+    if qs.exists():
+        system_user = qs.first()
+        if update:            
+            system_user.email = email
+            system_user.first_name = first_name
+            system_user.last_name = last_name
+            system_user.legal_dob = dob
+            system_user.phone_number = phone
+            system_user.mobile_number = mobile
+            system_user.save()
+        return system_user, False 
+    else:
+        system_user = SystemUser.objects.create(
+            ledger_id_id=email_user_id,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            legal_dob=dob,
+            phone_number=phone,
+            mobile_number=mobile,
+        )
+        return system_user, True
 
 def get_user_name(user):
     """

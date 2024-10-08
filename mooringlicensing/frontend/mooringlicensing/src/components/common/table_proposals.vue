@@ -322,7 +322,11 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     if (full.applicant){
-                        return `${full.applicant.legal_first_name} ${full.applicant.legal_last_name}`
+                        if (full.applicant.legal_first_name) {
+                            return `${full.applicant.legal_first_name} ${full.applicant.legal_last_name}`
+                        } else {
+                            return `${full.applicant.first_name} ${full.applicant.last_name}`
+                        }
                     }
                     return ''
                 },
