@@ -1210,10 +1210,7 @@ class MooringLicenceReader():
                     vessel_ownership=vessel_ownership,
                 )
 
-                try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+                start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 approval_history = ApprovalHistory.objects.create(
                     reason='new',
@@ -1282,7 +1279,7 @@ class MooringLicenceReader():
 
         df_authuser = self.df_authuser[(self.df_authuser['vessel_rego']!='0')].groupby('vessel_rego').first()
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
-            #try:
+            try:
 
                 rego_no = row.name
                 
@@ -1412,12 +1409,7 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
-                except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
-
-                try:
-                    issue_date = datetime.datetime.strptime(row['date_issued'].split(' ')[0], '%d-%m-%Y')
+                    issue_date = datetime.datetime.strptime(row['date_issued'].split(' ')[0], '%d/%m/%Y')
                 except:
                     issue_date = start_date
 
@@ -1441,11 +1433,6 @@ class MooringLicenceReader():
                     who=user.id,
                     what='Authorised User Permit - Migrated Application',
                 )
-
-                try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-                except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 approval_history = ApprovalHistory.objects.create(
                     reason='new',
@@ -1485,9 +1472,9 @@ class MooringLicenceReader():
                         site_licensee=False,
                     )
 
-            #except Exception as e:
-            #    print(e)
-            #    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+            except Exception as e:
+                print(e)
+                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
@@ -1541,7 +1528,7 @@ class MooringLicenceReader():
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
                 try:
-                    lodgement_date = datetime.datetime.strptime(row.date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
+                    lodgement_date = datetime.datetime.strptime(row.date_applied, '%d/%m/%Y').astimezone(datetime.timezone.utc)
                 except:
                     lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
@@ -1597,9 +1584,10 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    date_allocated = datetime.datetime.strptime(row.date_allocated, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                except:
-                    date_allocated = datetime.datetime.strptime(start_date, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+                    date_allocated = datetime.datetime.strptime(row['date_allocated'], '%d/%m/%Y').astimezone(datetime.timezone.utc)
+                except Exception as e:
+                    errors.append("date_allocated substituted with general start date: " + str(e))
+                    date_allocated = start_date
 
                 approval = WaitingListAllocation.objects.create(
                     status=Approval.APPROVAL_STATUS_CURRENT,
@@ -1624,12 +1612,6 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
-                #TODO fix
-                try:
-                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-
                 approval_history = ApprovalHistory.objects.create(
                     reason='new',
                     approval=approval,
@@ -1652,7 +1634,6 @@ class MooringLicenceReader():
     def create_dcv(self):
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED
         fee_season = FeeSeason.objects.filter(application_type__code='dcvp', name=FEE_SEASON)[0]
 
         errors = []
@@ -1890,10 +1871,16 @@ class MooringLicenceReader():
 
                 total_aa_created.append(rego_no)
 
+                try:
+                    lodgement_date = datetime.datetime.strptime(date_created, '%d/%m/%Y %H:%M %p').astimezone(datetime.timezone.utc)
+                except Exception as e:
+                    errors.append("lodgement_date substituted with general start date: " + str(e))
+                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+
                 proposal=AnnualAdmissionApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=TODAY,
+                    lodgement_date=lodgement_date,
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1951,7 +1938,6 @@ class MooringLicenceReader():
                     approval=approval,
                     vessel_ownership = vessel_ownership,
                     proposal = proposal,
-                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
                     start_date = start_date,
                 )
 
