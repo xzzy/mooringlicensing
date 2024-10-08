@@ -1,8 +1,5 @@
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.contrib.gis.geos import GEOSGeometry
-from django.utils import timezone
 import datetime
 import pandas as pd
 import numpy as np
@@ -401,7 +398,6 @@ class MooringLicenceReader():
         df_wl = df_wl[(df_wl['app_status']=='W')]
         df_wl = df_wl.sort_values(['bay_pos_no'],ascending=True).groupby('bay').head(1000)
 
-        #return df[:500]
         return df_wl
 
     def _read_dcv(self):
@@ -423,7 +419,7 @@ class MooringLicenceReader():
         df_aa.fillna('', inplace=True)
         df_aa.replace({np.nan: ''}, inplace=True)
 
-        # create dict of vessel details by rego_no --> self.vessels_dict['DO904']
+        # create dict of vessel details by rego_no
         logger.info('Creating Vessels details Dictionary ...')
         self.create_vessels_dict()
 
@@ -609,7 +605,7 @@ class MooringLicenceReader():
                 if not row.name :
                     continue
 
-                user_row = self.df_user[self.df_user['pers_no']==row.name] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.name]
                 if user_row.empty:
                     continue
 
@@ -911,7 +907,7 @@ class MooringLicenceReader():
 
                 vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] 
                 if user_row.empty:
                     continue
 
@@ -1053,7 +1049,7 @@ class MooringLicenceReader():
                 if not row.name or len([_str for _str in ['KINGSTON REEF','NN64','PB 02','RIA'] if row.name in _str])>0:
                     continue
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] 
 
                 if user_row.empty:
                     continue
@@ -1382,7 +1378,7 @@ class MooringLicenceReader():
                     approved_by_endorser=True,
                 )
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u] 
 
                 if user_row.empty:
                     continue
@@ -1557,7 +1553,7 @@ class MooringLicenceReader():
                     customer_status='approved',
                 )
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]#.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]
 
                 if user_row.empty:
                     continue
@@ -1670,7 +1666,7 @@ class MooringLicenceReader():
                     vessel_not_found.append(pers_no)
                     continue
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]
 
                 if user_row.empty:
                     continue
@@ -1795,8 +1791,7 @@ class MooringLicenceReader():
         """
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED #TODO use or remove
-        fee_season = FeeSeason.objects.filter(application_type__code='aaa', name=FEE_SEASON)[0] #TODO use or remove (may be required)
+        date_applied = DATE_APPLIED
 
         errors = []
         vessel_details_not_found = []
@@ -1877,6 +1872,10 @@ class MooringLicenceReader():
                     errors.append("lodgement_date substituted with general start date: " + str(e))
                     lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
+                status = 'approved'
+                if not sticker_no:
+                    status = 'printing_sticker'
+
                 proposal=AnnualAdmissionApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
@@ -1893,8 +1892,8 @@ class MooringLicenceReader():
                     percentage=vessel_ownership.percentage,
                     berth_mooring='',
                     individual_owner=True,
-                    processing_status='approved',
-                    customer_status='approved',
+                    processing_status=status,
+                    customer_status=status,
                     proposed_issuance_approval={
                         "start_date": start_date.strftime('%d/%m/%Y'),
                         "expiry_date": expiry_date.strftime('%d/%m/%Y'),
@@ -1944,7 +1943,7 @@ class MooringLicenceReader():
                 if sticker_no:
                     sticker = Sticker.objects.create(
                         number=sticker_no,
-                        status=Sticker.STICKER_STATUS_CURRENT, # 'current'
+                        status=Sticker.STICKER_STATUS_CURRENT,
                         approval=approval,
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
