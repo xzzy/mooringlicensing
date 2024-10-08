@@ -657,9 +657,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
 
 class ListApprovalSerializer(serializers.ModelSerializer):
-    # licence_document = serializers.CharField(source='licence_document._file.url')
     licence_document = serializers.SerializerMethodField()
-    # authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
     authorised_user_summary_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
@@ -675,7 +673,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     preferred_mooring_bay_id = serializers.SerializerMethodField()
     current_proposal_number = serializers.SerializerMethodField()
     current_proposal_approved = serializers.SerializerMethodField()
-    # vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
@@ -716,7 +713,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'current_proposal_approved',
             'current_proposal_id',
-            # 'vessel_registration',
             'vessel_name',
             'wla_order',
             'offer_link',

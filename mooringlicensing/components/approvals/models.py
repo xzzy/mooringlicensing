@@ -1058,7 +1058,7 @@ class Approval(RevisionedMixin):
                     send_approval_surrender_email_notification(self, already_surrendered=False)
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
-                    self.child_obj.processes_after_cancel()
+                    self.child_obj.processes_after_surrender()
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -1278,6 +1278,14 @@ class WaitingListAllocation(Approval):
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
+        self.set_wla_order()
+
+    def processes_after_surrender(self):
+        self.internal_status = None
+        self.status = Approval.APPROVAL_STATUS_SURRENDERED  # Surrendered has been probably set before reaching here.
+        self.wla_order = None
+        self.save()
+        logger.info(f'Set attributes as follows: [internal_status=None, status=surrendered, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
     def process_after_approval(self):
