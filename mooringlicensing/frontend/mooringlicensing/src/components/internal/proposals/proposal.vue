@@ -384,9 +384,6 @@ export default {
             }
             return false
         },
-        contactsURL: function(){
-            return this.proposal!= null ? helpers.add_endpoint_json(api_endpoints.organisations, this.proposal.applicant.id + '/contacts') : '';
-        },
         isLoading: function() {
           return this.loading.length > 0
         },
@@ -779,14 +776,6 @@ export default {
                     }
                 }
             });
-        },
-        initialiseOrgContactTable: function(){
-            let vm = this;
-            if (vm.proposal && !vm.contacts_table_initialised){
-                vm.contacts_options.ajax.url = helpers.add_endpoint_json(api_endpoints.organisations,vm.proposal.applicant.id+'/contacts');
-                vm.contacts_table = $('#'+vm.contacts_table_id).DataTable(vm.contacts_options);
-                vm.contacts_table_initialised = true;
-            }
         },
         commaToNewline(s){
             return s.replace(/[,;]/g, '\n');
@@ -1239,7 +1228,6 @@ export default {
             vm.panelClickersInitialised = true;
         }
         this.$nextTick(() => {
-            vm.initialiseOrgContactTable();
             vm.initialiseSelects();
             vm.form = document.forms.new_proposal;
             if(vm.hasAmendmentRequest){

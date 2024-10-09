@@ -54,7 +54,6 @@ INSTALLED_APPS += [
     'mooringlicensing',
     'mooringlicensing.components.main',
     'mooringlicensing.components.emails',
-    'mooringlicensing.components.organisations',
     'mooringlicensing.components.users',
     'mooringlicensing.components.proposals',
     'mooringlicensing.components.approvals',

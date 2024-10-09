@@ -299,12 +299,6 @@ export default {
             return this.loading.length > 0
         },
         isDisabled: function () {
-            /*
-            let vm = this;
-            if ((vm.org_applicant == '' && vm.yourself=='') ||( vm.selected_application_id == '')){
-                    return true;
-                }
-                */
             let disabled = true;
             if (this.selectedApplication && this.selectedApplication.code) {
                 disabled = false;

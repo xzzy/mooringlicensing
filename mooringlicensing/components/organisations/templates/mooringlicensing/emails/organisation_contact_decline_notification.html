@@ -1,9 +1,0 @@
-{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
-
-{% block content_body %}
-{% include "mooringlicensing/emails_2/salutation.html" %}
-<p>Your Organisation link request has been declined from:</p>
-<p><strong>Organisation : {{ organisation.name }}</strong></p>
-<p><strong>ABN : {{ organisation.abn}}</strong></p>
-<p>You can not make applications on behalf of this organisation now.</p>
-{%  endblock %}

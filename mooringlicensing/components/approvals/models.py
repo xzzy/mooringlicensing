@@ -29,7 +29,6 @@ from ledger_api_client.ledger_models import Invoice, EmailUserRO
 from mooringlicensing.components.approvals.pdf import create_dcv_permit_document, create_dcv_admission_document, \
     create_approval_doc, create_renewal_doc
 from mooringlicensing.components.emails.utils import get_public_url
-from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeConstructor
 from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, MooringBay, Mooring, \
     StickerPrintingBatch, StickerPrintingResponse, Vessel, VesselOwnership, ProposalType
@@ -334,7 +333,6 @@ class Approval(RevisionedMixin):
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
     submitter = models.IntegerField(blank=True, null=True)
-    org_applicant = models.ForeignKey(Organisation, on_delete=models.CASCADE, blank=True, null=True, related_name='org_approvals')
     proxy_applicant = models.IntegerField(blank=True, null=True)
     extracted_fields = JSONField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
@@ -623,26 +621,18 @@ class Approval(RevisionedMixin):
 
     @property
     def bpay_allowed(self):
-        if self.org_applicant:
-            return self.org_applicant.bpay_allowed
         return False
 
     @property
     def monthly_invoicing_allowed(self):
-        if self.org_applicant:
-            return self.org_applicant.monthly_invoicing_allowed
         return False
 
     @property
     def monthly_invoicing_period(self):
-        if self.org_applicant:
-            return self.org_applicant.monthly_invoicing_period
         return None
 
     @property
     def monthly_payment_due_period(self):
-        if self.org_applicant:
-            return self.org_applicant.monthly_payment_due_period
         return None
 
     @property
@@ -664,25 +654,10 @@ class Approval(RevisionedMixin):
 
     @property
     def applicant_type(self):
-        if self.org_applicant:
-            return "org_applicant"
-        elif self.proxy_applicant:
+        if self.proxy_applicant:
             return "proxy_applicant"
         else:
             return "submitter"
-
-    @property
-    def is_org_applicant(self):
-        return True if self.org_applicant else False
-
-    @property
-    def applicant_id(self):
-        if self.org_applicant:
-            return self.org_applicant.id
-        elif self.proxy_applicant:
-            return self.proxy_applicant
-        else:
-            return self.submitter
 
     @property
     def title(self):
@@ -952,7 +927,6 @@ class Approval(RevisionedMixin):
                     self.child_obj.processes_after_cancel()
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
-                # Log entry for organisation
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_CANCEL_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
@@ -1030,14 +1004,6 @@ class Approval(RevisionedMixin):
     def approval_surrender(self,request,details):
         with transaction.atomic():
             try:
-                # Check if organisations the request.user belongs to include the organisation this application is for.
-                # if not request.user.mooringlicensing_organisations.filter(organisation_id = self.applicant_id):
-                orgs = Organisation.objects.filter(delegates__contains=[request.user.id,])  # These are the organisations request.user belongs to
-                if orgs:
-                    if self.org_applicant:
-                        if not self.org_applicant.id in [org.id for org in orgs]:
-                            if request.user not in self.allowed_assessors and not is_customer(request):
-                                raise ValidationError('You do not have access to surrender this approval')
                 if not self.can_reissue and self.can_action:
                     raise ValidationError('You cannot surrender approval if it is not current or suspended')
                 self.surrender_details = {

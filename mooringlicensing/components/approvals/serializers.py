@@ -26,9 +26,7 @@ from mooringlicensing.components.approvals.models import (
     MooringLicence,
     AuthorisedUserPermit, StickerActionDetail, ApprovalHistory, MooringOnApproval,
 )
-from mooringlicensing.components.organisations.models import (
-    Organisation
-)
+
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
 from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
     MooringSimpleSerializer, \
@@ -44,7 +42,6 @@ logger = logging.getLogger(__name__)
 
 
 class ApprovalPaymentSerializer(serializers.ModelSerializer):
-    org_applicant = serializers.SerializerMethodField(read_only=True)
     bpay_allowed = serializers.SerializerMethodField(read_only=True)
     monthly_invoicing_allowed = serializers.SerializerMethodField(read_only=True)
     other_allowed = serializers.SerializerMethodField(read_only=True)
@@ -55,7 +52,6 @@ class ApprovalPaymentSerializer(serializers.ModelSerializer):
             'lodgement_number',
             'current_proposal',
             'expiry_date',
-            'org_applicant',
             'bpay_allowed',
             'monthly_invoicing_allowed',
             'other_allowed',
@@ -64,14 +60,10 @@ class ApprovalPaymentSerializer(serializers.ModelSerializer):
             'lodgement_number',
             'current_proposal',
             'expiry_date',
-            'org_applicant',
             'bpay_allowed',
             'monthly_invoicing_allowed',
             'other_allowed',
         )
-
-    def get_org_applicant(self,obj):
-        return obj.org_applicant.name if obj.org_applicant else None
 
     def get_bpay_allowed(self,obj):
         return obj.bpay_allowed
@@ -115,7 +107,7 @@ class _ApprovalPaymentSerializer(serializers.ModelSerializer):
         return None
 
     def get_applicant(self,obj):
-        return obj.applicant.name if isinstance(obj.applicant, Organisation) else obj.applicant
+        return obj.applicant
 
     def get_applicant_type(self,obj):
         return obj.applicant_type

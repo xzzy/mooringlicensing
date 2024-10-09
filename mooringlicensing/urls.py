@@ -16,7 +16,6 @@ from mooringlicensing.components.payments_ml.views import ApplicationFeeView, Ap
     ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload, \
     StickerReplacementFeeSuccessViewPreload
 from mooringlicensing.components.proposals import views as proposal_views
-from mooringlicensing.components.organisations import views as organisation_views
 from mooringlicensing.components.payments_ml import api as payments_api
 from mooringlicensing.components.proposals import api as proposal_api
 from mooringlicensing.components.approvals import api as approval_api
@@ -24,7 +23,6 @@ from mooringlicensing.components.compliances import api as compliances_api
 from mooringlicensing.components.proposals.views import AuthorisedUserApplicationEndorseView, \
     MooringLicenceApplicationDocumentsUploadView
 from mooringlicensing.components.users import api as users_api
-from mooringlicensing.components.organisations import api as org_api
 from mooringlicensing.components.main import api as main_api
 # from ledger.urls import urlpatterns as ledger_patterns
 from ledger_api_client.urls import urlpatterns as ledger_patterns
@@ -37,7 +35,6 @@ from django.urls import path
 
 router = routers.DefaultRouter()
 router.include_root_view = settings.DEBUG
-router.register(r'organisations', org_api.OrganisationViewSet, 'organisations')
 router.register(r'proposal', proposal_api.ProposalViewSet, 'proposal')
 router.register(r'proposal_by_uuid', proposal_api.ProposalByUuidViewSet, 'proposal_by_uuid')
 router.register(r'waitinglistapplication', proposal_api.WaitingListApplicationViewSet, 'waitinglistapplication')
@@ -63,9 +60,6 @@ router.register(r'waitinglistallocation', approval_api.WaitingListAllocationView
 router.register(r'compliances', compliances_api.ComplianceViewSet, 'compliances')
 router.register(r'proposal_requirements', proposal_api.ProposalRequirementViewSet, 'proposal_requirements')
 router.register(r'proposal_standard_requirements', proposal_api.ProposalStandardRequirementViewSet, 'proposal_standard_requirements')
-router.register(r'organisation_requests', org_api.OrganisationRequestsViewSet, 'organisation_requests')
-router.register(r'organisation_contacts', org_api.OrganisationContactViewSet, 'organisation_contacts')
-router.register(r'my_organisations', org_api.MyOrganisationsViewSet, 'my_organisations')
 router.register(r'users', users_api.UserViewSet, 'users')
 router.register(r'amendment_request', proposal_api.AmendmentRequestViewSet, 'amendment_request')
 router.register(r'compliance_amendment_request', compliances_api.ComplianceAmendmentRequestViewSet, 'compliance_amendment_request')
@@ -88,7 +82,6 @@ api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicantUser.as_view(), name='get-proposal-applicant-user'),
     re_path(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
-    re_path(r'^api/filtered_organisations$', org_api.OrganisationListFilterView.as_view(), name='filtered_organisations'),
     re_path(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
     re_path(r'^api/application_types$', proposal_api.GetApplicationTypeDescriptions.as_view(), name='get-application-type-descriptions'),
     re_path(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
@@ -120,7 +113,6 @@ api_patterns = [
     re_path(r'^api/compliance_statuses_dict$', compliances_api.GetComplianceStatusesDict.as_view(), name='get-compliance-statuses-dict'),
     re_path(r'^api/mooring_statuses_dict$', proposal_api.GetMooringStatusesDict.as_view(), name='get-mooring-statuses-dict'),
     re_path(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
-    re_path(r'^api/organisation_access_group_members',org_api.OrganisationAccessGroupMembers.as_view(),name='organisation-access-group-members'),
     re_path(r'^api/',include(router.urls)),
     re_path(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
@@ -194,7 +186,6 @@ urlpatterns = [
     re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
     re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
     re_path(r'^history/helppage/(?P<pk>\d+)/$', proposal_views.HelpPageHistoryCompareView.as_view(), name='helppage_history'),
-    re_path(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
 
     re_path(r'^proposal-payment-history/(?P<pk>[0-9]+)/', ProposalPaymentHistoryView.as_view(), name='view_proposal_payment_history'),
     re_path(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
