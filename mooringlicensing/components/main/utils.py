@@ -128,10 +128,13 @@ def retrieve_mooring_areas():
                     orig_mo = deepcopy(mo)
                     mo.mooring_bookings_id=mooring.get("id")
                     mo.name=mooring.get("name")
-                    mo.mooring_bay = MooringBay.objects.get(
-                        mooring_bookings_id=mooring.get('marine_park_id'), 
+                    try:
+                        mo.mooring_bay = MooringBay.objects.get(
+                            mooring_bookings_id=mooring.get('marine_park_id'), 
                             active=True
-                            )
+                        )
+                    except:
+                        continue
                     mo.vessel_size_limit = mooring.get('vessel_size_limit')
                     mo.vessel_draft_limit = mooring.get('vessel_draft_limit')
                     mo.vessel_beam_limit = mooring.get('vessel_beam_limit')
@@ -139,16 +142,27 @@ def retrieve_mooring_areas():
                     mo.mooring_bookings_mooring_specification = mooring.get('mooring_specification')
                     mo.mooring_bookings_bay_id = mooring.get('marine_park_id')
                     mo.save()
-                    if orig_mo != mo:
+                    
+                    if (float(mo.vessel_size_limit) != float(orig_mo.vessel_size_limit) or
+                        float(mo.vessel_draft_limit) != float(orig_mo.vessel_draft_limit) or
+                        float(mo.vessel_beam_limit) != float(orig_mo.vessel_beam_limit) or
+                        float(mo.vessel_weight_limit) != float(orig_mo.vessel_weight_limit) or
+                        float(mo.mooring_bookings_mooring_specification) != float(orig_mo.mooring_bookings_mooring_specification) or
+                        float(mo.mooring_bookings_bay_id) != float(orig_mo.mooring_bookings_bay_id)):
                         records_updated.append(str(mo.name))
                 else:
+                    try:
+                        mooring_bay = MooringBay.objects.get(
+                            mooring_bookings_id=mooring.get('marine_park_id'), 
+                            active=True
+                        )
+                    except:
+                        continue
+                    
                     mooring = Mooring.objects.create(
                             mooring_bookings_id=mooring.get("id"), 
                             name=mooring.get("name"),
-                            mooring_bay = MooringBay.objects.get(
-                                mooring_bookings_id=mooring.get('marine_park_id'), 
-                                    active=True
-                                    ),
+                            mooring_bay = mooring_bay,
                             vessel_size_limit = mooring.get('vessel_size_limit'),
                             vessel_draft_limit = mooring.get('vessel_draft_limit'),
                             vessel_beam_limit = mooring.get('vessel_beam_limit'),
