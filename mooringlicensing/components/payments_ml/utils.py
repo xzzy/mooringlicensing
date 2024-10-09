@@ -108,10 +108,10 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
             target_datetime_str,
         )
     
-    if settings.DEBUG:
-        # In debug environment, we want to avoid decimal number which may cuase some kind of error.
-        total_amount = math.ceil(float(fee_amount_adjusted))
-        total_amount_excl_tax = math.ceil(float(calculate_excl_gst(fee_amount_adjusted))) if fee_constructor.incur_gst else math.ceil(float(fee_amount_adjusted))
+    if settings.ROUND_FEE_ITEMS:
+        # In debug environment, we want to avoid decimal number which may cause some kind of error.
+        total_amount = round(float(fee_amount_adjusted))
+        total_amount_excl_tax = round(float(calculate_excl_gst(fee_amount_adjusted))) if fee_constructor.incur_gst else round(float(fee_amount_adjusted))
     else:
         total_amount = float(fee_amount_adjusted)
         total_amount_excl_tax = float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted)
