@@ -138,6 +138,7 @@
             :key="proposedApprovalKey"
             :mooringBays="mooringBays"
             :siteLicenseeMooring="siteLicenseeMooring"
+            :readonly="readonly"
         />
         <ProposedDecline
             ref="proposed_decline"
