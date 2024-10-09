@@ -1058,7 +1058,7 @@ class Approval(RevisionedMixin):
                     send_approval_surrender_email_notification(self, already_surrendered=False)
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
-                    self.child_obj.processes_after_cancel()
+                    self.child_obj.processes_after_surrender()
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -1278,6 +1278,14 @@ class WaitingListAllocation(Approval):
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
+        self.set_wla_order()
+
+    def processes_after_surrender(self):
+        self.internal_status = None
+        self.status = Approval.APPROVAL_STATUS_SURRENDERED  # Surrendered has been probably set before reaching here.
+        self.wla_order = None
+        self.save()
+        logger.info(f'Set attributes as follows: [internal_status=None, status=surrendered, wla_order=None] of the WL Allocation: [{self}].')
         self.set_wla_order()
 
     def process_after_approval(self):
@@ -3051,7 +3059,6 @@ class DcvPermit(RevisionedMixin):
 
         return line_items, db_processes_after_success
 
-    #TODO does a DCV permit *need* an address associated with it? can it be the ledger address or should it specified?
     def get_context_for_licence_permit(self):
         context = {
             'lodgement_number': self.lodgement_number,
@@ -3067,7 +3074,7 @@ class DcvPermit(RevisionedMixin):
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),
             'public_url': get_public_url(),
-            'submitter_fullname': self.submitter.get_full_name(),
+            'submitter_fullname': self.applicant_obj.get_full_name(), #TODO need submitter AND applicant names - use applicant for now
         }
         return context
 

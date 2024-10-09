@@ -2764,7 +2764,7 @@ class WaitingListApplication(Proposal):
     code = 'wla'
     prefix = 'WL'
 
-    new_application_text = "I want to be included on the waiting list for a mooring site licence"
+    new_application_text = "I want to apply for a position on the waiting list for a mooring site licence"
 
     apply_page_visibility = True
     description = 'Waiting List Application'

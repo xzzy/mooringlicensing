@@ -293,7 +293,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     submitter = serializers.SerializerMethodField()
     applicant = serializers.SerializerMethodField()
     current_proposal = InternalProposalSerializer()
-    licence_document = serializers.CharField(source='licence_document._file.url')
+    licence_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
     internal_status = serializers.SerializerMethodField()
@@ -373,6 +373,10 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'licence_document',
             'is_approver',
         )
+
+    def get_licence_document(self, obj):
+        if obj.licence_document and obj.licence_document._file:
+            return obj.licence_document._file.url
 
     def get_allowed_assessors(self, obj):
         if 'request' in self.context and is_internal(self.context['request']):
@@ -653,9 +657,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
 
 
 class ListApprovalSerializer(serializers.ModelSerializer):
-    # licence_document = serializers.CharField(source='licence_document._file.url')
     licence_document = serializers.SerializerMethodField()
-    # authorised_user_summary_document = serializers.CharField(source='authorised_user_summary_document._file.url')
     authorised_user_summary_document = serializers.SerializerMethodField()
     renewal_document = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField()
@@ -671,7 +673,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     preferred_mooring_bay_id = serializers.SerializerMethodField()
     current_proposal_number = serializers.SerializerMethodField()
     current_proposal_approved = serializers.SerializerMethodField()
-    # vessel_registration = serializers.SerializerMethodField()
     vessel_name = serializers.SerializerMethodField()
     offer_link = serializers.SerializerMethodField()
     ria_generated_proposals = serializers.SerializerMethodField()
@@ -712,7 +713,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'current_proposal_approved',
             'current_proposal_id',
-            # 'vessel_registration',
             'vessel_name',
             'wla_order',
             'offer_link',
@@ -1343,6 +1343,7 @@ class StickerSerializer(serializers.ModelSerializer):
     dcv_permit = DcvPermitSimpleSerializer()
     invoices = serializers.SerializerMethodField()
     can_view_payment_details = serializers.SerializerMethodField()
+    migrated = serializers.SerializerMethodField()
 
     class Meta:
         model = Sticker
@@ -1372,6 +1373,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'postal_address_state',
             'postal_address_country',
             'postal_address_postcode',
+            'migrated',
         )
         datatables_always_serialize = (
             'id',
@@ -1399,6 +1401,7 @@ class StickerSerializer(serializers.ModelSerializer):
             'postal_address_state',
             'postal_address_country',
             'postal_address_postcode',
+            'migrated',
         )
 
     def get_fee_season(self, obj):
@@ -1450,6 +1453,11 @@ class StickerSerializer(serializers.ModelSerializer):
         if sticker.sticker_printing_batch and sticker.sticker_printing_batch.emailed_datetime:
             return sticker.sticker_printing_batch.emailed_datetime.date()
         return None
+    
+    def get_migrated(self,sticker):
+        if sticker.approval:
+            return sticker.approval.migrated
+        return False
 
 
 class StickerPostalAddressSaveSerializer(serializers.ModelSerializer):
@@ -1679,8 +1687,7 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
 
 
 class ApprovalHistorySerializer(serializers.ModelSerializer):
-    #reason = serializers.SerializerMethodField()
-    approval_letter = serializers.CharField(source='approval_letter._file.url')
+    approval_letter = serializers.SerializerMethodField()
     sticker_numbers = serializers.SerializerMethodField()
     approval_lodgement_number = serializers.SerializerMethodField()
     approval_type_description = serializers.SerializerMethodField()
@@ -1713,8 +1720,9 @@ class ApprovalHistorySerializer(serializers.ModelSerializer):
                 'approval_letter',
                 )
 
-    #def get_reason(self, obj):
-     #   return ''
+    def get_approval_letter(self ,obj):
+        if obj.approval_letter and obj.approval_letter._file:
+            return obj.approval_letter._file.url
 
     def get_approval_status(self, obj):
         return obj.approval.get_status_display()

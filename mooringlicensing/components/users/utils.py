@@ -37,7 +37,8 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, 
     qs = SystemUser.objects.filter(ledger_id_id=email_user_id)
     if qs.exists():
         system_user = qs.first()
-        if update:            
+        if update:    
+            system_user.change_by_user_id = system_user.id        
             system_user.email = email
             system_user.first_name = first_name
             system_user.last_name = last_name
