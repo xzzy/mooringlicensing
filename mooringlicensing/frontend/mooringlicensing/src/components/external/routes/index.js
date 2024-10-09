@@ -2,7 +2,6 @@ import ExternalDashboard from '@/components/external/dashboard.vue'
 import Proposal from '@/components/external/proposal.vue'
 import ProposalApply from '@/components/external/proposal_apply.vue'
 import ProposalSubmit from '@/components/external/proposal_submit.vue'
-import Organisation from '@/components/external/organisations/manage.vue'
 import DcvPermit from '@/components/external/dcv/dcv_permit.vue'
 import DcvAdmission from '@/components/external/dcv/dcv_admission.vue'
 import VesselsDashboard from '@/components/external/vessels_dashboard.vue'
@@ -30,10 +29,6 @@ export default
             path: '/',
             component: ExternalDashboard,
             name: 'external-dashboard'
-        },
-        {
-            path: 'organisations/manage/:org_id',
-            component: Organisation
         },
         {
             path: 'compliance/:compliance_id',

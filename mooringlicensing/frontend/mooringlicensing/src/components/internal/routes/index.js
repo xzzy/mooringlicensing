@@ -1,8 +1,5 @@
 
 import InternalDashboard from '@/components/internal/dashboard.vue'
-import OrgAccessTable from '@/components/internal/organisations/dashboard.vue'
-import OrgAccess from '@/components/internal/organisations/access.vue'
-import Organisation from '@/components/internal/organisations/manage.vue'
 import Proposal from '@/components/internal/proposals/proposal.vue'
 import DcvDashboard from '@/components/internal/dcv/dashboard.vue'
 import ApprovalDash from '@/components/internal/approvals/dashboard.vue'
@@ -22,14 +19,7 @@ import ManageVessel from '@/components/internal/manage_vessel.vue'
 import ProposalApply from '@/components/external/proposal_apply.vue'
 import DcvAdmissionForm from '@/components/external/dcv/dcv_admission.vue'
 import DcvPermit from '@/components/external/dcv/dcv_permit.vue'
-/*
-import User from '../users/manage.vue'
-import ProposalCompare from '../proposals/proposal_compare.vue'
-import Referral from '../referrals/referral.vue'
-import PaymentOrder from '@/components/common/tclass/payment_order.vue'
-import ParkEntryFeesDashboard from '../park_entry_fees_dashboard.vue'
-import DistrictProposal from '../district_proposals/district_proposal.vue'
-*/
+
 export default
 {
     path: '/internal',
@@ -170,33 +160,6 @@ export default
             path:'reports',
             name:'reports',
             component:Reports
-        },
-        {
-            path: 'organisations',
-            component: {
-                render(c)
-                {
-                    return c('router-view')
-                }
-            },
-            children: [
-                {
-                    path: 'access',
-                    component: OrgAccessTable,
-                    name:"org-access-dash"
-                },
-                {
-                    path: 'access/:access_id',
-                    component: OrgAccess,
-                    name:"org-access"
-                },
-                {
-                    path: ':org_id',
-                    component: Organisation,
-                    name:"internal-org-detail"
-                },
-
-            ]
         },
         {
             path: 'dcv',

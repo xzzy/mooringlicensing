@@ -974,7 +974,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'customer_status',
                 'processing_status',
                 'applicant',
-                'org_applicant',
                 'proxy_applicant',
                 'submitter',
                 'applicant_type',

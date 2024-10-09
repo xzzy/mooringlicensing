@@ -25,7 +25,6 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
-from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.proposals.utils import (
     construct_dict_from_docs, 
     save_proponent_data, 
@@ -696,15 +695,11 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             if target_email_user_id:
                 # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                user_orgs = Organisation.objects.filter(delegates__contains=[target_user.id])
-                all = all.filter(Q(org_applicant__in=user_orgs) | 
-                        Q(proposal_applicant__email_user_id=target_user.id) | 
+                all = all.filter(Q(proposal_applicant__email_user_id=target_user.id) | 
                         Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
-            orgs = Organisation.objects.filter(delegates__contains=[request_user.id])
-            qs = all.filter(Q(org_applicant__in=orgs) | 
-                    Q(proposal_applicant__email_user_id=request_user.id) #| 
+            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id) #| 
                     #Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True)
                     )
             return qs
@@ -1201,9 +1196,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             qs = Proposal.objects.all()
             return qs
         elif is_customer(self.request):
-            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = Proposal.objects.filter(
-                Q(org_applicant_id__in=user_orgs) | 
                 Q(proposal_applicant__email_user_id=request_user.id)
             )
             #TODO do we need to exclude migrated proposals?
@@ -2047,9 +2040,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
         elif is_customer(self.request):
-            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = ProposalRequirement.objects.filter(
-                Q(proposal__org_applicant_id__in=user_orgs) | 
                 Q(proposal_applicant__email_user_id=user.id)
             )
         else:
@@ -2146,9 +2137,7 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             queryset = AmendmentRequest.objects.all()
         elif is_customer(self.request):
-            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
             queryset = AmendmentRequest.objects.filter(
-                Q(proposal__org_applicant_id__in=user_orgs) | 
                 Q(proposal_applicant__email_user_id=user.id)
             )
         else:

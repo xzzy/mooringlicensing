@@ -49,7 +49,6 @@ from mooringlicensing.components.compliances.serializers import (
     CompAmendmentRequestDisplaySerializer, ListComplianceSerializer
 )
 from mooringlicensing.components.proposals.models import ProposalApplicant
-from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
@@ -64,11 +63,7 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Compliance.objects.all()
         elif is_customer(self.request):
-            # user_orgs = [org.id for org in self.request.user.mooringlicensing_organisations.all()]
-            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
-            queryset =  Compliance.objects.filter(
-                Q(proposal__org_applicant__in=user_orgs) | 
-                Q(proposal__proposal_applicant__email_user_id=self.request.user.id)).exclude(processing_status='discarded')
+            queryset =  Compliance.objects.filter(Q(proposal__proposal_applicant__email_user_id=self.request.user.id)).exclude(processing_status='discarded')
             return queryset
         return Compliance.objects.none()
 
@@ -229,11 +224,7 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             queryset = ComplianceAmendmentRequest.objects.all()
         elif is_customer(self.request):
-            user_orgs = [org.id for org in Organisation.objects.filter(delegates__contains=[self.request.user.id])]
-            queryset = ComplianceAmendmentRequest.objects.filter(
-                Q(compliance__proposal__org_applicant_id__in=user_orgs) | 
-                Q(compliance__proposal__proposal_applicant__email_user_id=user.id)
-            )
+            queryset = ComplianceAmendmentRequest.objects.filter(Q(compliance__proposal__proposal_applicant__email_user_id=user.id))
         return queryset
 
     @basic_exception_handler
