@@ -215,15 +215,14 @@ def is_authorised_to_access_dcv_admission_document(request,document_id):
         return True
     elif is_customer(request):
         user = request.user
-        return DcvAdmission.objects.filter(id=document_id).filter(submitter=user.id).exists()
+        return DcvAdmission.objects.filter(id=document_id).filter(applicant=user.id).exists()
     
 def is_authorised_to_access_dcv_permit_document(request,document_id):
     if is_internal(request):
         return True
     elif is_customer(request):
         user = request.user
-        #TODO applicant vs submitter
-        return DcvPermit.objects.filter(id=document_id).filter(submitter=user.id).exists()
+        return DcvPermit.objects.filter(id=document_id).filter(applicant=user.id).exists()
     
 def get_file_path_id(check_str,file_path):
     file_name_path_split = file_path.split("/")

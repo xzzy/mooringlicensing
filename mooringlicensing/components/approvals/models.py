@@ -2920,7 +2920,6 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    #TODO applicant vs submitter
     applicant = models.IntegerField(blank=True, null=True)
     submitter = models.IntegerField(blank=True, null=True)
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)

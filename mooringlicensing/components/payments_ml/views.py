@@ -77,8 +77,7 @@ class DcvAdmissionFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         dcv_admission = self.get_object()
-        #TODO applicant vs submitter
-        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=dcv_admission.submitter, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
+        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=dcv_admission.applicant, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
 
         try:
             with transaction.atomic():
@@ -90,7 +89,7 @@ class DcvAdmissionFeeView(TemplateView):
                 new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
                 checkout_response = checkout(
                     request,
-                    dcv_admission.applicant_obj, #changed from submitter to applicant
+                    dcv_admission.applicant_obj,
                     lines,
                     return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
@@ -129,7 +128,7 @@ class DcvPermitFeeView(TemplateView):
 
                 checkout_response = checkout(
                     request,
-                    dcv_permit.submitter_obj, #TODO applicant vs submitter
+                    dcv_permit.applicant_obj,
                     lines,
                     return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
                     return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid}),
@@ -360,11 +359,10 @@ class StickerReplacementFeeSuccessView(TemplateView):
             # invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
             # invoice_pdf = requests.get(url=url)
-            #TODO applicant vs submitter
-            submitter = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
+            applicant = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
 
             context = {
-                'submitter': submitter, #TODO applicant vs submitter
+                'applicant': applicant,
                 'fee_invoice': sticker_action_fee,
                 'invoice': invoice,
                 'invoice_url': invoice_url,
@@ -484,7 +482,7 @@ class DcvAdmissionFeeSuccessView(TemplateView):
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{dcv_admission_fee.invoice_reference}/'
             context = {
                 'dcv_admission': dcv_admission,
-                'submitter': dcv_admission.applicant_obj, #TODO applicant vs submitter
+                'applicant': dcv_admission.applicant_obj,
                 'fee_invoice': dcv_admission_fee,
                 'invoice_url': invoice_url,
                 'admission_urls': dcv_admission.get_admission_urls(),
@@ -531,8 +529,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
             logger.info(dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY)
             if dcv_admission_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 if invoice.system not in [LEDGER_SYSTEM_ID, ]:
-                    #TODO applicant vs submitter
-                    logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.submitter_obj.get_full_name(), dcv_admission.submitter_obj.id) if dcv_admission.submitter else 'An anonymous user',inv.reference))
+                    logger.error('{} tried paying an dcv_admission fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(dcv_admission.applicant_obj.get_full_name(), dcv_admission.applicant_obj.id) if dcv_admission.applicant else 'Anonymous user'))
                     return redirect('external-dcv_admission-detail', args=(dcv_admission.id,))
 
                 dcv_admission_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
@@ -585,7 +582,7 @@ class DcvPermitFeeSuccessView(TemplateView):
 
             context = {
                 'dcv_permit': dcv_permit,
-                'submitter': dcv_permit.submitter_obj, #TODO applicant vs submitter
+                'applicant': dcv_permit.applicant_obj,
                 'fee_invoice': dcv_permit_fee,
                 'invoice_url': invoice_url,
             }

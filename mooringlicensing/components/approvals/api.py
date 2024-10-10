@@ -1003,8 +1003,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
             qs = DcvPermit.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
-            #TODO applicant vs submitter
-            queryset = DcvPermit.objects.filter(Q(submitter=user.id))
+            queryset = DcvPermit.objects.filter(Q(applicant=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
@@ -1098,7 +1097,6 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
             qs = DcvPermit.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
-            #TODO applicant vs submitter
             queryset = DcvPermit.objects.filter(Q(applicant=user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
