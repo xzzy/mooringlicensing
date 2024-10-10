@@ -1,11 +1,7 @@
-import re
-import traceback
-from django.db.models import Q, Min, CharField, Value
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
 from django.http import HttpResponse
-from django.db.models import Q, Min, CharField, Value, Max
-from mooringlicensing.components.main.models import GlobalSettings
+from django.db.models import Q, CharField, Value, Max
 from confy import env
 import datetime
 import pytz
@@ -13,17 +9,14 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from django.db.models import Q
 from django.db import transaction
 from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
 from django.conf import settings
-from rest_framework import viewsets, serializers, generics, views, status
-# from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework import viewsets, serializers, status, views, mixins
 from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import action as list_route
 from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-# from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import TIME_ZONE
 from datetime import datetime
 from collections import OrderedDict
@@ -32,18 +25,30 @@ from ledger_api_client.utils import get_or_create
 
 from django.core.cache import cache
 from mooringlicensing import forms
-from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification, send_au_summary_to_ml_holder
-from mooringlicensing.components.main.decorators import basic_exception_handler, query_debugger, timeit
+from mooringlicensing.components.proposals.email import send_create_mooring_licence_application_email_notification
+from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.payments_ml.api import logger
+
+from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeePeriod, FeeSeason, FeeConstructor
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, DcvAdmissionSerializer, \
-    DcvAdmissionArrivalSerializer, NumberOfPeopleSerializer
-from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication, ProposalType, Mooring, ProposalApplicant
+from mooringlicensing.components.payments_ml.serializers import (
+    DcvPermitSerializer, 
+    DcvAdmissionSerializer,
+    DcvAdmissionArrivalSerializer, 
+    NumberOfPeopleSerializer
+)
+from mooringlicensing.components.proposals.models import (
+    Proposal, 
+    MooringLicenceApplication, 
+    ProposalType, 
+    Mooring, 
+    ProposalApplicant
+)
 from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
-    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,MooringOnApproval,
-    private_storage
+    WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
+    MooringOnApproval,private_storage
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
@@ -76,19 +81,18 @@ from rest_framework import filters
 
 
 class GetDailyAdmissionUrl(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
+
         daily_admission_url = env('DAILY_ADMISSION_PAGE_URL', '')
         data = {'daily_admission_url': daily_admission_url}
         return Response(data)
 
 
 class GetStickerStatusDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.main.models import ApplicationType
+
         data = []
         for status in Sticker.STATUS_CHOICES:
             if status[0] in Sticker.STATUSES_FOR_FILTER:
@@ -97,10 +101,8 @@ class GetStickerStatusDict(views.APIView):
 
 
 class GetFeeSeasonsDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.main.models import ApplicationType
 
         application_type_codes = request.GET.get('application_type_codes', '')
 
@@ -114,12 +116,6 @@ class GetFeeSeasonsDict(views.APIView):
             fee_seasons = FeeSeason.objects.filter(application_type__in=application_types)
         else:
             fee_seasons = FeeSeason.objects.all()
-
-        # data = [{
-        #     'id': season.id,
-        #     'name': season.name,
-        #     'application_type_code': season.application_type.code,
-        #     'application_type_description': season.application_type.description} for season in fee_seasons]
 
         handled = []
         data = []
@@ -135,52 +131,49 @@ class GetFeeSeasonsDict(views.APIView):
 
 
 class GetSticker(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        search_term = request.GET.get('search_term', '')
-        page_number = request.GET.get('page_number', 1)
-        items_per_page = 10
 
-        if search_term:
-            data = Sticker.objects.filter(number__icontains=search_term)
-            paginator = Paginator(data, items_per_page)
-            try:
-                current_page = paginator.page(page_number)
-                my_objects = current_page.object_list
-            except EmptyPage:
-                my_objects = []
+        if is_internal(request):
+            search_term = request.GET.get('search_term', '')
+            page_number = request.GET.get('page_number', 1)
+            items_per_page = 10
 
-            data_transform = []
-            for sticker in my_objects:
-                approval_history = sticker.approvalhistory_set.order_by('id').first()  # Should not be None, but could be None for the data generated at the early stage of development.
-                if approval_history and approval_history.approval:
-                    data_transform.append({
-                        'id': sticker.id,
-                        'text': sticker.number,
-                        'approval_id': approval_history.approval.id,
-                    })
-                elif sticker.approval:
-                    data_transform.append({
-                        'id': sticker.id,
-                        'text': sticker.number,
-                        'approval_id': sticker.approval.id,
-                    })
-                else:
-                    # Should not reach here
-                    pass
+            if search_term:
+                data = Sticker.objects.filter(number__icontains=search_term)
+                paginator = Paginator(data, items_per_page)
+                try:
+                    current_page = paginator.page(page_number)
+                    my_objects = current_page.object_list
+                except EmptyPage:
+                    my_objects = []
 
-            return Response({
-                "results": data_transform,
-                "pagination": {
-                    "more": current_page.has_next()
-                }
-            })
+                data_transform = []
+                for sticker in my_objects:
+                    approval_history = sticker.approvalhistory_set.order_by('id').first()
+                    if approval_history and approval_history.approval:
+                        data_transform.append({
+                            'id': sticker.id,
+                            'text': sticker.number,
+                            'approval_id': approval_history.approval.id,
+                        })
+                    elif sticker.approval:
+                        data_transform.append({
+                            'id': sticker.id,
+                            'text': sticker.number,
+                            'approval_id': sticker.approval.id,
+                        })
+
+                return Response({
+                    "results": data_transform,
+                    "pagination": {
+                        "more": current_page.has_next()
+                    }
+                })
         return Response()
 
 
 class GetApprovalTypeDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         include_codes = request.GET.get('include_codes', '')
@@ -196,12 +189,11 @@ class GetApprovalTypeDict(views.APIView):
 
 
 class GetApprovalStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('approval_statuses_dict')
         if not data:
-            cache.set('approval_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            cache.set('approval_statuses_dict', [{'code': i[0], 'description': i[1]} for i in Approval.STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
             data = cache.get('approval_statuses_dict')
         return Response(data)
 
@@ -210,7 +202,6 @@ class GetCurrentSeason(views.APIView):
     """
     Return list of current seasons
     """
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         cache_title = 'current_seasons'
@@ -229,13 +220,11 @@ class GetCurrentSeason(views.APIView):
 
 
 class GetWlaAllowed(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-
-        #TODO group auth
+    
         applicant_id = request.user.id
-        if is_internal(request):
+        if is_internal(request): #TODO group auth
             applicant_system_id = request.GET.get('applicant_system_id', False)
             if applicant_system_id:
                 try:
@@ -247,63 +236,32 @@ class GetWlaAllowed(views.APIView):
         return Response({"wla_allowed": wla_allowed})
 
 
-class ApprovalPaymentFilterViewSet(generics.ListAPIView):
-    queryset = Approval.objects.none()
-    serializer_class = ApprovalPaymentSerializer
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('id',)
-
-    def get_queryset(self):
-        """
-        Return All approvals associated with user
-        """
-        user = self.request.user
-        now = datetime.now().date()
-        approval_qs =  Approval.objects.filter(
-            Q(proxy_applicant=user) | 
-            Q(current_proposal__proposal_applicant__email_user_id=user.id))
-        approval_qs =  approval_qs.exclude(current_proposal__application_type__name='E Class')
-        approval_qs =  approval_qs.exclude(expiry_date__lt=now)
-        approval_qs =  approval_qs.exclude(replaced_by__isnull=False) # get lastest licence, ignore the amended
-        return approval_qs
-
-    @list_route(methods=['GET',], detail=False)
-    def _list(self, request, *args, **kwargs):
-        data =  []
-        for approval in self.get_queryset():
-            data.append(dict(lodgement_number=approval.lodgement_number, current_proposal=approval.current_proposal_id))
-        return Response(data)
-
-
 class ApprovalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         total_count = queryset.count()
         filter_query = Q()
         # status filter
-        # filter_status = request.GET.get('filter_status')
         filter_status = request.data.get('filter_status')
         if filter_status and not filter_status.lower() == 'all':
             filter_query &= Q(status=filter_status)
+
         # mooring bay filter
-        # filter_mooring_bay_id = request.GET.get('filter_mooring_bay_id')
         filter_mooring_bay_id = request.data.get('filter_mooring_bay_id')
         if filter_mooring_bay_id and not filter_mooring_bay_id.lower() == 'all':
             filter_query &= Q(current_proposal__preferred_bay__id=filter_mooring_bay_id)
 
         # holder id filter
-        # filter_holder_id = request.GET.get('filter_holder_id')
         filter_holder_id = request.data.get('filter_holder_id')
         if filter_holder_id and not filter_holder_id.lower() == 'all':
             filter_query &= Q(current_proposal__proposal_applicant__email_user_id=filter_holder_id)
 
         # max vessel length
-        # max_vessel_length = request.GET.get('max_vessel_length')
         max_vessel_length = request.data.get('max_vessel_length')
         if max_vessel_length:
             filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
             filter_query &= Q(id__in=filtered_ids)
+
         # max vessel draft
-        # max_vessel_draft = request.GET.get('max_vessel_draft')
         max_vessel_draft = request.data.get('max_vessel_draft')
         if max_vessel_draft:
             filter_query &= Q(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
@@ -312,8 +270,8 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         aup_list = AuthorisedUserPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
         aap_list = AnnualAdmissionPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
         wla_list = WaitingListAllocation.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
+
         # Filter by approval types (wla, aap, aup, ml)
-        # filter_approval_type = request.GET.get('filter_approval_type')
         filter_approval_type = request.data.get('filter_approval_type')
         if filter_approval_type and not filter_approval_type.lower() == 'all':
             filter_approval_type_list = filter_approval_type.split(',')
@@ -321,22 +279,19 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 filter_query &= Q(id__in=wla_list)
             else:
                 filter_query &= Q(
-                        Q(annualadmissionpermit__in=aap_list) |
-                        Q(authoriseduserpermit__in=aup_list) |
-                        Q(mooringlicence__in=ml_list)
-                        )
+                    Q(annualadmissionpermit__in=aap_list) |
+                    Q(authoriseduserpermit__in=aup_list) |
+                    Q(mooringlicence__in=ml_list)
+                )
+
         # Show/Hide expired and/or surrendered
-        # show_expired_surrendered = request.GET.get('show_expired_surrendered', 'true')
         show_expired_surrendered = request.data.get('show_expired_surrendered', 'true')
         show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
-        # external_waiting_list = request.GET.get('external_waiting_list', 'false')
         external_waiting_list = request.data.get('external_waiting_list', 'false')
         external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
         if external_waiting_list and not show_expired_surrendered:
-                filter_query &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
+            filter_query &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
 
-        # approval types filter2 - Licences dash only (excludes wla)
-        # filter_approval_type2 = request.GET.get('filter_approval_type2')
         filter_approval_type2 = request.data.get('filter_approval_type2')
         if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
             if filter_approval_type2 == 'ml':
@@ -349,9 +304,6 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 filter_query &= Q(id__in=wla_list)
 
         queryset = queryset.filter(filter_query)
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -383,16 +335,16 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         except Exception as e:
             logger.error(e)
         setattr(view, '_datatables_total_count', total_count)
+        print(queryset.count())
         return queryset
 
 
-class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
+class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
+
     filter_backends = (ApprovalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     queryset = Approval.objects.none()
     serializer_class = ListApprovalSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
@@ -413,7 +365,6 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
                     Q(current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,]) & 
                     Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
                 )
-            logger.debug(f'{all.count()}')
             return all
         elif is_customer(self.request):
             qs = all.filter(
@@ -421,24 +372,22 @@ class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
             )
             return qs
         return Approval.objects.none()
-
+    
+    #POST list route for handling certain filters 
     @list_route(methods=['POST',], detail=False)
     def list2(self, request, *args, **kwargs):
-        return self.list(request, *args, **kwargs)
+        queryset = self.filter_queryset(self.get_queryset())
 
-    def list(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListApprovalSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
-class ApprovalViewSet(viewsets.ModelViewSet):
+class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Approval.objects.none()
     serializer_class = ApprovalSerializer
 
@@ -452,32 +401,13 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return queryset
         return Approval.objects.none()
 
-    def list(self, request, *args, **kwargs):
-        draw = request.GET.get('draw') if request.GET.get('draw') else None
-        start = request.GET.get('start') if request.GET.get('draw') else 1
-        length = request.GET.get('length') if request.GET.get('draw') else 'all'
-        recordFilteredCount = 0
-        rowcount = 0
-        rowcountend = 0
-        if length != 'all': 
-            rowcountend = int(start) + int(length)
-        queryset = self.get_queryset()
-        queryset = self.filter_queryset(request, queryset)
-        serializer = ListApprovalSerializer(queryset, many=True)
-        return Response(OrderedDict([
-            ('recordsTotal', 1),
-            ('recordsFiltered',1),
-            ('data',serializer.data)
-        ]),status=status.HTTP_200_OK)
-
     @list_route(methods=['GET',], detail=False)
     @basic_exception_handler
     def existing_licences(self, request, *args, **kwargs):
         existing_licences = []
 
-        #TODO group auth
         applicant_id = request.user.id
-        if is_internal(request):
+        if is_internal(request): 
             applicant_system_id = request.GET.get('applicant_system_id', False)
             if applicant_system_id:
                 try:
@@ -518,67 +448,65 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                         "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
                         })
         return Response(existing_licences)
-
-    @list_route(methods=['GET'], detail=False)
-    def holder_list(self, request, *args, **kwargs):
-
-        holder_list = self.get_queryset().values_list('current_proposal__proposal_applicant__email_user_id', flat=True)
-        distinct_holder_list = list(dict.fromkeys(holder_list))
-        system_users = SystemUser.objects.filter(ledger_id__id__in=distinct_holder_list)
-        serializer = UserSerializer(system_users, many=True)
-        return Response(serializer.data)
+    
 
     @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def get_moorings(self, request, *args, **kwargs):
         instance = self.get_object()
         moorings = []
         for moa in instance.mooringonapproval_set.filter(active='True'):
-            licence_holder_data = {}
-            if moa.mooring.mooring_licence:
-                licence_holder_data = SystemUser.objects.get(ledger_id=moa.mooring.mooring_licence.current_proposal.email_user_id)
-            user_details = get_user_name(licence_holder_data)
-            moorings.append({
-                "id": moa.id,
-                "mooring_name": moa.mooring.name,
-                "licensee": user_details["full_name"],
-                "mobile": licence_holder_data.mobile_number,
-                "email": licence_holder_data.email,
-                })
+            try:
+                licence_holder_data = SystemUser.objects.get(
+                    ledger_id=moa.mooring.mooring_licence.current_proposal.proposal_applicant.email_user_id
+                )
+                if licence_holder_data:
+                    user_details = get_user_name(licence_holder_data)
+                    moorings.append({
+                        "id": moa.id,
+                        "mooring_name": moa.mooring.name,
+                        "licensee": user_details["full_name"],
+                        "mobile": licence_holder_data.mobile_number,
+                        "email": licence_holder_data.email,
+                        })
+            except:
+                continue
         return Response(moorings)
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def swap_moorings(self, request, *args, **kwargs):
         with transaction.atomic():
-            originated_approval = self.get_object()
-            target_approval_id = request.data.get('target_approval_id')
-            target_approval = Approval.objects.get(id=target_approval_id)
-            originated_approval.child_obj.swap_moorings(request, target_approval.child_obj)
+            if is_internal(request):
+                originated_approval = self.get_object()
+                target_approval_id = request.data.get('target_approval_id')
+                target_approval = Approval.objects.get(id=target_approval_id)
+                originated_approval.child_obj.swap_moorings(request, target_approval.child_obj)
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
         # external
         approval = self.get_object()
         details = request.data['details']
-        # sticker_ids = [sticker['id'] for sticker in request.data['stickers']]
         sticker_ids = []
         for sticker in request.data['stickers']:
             if sticker['checked'] == True:
                 sticker_ids.append(sticker['id'])
 
-        # TODO: Validation
-        v_details = approval.current_proposal.latest_vessel_details
-        v_ownership = approval.current_proposal.vessel_ownership
+        if approval.current_proposal:
+            v_details = approval.current_proposal.latest_vessel_details
+            v_ownership = approval.current_proposal.vessel_ownership
+
         if v_details and not v_ownership.end_date:
             # Licence/Permit has a vessel
             sticker_action_details = []
-            stickers = Sticker.objects.filter(approval=approval, id__in=sticker_ids, status__in=(Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,))
+            stickers = Sticker.objects.filter(
+                approval=approval, id__in=sticker_ids, 
+                status__in=(Sticker.STICKER_STATUS_CURRENT, 
+                Sticker.STICKER_STATUS_AWAITING_PRINTING,)
+            )
             printed_stickers = stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
             if not printed_stickers.exists():
                 raise serializers.ValidationError("Unable to request new sticker - existing stickers must be printed first before a new sticker is requested")
@@ -621,7 +549,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def change_sticker_addresses(self, request, *args, **kwargs):
         # external
@@ -661,7 +588,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         return Response()
 
     @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def stickers(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -675,15 +601,16 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         return Response({'stickers': serializer.data})
 
     @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def approval_history(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ApprovalHistorySerializer(instance.approvalhistory_set.all(), many=True)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("User not authorised to view approval history")
 
     @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def lookup_approval(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -694,73 +621,51 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         return Response(approval_details)
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_waiting_list_offer_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        returned_data = process_generic_document(request, instance, document_type='waiting_list_offer_document')
-        if returned_data:
-            return Response(returned_data)
+        if is_internal(request):
+            instance = self.get_object()
+            returned_data = process_generic_document(request, instance, document_type='waiting_list_offer_document')
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
         else:
-            return Response()
-
-    @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
-    def process_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        action = request.POST.get('action')
-        section = request.POST.get('input_name')
-        if action == 'list' and 'input_name' in request.POST:
-            pass
-
-        elif action == 'delete' and 'document_id' in request.POST:
-            document_id = request.POST.get('document_id')
-            document = instance.qaofficer_documents.get(id=document_id)
-
-            document.visible = False
-            document.save()
-            instance.save(version_comment='Licence ({}): {}'.format(section, document.name)) # to allow revision to be added to reversion history
-
-        elif action == 'save' and 'input_name' in request.POST and 'filename' in request.POST:
-            proposal_id = request.POST.get('proposal_id')
-            filename = request.POST.get('filename')
-            _file = request.POST.get('_file')
-            if not _file:
-                _file = request.FILES.get('_file')
-
-            document = instance.qaofficer_documents.get_or_create(input_name=section, name=filename)[0]
-            path = private_storage.save('{}/proposals/{}/approvals/{}'.format(settings.MEDIA_APP_DIR, proposal_id, filename), ContentFile(_file.read()))
-
-            document._file = path
-            document.save() #TODO: make sure this works
-            instance.save(version_comment='Licence ({}): {}'.format(section, filename)) # to allow revision to be added to reversion history
-
-        return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete) for d in instance.qaofficer_documents.filter(input_name=section, visible=True) if d._file] )
+            raise serializers.ValidationError("User not authorised to process waiting list offer document")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def approval_cancellation(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ApprovalCancellationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.approval_cancellation(request, serializer.validated_data)
-        return Response()
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ApprovalCancellationSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.approval_cancellation(request, serializer.validated_data)
+            return Response()
+        else:
+            raise serializers.ValidationError("User not authorised to cancel approval")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def approval_suspension(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ApprovalSuspensionSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.approval_suspension(request,serializer.validated_data)
-        return Response()
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ApprovalSuspensionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.approval_suspension(request,serializer.validated_data)
+            return Response()
+        else:
+            raise serializers.ValidationError("User not authorised to suspend approval")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def approval_reinstate(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.reinstate_approval(request)
-        return Response()
+        if is_internal(request):
+            instance = self.get_object()
+            instance.reinstate_approval(request)
+            return Response()
+        else:
+            raise serializers.ValidationError("User not authorised to reinstate approval")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -774,45 +679,50 @@ class ApprovalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.action_logs.all()
-        serializer = ApprovalUserActionSerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = ApprovalUserActionSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = ApprovalLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = ApprovalLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['approval'] = u'{}'.format(instance.id)
-            request.data['staff'] = u'{}'.format(request.user.id)
-            request.data._mutable=mutable
-            serializer = ApprovalLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['approval'] = u'{}'.format(instance.id)
+                request.data['staff'] = u'{}'.format(request.user.id)
+                request.data._mutable=mutable
+                serializer = ApprovalLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
 
-class DcvAdmissionViewSet(viewsets.ModelViewSet):
+class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
 
@@ -822,10 +732,8 @@ class DcvAdmissionViewSet(viewsets.ModelViewSet):
             qs = DcvAdmission.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
-            #TODO applicant vs submitter?
-            queryset = DcvAdmission.objects.filter(Q(submitter=user.id))
+            queryset = DcvAdmission.objects.filter(Q(applicant=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvAdmission.objects.none()
 
     @staticmethod
@@ -1544,15 +1452,17 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
             qs = DcvVessel.objects.all().order_by('id')
             return qs
         elif is_customer(self.request):
-            #TODO applicant vs submitter
-            queryset = DcvVessel.objects.filter(Q(dcv_permits__in=DcvPermit.objects.filter(Q(submitter=user.id))))
+            queryset = DcvVessel.objects.filter(
+                Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
+                Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
+            )
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def lookup_dcv_vessel(self, request, *args, **kwargs):
+        #TODO param for filtering vessels by email (for internal users to use when submitting on applicant's behalf)
         dcv_vessel = self.get_object()
         serializer = DcvVesselSerializer(dcv_vessel)
 

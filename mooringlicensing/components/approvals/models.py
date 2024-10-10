@@ -2570,18 +2570,16 @@ class ApprovalLogEntry(CommunicationsLogEntry):
         super(ApprovalLogEntry, self).save(**kwargs)
 
 class ApprovalLogDocument(Document):
-# def update_approval_comms_log_filename(instance, filename):
-#     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
+
     @staticmethod
     def relative_path_to_file(proposal_id, filename):
         return f'proposal/{proposal_id}/approvals/communications/{filename}'
 
     def upload_to(self, filename):
-        proposal_id = self.approval.current_proposal.id
+        proposal_id = self.log_entry.approval.current_proposal.id
         return self.relative_path_to_file(proposal_id, filename)
 
     log_entry = models.ForeignKey('ApprovalLogEntry', related_name='documents', null=True, on_delete=models.CASCADE)
-    # _file = models.FileField(upload_to=update_approval_comms_log_filename, null=True, max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -2661,7 +2659,6 @@ class DcvAdmission(RevisionedMixin):
         (DCV_ADMISSION_STATUS_UNPAID, 'Unpaid'),
         (DCV_ADMISSION_STATUS_CANCELLED, 'Cancelled'),
     )
-    #TODO applicant vs submitter?
     #status
     submitter = models.IntegerField(blank=True, null=True)
     applicant = models.IntegerField(blank=True, null=True)
