@@ -737,27 +737,35 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return DcvAdmission.objects.none()
 
     @staticmethod
-    def _handle_dcv_vessel(dcv_vessel, org_id=None):
+    def _handle_dcv_vessel(user, dcv_vessel, org_id=None):
         data = dcv_vessel
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
-        try:
-            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
-        except DcvVessel.DoesNotExist:
+
+        #TODO review - what if a vessel registration is no longer under that owner or their account
+        #also - do unpaid admissions/permits count?
+        dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-        except Exception as e:
-            logger.error(e)
-            raise
+        else:
+            dcv_vessel = dcv_vessel.filter(
+                Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
+                Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
+            )
+            if not dcv_vessel.exists():
+                raise serializers.ValidationError("Vessel listed under another Owner")
+            else:
+                return dcv_vessel.first()
 
         return dcv_vessel
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
+        dcv_vessel = self._handle_dcv_vessel(request.user, request.data.get('dcv_vessel'), None)
         dcv_organisation = None
 
         if request.user.is_authenticated:
@@ -783,9 +791,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             # 2. DcvPermit doesn't exist
             if dcv_vessel.dcv_permits.count():
                 # DcvPermit exists
-                #TODO update when DCV permit applicant exist
-                # submitter = dcv_vessel.dcv_permits.first().submitter
-                pass
+                submitter = dcv_vessel.dcv_permits.first().applicant
             else:
                 # DcvPermit doesn't exist
                 email_address = request.data.get('email_address')
@@ -880,6 +886,7 @@ class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
             return qs
         return DcvAdmission.objects.none()
 
+    #TODO update to match external func but using applicant user
     @staticmethod
     def _handle_dcv_vessel(dcv_vessel, org_id=None):
         data = dcv_vessel
@@ -1037,6 +1044,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_organisation, created
 
+    #TODO update to match admission func
     @staticmethod
     def _handle_dcv_vessel(request, org_id=None):
         data = request.data
@@ -1131,6 +1139,7 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_organisation, created
 
+    #TODO update to match external admission func but using applicant user
     @staticmethod
     def _handle_dcv_vessel(request, org_id=None):
         data = request.data
