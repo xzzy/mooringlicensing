@@ -9,7 +9,10 @@ You are now notified to return authorised user sticker(s)
     {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
     {% endfor %}
 to the Rottnest Island Authority.
-Please access {{ dashboard_external_url }} if you wish to make an amendment application for an authorised user site to be endorsed by a mooring site licensee known to you.
-If you are left without any authorised user sites, and you do not hold a mooring site license in your name, click here to make an amendment application for an authorised user site to be allocated by RIA.
+A replacement sticker(s) will be posted to you in the coming days.
+A replacement sticker(s) will be posted to you in the coming days.
+If you are left without any authorised user sites, please access {{ dashboard_external_url }} to make an amendment application for either:
+	a) an authorised user site to be endorsed by another mooring site licensee known to you.
+	b) an authorised user site to be allocated by RIA (i.e. if you do not hold a mooring site licence in your name).
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}

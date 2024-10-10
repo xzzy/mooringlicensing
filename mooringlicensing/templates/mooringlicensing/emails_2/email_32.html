@@ -3,19 +3,19 @@
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Thank you for recording the date of sale for vessel {{ vessel_rego_no }}.</p>
-<p>This vessel has now been removed from your mooring site licence, and in accordance with the Rottnest Island Regulations 1988 you are hereby authorised six months from the date of sale or disoposal to nominate a new suitable vessel.</p>
+<p>This vessel has now been removed from your mooring site licence. If this was your last suitable vessel you are hereby authorised six months from the date of sale or disposal to nominate a new suitable vessel, in accordance with the Rottnest Island Regulations 1988.</p>
 {% if stickers_to_be_returned|length > 0 %}
 <p>If you have not already done so, you are required to return all associated vessel sticker(s)
     {% for sticker in stickers_to_be_returned %}
     {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
     {% endfor %}
-to the Rottnest Island Authority. Failure to return stickers to RIA upon request, or prior to the sale or disposal of your vessel, can result in the relinquishment of your mooring site licence. Once relinquished, a mooring site licence can not be re-instated.</p>
+to the Rottnest Island Authority. Failure to return stickers to RIA can result in the relinquishment of your mooring site licence. Once relinquished, a mooring site licence can not be re-instated.</p>
 {% endif %}
-<p>To remain eligible to hold your {{ approval.description }} {{ approval.lodgement_number }} you must nominate a new suitable vessel prior to {{ due_date }}. This can be done by lodging an application to amend your {{ approval.description }} {{ approval.lodgement_number }}.</p>
+<p>To maintain your mooring site licence you must nominate a new suitable vessel prior to {{ due_date }}. This can be done by lodging an application to amend your mooring site licence.</p>
 <p>The Regulations state that a suitable vessel means a vessel that:
     <ul>
     <li>has a length of at least 6.4 metres;</li>
-    <li>is a sailing vessel or has its own form of self propulsion capable of achieving a speed of 5 knots, and;</li>
+    <li>is a sailing vessel or has its own form of self-propulsion capable of achieving a speed of 5 knots, and;</li>
     <li>has adequate insurance cover.</li>
     </ul>
 </p>

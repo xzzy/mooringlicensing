@@ -83,17 +83,6 @@
                 {% endif %}
             </div>
             <div class="row">
-                <button type="submit" name="script" value="send_reminder_submission_of_mla" {% if send_accept_mooring_licence_reminder == 'true' %}style="color:green" {% endif %} title="Send Reminder Submission of MLA">Run Script 'send_reminder_submission_of_mla'</button>
-                {% if debug %}
-                <div class="debug-box">
-                    <div><span>Enter the lodgement number and click the button above</span></div>
-                    <div>
-                        Approval lodgement number to send reminder: <input type="text" name="send_reminder_submission_of_mla_lodgement_number" />
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-            <div class="row">
                 <button type="submit" name="script" value="remove_unpaid_dcv_admissions" {% if remove_unpaid_dcv_admissions == 'true' %}style="color:green" {% endif %} title="Remove Unpaid DCV Admissions">Run Script 'remove_unpaid_dcv_admissions'</button>
                 {% if debug %}
                 <div class="debug-box">

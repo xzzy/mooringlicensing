@@ -201,64 +201,11 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
             _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
 
     return msg
-from django.utils import timezone
-def send_reminder_submission_of_mla_mail(approval, days_first_reminder, days_second_reminder, days_final_reminder, total_expire_period, request=None):
-    today = timezone.localtime(timezone.now())
-    due_date = approval.issue_date + timedelta(total_expire_period)
-    days_left = (due_date.date() - today.date()).days
-
-    if days_left == days_first_reminder:
-        subject = 'First Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'     
-    elif days_left == days_second_reminder:
-        subject = 'Second Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'       
-    elif days_left == days_final_reminder:
-        subject = 'Final Reminder: Apply for Mooring Site Licence - Rottnest Island Authority'  
-    if subject:    
-        email = TemplateEmailBase(
-            subject=subject,
-            html_template='mooringlicensing/emails/send_reminder_submission_of_mla.html',
-            txt_template='mooringlicensing/emails/send_reminder_submission_of_mla.txt',
-        )
-        url = settings.SITE_URL if settings.SITE_URL else ''
-        url = url + reverse('external')
-
-        proposal = approval.current_proposal
-
-        context = {
-            'recipient': approval.applicant_obj,
-            'url': get_public_url(request),
-            'approval' : approval,
-            'number_of_days' : days_left,
-            'due_date' : due_date
-        }
-
-        sender = settings.DEFAULT_FROM_EMAIL
-        try:
-            sender_user = EmailUser.objects.get(email__icontains=sender)
-        except:
-            sender_user = None
-
-        to_address = approval.applicant_obj.email
-        all_ccs = []
-        bcc = []
-
-        msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
-        if msg:
-            _log_approval_email(msg, approval, sender=sender_user)
-            if approval.org_applicant:
-                _log_org_email(msg, approval.org_applicant, proposal.applicant_obj, sender=sender_user)
-            else:
-                _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
-
-        return msg
-    else:
-        logger.error('Reminder email number either not specified or reaches the limit for {}'.format(approval.lodgement_number))
-    
 
 def send_vessel_nomination_reminder_mail(approval, request=None):
     
     email = TemplateEmailBase(
-        subject='First and Final Reminder: Vessel Requirements for {} - Rottnest Island Authority'.format(approval.description),
+        subject='First and final reminder: Vessel requirements for {} - Rottnest Island Authority'.format(approval.description),
         html_template='mooringlicensing/emails_2/email_10.html',
         txt_template='mooringlicensing/emails_2/email_10.txt',
     )
@@ -461,7 +408,7 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     # 26
     # email to applicant upon successful payment of dcv permit application with details of issued dcv permit
     email = TemplateEmailBase(
-        subject='Dcv Permit.',
+        subject='Issued: Domestic commercial vessel permit - Rottnest Island Authority',
         html_template='mooringlicensing/emails_2/email_26.html',
         txt_template='mooringlicensing/emails_2/email_26.txt',
     )
@@ -523,17 +470,19 @@ def send_dcv_admission_mail(dcv_admission, invoice, request):
     # 27
     # email to external user upon payment of dcv admission fees
     email = TemplateEmailBase(
-        subject='DCV Admission fees',
+        subject='Payment received: Remittance of admission fees paid for commercial vessel visit - Rottnest Island Authority',
         html_template='mooringlicensing/emails_2/email_27.html',
         txt_template='mooringlicensing/emails_2/email_27.txt',
     )
     summary = dcv_admission.get_summary()
+    vessel_rego_no = dcv_admission.dcv_vessel.rego_no
 
     context = {
         'public_url': get_public_url(request),
         'dcv_admission': dcv_admission,
         'recipient': dcv_admission.submitter_obj if dcv_admission.submitter_obj else dcv_admission.dcv_organisation.name,
         'summary': summary,
+        'vessel_rego_no': vessel_rego_no,
     }
 
     attachments = []
@@ -576,7 +525,7 @@ def send_approval_cancel_email_notification(approval):
     # 28 Cancelled
     # email to licence/permit holder when licence/permit is cancelled
     email = TemplateEmailBase(
-        subject='Cancellation of your {} {}'.format(approval.description, approval.lodgement_number),
+        subject='Cancelled: {} {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number),
         # html_template='mooringlicensing/emails/approval_cancel_notification.html',
         # txt_template='mooringlicensing/emails/approval_cancel_notification.txt',
         html_template='mooringlicensing/emails_2/email_28.html',
@@ -615,7 +564,7 @@ def send_approval_suspend_email_notification(approval, request=None):
     # 29 Suspended
     # email to licence/permit holder when licence/permit is suspended
     email = TemplateEmailBase(
-        subject='Suspension of your {} {}'.format(approval.description, approval.lodgement_number),
+        subject='Suspended: {} {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number),
         # html_template='mooringlicensing/emails/approval_suspend_notification.html',
         # txt_template='mooringlicensing/emails/approval_suspend_notification.txt',
         html_template='mooringlicensing/emails_2/email_29.html',
@@ -665,13 +614,13 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
     # email to licence/permit holder when licence/permit is surrendered
     if already_surrendered:
         email = TemplateEmailBase(
-            subject='Surrendered: Rottnest Island {} {} - Effective {}'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
+            subject='Surrendered: {} {} - effective {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
             html_template='mooringlicensing/emails_2/email_30.html',
             txt_template='mooringlicensing/emails_2/email_30.txt',
         )
     else:
         email = TemplateEmailBase(
-            subject='Surrendered: Rottnest Island {} {} - Effective {}'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
+            subject='Surrendered: {} {} - effective {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number, approval.surrender_details['surrender_date']),
             html_template='mooringlicensing/emails_2/email_30_future.html',
             txt_template='mooringlicensing/emails_2/email_30_future.txt',
         )
@@ -746,7 +695,7 @@ def send_approval_reinstate_email_notification(approval, request):
     # 31 Reinstated
     # email to licence/permit holder when licence/permit is reinstated or when suspension ends
     email = TemplateEmailBase(
-        subject='Reinstated: Rottnest Island {} {}'.format(approval.description, approval.lodgement_number),
+        subject='Re-instated: {} {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number),
         # html_template='mooringlicensing/emails/approval_reinstate_notification.html',
         # txt_template='mooringlicensing/emails/approval_reinstate_notification.txt',
         html_template='mooringlicensing/emails_2/email_31.html',
@@ -794,7 +743,7 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
     due_date = sale_date + six_months
 
     email = TemplateEmailBase(
-        subject='Vessel Removed from Rottnest Island Mooring Site Licence {} - Notice to Return Sticker to RIA'.format(mooring_name),
+        subject='Notice to return vessel sticker(s) - {} removed from mooring site licence {} - Rottnest Island Authority'.format(vessel_ownership.vessel.rego_no,mooring_name),
         html_template='mooringlicensing/emails_2/email_32.html',
         txt_template='mooringlicensing/emails_2/email_32.txt',
     )
@@ -840,7 +789,7 @@ def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownersh
     due_date = sale_date + six_months
 
     email = TemplateEmailBase(
-        subject='Vessel Removed from Rottnest Island Mooring Site Licence Waiting List Allocation',
+        subject='Nomination of suitable vessel due {} - mooring site licence waiting list allocation – Rottnest Island Authority'.format(due_date),
         html_template='mooringlicensing/emails_2/email_33.html',
         txt_template='mooringlicensing/emails_2/email_33.txt',
     )
@@ -887,7 +836,7 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
     due_date = sale_date + six_months
 
     email = TemplateEmailBase(
-        subject='Vessel Removed from Rottnest Island Authorised User Permit - Notice to Return Sticker(s) to RIA',
+        subject='Notice to return vessel sticker(s) - {} removed from authorised user permit – Rottnest Island Authority'.format(vessel_ownership.vessel.rego_no),
         html_template='mooringlicensing/emails_2/email_34.html',
         txt_template='mooringlicensing/emails_2/email_34.txt',
     )
@@ -935,7 +884,7 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
     due_date = sale_date + six_months
 
     email = TemplateEmailBase(
-        subject='Vessel Removed from Rottnest Island Annual Admission Permit - Notice to Return Sticker to RIA',
+        subject='Notice to return vessel sticker(s) - {} removed from annual admission permit – Rottnest Island Authority'.format(vessel_ownership.vessel.rego_no),
         html_template='mooringlicensing/emails_2/email_35.html',
         txt_template='mooringlicensing/emails_2/email_35.txt',
     )
@@ -977,9 +926,9 @@ def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoi
     # email to licence/permit holder when sticker replacement request has been submitted (with payment)
     # approval = new_sticker.approval
     proposal = approval.current_proposal
-
+    vessel_rego = proposal.vessel_ownership.vessel.rego_no
     email = TemplateEmailBase(
-        subject='Sticker Replacement for {} - Rottnest Island Authority'.format(approval.description),
+        subject='Sticker replacement for {} - vessel {} - Rottnest Island Authority'.format(approval.description, vessel_rego),
         html_template='mooringlicensing/emails_2/email_36.html',
         txt_template='mooringlicensing/emails_2/email_36.txt',
     )
@@ -1004,7 +953,9 @@ def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoi
     context = {
         'public_url': get_public_url(request),
         'recipient': approval.applicant_obj,
+        'approval': approval,
         'old_sticker_numbers': ','.join(old_sticker_numbers),
+        'vessel_rego_no': vessel_rego,
         'dashboard_external_url': get_public_url(request),
     }
 
@@ -1031,9 +982,9 @@ def send_aup_revoked_due_to_mooring_swap_email(request, authorised_user_permit, 
     # email to authorised user when mooring site authorisation revoked due to licensee mooring swap and to return sticker
     proposal = authorised_user_permit.current_proposal
     approval = authorised_user_permit
-
+    vessel_rego = proposal.vessel_ownership.vessel.rego_no
     email = TemplateEmailBase(
-        subject='Authorised Use of {} Cancelled Due to Licensee Mooring Swap - Notice to Return Sticker(s) - Rottnest Island Authority'.format(mooring.name),
+        subject='Notice to return vessel sticker(s) - Authorised use of {} revoked due to exchange of mooring site licences - vessel {} - Rottnest Island Authority'.format(mooring.name, vessel_rego),
         html_template='mooringlicensing/emails_2/email_37.html',
         txt_template='mooringlicensing/emails_2/email_37.txt',
     )
@@ -1072,9 +1023,9 @@ def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit
     # email to authorised user when mooring site authorisation revoked due to mooring site licence relinquishment and to return sticker
     proposal = authorised_user_permit.current_proposal
     approval = authorised_user_permit
-
+    vessel_rego = proposal.vessel_ownership.vessel.rego_no
     email = TemplateEmailBase(
-        subject='Authorised Use of {} Cancelled Due to Relinquishment - Notice to Return Sticker(s) - Rottnest Island Authority'.format(mooring.name),
+        subject='Notice to return vessel sticker(s) - Authorised use of {} revoked due to relinquishment of mooring site licence – vessel {} - Rottnest Island Authority'.format(mooring.name, vessel_rego),
         html_template='mooringlicensing/emails_2/email_38.html',
         txt_template='mooringlicensing/emails_2/email_38.txt',
     )

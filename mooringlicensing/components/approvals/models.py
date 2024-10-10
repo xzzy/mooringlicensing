@@ -346,8 +346,6 @@ class Approval(RevisionedMixin):
 
     renewal_count = models.PositiveSmallIntegerField('Number of times an Approval has been renewed', default=0)
     migrated=models.BooleanField(default=False)
-    expiry_notice_sent = models.BooleanField(default=False)
-    expiry_notice_count = models.PositiveSmallIntegerField('Number of times an Expiry Notice has been sent', default=0)
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)

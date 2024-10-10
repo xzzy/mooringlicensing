@@ -2,7 +2,7 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-The offer to apply for a mooring site licence has not been accepted within the provided timeframe, and the offer has now lapsed.
+The offer to apply for a mooring site licence has not been submitted within the provided timeframe and, as per previous reminder stated, the offer has now lapsed.
 As per the Rottnest Island Regulations 1988, your name has been removed from the waiting list and the offer will be made to the next eligible waitlisted person.
 You may make a new application to be placed on a mooring site licence waiting list at any time. Your position on that waiting list will be determined by the date of your new application.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}

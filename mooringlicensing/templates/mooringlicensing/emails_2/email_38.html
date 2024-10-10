@@ -9,7 +9,13 @@
     {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
     {% endfor %}
 to the Rottnest Island Authority.</p>
-<p>Please click <a href="{{ dashboard_external_url }}">here</a> if you wish to make an amendment application for an authorised user site to be endorsed by a mooring site licensee known to you.</p>
-<p>If you are left without any authorised user sites, and you do not hold a mooring site license in your name, click here to make an amendment application for an authorised user site to be allocated by RIA.</p>
+<p>A replacement sticker(s) will be posted to you in the coming days.</p>
+<p>If you are left without any authorised user sites, click <a href="{{ dashboard_external_url }}">here</a> to make an amendment application for either:</p>
+<p>
+<ul>
+    <li>a) an authorised user site to be endorsed by another mooring site licensee known to you.</li>
+    <li>b) an authorised user site to be allocated by RIA (i.e. if you do not hold a mooring site licence in your name).</li>
+</ul>
+</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

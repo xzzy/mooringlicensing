@@ -3,10 +3,10 @@
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
 {% if decision == 'approved' %}
-<p>Your waiting list allocation application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached or click <a href="{{ proposal_url }}">here</a> to access your application.</p>
+<p>Your waiting list application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached or click <a href="{{ proposal_url }}">here</a> to access your application.</p>
 {% endif %}
 {% if decision == 'declined' %}
-<p>Your waiting list allocation application {{ approval.lodgement_number }} has been declined.</p>
+<p>Your waiting list application {{ approval.lodgement_number }} has been declined.</p>
 {% endif %}
 {% if details %}<p>Details: {{ details }}</p>{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
