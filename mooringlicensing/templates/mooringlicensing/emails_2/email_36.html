@@ -2,7 +2,7 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
-<p>Your request to replace sticker(s): {{ old_sticker_numbers }} has been received. Please find attached to this email your invoice as proof of payment.</p>
+<p>Your request to replace {{approval.description}} sticker {{ old_sticker_numbers }} for vessel {{vessel_rego_no}} has been received. Please find attached to this email your invoice as proof of payment.</p>
 <p>Your replacement sticker(s) will be posted to you in the coming days. Once received, you must ensure it is displayed on your vessel at all times whilst within the limits of the Reserve.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

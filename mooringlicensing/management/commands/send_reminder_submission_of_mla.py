@@ -7,6 +7,7 @@ from django.db.models import Q
 import logging
 
 from mooringlicensing.components.approvals.email import send_reminder_submission_of_mla_mail
+from mooringlicensing.components.proposals.email import send_invitee_reminder_email
 from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.management.commands.utils import construct_email_message
@@ -79,8 +80,10 @@ class Command(BaseCommand):
            
         for a in approvals:
             try:
-                send_reminder_submission_of_mla_mail(a, days_first_reminder, days_second_reminder, days_final_reminder, total_expire_period)
-                a.expiry_notice_count+=1
+                due_date = a.issue_date + timedelta(total_expire_period)
+                today = timezone.localtime(timezone.now())
+                days_left = (due_date.date() - today.date()).days
+                send_invitee_reminder_email(a.current_proposal, due_date, days_left)
                 a.save()
                 updates.append(a.lodgement_number)
                 logger.info('Reminder to permission holder sent for Approval {}'.format(a.lodgement_number))

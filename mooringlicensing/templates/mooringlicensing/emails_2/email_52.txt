@@ -2,7 +2,6 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-Your mooring site licence application {{ proposal.lodgement_number }} has been declined.
-{% if details %}Details: {{ details }}{% endif %}
+Your authorised user application {{ proposal.lodgement_number }} has not been endorsed by your nominated mooring site licensee. Please submit a new authorised user application.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}

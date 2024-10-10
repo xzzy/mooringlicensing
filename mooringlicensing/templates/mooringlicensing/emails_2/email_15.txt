@@ -2,11 +2,7 @@
 
 {% block content_body %}
 Dear {{ endorser.first_name }} {{ endorser.last_name}},
-{{ applicant.first_name }} {{ applicant.last_name}} has submitted an application for authorised use of your mooring site {{ mooring_name }}. Your endorsement of this application is due by {{ due_date }}.
-
-    Please access {{ endorse_url }} if you want to endorse the application.
-    Please access {{ decline_url }} if you want to decline the application.
-    Please access {{ proposal_url }} if you want to view the application details before endorsing or declining.
-
-{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+Your endorsement for authorised use of your mooring site {{ mooring_name }} by {{ applicant.first_name }} {{ applicant.last_name}} with vessel {{vessel_rego_no}} is due by {{ due_date }}
+Please click here to login and check the endorsement section on the dashboard.
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

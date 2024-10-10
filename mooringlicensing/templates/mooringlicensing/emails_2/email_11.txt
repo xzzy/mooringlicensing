@@ -1,10 +1,10 @@
-{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+{% extends 'mooringlicensing/emails/base_email-rottnest.html' %}
 
 {% block content_body %}
-{% include "mooringlicensing/emails_2/salutation.txt" %}
-You are reminded of the invitation to apply for a mooring site licence based on your current Waiting List Allocation {{ proposal.lodgement_number }}.
+{% include "mooringlicensing/emails_2/salutation.html" %}
+This is a reminder that you have not responded to our offer of a mooring site licence based on your current Waiting List Allocation {{ approval.lodgement_number }}.
 If you do not accept the offer within the timeframe provided the offer will lapse and your name will be removed from the waiting list. The mooring site licence will then be offered to the next eligible waitlisted person.
-You are required to submit your application within {{ number_of_days }} number before {{ due_date }}.
-Please access {{ proposal_external_url }} to access the application.
-{% include "mooringlicensing/emails/signature-rottnest.txt" %}
+You are required to submit your application before the due date {{ due_date }}.
+Please click <a href="{{ public_url }}">here</a> to login to your account.
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}
