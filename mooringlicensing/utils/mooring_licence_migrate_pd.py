@@ -1,8 +1,5 @@
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.contrib.gis.geos import GEOSGeometry
-from django.utils import timezone
 import datetime
 import pandas as pd
 import numpy as np
@@ -10,7 +7,7 @@ from dateutil.parser import parse
 from decimal import Decimal
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
-from mooringlicensing.components.payments_ml.models import FeeSeason
+from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCalculation, FeeItemApplicationFee, FeeItem, FeeSeason
 
 from mooringlicensing.components.users.utils import (
     create_system_user, get_or_create_system_user, 
@@ -401,7 +398,6 @@ class MooringLicenceReader():
         df_wl = df_wl[(df_wl['app_status']=='W')]
         df_wl = df_wl.sort_values(['bay_pos_no'],ascending=True).groupby('bay').head(1000)
 
-        #return df[:500]
         return df_wl
 
     def _read_dcv(self):
@@ -423,7 +419,7 @@ class MooringLicenceReader():
         df_aa.fillna('', inplace=True)
         df_aa.replace({np.nan: ''}, inplace=True)
 
-        # create dict of vessel details by rego_no --> self.vessels_dict['DO904']
+        # create dict of vessel details by rego_no
         logger.info('Creating Vessels details Dictionary ...')
         self.create_vessels_dict()
 
@@ -545,6 +541,7 @@ class MooringLicenceReader():
            mobile_number=mobile,
 
            email=user.email,
+           email_user_id=user.id,
         )
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
@@ -608,7 +605,7 @@ class MooringLicenceReader():
                 if not row.name :
                     continue
 
-                user_row = self.df_user[self.df_user['pers_no']==row.name] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.name]
                 if user_row.empty:
                     continue
 
@@ -636,6 +633,7 @@ class MooringLicenceReader():
                     dob = None
 
                 resp = get_or_create(email)       
+                
                 user_id = None             
                 if resp['status'] == 200:
                     user_id = resp['data']['emailuser_id']
@@ -682,11 +680,20 @@ class MooringLicenceReader():
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
-                user_row = row.copy()
-
+                user_row = self.df_user[self.df_user['email']==row.email]
+                if user_row.empty:
+                    user_row = row.copy()
+                else:
+                    if len(user_row)>1:
+                        # if still greater than 1, take first
+                        user_row = user_row[:1]
+                    user_row = user_row.squeeze() # convert to Pandas Series
+                    
                 email = user_row.email.lower().replace(' ','')
                 if not email:
-                    self.no_email.append(user_row.pers_no)
+                    self.no_email.append(user_row.id)
+                    self.user_errors.append(user_row.email)
+                    self.user_error_details.append(str(row.name) + " - " + user_row.email+" : Ledger Response: " + str(resp))
                     continue
 
                 first_name = user_row.first_name.lower().title().strip()
@@ -696,7 +703,8 @@ class MooringLicenceReader():
                 except:
                     dob = None
 
-                resp = get_or_create(email)     
+                resp = get_or_create(email)    
+
                 user_id = None              
                 if resp['status'] == 200:
                     user_id = resp['data']['emailuser_id']    
@@ -899,7 +907,7 @@ class MooringLicenceReader():
 
                 vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] 
                 if user_row.empty:
                     continue
 
@@ -1041,7 +1049,7 @@ class MooringLicenceReader():
                 if not row.name or len([_str for _str in ['KINGSTON REEF','NN64','PB 02','RIA'] if row.name in _str])>0:
                     continue
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] 
 
                 if user_row.empty:
                     continue
@@ -1123,7 +1131,7 @@ class MooringLicenceReader():
                 proposal=MooringLicenceApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=datetime.datetime.now().astimezone(),
+                    lodgement_date=datetime.datetime.now().astimezone(), #TODO get actual
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1156,11 +1164,13 @@ class MooringLicenceReader():
                             }],
                         "mooring_on_approval": []
                     },
-                    date_invited=None,
+                    date_invited=None, #TODO get actual?
                     dot_name=rego_no,
                 )
 
                 proposal_applicant = self.create_proposal_applicant(proposal, user, user_row)
+
+                create_application_fee(proposal)
 
                 ProposalUserAction.objects.create(
                     proposal=proposal,
@@ -1172,7 +1182,7 @@ class MooringLicenceReader():
                     status='current',
                     current_proposal=proposal,
                     issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    start_date = start_date,
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1196,17 +1206,14 @@ class MooringLicenceReader():
                     vessel_ownership=vessel_ownership,
                 )
 
-                try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+                start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 approval_history = ApprovalHistory.objects.create(
                     reason='new',
                     approval=approval,
                     vessel_ownership = vessel_ownership,
                     proposal = proposal,
-                    start_date = start_date,
+                    start_date = start_date, #TODO get actual
                 )
 
                 try:
@@ -1310,7 +1317,7 @@ class MooringLicenceReader():
                 else:
                     au_stickers.append(rego_no)
 
-                date_issued = row['date_issued'].split(' ')[0]
+                
                 try:
                     vessel = Vessel.objects.get(rego_no=rego_no)
                 except Exception as e:
@@ -1330,7 +1337,7 @@ class MooringLicenceReader():
                 proposal=AuthorisedUserApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=TODAY,
+                    lodgement_date=TODAY, #TODO get actual
                     mooring_authorisation_preference=mooring_authorisation_preference,
                     keep_existing_mooring=True,
                     bay_preferences_numbered=bay_preferences_numbered,
@@ -1371,7 +1378,7 @@ class MooringLicenceReader():
                     approved_by_endorser=True,
                 )
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no_u] 
 
                 if user_row.empty:
                     continue
@@ -1389,6 +1396,8 @@ class MooringLicenceReader():
                 
                 proposal_applicant=self.create_proposal_applicant(proposal, user, user_row)
 
+                create_application_fee(proposal)
+
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
@@ -1396,15 +1405,15 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').date()
+                    issue_date = datetime.datetime.strptime(row['date_issued'].split(' ')[0], '%d/%m/%Y')
                 except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').date()
+                    issue_date = start_date
 
                 approval = AuthorisedUserPermit.objects.create(
                     status='current',
                     current_proposal=proposal,
-                    issue_date = datetime.datetime.now(datetime.timezone.utc),
-                    start_date = start_date,
+                    issue_date = issue_date,
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1421,20 +1430,13 @@ class MooringLicenceReader():
                     what='Authorised User Permit - Migrated Application',
                 )
 
-                try:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-                except:
-                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-
-                #TODO determine why no history here?
-#                approval_history = ApprovalHistory.objects.create(
-#                    reason='new',
-#                    approval=approval,
-#                    vessel_ownership = vessel_ownership,
-#                    proposal = proposal,
-#                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                    start_date = start_date,
-#                )
+                approval_history = ApprovalHistory.objects.create(
+                    reason='new',
+                    approval=approval,
+                    vessel_ownership = vessel_ownership,
+                    proposal = proposal,
+                    start_date = start_date,
+                )
 
                 sticker = None
                 if sticker_number:
@@ -1480,6 +1482,8 @@ class MooringLicenceReader():
 
     def create_waiting_list(self):
         expiry_date = EXPIRY_DATE
+        start_date = START_DATE
+        date_applied = DATE_APPLIED
 
         errors = []
         vessel_not_found = []
@@ -1519,12 +1523,15 @@ class MooringLicenceReader():
                 else:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
-                start_date = parse(row.date_applied).replace(tzinfo=datetime.timezone.utc)
+                try:
+                    lodgement_date = datetime.datetime.strptime(row.date_applied, '%d/%m/%Y').astimezone(datetime.timezone.utc)
+                except:
+                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 proposal=WaitingListApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=start_date, #TODAY,
+                    lodgement_date=lodgement_date,
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1546,7 +1553,7 @@ class MooringLicenceReader():
                     customer_status='approved',
                 )
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]#.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]
 
                 if user_row.empty:
                     continue
@@ -1564,18 +1571,26 @@ class MooringLicenceReader():
                 
                 self.create_proposal_applicant(proposal, user, user_row)
 
+                create_application_fee(proposal)
+
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
                     what='Waiting List - Migrated Application',
                 )
 
+                try:
+                    date_allocated = datetime.datetime.strptime(row['date_allocated'], '%d/%m/%Y').astimezone(datetime.timezone.utc)
+                except Exception as e:
+                    errors.append("date_allocated substituted with general start date: " + str(e))
+                    date_allocated = start_date
+
                 approval = WaitingListAllocation.objects.create(
                     status=Approval.APPROVAL_STATUS_CURRENT,
                     internal_status=Approval.INTERNAL_STATUS_WAITING,
                     current_proposal=proposal,
-                    issue_date = start_date, #TODAY,
-                    start_date = start_date,
+                    issue_date = date_allocated,
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1593,19 +1608,13 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
-                #TODO determine why history is not include
-#                try:
-#                    start_date = parse(row.date_applied).date() if row.date_applied else datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                except:
-#                    start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-
-#                approval_history = ApprovalHistory.objects.create(
-#                    reason='new',
-#                    approval=approval,
-#                    vessel_ownership = vessel_ownership,
-#                    proposal = proposal,
-#                    start_date = start_date,
-#                )
+                approval_history = ApprovalHistory.objects.create(
+                    reason='new',
+                    approval=approval,
+                    vessel_ownership = vessel_ownership,
+                    proposal = proposal,
+                    start_date = start_date, #TODO get actual
+                )
 
             except Exception as e:
                 errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
@@ -1621,7 +1630,6 @@ class MooringLicenceReader():
     def create_dcv(self):
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED
         fee_season = FeeSeason.objects.filter(application_type__code='dcvp', name=FEE_SEASON)[0]
 
         errors = []
@@ -1658,7 +1666,7 @@ class MooringLicenceReader():
                     vessel_not_found.append(pers_no)
                     continue
 
-                user_row = self.df_user[self.df_user['pers_no']==row.pers_no] #.squeeze() # as Pandas Series
+                user_row = self.df_user[self.df_user['pers_no']==row.pers_no]
 
                 if user_row.empty:
                     continue
@@ -1687,9 +1695,10 @@ class MooringLicenceReader():
 
                     dcv_permit = DcvPermit.objects.create(
                         submitter = user.id,
-                        lodgement_datetime = datetime.datetime.now(datetime.timezone.utc),
+                        applicant = user.id,
+                        lodgement_datetime = datetime.datetime.now(datetime.timezone.utc), #TODO get actual
                         fee_season = fee_season,
-                        start_date = start_date,
+                        start_date = start_date, #TODO get actual
                         end_date = expiry_date,
                         dcv_vessel = dcv_vessel,
                         dcv_organisation =dcv_organisation,
@@ -1782,8 +1791,7 @@ class MooringLicenceReader():
         """
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED #TODO use or remove
-        fee_season = FeeSeason.objects.filter(application_type__code='aaa', name=FEE_SEASON)[0] #TODO use or remove (may be required)
+        date_applied = DATE_APPLIED
 
         errors = []
         vessel_details_not_found = []
@@ -1858,10 +1866,20 @@ class MooringLicenceReader():
 
                 total_aa_created.append(rego_no)
 
+                try:
+                    lodgement_date = datetime.datetime.strptime(date_created, '%d/%m/%Y %H:%M %p').astimezone(datetime.timezone.utc)
+                except Exception as e:
+                    errors.append("lodgement_date substituted with general start date: " + str(e))
+                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+
+                status = 'approved'
+                if not sticker_no:
+                    status = 'printing_sticker'
+
                 proposal=AnnualAdmissionApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=TODAY,
+                    lodgement_date=lodgement_date,
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1874,8 +1892,8 @@ class MooringLicenceReader():
                     percentage=vessel_ownership.percentage,
                     berth_mooring='',
                     individual_owner=True,
-                    processing_status='approved',
-                    customer_status='approved',
+                    processing_status=status,
+                    customer_status=status,
                     proposed_issuance_approval={
                         "start_date": start_date.strftime('%d/%m/%Y'),
                         "expiry_date": expiry_date.strftime('%d/%m/%Y'),
@@ -1886,6 +1904,8 @@ class MooringLicenceReader():
 
                 proposal_applicant = self.create_proposal_applicant_aa(proposal, user, row)
 
+                create_application_fee(proposal)
+
                 ua=ProposalUserAction.objects.create(
                     proposal=proposal,
                     who=user.id,
@@ -1895,8 +1915,8 @@ class MooringLicenceReader():
                 approval = AnnualAdmissionPermit.objects.create(
                     status='current',
                     current_proposal=proposal,
-                    issue_date = TODAY,
-                    start_date = start_date,
+                    issue_date = TODAY, #TODO get actual
+                    start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
                     migrated=True,
@@ -1912,20 +1932,18 @@ class MooringLicenceReader():
                 proposal.approval = approval
                 proposal.save()
 
-                #TODO check if approval history needed
-#                approval_history = ApprovalHistory.objects.create(
-#                    reason='new',
-#                    approval=approval,
-#                    vessel_ownership = vessel_ownership,
-#                    proposal = proposal,
-#                    #start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d %H:%M:%S').astimezone(datetime.timezone.utc)
-#                    start_date = start_date,
-#                )
+                approval_history = ApprovalHistory.objects.create(
+                    reason='new',
+                    approval=approval,
+                    vessel_ownership = vessel_ownership,
+                    proposal = proposal,
+                    start_date = start_date,
+                )
 
                 if sticker_no:
                     sticker = Sticker.objects.create(
                         number=sticker_no,
-                        status=Sticker.STICKER_STATUS_CURRENT, # 'current'
+                        status=Sticker.STICKER_STATUS_CURRENT,
                         approval=approval,
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
@@ -1933,6 +1951,18 @@ class MooringLicenceReader():
                         mailing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
+                        postal_address_line1=proposal_applicant.postal_line1,
+                        postal_address_locality=proposal_applicant.postal_locality,
+                        postal_address_state=proposal_applicant.postal_state,
+                        postal_address_country=proposal_applicant.postal_country,
+                        postal_address_postcode=proposal_applicant.postal_postcode,
+                    )
+                else:
+                    #create non-exported sticker record
+                    sticker = Sticker.objects.create(
+                        approval=approval,
+                        proposal_initiated=proposal,
+                        vessel_ownership=vessel_ownership,
                         postal_address_line1=proposal_applicant.postal_line1,
                         postal_address_locality=proposal_applicant.postal_locality,
                         postal_address_state=proposal_applicant.postal_state,
@@ -1950,147 +1980,6 @@ class MooringLicenceReader():
         for i in errors:
             print(i)
 
-    #TODO remove (keeping for now as a reference)
-    def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
-        from disturbance.components.approvals.models import Approval
-        #import ipdb; ipdb.set_trace()
-        try:
-            site_number = int(data.permit_number) if data.permit_number else int(data.licensed_site)
-        except Exception as e:
-            import ipdb; ipdb.set_trace()
-            print('ERROR: There is no site_number - Must provide a site number in migration spreadsheeet. {e}')
-
-        try:
-            expiry_date = data['expiry_date'] if data['expiry_date'] else datetime.date.today()
-            start_date = data['start_date'] if data['start_date'] else datetime.date.today()
-            issue_date = data['issue_date'] if data['issue_date'] else start_date
-            site_status = 'not_to_be_reissued' if data['status'].lower().strip() == 'not to be reissued' else data['status'].lower().strip()
-
-        except Exception as e:
-            import ipdb; ipdb.set_trace()
-            print(e)
-
-        try:
-
-            #import ipdb; ipdb.set_trace()
-            if applicant:
-                proposal, p_created = Proposal.objects.get_or_create(
-                                application_type=self.application_type,
-                                activity='Apiary',
-                                submitter=submitter,
-                                applicant=applicant,
-                                schema=self.proposal_type.schema,
-                            )
-                approval, approval_created = Approval.objects.update_or_create(
-                                applicant=applicant,
-                                status=Approval.STATUS_CURRENT,
-                                apiary_approval=True,
-                                defaults = {
-                                    'issue_date':issue_date,
-                                    'expiry_date':expiry_date,
-                                    'start_date':start_date,
-                                    #'submitter':submitter,
-                                    'current_proposal':proposal,
-                                    }
-                            )
-            else:
-                import ipdb; ipdb.set_trace()
-
-            #if 'PM' not in proposal.lodgement_number:
-            #    proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
-            proposal.approval= approval
-            proposal.processing_status='approved'
-            proposal.customer_status='approved'
-            proposal.migrated=True
-            proposal.proposed_issuance_approval = {
-                    'start_date': start_date.strftime('%d-%m-%Y'),
-                    'expiry_date': expiry_date.strftime('%d-%m-%Y'),
-                    'details': 'Migrated',
-                    'cc_email': 'Migrated',
-            }
-
-            approval.migrated=True
-
-            # create invoice for payment of zero dollars
-#            order = create_invoice(proposal)
-#            invoice = Invoice.objects.get(order_number=order.number) 
-#            proposal.fee_invoice_references = [invoice.reference]
-            proposal.fee_invoice_references = [10000001]
-
-            proposal.save()
-            approval.save()
-
-            # create apiary sites and intermediate table entries
-            #geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            #import ipdb; ipdb.set_trace()
-            apiary_site = ApiarySite.objects.create(
-                    id=site_number,
-                    is_vacant=True if site_status=='vacant' else False
-                    )
-            site_category = get_category(geometry)
-            intermediary_approval_site = ApiarySiteOnApproval.objects.create(
-                                            #id=site_number,
-                                            apiary_site=apiary_site,
-                                            approval=approval,
-                                            wkb_geometry=geometry,
-                                            site_category = site_category,
-                                            licensed_site=True if data['licensed_site'] else False,
-                                            batch_no=data['batch_no'],
-                                            approval_cpc_date=data['approval_cpc_date'] if data.approval_cpc_date else None,
-                                            approval_minister_date=data['approval_minister_date'] if data.approval_minister_date else None,
-                                            map_ref=data['map_ref'],
-                                            forest_block=data['forest_block'],
-                                            cog=data['cog'],
-                                            roadtrack=data['roadtrack'],
-                                            zone=data['zone'],
-                                            catchment=data['catchment'],
-                                            #dra_permit=data['dra_permit'],
-                                            site_status=site_status,
-                                            )
-            #import ipdb; ipdb.set_trace()
-            pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
-
-            intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
-                                            #id=site_number,
-                                            apiary_site=apiary_site,
-                                            #approval=approval,
-                                            proposal_apiary=pa,
-                                            wkb_geometry_draft=geometry,
-                                            site_category_draft = site_category,
-                                            wkb_geometry_processed=geometry,
-                                            site_category_processed = site_category,
-                                            licensed_site=True if data['licensed_site'] else False,
-                                            batch_no=data['batch_no'],
-                                            #approval_cpc_date=data['approval_cpc_date'],
-                                            #approval_minister_date=data['approval_minister_date'],
-                                            approval_cpc_date=data['approval_cpc_date'] if data.approval_cpc_date else None,
-                                            approval_minister_date=data['approval_minister_date'] if data.approval_minister_date else None,
-                                            map_ref=data['map_ref'],
-                                            forest_block=data['forest_block'],
-                                            cog=data['cog'],
-                                            roadtrack=data['roadtrack'],
-                                            zone=data['zone'],
-                                            catchment=data['catchment'],
-                                            site_status=site_status,
-                                            #dra_permit=data['dra_permit'],
-                                            )
-            #import ipdb; ipdb.set_trace()
-
-            apiary_site.latest_approval_link=intermediary_approval_site
-            apiary_site.latest_proposal_link=intermediary_proposal_site
-            if site_status == 'vacant':
-                apiary_site.approval_link_for_vacant=intermediary_approval_site
-                apiary_site.proposal_link_for_vacant=intermediary_proposal_site
-            apiary_site.save()
-
-
-        except Exception as e:
-            logger.error('{}'.format(e))
-            import ipdb; ipdb.set_trace()
-            return None
-
-        return approval
 
     def create_licence_pdfs(self):
         self.create_pdf_ml()
@@ -2146,35 +2035,62 @@ class MooringLicenceReader():
                     a.generate_dcv_permit_doc()
                 elif not hasattr(a, 'licence_document') or a.licence_document is None: 
                     a.generate_doc()
+                    #retroactively update history (update last history record of approval)
+                    history = a.approvalhistory_set.last()
+                    history.approval_letter = a.licence_document
+                    history.save()
                 print(f'{idx}, Created PDF for {permit_name}: {a}')
             except Exception as e:
                 logger.error(e)
 
-#TODO fix or replace - call from run_migration?
-def create_invoice(proposal, payment_method='other'):
-        """
-        This will create and invoice and order from a basket bypassing the session
-        and payment bpoint code constraints.
-        """
-        #TODO replace
-        from ledger.checkout.utils import createCustomBasket
-        from ledger.payments.invoice.utils import CreateInvoiceBasket
-        from ledger.accounts.models import EmailUser
 
-        now = timezone.now().date()
-        line_items = [
-            {'ledger_description': 'Migration Licence Charge Waiver - {} - {}'.format(now, proposal.lodgement_number),
-             'oracle_code': 'N/A', #proposal.application_type.oracle_code_application,
-             'price_incl_tax':  Decimal(0.0),
-             'price_excl_tax':  Decimal(0.0),
-             'quantity': 1,
-            }
-        ]
+def create_application_fee(proposal):
 
-        user = EmailUser.objects.get(email__icontains='das@dbca.wa.gov.au')
-        invoice_text = 'Migrated Permit/Licence Invoice'
+    application_fee = ApplicationFee.objects.create(proposal=proposal, created_by=255, payment_type=ApplicationFee.PAYMENT_TYPE_TEMPORARY)
+    lines, db_processes_after_success = proposal.create_fee_lines()
+    new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
-        basket  = createCustomBasket(line_items, user, settings.PAYMENT_SYSTEM_ID)
-        order = CreateInvoiceBasket(payment_method=payment_method, system=settings.PAYMENT_SYSTEM_PREFIX).create_invoice_and_order(basket, 0, None, None, user=user, invoice_text=invoice_text)
+    db_operations = new_fee_calculation.data
 
-        return order
+    if 'for_existing_invoice' in db_operations and db_operations['for_existing_invoice']:
+        # For existing invoices, fee_item_application_fee.amount_paid should be updated, once paid
+        for idx in db_operations['fee_item_application_fee_ids']:
+            fee_item_application_fee = FeeItemApplicationFee.objects.get(id=int(idx))
+            fee_item_application_fee.amount_paid = fee_item_application_fee.amount_to_be_paid
+            fee_item_application_fee.save()
+    else:
+
+        if 'fee_item_id' in db_operations:
+            fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
+            if fee_items:
+                amount_paid = None
+                amount_to_be_paid = None
+                if 'fee_amount_adjusted' in db_operations:
+                    fee_amount_adjusted = db_operations['fee_amount_adjusted']
+                    amount_to_be_paid = Decimal(fee_amount_adjusted)
+                    amount_paid = amount_to_be_paid
+                    fee_item = fee_items.first()
+                fee_item_application_fee = FeeItemApplicationFee.objects.create(
+                    fee_item=fee_item,
+                    application_fee=application_fee,
+                    vessel_details=proposal.vessel_details,
+                    amount_to_be_paid=amount_to_be_paid,
+                    amount_paid=amount_paid,
+                )
+                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] created.')
+        if isinstance(db_operations, list):
+            for item in db_operations:
+                fee_item = FeeItem.objects.get(id=item['fee_item_id'])
+                fee_amount_adjusted = item['fee_amount_adjusted']
+                amount_to_be_paid = Decimal(fee_amount_adjusted)
+                amount_paid = amount_to_be_paid
+                vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
+                vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
+                fee_item_application_fee = FeeItemApplicationFee.objects.create(
+                    fee_item=fee_item,
+                    application_fee=application_fee,
+                    vessel_details=vessel_details,
+                    amount_to_be_paid=amount_to_be_paid,
+                    amount_paid=amount_paid,
+                )
+                logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')

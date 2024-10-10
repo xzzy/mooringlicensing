@@ -649,14 +649,14 @@ export default {
         },
         detailsText: function () {
             let details = 'Proposed details';
-            if (this.proposal && ['wla', 'aaa'].includes(this.proposal.application_type_code) || this.proposal.processing_status === "With Approver") {
+            if (this.proposal && ['wla', 'aaa'].includes(this.proposal.application_type_code) || this.proposal.processing_status === "With Assessor") {
                 details = 'Details';
             }
             return details
         },
         ccText: function () {
             let details = 'Proposed CC Email';
-            if (this.proposal && ['wla', 'aaa'].includes(this.proposal.application_type_code) || this.proposal.processing_status === "With Approver") {
+            if (this.proposal && ['wla', 'aaa'].includes(this.proposal.application_type_code) || this.proposal.processing_status === "With Assessor") {
                 details = 'CC Email';
             }
             return details

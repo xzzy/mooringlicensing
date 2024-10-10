@@ -5,7 +5,7 @@ from django.db import migrations, models
 import django.db.models.deletion
 import mooringlicensing.components.approvals.models
 import mooringlicensing.components.compliances.models
-import mooringlicensing.components.organisations.models
+#import mooringlicensing.components.organisations.models
 import mooringlicensing.components.proposals.models
 import mooringlicensing.components.users.models
 
@@ -107,21 +107,21 @@ class Migration(migrations.Migration):
             name='_file',
             field=models.FileField(max_length=512, null=True, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.proposals.models.MooringReportDocument.upload_to),
         ),
-        migrations.AlterField(
-            model_name='organisationlogdocument',
-            name='_file',
-            field=models.FileField(max_length=512, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.organisations.models.update_organisation_comms_log_filename),
-        ),
+        #migrations.AlterField(
+        #    model_name='organisationlogdocument',
+        #    name='_file',
+        #    field=models.FileField(max_length=512, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.organisations.models.update_organisation_comms_log_filename),
+        #),
         migrations.AlterField(
             model_name='organisationrequest',
             name='identification',
             field=models.FileField(blank=True, max_length=512, null=True, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to='organisation/requests/%Y/%m/%d'),
         ),
-        migrations.AlterField(
-            model_name='organisationrequestlogdocument',
-            name='_file',
-            field=models.FileField(max_length=512, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.organisations.models.update_organisation_request_comms_log_filename),
-        ),
+        #migrations.AlterField(
+        #    model_name='organisationrequestlogdocument',
+        #    name='_file',
+        #    field=models.FileField(max_length=512, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.organisations.models.update_organisation_request_comms_log_filename),
+        #),
         migrations.AlterField(
             model_name='proofofidentitydocument',
             name='_file',

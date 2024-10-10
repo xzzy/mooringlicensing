@@ -68,7 +68,6 @@ from mooringlicensing.components.approvals.serializers import (
 )
 from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.users.serializers import UserSerializer
-from mooringlicensing.components.organisations.models import Organisation, OrganisationContact
 from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, LOV_CACHE_TIMEOUT
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
@@ -249,8 +248,6 @@ class GetWlaAllowed(views.APIView):
 
 
 class ApprovalPaymentFilterViewSet(generics.ListAPIView):
-    """ https://cop-internal.dbca.wa.gov.au/api/filtered_organisations?search=Org1
-    """
     queryset = Approval.objects.none()
     serializer_class = ApprovalPaymentSerializer
     filter_backends = (filters.SearchFilter,)
@@ -258,17 +255,12 @@ class ApprovalPaymentFilterViewSet(generics.ListAPIView):
 
     def get_queryset(self):
         """
-        Return All approvals associated with user (proxy_applicant and org_applicant)
+        Return All approvals associated with user
         """
         user = self.request.user
-
-        # get all orgs associated with user
-        user_org_ids = OrganisationContact.objects.filter(email=user.email).values_list('organisation_id', flat=True)
-
         now = datetime.now().date()
         approval_qs =  Approval.objects.filter(
             Q(proxy_applicant=user) | 
-            Q(org_applicant_id__in=user_org_ids) | 
             Q(current_proposal__proposal_applicant__email_user_id=user.id))
         approval_qs =  approval_qs.exclude(current_proposal__application_type__name='E Class')
         approval_qs =  approval_qs.exclude(expiry_date__lt=now)
@@ -394,17 +386,9 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ApprovalRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(ApprovalRenderer, self).render(data, accepted_media_type, renderer_context)
-
-
 class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ApprovalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ApprovalRenderer,)
     queryset = Approval.objects.none()
     serializer_class = ListApprovalSerializer
     search_fields = ['lodgement_number', ]
@@ -462,9 +446,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Approval.objects.all()
         elif is_customer(self.request):
-            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
             queryset =  Approval.objects.filter(
-                Q(org_applicant__in=user_orgs) | 
                 Q(current_proposal__proposal_applicant__email_user_id=self.request.user.id)
                 )
             return queryset
@@ -1498,33 +1480,6 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
         elif search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_EXPIRED:
             status = DcvPermit.DCV_PERMIT_STATUS_EXPIRED
         
-        # common_search_criteria = (
-        #     Q(lodgement_number__icontains=search_text) |
-        #     Q(dcv_organisation__name__icontains=search_text) |
-        #     Q(dcv_permit_fees__invoice_reference__icontains=search_text) |
-        #     Q(fee_season__name__icontains=search_text) |
-        #     Q(stickers__number__icontains=search_text)
-        # )
-        # # search_text
-        # if search_text:
-        #     if status == DcvPermit.DCV_PERMIT_STATUS_CURRENT:
-        #         queryset = queryset.filter(
-        #             (Q(start_date__lte=target_date) & Q(end_date__gte=target_date)) |
-        #             common_search_criteria
-        #         )
-        #     elif status == DcvPermit.DCV_PERMIT_STATUS_EXPIRED:
-        #         queryset = queryset.filter(
-        #             ~Q(Q(start_date__lte=target_date) & Q(end_date__gte=target_date)) |
-        #             common_search_criteria
-        #         )
-        #     else:
-        #         queryset = queryset.filter(
-        #             common_search_criteria
-        #         )
-
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -1917,9 +1872,7 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
             qs = WaitingListAllocation.objects.all()
             return qs
         elif is_customer(self.request):
-            user_orgs = Organisation.objects.filter(delegates__contains=[self.request.user.id])
-            queryset =  WaitingListAllocation.objects.filter(Q(org_applicant__in=user_orgs) | 
-                Q(current_proposal__proposal_applicant__email_user_id=self.request.user.id))
+            queryset =  WaitingListAllocation.objects.filter(Q(current_proposal__proposal_applicant__email_user_id=self.request.user.id))
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListAllocation.objects.none()

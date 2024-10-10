@@ -43,7 +43,6 @@ from django.urls import reverse
 from ledger_api_client.ledger_models import EmailUserRO
 from ledger_api_client.ledger_models import Invoice
 from mooringlicensing import exceptions, settings
-from mooringlicensing.components.organisations.models import Organisation
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     GlobalSettings,
@@ -233,7 +232,6 @@ class ProposalSignedLicenceAgreementDocument(models.Model):
         app_label = 'mooringlicensing'
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
-    APPLICANT_TYPE_ORGANISATION = 'ORG'
     APPLICANT_TYPE_PROXY = 'PRX'
     APPLICANT_TYPE_SUBMITTER = 'SUB'
 
@@ -321,12 +319,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
                                        default=CUSTOMER_STATUS_CHOICES[0][0])
-    org_applicant = models.ForeignKey(
-        Organisation,
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name='org_applications') # not currently used in ML
+
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     lodgement_date = models.DateTimeField(blank=True, null=True)
@@ -1015,9 +1008,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant(self):
-        if self.org_applicant:
-            return self.org_applicant.organisation.name
-        elif self.proxy_applicant:
+        if self.proxy_applicant:
             applicant = retrieve_system_user(self.proxy_applicant)
             if applicant:
                 return "{} {}".format(
@@ -1034,9 +1025,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def applicant_email(self):
 
-        if self.org_applicant and hasattr(self.org_applicant.organisation, 'email') and self.org_applicant.organisation.email:
-            return self.org_applicant.organisation.email
-        elif self.proxy_applicant:
+        if self.proxy_applicant:
             applicant = retrieve_email_userro(self.proxy_applicant)
             return applicant.email
         elif self.proposal_applicant:
@@ -1045,9 +1034,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_id(self):
-        if self.org_applicant:
-            return self.org_applicant.id
-        elif self.proxy_applicant:
+        if self.proxy_applicant:
             return self.proxy_applicant.id
         elif self.proposal_applicant:
             return self.proposal_applicant.email_user_id
@@ -1055,18 +1042,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_type(self):
-        if self.org_applicant:
-            return self.APPLICANT_TYPE_ORGANISATION
-        elif self.proxy_applicant:
+        if self.proxy_applicant:
             return self.APPLICANT_TYPE_PROXY
         else:
             return self.APPLICANT_TYPE_SUBMITTER
 
     @property
     def applicant_field(self):
-        if self.org_applicant:
-            return 'org_applicant'
-        elif self.proxy_applicant:
+        if self.proxy_applicant:
             return 'proxy_applicant'
         else:
             return 'submitter'
@@ -1291,7 +1274,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
-                        # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
                         # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                 else:
@@ -1300,7 +1282,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
-                        # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
                         # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
             except:
@@ -1327,7 +1308,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     comment = 'Approval Level Document Deleted: {}'.format(request.data['approval_level_document_name'])
                 self.save(version_comment=comment) # to allow revision to be added to reversion history
                 self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
-                # Create a log entry for the organisation
                 applicant_field=getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
                 return self
@@ -1345,7 +1325,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
-                        # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
                         # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                 else:
@@ -1354,7 +1333,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
-                        # Create a log entry for the organisation
                         applicant_field=getattr(self, self.applicant_field)
                         # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
             except:
@@ -1490,7 +1468,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.move_to_status(request, Proposal.PROCESSING_STATUS_WITH_APPROVER, approver_comment)
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.lodgement_number), request)
-                # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
@@ -1528,7 +1505,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
-                # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
@@ -1557,7 +1533,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
-                # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
             except:
@@ -1576,7 +1551,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
-                # Log entry for organisation
                 applicant_field=getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
             except:
@@ -1679,7 +1653,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.lodgement_number), request)
-                # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
 
@@ -1706,7 +1679,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     expiry_date = datetime.datetime.strptime(details.get('due_date'), '%d/%m/%Y').date(),
                     start_date = datetime.datetime.strptime(details.get('start_date'), '%d/%m/%Y').date(),
                     submitter = self.submitter,
-                    org_applicant = self.org_applicant,
                     proxy_applicant = self.proxy_applicant,
                     lodgement_number = lodgement_number
                 )
@@ -1810,7 +1782,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #approval_compliances.delete()
                 self.generate_compliances(approval, request)
 
-                # Log entry for organisation
                 applicant_field = getattr(self, self.applicant_field)
                 # Log proposal action
                 if details:
@@ -2243,10 +2214,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 # Create a log entry for the proposal
                 self.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
-
-                # Create a log entry for the organisation
-                # applicant_field=getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_AMEND_PROPOSAL.format(self.id),request)
 
                 #Log entry for approval
                 from mooringlicensing.components.approvals.models import ApprovalUserAction
@@ -2766,7 +2733,7 @@ class WaitingListApplication(Proposal):
     code = 'wla'
     prefix = 'WL'
 
-    new_application_text = "I want to be included on the waiting list for a mooring site licence"
+    new_application_text = "I want to apply for a position on the waiting list for a mooring site licence"
 
     apply_page_visibility = True
     description = 'Waiting List Application'
@@ -5461,7 +5428,6 @@ class AmendmentRequest(ProposalRequest):
                         logger.info(f'Status: [{Proposal.PROCESSING_STATUS_DRAFT}] has been set to the proposal: [{proposal}]')
                     # Create a log entry for the proposal
                     proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
-                    # Create a log entry for the organisation
                     applicant_field = getattr(proposal, proposal.applicant_field)
                     # applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 

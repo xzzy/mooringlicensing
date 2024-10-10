@@ -1,3 +1,5 @@
+#TODO: determine if this script is required or not - fix/remove as needed
+
 from mooringlicensing.components.proposals.models import (
     Proposal,
     Vessel,
@@ -10,8 +12,6 @@ from mooringlicensing.components.proposals.models import (
     MooringBay,
 )
 from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence, VesselOwnershipOnApproval
-from mooringlicensing.components.organisations.models import Organisation
-# from ledger.accounts.models import Organisation as ledger_org
 
 import sys
 import csv
@@ -71,30 +71,6 @@ PROPOSAL_FIELDS = [
     #'uuid',
 ]
 
-ORGANISATION_FIELDS = [
-    #'org_applicant__'
-    'org_applicant__organisation__id',
-    #'org_applicant__name',
-    'org_applicant__organisation__abn',
-    'org_applicant__organisation__identification',
-    'org_applicant__organisation__email',
-    'org_applicant__organisation__trading_name',
-]
-
-ORGANISATION_POSTAL_ADDRESS_FIELDS = [
-#   #'org_applicant__postal_address__'
-#   #'org_applicant__billing_address__'
-    'org_applicant__organisation__postal_address__id',
-    'org_applicant__organisation__postal_address__line1',
-    'org_applicant__organisation__postal_address__line2',
-    'org_applicant__organisation__postal_address__line3',
-    'org_applicant__organisation__postal_address__locality',
-    'org_applicant__organisation__postal_address__state',
-    'org_applicant__organisation__postal_address__country',
-    'org_applicant__organisation__postal_address__postcode',
-    #'org_applicant__postal_address__search_text',
-]
-
 SUBMITTER_FIELDS = [
 #   #'submitter__'
     'submitter__id',
@@ -138,7 +114,6 @@ APPROVAL_FIELDS = [
     'approval__wla_queue_date',
     'approval__migrated',
     'approval__submitter__email',
-    'approval__org_applicant__organisation__name',
 
 #    'approval__proxy_applicant__',
 #    'replaced_by',
@@ -231,8 +206,6 @@ def write_csv3():
 
     """
     fields = PROPOSAL_FIELDS
-    fields += ORGANISATION_FIELDS
-    fields += ORGANISATION_POSTAL_ADDRESS_FIELDS
     fields += SUBMITTER_POSTAL_ADDRESS_FIELDS
     fields += SUBMITTER_RESIDENTIAL_ADDRESS_FIELDS
     fields += APPROVAL_FIELDS
@@ -311,12 +284,6 @@ def get_fields(model):
         else:
             print(f'\'{field.name}\',')
 
-#    fk_fields = get_fields(ledger_org)
-#    for field in fk_fields:
-#        print(f'org_applicant__{field}')
-
-
-
     for field in fk:
         print(field)
 
@@ -324,21 +291,7 @@ def get_fields(model):
 def write_csv2():
     fields = PROPOSAL_FIELDS
     mla_qs = MooringLicenceApplication.objects.filter()[:1]
-#    for mla in mla_qs:
-#        if mla.org_applicant:
-#            fields += ORGANISATION_FIELDS
-#            if mla.org_applicant and mla.org_applicant.organisation.postal_address:
-#                fields += ORGANISATION_POSTAL_ADDRESS_FIELDS
-#        if mla.submitter:
-#            fields += SUBMITTER_FIELDS
-#            if mla.submitter and mla.submitter.postal_address:
-#                fields += SUBMITTER_POSTAL_ADDRESS_FIELDS
-#            if mla.submitter and mla.submitter.residential_address:
-#                fields += SUBMITTER_RESIDENTIAL_ADDRESS_FIELDS
 
-
-    fields += ORGANISATION_FIELDS
-    fields += ORGANISATION_POSTAL_ADDRESS_FIELDS
     fields += SUBMITTER_POSTAL_ADDRESS_FIELDS
     fields += SUBMITTER_RESIDENTIAL_ADDRESS_FIELDS
     mla = MooringLicenceApplication.objects.filter()[:1].values_list(*fields)

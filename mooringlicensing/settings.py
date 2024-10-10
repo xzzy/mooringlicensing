@@ -20,6 +20,9 @@ DISABLE_EMAIL = env('DISABLE_EMAIL', False)
 SHOW_TESTS_URL = env('SHOW_TESTS_URL', False)
 SHOW_DEBUG_TOOLBAR = env('SHOW_DEBUG_TOOLBAR', False)
 
+#Settings for rounding application fee items
+ROUND_FEE_ITEMS = env('ROUND_FEE_ITEMS', False)
+
 if SHOW_DEBUG_TOOLBAR:
 
     def show_toolbar(request):
@@ -51,7 +54,6 @@ INSTALLED_APPS += [
     'mooringlicensing',
     'mooringlicensing.components.main',
     'mooringlicensing.components.emails',
-    'mooringlicensing.components.organisations',
     'mooringlicensing.components.users',
     'mooringlicensing.components.proposals',
     'mooringlicensing.components.approvals',

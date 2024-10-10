@@ -195,10 +195,13 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    let migrated = '';
+                    if (full.migrated)
+                        migrated = ' (Migrated)';
                     if (full.approval){
-                        return '<a href="/internal/approval/' + full.approval.id + '" target="_blank">' + full.approval.lodgement_number + '</a>'
+                        return '<a href="/internal/approval/' + full.approval.id + '" target="_blank">' + full.approval.lodgement_number + migrated + '</a>'
                     } else if (full.dcv_permit) {
-                        return '<span class="dcv_permit_lodgement_number">' + full.dcv_permit.lodgement_number + '</span>'
+                        return '<span class="dcv_permit_lodgement_number">' + full.dcv_permit.lodgement_number + migrated + '</span>'
                     } else {
                         return ''
                     }

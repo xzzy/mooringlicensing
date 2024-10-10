@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.core.files.base import ContentFile
 
-from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email, _log_org_email
+from mooringlicensing.components.approvals.email import log_mla_created_proposal_email, _log_approval_email
 from mooringlicensing.components.compliances.email import _log_compliance_email
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from datetime import datetime
@@ -36,10 +36,7 @@ def log_proposal_email(msg, proposal, sender, attachments=[]):
         sender_user = None
 
     _log_proposal_email(msg, proposal, sender=sender_user, attachments=attachments)
-    if proposal.org_applicant:
-        _log_org_email(msg, proposal.org_applicant, proposal.applicant_obj, sender=sender_user)
-    else:
-        _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender_user, attachments=attachments)
+    _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender_user, attachments=attachments)
 
 
 def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, filename=None, attachments=[]):
@@ -90,53 +87,6 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
         path_to_file = '{}/proposals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, proposal.id, attachment[0])
         path = private_storage.save(path_to_file, ContentFile(attachment[1]))
         email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
-
-    return email_entry
-
-
-def _log_org_email(email_message, organisation, customer ,sender=None):
-    from mooringlicensing.components.organisations.models import OrganisationLogEntry
-    if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
-        text = email_message.body
-        subject = email_message.subject
-        fromm = smart_str(sender) if sender else smart_str(email_message.from_email)
-        # the to email is normally a list
-        if isinstance(email_message.to, list):
-            to = ','.join(email_message.to)
-        else:
-            to = smart_str(email_message.to)
-        # we log the cc and bcc in the same cc field of the log entry as a ',' comma separated string
-        all_ccs = []
-        if email_message.cc:
-            all_ccs += list(email_message.cc)
-        if email_message.bcc:
-            all_ccs += list(email_message.bcc)
-        all_ccs = ','.join(all_ccs)
-
-    else:
-        text = smart_str(email_message)
-        subject = ''
-        to = customer
-        fromm = smart_str(sender) if sender else SYSTEM_NAME
-        all_ccs = ''
-
-    customer = customer
-
-    staff = sender
-
-    kwargs = {
-        'subject': subject,
-        'text': text,
-        'organisation': organisation,
-        'customer': customer,
-        'staff': staff,
-        'to': to,
-        'fromm': fromm,
-        'cc': all_ccs
-    }
-
-    email_entry = OrganisationLogEntry.objects.create(**kwargs)
 
     return email_entry
 
@@ -258,20 +208,12 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 
     to = proposal.applicant_obj.email
     all_ccs = []
-    if proposal.org_applicant and proposal.org_applicant.email:
-        cc_list = proposal.org_applicant.email
-        if cc_list:
-            all_ccs = [cc_list]
-
     msg = email.send(to, cc=all_ccs, context=context)
     if msg:
         sender = get_user_as_email_user(msg.from_email)
 
         _log_proposal_email(msg, proposal, sender=sender)
-        if proposal.org_applicant:
-            _log_org_email(msg, proposal.org_applicant, proposal.applicant_obj, sender=sender)
-        else:
-            _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender)
+        _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender)
 
 
 def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
@@ -359,10 +301,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     if msg:
         sender = get_user_as_email_user(msg.from_email)
         _log_proposal_email(msg, proposal, sender=sender)
-        if proposal.org_applicant:
-            _log_org_email(msg, proposal.org_applicant, proposal.applicant_obj, sender=sender)
-        else:
-            _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender)
+        _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender)
 
     return msg
 
@@ -393,10 +332,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
     if msg:
         sender = get_user_as_email_user(msg.from_email)
         _log_compliance_email(msg, compliance, sender=sender)
-        if compliance.proposal.org_applicant:
-            _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
-        else:
-            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.applicant_obj, compliance.submitter, sender=sender)
     return msg
 
 
@@ -426,10 +362,7 @@ def send_comliance_overdue_notification(request, approval, compliance,):
     if msg:
         sender = get_user_as_email_user(msg.from_email)
         _log_compliance_email(msg, compliance, sender=sender)
-        if compliance.proposal.org_applicant:
-            _log_org_email(msg, compliance.proposal.org_applicant, compliance.submitter, sender=sender)
-        else:
-            _log_user_email(msg, compliance.proposal.applicant_obj, compliance.submitter, sender=sender)
+        _log_user_email(msg, compliance.proposal.applicant_obj, compliance.submitter, sender=sender)
     return msg
 
 # 10
@@ -671,10 +604,7 @@ def send_approval_renewal_email_notification(approval):
         from mooringlicensing.components.approvals.models import Approval
         if isinstance(approval, Approval):
             _log_approval_email(msg, approval, sender=sender_user)
-            if approval.org_applicant:
-                _log_org_email(msg, approval.org_applicant, proposal.applicant_obj, sender=sender_user)
-            else:
-                _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user, attachments=attachments)
+            _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user, attachments=attachments)
         else:
             # TODO: log for DcvPermit???
             pass
@@ -1469,10 +1399,7 @@ def send_other_documents_submitted_notification_email(request, proposal):
     if msg:
         sender = get_user_as_email_user(msg.from_email)
         log_proposal_email(msg, proposal, sender, attachments=attachments)
-        if proposal.org_applicant:
-            _log_org_email(msg, proposal.org_applicant, proposal.applicant_obj, sender=sender)
-        else:
-            _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender, attachments=attachments)
+        _log_user_email(msg, proposal.applicant_obj, proposal.applicant_obj, sender=sender, attachments=attachments)
 
     return msg
 

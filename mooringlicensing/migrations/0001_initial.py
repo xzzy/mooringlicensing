@@ -10,7 +10,6 @@ import django.db.models.deletion
 import django.utils.timezone
 import mooringlicensing.components.approvals.models
 import mooringlicensing.components.compliances.models
-import mooringlicensing.components.organisations.models
 import mooringlicensing.components.proposals.models
 import smart_selects.db_fields
 import uuid
@@ -1596,7 +1595,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, max_length=255, verbose_name='name')),
                 ('description', models.TextField(blank=True, verbose_name='description')),
                 ('uploaded_date', models.DateTimeField(auto_now_add=True)),
-                ('_file', models.FileField(max_length=512, upload_to=mooringlicensing.components.organisations.models.update_organisation_request_comms_log_filename)),
+        #        ('_file', models.FileField(max_length=512, upload_to=mooringlicensing.components.organisations.models.update_organisation_request_comms_log_filename)),
                 ('log_entry', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='mooringlicensing.organisationrequestlogentry')),
             ],
         ),
@@ -1615,7 +1614,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, max_length=255, verbose_name='name')),
                 ('description', models.TextField(blank=True, verbose_name='description')),
                 ('uploaded_date', models.DateTimeField(auto_now_add=True)),
-                ('_file', models.FileField(max_length=512, upload_to=mooringlicensing.components.organisations.models.update_organisation_comms_log_filename)),
+        #        ('_file', models.FileField(max_length=512, upload_to=mooringlicensing.components.organisations.models.update_organisation_comms_log_filename)),
                 ('log_entry', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='mooringlicensing.organisationlogentry')),
             ],
         ),
