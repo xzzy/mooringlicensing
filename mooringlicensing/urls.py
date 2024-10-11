@@ -111,7 +111,6 @@ api_patterns = [
     re_path(r'^api/seasons_for_dcv_dict$', payments_api.GetSeasonsForDcvPermitDict.as_view(), name='get-approval-statuses-dict'),
     re_path(r'^api/compliance_statuses_dict$', compliances_api.GetComplianceStatusesDict.as_view(), name='get-compliance-statuses-dict'),
     re_path(r'^api/mooring_statuses_dict$', proposal_api.GetMooringStatusesDict.as_view(), name='get-mooring-statuses-dict'),
-    re_path(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
     re_path(r'^api/',include(router.urls)),
     re_path(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
@@ -120,7 +119,6 @@ api_patterns = [
     re_path(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     re_path(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
     re_path(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
-    
 ]
 
 # URL Patterns

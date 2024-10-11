@@ -1,4 +1,3 @@
-import json
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
 import os
@@ -6,23 +5,19 @@ import traceback
 import pathlib
 import uuid
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage, FileSystemStorage
 import pytz
 from django.db.models import Q, CharField, Value
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from rest_framework import viewsets, serializers, status, views, mixins
-# from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework import viewsets, serializers, views, mixins
 from rest_framework.decorators import renderer_classes
 from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import action as list_route
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
 from datetime import datetime
-# from ledger.settings_base import TIME_ZONE
-from ledger_api_client.settings_base import TIME_ZONE, LOGGING
+from ledger_api_client.settings_base import TIME_ZONE
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.proposals.utils import (
@@ -32,16 +27,17 @@ from mooringlicensing.components.proposals.utils import (
     change_proposal_applicant, 
     get_max_vessel_length_for_main_component,
 )
-from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import (
+    ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, 
+    MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference,
     ProposalType, ProposalApplicant, VesselRegistrationDocument, ProposalSiteLicenseeMooringRequest
+)
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
 from ledger_api_client.managed_models import SystemUser
 
 from django.core.cache import cache
-from django.urls import reverse
-from django.shortcuts import redirect
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalRequirement,
@@ -63,12 +59,12 @@ from mooringlicensing.components.proposals.models import (
     Company,
     CompanyOwnership,
     Mooring,
+    ProposalMooringReportDocument,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalForEndorserSerializer,
     ProposalSerializer,
     InternalProposalSerializer,
-    #SaveProposalSerializer,
     ProposalUserActionSerializer,
     ProposalLogEntrySerializer,
     VesselLogEntrySerializer,
@@ -79,7 +75,6 @@ from mooringlicensing.components.proposals.serializers import (
     AmendmentRequestSerializer,
     ListProposalSerializer,
     ListProposalSiteLicenseeMooringRequestSerializer,
-    ListVesselDetailsSerializer,
     ListVesselOwnershipSerializer,
     VesselSerializer,
     VesselDetailsSerializer,
@@ -95,25 +90,29 @@ from mooringlicensing.components.proposals.serializers import (
     ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer,
     AmendmentRequestDisplaySerializer
 )
-from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
-    DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence, VesselOwnershipOnApproval, \
-    MooringOnApproval
-from mooringlicensing.components.approvals.email import send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, \
+from mooringlicensing.components.approvals.models import (
+    Approval, DcvVessel, WaitingListAllocation, Sticker, 
+    DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit,
+    MooringLicence, VesselOwnershipOnApproval, MooringOnApproval
+)
+from mooringlicensing.components.approvals.email import (
+    send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, 
     send_reissue_aap_after_sale_recorded_email, send_reissue_aup_after_sale_recorded_email
+)
 from mooringlicensing.components.approvals.serializers import (
-        ApprovalSerializer, 
-        LookupApprovalSerializer,
-        )
+    LookupApprovalSerializer,
+)
 from mooringlicensing.components.main.process_document import (
-    process_generic_document, delete_document, cancel_document,
+    process_generic_document
 )
 from mooringlicensing.components.main.decorators import (
-        basic_exception_handler, 
-        timeit, 
-        query_debugger
-        )
+    basic_exception_handler
+)
 from mooringlicensing.components.approvals.utils import get_wla_allowed
-from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set, is_authorised_to_submit_documents
+from mooringlicensing.helpers import (
+    is_authorised_to_modify, is_customer, is_internal, 
+    is_applicant_address_set, is_authorised_to_submit_documents
+)
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
@@ -123,22 +122,24 @@ from django.core.exceptions import ObjectDoesNotExist
 
 import logging
 
-from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
-    PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
+from mooringlicensing.settings import (
+    PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,
+    PAYMENT_SYSTEM_ID, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
+)
+from mooringlicensing.components.payments_ml.models import FeeItemStickerReplacement
 
 logger = logging.getLogger(__name__)
 
 class GetDcvOrganisations(views.APIView):
-    renderer_classes = [JSONRenderer, ]
-
+    
     def get(self, request, format=None):
-        data = DcvOrganisation.objects.all()
-        data_transform = [{'id': org.id, 'name': org.name} for org in data]
-        return Response(data_transform)
+        if is_internal(request): #currently only used internally, but may be acceptable for external access
+            data = DcvOrganisation.objects.all()
+            data_transform = [{'id': org.id, 'name': org.name} for org in data]
+            return Response(data_transform)
 
 
 class GetDcvVesselRegoNos(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
@@ -150,7 +151,6 @@ class GetDcvVesselRegoNos(views.APIView):
 
 
 class GetVessel(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
@@ -222,7 +222,6 @@ class GetVessel(views.APIView):
 
 
 class GetMooring(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
@@ -254,7 +253,6 @@ class GetMooring(views.APIView):
 
 
 class GetMooringBySiteLicensee(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
@@ -293,10 +291,9 @@ class GetMooringBySiteLicensee(views.APIView):
 
 
 class GetMooringPerBay(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, WaitingListAllocation
+        
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
@@ -370,7 +367,7 @@ class GetMooringPerBay(views.APIView):
 
 
 class GetVesselRegoNos(views.APIView):
-    renderer_classes = [JSONRenderer, ]
+
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         allow_add_new_vessel = request.GET.get('allow_add_new_vessel', 'true')
@@ -414,7 +411,6 @@ class GetVesselRegoNos(views.APIView):
         return Response({"results": data_transform})
 
 class GetCompanyNames(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
@@ -427,7 +423,6 @@ class GetCompanyNames(views.APIView):
 
 
 class GetApplicationTypeDescriptions(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('application_type_descriptions')
@@ -438,11 +433,9 @@ class GetApplicationTypeDescriptions(views.APIView):
 
 
 class GetStickerReplacementFeeItem(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.payments_ml.models import FeeItemStickerReplacement
-
+        
         current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
         fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
 
@@ -450,14 +443,12 @@ class GetStickerReplacementFeeItem(views.APIView):
 
 
 class GetPaymentSystemId(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         return Response({'payment_system_id': PAYMENT_SYSTEM_ID})
 
 
 class GetApplicationTypeDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
@@ -470,7 +461,6 @@ class GetApplicationTypeDict(views.APIView):
 
 
 class GetApplicationCategoryDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
@@ -483,20 +473,20 @@ class GetApplicationCategoryDict(views.APIView):
 
 
 class GetApplicationStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = {}
         if not cache.get('application_internal_statuses_dict') or not cache.get('application_external_statuses_dict'):
-            cache.set('application_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
-            cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
+            cache.set('application_internal_statuses_dict',[{'code': i[0], 'description': i[1]} 
+                for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} 
+                for i in Proposal.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
         data['external_statuses'] = cache.get('application_external_statuses_dict')
         data['internal_statuses'] = cache.get('application_internal_statuses_dict')
         return Response(data)
 
 
 class GetVesselTypesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('vessel_type_dict')
@@ -507,7 +497,6 @@ class GetVesselTypesDict(views.APIView):
 
 
 class GetInsuranceChoicesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('insurance_choice_dict')
@@ -518,34 +507,10 @@ class GetInsuranceChoicesDict(views.APIView):
 
 
 class GetMooringStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request):
         return Response(['Unlicensed', 'Licensed', 'Licence application'])
-
-
-class GetEmptyList(views.APIView):
-    renderer_classes = [JSONRenderer, ]
-
-    def get(self, request, format=None):
-        return Response([])
-
-
-class VersionableModelViewSetMixin(viewsets.ModelViewSet):
-    @detail_route(methods=['GET',], detail=True)
-    def history(self, request, *args, **kwargs):
-        _object = self.get_object()
-        _versions = Version.objects.get_for_object(_object)
-
-        _context = {
-            'request': request
-        }
-
-        _version_serializer = ProposalSerializer([v.object for v in _versions], many=True, context=_context)
-        # TODO
-        # check pagination
-        return Response(_version_serializer.data)
-
+    
 
 class ProposalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
@@ -556,9 +521,9 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         try:
             super_queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view).distinct()
-            
         except Exception as e:
             logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
+
         setattr(view, '_datatables_total_count', total_count)
 
         search_text = request.GET.get('search[value]')
@@ -620,28 +585,17 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
             filter_query &= (Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email,site_licensee_mooring_request__enabled=True))
-        #TODO commented this out - will check if need (but why exclude?)
-        #else:
-        #    filter_query &= ~Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email)
 
         # don't show discarded applications
         if not level == 'internal':
             filter_query &= ~Q(customer_status='discarded')
 
         queryset = queryset.filter(filter_query)
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
-        #queryset = queryset.order_by(*ordering)
+
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
-            #for num, item in enumerate(ordering):
-            #    if item == 'lodgement_number':
-            #        ordering[num] = 'id'
-            #    elif item == '-lodgement_number':
-            #        ordering[num] = '-id'
             queryset = queryset.order_by(*ordering)
         else:
             queryset = queryset.order_by('-id')
@@ -649,17 +603,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ProposalRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
-
-class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ModelViewSet):
+class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = ProposalSiteLicenseeMooringRequest.objects.none()
     serializer_class = ListProposalSiteLicenseeMooringRequestSerializer
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
@@ -674,20 +621,15 @@ class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ModelViewSet):
         return ProposalSiteLicenseeMooringRequest.objects.none()
          
 
-class ProposalPaginatedViewSet(viewsets.ModelViewSet):
+class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ProposalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
         all = Proposal.objects.all()
-        #TODO do we need to exclude migrated proposals?
-        #all = Proposal.objects.exclude(migrated=True)
 
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
 
@@ -699,29 +641,14 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                         Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id) #| 
-                    #Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True)
-                    )
+            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id))
             return qs
         return Proposal.objects.none()
 
-    def list(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
 
-        #result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
-
-
-class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
+class AnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
     queryset = AnnualAdmissionApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -746,9 +673,9 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError("proposal type does not exist")
 
             obj = AnnualAdmissionApplication.objects.create(
-                    submitter=request.user.id,
-                    proposal_type=proposal_type
-                    )
+                submitter=request.user.id,
+                proposal_type=proposal_type
+            )
             logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
             obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
 
@@ -758,10 +685,10 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
 
             return Response(serialized_obj.data)
 
+
 class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
     queryset = AnnualAdmissionApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -804,10 +731,9 @@ class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
             raise serializers.ValidationError("not authorised to create application as an internal user")
         
 
-class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
+class AuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
     queryset = AuthorisedUserApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -848,7 +774,6 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
 class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
     queryset = AuthorisedUserApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -888,10 +813,9 @@ class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
             raise serializers.ValidationError("not authorised to create application as an internal user")
 
 
-class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
+class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
     queryset = MooringLicenceApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -935,10 +859,9 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
             return Response(serialized_obj.data)
 
 
-class WaitingListApplicationViewSet(viewsets.ModelViewSet):
+class WaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -950,7 +873,6 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 Q(proxy_applicant=user.id) | 
                 Q(proposal_applicant__email_user_id=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
@@ -981,6 +903,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
             serialized_obj = ProposalSerializer(obj.proposal)
             return Response(serialized_obj.data)
+
 
 class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
@@ -1032,46 +955,38 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
                 return Response(serialized_obj.data)
             raise serializers.ValidationError("not authorised to create application as an internal user")
 
-class ProposalByUuidViewSet(viewsets.ModelViewSet):
+
+class ProposalByUuidViewSet(viewsets.GenericViewSet):
     queryset = Proposal.objects.none()
 
     def get_object(self):
         uuid = self.kwargs.get('pk')
-        return MooringLicenceApplication.objects.get(uuid=uuid)
+        if is_internal(self.request):
+            qs = MooringLicenceApplication.objects.distinct('id')
+            return qs.get(uuid=uuid)
+        else:
+            qs = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=self.request.user.id).distinct('id')
+            return qs.get(uuid=uuid)
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_mooring_report_document(self, request, *args, **kwargs):
     def mooring_report_document(self, request, *args, **kwargs):
         instance = self.get_object()
         action = request.data.get('action')
 
-        # returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
-
-        if action == 'list':
-            pass
-        elif action == 'delete':
+        #TODO review 
+        if action == 'delete':
             document_id = request.data.get('document_id')
-            document = MooringReportDocument.objects.get(
-                # proposal=instance,
+            document = MooringReportDocument.objects.filter(
+                proposalmooringreportdocument__proposal=instance,
                 id=document_id,
             )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
-                original_file_name = document.name
-                document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+            if document.first()._file and os.path.isfile(document.first()._file.path):
+                os.remove(document.first()._file.path) #TODO do we want to do this???
+            if document.first():
+                original_file_name = document.first().name
+                document.first().delete()
                 logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
         elif action == 'save':
             filename = request.data.get('filename')
             _file = request.data.get('_file')
@@ -1086,15 +1001,15 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
                 new_filename = filepath.stem + filepath.suffix
 
             document = MooringReportDocument.objects.create(
-                # proposal=instance,
                 name=filepath.stem + filepath.suffix
             )
             instance.mooring_report_documents.add(document)
             document._file.save(new_filename, ContentFile(_file.read()))
 
+            #ProposalMooringReportDocument.objects.create(proposal=instance, mooring_report_document=document)
+
             logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
 
-        # returned_file_data = []
         docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
 
@@ -1103,7 +1018,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_written_proof_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1114,7 +1028,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_signed_licence_agreement_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1125,7 +1038,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_proof_of_identity_document(self, request, *args, **kwargs):
         instance = self.get_object()

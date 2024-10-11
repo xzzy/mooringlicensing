@@ -5,12 +5,10 @@ from django.db.models import Q, CharField, Value, Max
 from confy import env
 import datetime
 import pytz
-from rest_framework_datatables.renderers import DatatablesRenderer
 from django.db.models import Q
 from django.db import transaction
-from django.core.files.base import ContentFile
 from django.conf import settings
-from rest_framework import viewsets, serializers, status, views, mixins
+from rest_framework import viewsets, serializers, views, mixins
 from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import action as list_route
 from rest_framework.decorators import renderer_classes
@@ -19,7 +17,6 @@ from rest_framework.renderers import JSONRenderer
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from ledger_api_client.settings_base import TIME_ZONE
 from datetime import datetime
-from collections import OrderedDict
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
 
@@ -48,7 +45,7 @@ from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
-    MooringOnApproval,private_storage
+    MooringOnApproval
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
@@ -62,7 +59,6 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
-    ApprovalPaymentSerializer,
     ListApprovalSerializer,
     DcvOrganisationSerializer,
     DcvVesselSerializer,
@@ -72,12 +68,10 @@ from mooringlicensing.components.approvals.serializers import (
     StickerPostalAddressSaveSerializer
 )
 from mooringlicensing.components.users.utils import get_user_name
-from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.settings import PROPOSAL_TYPE_NEW, LOV_CACHE_TIMEOUT
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework import filters
 
 
 class GetDailyAdmissionUrl(views.APIView):
