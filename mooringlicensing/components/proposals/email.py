@@ -92,15 +92,15 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
 
 
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
-    # 1
+    # 1 a and b
     if payment_made:
         subject='Submission received: Rottnest Island boating application {}'.format(proposal.lodgement_number)
     else:
         subject='Submission received: Application {} - Rottnest Island Authority'.format(proposal.lodgement_number)
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_1.html',
-        txt_template='mooringlicensing/emails_2/email_1.txt',
+        html_template='mooringlicensing/emails_2/email_1a_and_b.html',
+        txt_template='mooringlicensing/emails_2/email_1a_and_b.txt',
     )
 
     # Configure recipients, contents, etc
@@ -628,7 +628,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             payment_required = proposal.payment_required()
             if payment_required:
-                # 22 (22a, 22b, 22c)
+                # 22 (22a, 22b, 50a)
                 send_aua_approved_or_declined_email_amendment_payment_required(proposal, decision, request, stickers_to_be_returned)
             else:
                 # 21
@@ -661,7 +661,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
 
 
 def send_wla_approved_or_declined_email(proposal, decision, request):
-    # 17
+    # 17 a and b
     # email to applicant when application is issued or declined (waiting list allocation application)
     all_ccs = []
     all_bccs = []
@@ -689,8 +689,8 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
     # Attachments
     attachments = get_attachments(attach_invoice, attach_licence_doc, proposal)
 
-    html_template = 'mooringlicensing/emails_2/email_17.html'
-    txt_template = 'mooringlicensing/emails_2/email_17.txt'
+    html_template = 'mooringlicensing/emails_2/email_17a_and_b.html'
+    txt_template = 'mooringlicensing/emails_2/email_17a_and_b.txt'
 
     url = settings.SITE_URL if settings.SITE_URL else ''
     proposal_url = url + reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id})
@@ -722,9 +722,9 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
 
 
 def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
-    # 18 new/renewal, approval/decline
+    # 18 a and b new/renewal, approval/decline
     # email to applicant when application is issued or declined (annual admission application, new and renewal)
-    # 19 amendment, approval/decline
+    # 19 a and b amendment, approval/decline
     # email to applicant when application is issued or declined (annual admission application, amendment)
     all_ccs = []
     all_bccs = []
@@ -758,12 +758,12 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
 
     if proposal.proposal_type.code in (PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL):
         # New / Renewal
-        html_template = 'mooringlicensing/emails_2/email_18.html'
-        txt_template = 'mooringlicensing/emails_2/email_18.txt'
+        html_template = 'mooringlicensing/emails_2/email_18a_and_b.html'
+        txt_template = 'mooringlicensing/emails_2/email_18a_and_b.txt'
     elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
         # Amendment
-        html_template = 'mooringlicensing/emails_2/email_19.html'
-        txt_template = 'mooringlicensing/emails_2/email_19.txt'
+        html_template = 'mooringlicensing/emails_2/email_19a_and_b.html'
+        txt_template = 'mooringlicensing/emails_2/email_19a_and_b.txt'
     else:
         logger.warning('ProposalType is unclear when sending AAA approved/declined email for {}'.format(proposal.lodgement_number))
 
@@ -873,7 +873,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
 
 
 def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal, decision, request, stickers_to_be_returned):
-    #21
+    #21 a and b
     # email to applicant when application is issued or declined (authorised user application, amendment where no payment is required)
     all_ccs = []
     all_bccs = []
@@ -907,8 +907,8 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
 
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_21.html',
-        txt_template='mooringlicensing/emails_2/email_21.txt',
+        html_template='mooringlicensing/emails_2/email_21a_and_b.html',
+        txt_template='mooringlicensing/emails_2/email_21a_and_b.txt',
     )
 
     context = {
@@ -1151,8 +1151,8 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
 
     elif decision == 'declined':
-        html_template += 'email_23c.html'
-        txt_template += 'email_23c.txt'
+        html_template += 'email_23b.html'
+        txt_template += 'email_23b.txt'
         subject = 'Declined: Application for mooring site licence {} - Rottnest Island Authority'.format(allocated_mooring.name)
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
@@ -1189,7 +1189,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
 
 
 def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal, decision, request, stickers_to_be_returned):
-    # 24 ML amendment(no payment), approval/decline
+    # 24 a and b ML amendment(no payment), approval/decline
     # email to applicant when application is issued or declined (mooring licence application, amendment where no payment is required)
     all_ccs = []
     all_bccs = []
@@ -1226,8 +1226,8 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
 
     email = TemplateEmailBase(
         subject=subject,
-        html_template='mooringlicensing/emails_2/email_24.html',
-        txt_template = 'mooringlicensing/emails_2/email_24.txt',
+        html_template='mooringlicensing/emails_2/email_24a_and_b.html',
+        txt_template = 'mooringlicensing/emails_2/email_24a_and_b.txt',
     )
 
     context = {
@@ -1294,8 +1294,8 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
     elif decision == 'declined':
         # declined
-        html_template += 'email_25c.html'
-        txt_template += 'email_25c.txt'
+        html_template += 'email_25b.html'
+        txt_template += 'email_25b.txt'
         subject = 'Declined: Application to amend mooring site licence {} – Rottnest Island Authority'.format(allocated_mooring.name)
         details = proposal.proposaldeclineddetails.reason
         cc_list = proposal.proposaldeclineddetails.cc_email
