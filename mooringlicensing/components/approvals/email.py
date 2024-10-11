@@ -524,7 +524,7 @@ def send_approval_suspend_email_notification(approval, request=None):
         _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
 
 
-def send_approval_surrender_email_notification(approval, request=None, already_surrendered=True):
+def send_approval_surrender_email_notification(approval, request=None, already_surrendered=True, stickers_to_be_returned=[]):
     # 30 Surrendered
     # email to licence/permit holder when licence/permit is surrendered
     if already_surrendered:
@@ -554,6 +554,7 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
         'recipient': approval.applicant_obj,
         'details': details,
         'surrender_date': surrender_date,
+        'stickers_to_be_returned': stickers_to_be_returned,
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:

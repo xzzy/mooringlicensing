@@ -1011,15 +1011,17 @@ class Approval(RevisionedMixin):
                 today = timezone.now().date()
                 surrender_date = datetime.datetime.strptime(self.surrender_details['surrender_date'],'%d/%m/%Y')
                 surrender_date = surrender_date.date()
+                # Process stickers before sending the surrender email
+                stickers_to_be_returned = self._process_stickers()
                 if surrender_date <= today:
                     if not self.status == Approval.APPROVAL_STATUS_SURRENDERED:
                         self.status = Approval.APPROVAL_STATUS_SURRENDERED
                         self.set_to_surrender = False
                         self.save()
-                        send_approval_surrender_email_notification(self)
+                        send_approval_surrender_email_notification(self, stickers_to_be_returned=stickers_to_be_returned)
                 else:
                     self.set_to_surrender = True
-                    send_approval_surrender_email_notification(self, already_surrendered=False)
+                    send_approval_surrender_email_notification(self, already_surrendered=False, stickers_to_be_returned=stickers_to_be_returned)
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
                     self.child_obj.processes_after_surrender()
@@ -1029,7 +1031,37 @@ class Approval(RevisionedMixin):
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(self.current_proposal.id),request)
             except:
                 raise
-
+            
+    def _process_stickers(self):
+        """
+        Helper function to handle sticker status updates and return the list of stickers to be returned.
+        """
+        stickers_to_be_returned = []
+        stickers_updated = []
+        # Handle stickers with status CURRENT and AWAITING_PRINTING
+        for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
+            a_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+            a_sticker.save()
+            stickers_to_be_returned.append(a_sticker)
+            stickers_updated.append(a_sticker)
+            logger.info(f'Status of the sticker: {a_sticker} has been changed to {Sticker.STICKER_STATUS_TO_BE_RETURNED}')
+        
+        # Handle stickers with status READY and NOT_READY_YET
+        for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET]):
+            a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
+            a_sticker.save()
+            stickers_updated.append(a_sticker)
+            logger.info(f'Status of the sticker: {a_sticker} has been changed to {Sticker.STICKER_STATUS_CANCELLED}')
+            
+        # Update MooringOnApproval records
+        moas = MooringOnApproval.objects.filter(sticker__in=stickers_updated)
+        for moa in moas:
+            moa.sticker = None
+            moa.save()
+            logger.info(f'Sticker: None is set to the MooringOnApproval: {moa}')
+        
+        return stickers_to_be_returned
+    
     # required to clean db of approvals with no child objs
     @property
     def no_child_obj(self):
