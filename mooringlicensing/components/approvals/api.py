@@ -736,8 +736,11 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return queryset
         return DcvAdmission.objects.none()
 
+    #TODO review org_id - could address below issue, otherwise should be removed
     @staticmethod
-    def _handle_dcv_vessel(user, dcv_vessel, org_id=None):
+    def _handle_dcv_vessel(user, dcv_vessel, org_id=None): 
+        if not dcv_vessel:
+            raise serializers.ValidationError("Please specify vessel Rego No.")
         data = dcv_vessel
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
@@ -876,7 +879,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         return Response(serializer.data)
     
-class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
+class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
 
@@ -886,31 +889,40 @@ class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
             return qs
         return DcvAdmission.objects.none()
 
-    #TODO update to match external func but using applicant user
+    #TODO review org_id - could address below issue, otherwise should be removed
     @staticmethod
-    def _handle_dcv_vessel(dcv_vessel, org_id=None):
+    def _handle_dcv_vessel(user, dcv_vessel, org_id=None):
+        if not dcv_vessel:
+            raise serializers.ValidationError("Please specify vessel Rego No.")
         data = dcv_vessel
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
-        try:
-            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
-        except DcvVessel.DoesNotExist:
+
+        #TODO review - what if a vessel registration is no longer under that owner or their account
+        #also - do unpaid admissions/permits count?
+        dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-        except Exception as e:
-            logger.error(e)
-            raise
-
+        else:
+            dcv_vessel = dcv_vessel.filter(
+                Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
+                Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
+            )
+            if not dcv_vessel.exists():
+                raise serializers.ValidationError("Vessel listed under another Owner")
+            else:
+                return dcv_vessel.first()
+            
         return dcv_vessel
 
     def create(self, request, *args, **kwargs):
         if is_internal(self.request):
             data = request.data
-            dcv_vessel = self._handle_dcv_vessel(request.data.get('dcv_vessel'), None)
-            dcv_organisation = None
+            
             submitter = request.user
             email_address = request.data.get('email_address')
             email_address_confirmation = request.data.get('email_address_confirmation')
@@ -930,21 +942,19 @@ class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
                     raise forms.ValidationError('Email addresses do not match')
             else:
                 raise forms.ValidationError('Please fill the email address fields')
-            if dcv_vessel.dcv_permits.count():
-                # DcvPermit exists
-                #TODO update when DCV permit applicant exist
-                # submitter = dcv_vessel.dcv_permits.first().submitter
-                pass
-            else:
-                # No DcvPermit found, create DcvOrganisation and link it to DcvVessel
-                my_data = {}
-                my_data['organisation'] = request.data.get('organisation_name')
-                my_data['abn_acn'] = request.data.get('organisation_abn')
-                dcv_organisation, created = DcvPermitViewSet.handle_dcv_organisation(my_data, False)
-                orgs = dcv_vessel.dcv_organisations.filter(id=dcv_organisation.id)
-                if not orgs:
-                    dcv_vessel.dcv_organisations.add(dcv_organisation)
-                    # dcv_vessel.save()
+            
+            dcv_vessel = self._handle_dcv_vessel(applicant, request.data.get('dcv_vessel'), None)
+            dcv_organisation = None
+
+            # create DcvOrganisation and link it to DcvVessel
+            my_data = {}
+            my_data['organisation'] = request.data.get('organisation_name')
+            my_data['abn_acn'] = request.data.get('organisation_abn')
+            dcv_organisation, created = DcvPermitViewSet.handle_dcv_organisation(my_data, False)
+            orgs = dcv_vessel.dcv_organisations.filter(id=dcv_organisation.id)
+            if not orgs:
+                dcv_vessel.dcv_organisations.add(dcv_organisation)
+                dcv_vessel.save()
 
             data['submitter'] = submitter.id
             try:
@@ -1000,7 +1010,7 @@ class InternalDcvAdmissionViewSet(viewsets.ModelViewSet):
         raise serializers.ValidationError("not authorised to create application as an internal user")
 
 
-class DcvPermitViewSet(viewsets.ModelViewSet):
+class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvPermit.objects.all().order_by('id')
     serializer_class = DcvPermitSerializer
 
@@ -1014,6 +1024,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
+
 
     @staticmethod
     def handle_dcv_organisation(data, abn_required=True):
@@ -1044,25 +1055,37 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_organisation, created
 
-    #TODO update to match admission func
+
     @staticmethod
-    def _handle_dcv_vessel(request, org_id=None):
-        data = request.data
-        rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
-        vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
-        try:
-            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
-        except DcvVessel.DoesNotExist:
+    def _handle_dcv_vessel(user, dcv_vessel, org_id=None): 
+        if not dcv_vessel:
+            raise serializers.ValidationError("Please specify vessel Rego No.")
+        data = dcv_vessel
+        rego_no_requested = data.get('rego_no', '')
+        vessel_name_requested = data.get('vessel_name', '')
+
+        #TODO review - what if a vessel registration is no longer under that owner or their account
+        #also - do unpaid admissions/permits count?
+        dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
-            # data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-            logger.info(f'Create DcvVessel: [{dcv_vessel}].')
-        except Exception as e:
-            logger.error(e)
-            raise
+        else:
+            dcv_vessel = dcv_vessel.filter(
+                Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
+                Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
+            )
+            if not dcv_vessel.exists():
+                raise serializers.ValidationError("Vessel listed under another Owner")
+            else:
+                #TODO do we update the organisation? (assume yes, for now)
+                orgs = dcv_vessel.first().dcv_organisations.filter(id=org_id)
+                if not orgs:
+                    dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
+                return dcv_vessel.first()
 
         orgs = dcv_vessel.dcv_organisations.filter(id=org_id)
         if not orgs:
@@ -1074,7 +1097,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data
         dcv_organisation, created = self.handle_dcv_organisation(request.data)
-        dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
+        dcv_vessel = self._handle_dcv_vessel(request.user, request.data.get('dcv_vessel'), dcv_organisation.id)
         fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
 
         data['submitter'] = request.user.id
@@ -1095,7 +1118,7 @@ class DcvPermitViewSet(viewsets.ModelViewSet):
         logger.info(f'Create DcvPermit: [{dcv_permit}].')
         return Response(serializer.data)
     
-class InternalDcvPermitViewSet(viewsets.ModelViewSet):
+class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvPermit.objects.all().order_by('id')
     serializer_class = DcvPermitSerializer
 
@@ -1139,25 +1162,36 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
 
         return dcv_organisation, created
 
-    #TODO update to match external admission func but using applicant user
     @staticmethod
-    def _handle_dcv_vessel(request, org_id=None):
-        data = request.data
-        rego_no_requested = request.data.get('dcv_vessel').get('rego_no', '')
-        vessel_name_requested = request.data.get('dcv_vessel').get('vessel_name', '')
-        try:
-            dcv_vessel = DcvVessel.objects.get(rego_no=rego_no_requested)
-        except DcvVessel.DoesNotExist:
+    def _handle_dcv_vessel(user, dcv_vessel, org_id=None): 
+        if not dcv_vessel:
+            raise serializers.ValidationError("Please specify vessel Rego No.")
+        data = dcv_vessel
+        rego_no_requested = data.get('rego_no', '')
+        vessel_name_requested = data.get('vessel_name', '')
+
+        #TODO review - what if a vessel registration is no longer under that owner or their account
+        #also - do unpaid admissions/permits count?
+        dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
-            # data['dcv_organisation_id'] = org_id
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-            logger.info(f'Create DcvVessel: [{dcv_vessel}].')
-        except Exception as e:
-            logger.error(e)
-            raise
+        else:
+            dcv_vessel = dcv_vessel.filter(
+                Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
+                Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
+            )
+            if not dcv_vessel.exists():
+                raise serializers.ValidationError("Vessel listed under another Owner")
+            else:
+                #TODO do we update the organisation? (assume yes, for now)
+                orgs = dcv_vessel.first().dcv_organisations.filter(id=org_id)
+                if not orgs:
+                    dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
+                return dcv_vessel.first()
 
         orgs = dcv_vessel.dcv_organisations.filter(id=org_id)
         if not orgs:
@@ -1166,7 +1200,6 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
         return dcv_vessel
     
     @detail_route(methods=['GET'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler   
     def stickers(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1348,7 +1381,11 @@ class InternalDcvPermitViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             data = request.data
             dcv_organisation, created = self.handle_dcv_organisation(request.data)
-            dcv_vessel = self._handle_dcv_vessel(request, dcv_organisation.id)
+            try:
+                applicant = EmailUser.objects.get(id=data.get('applicant'))
+            except:
+                raise serializers.ValidationError("valid applicant not specified")
+            dcv_vessel = self._handle_dcv_vessel(applicant, request.data.get('dcv_vessel'), dcv_organisation.id)
             fee_season_requested = data.get('season') if data.get('season') else {'id': 0, 'name': ''}
 
             data['submitter'] = request.user.id
@@ -1411,22 +1448,11 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class DcvPermitRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(DcvPermitRenderer, self).render(data, accepted_media_type, renderer_context)
-
-
-class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
+class DcvPermitPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DcvPermitFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (DcvPermitRenderer,)
     queryset = DcvPermit.objects.none()
     serializer_class = ListDcvPermitSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
-    ordering = ['-id']
 
     def get_queryset(self):
         qs = DcvPermit.objects.none()
@@ -1436,20 +1462,8 @@ class DcvPermitPaginatedViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    @list_route(methods=['GET',], detail=False)
-    def list_external(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
 
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListDcvPermitSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
-
-
-class DcvVesselViewSet(viewsets.ModelViewSet):
+class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvVessel.objects.all().order_by('id')
     serializer_class = DcvVesselSerializer
 
@@ -1460,16 +1474,16 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
             return qs
         elif is_customer(self.request):
             queryset = DcvVessel.objects.filter(
-                Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
-                Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
-            )
+                Q(dcv_permits__applicant=user.id) |
+                Q(dcv_admissions__applicant=user.id)
+            ).distinct('id')
             return queryset
-        return DcvPermit.objects.none()
+        return DcvVessel.objects.none()
 
+    #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def lookup_dcv_vessel(self, request, *args, **kwargs):
-        #TODO param for filtering vessels by email (for internal users to use when submitting on applicant's behalf)
         dcv_vessel = self.get_object()
         serializer = DcvVesselSerializer(dcv_vessel)
 
@@ -1480,6 +1494,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
 
         return Response(dcv_vessel_data)
 
+    #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_admissions(self, request, *args, **kwargs):
@@ -1492,6 +1507,7 @@ class DcvVesselViewSet(viewsets.ModelViewSet):
         serializer = LookupDcvAdmissionSerializer(admissions, many=True)
         return Response(serializer.data)
 
+    #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_permits(self, request, *args, **kwargs):
@@ -1547,21 +1563,7 @@ class DcvAdmissionFilterBackend(DatatablesFilterBackend):
             print(e)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
-
-
-class DcvAdmissionRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(DcvAdmissionRenderer, self).render(data, accepted_media_type, renderer_context)
-
-
-class StickerRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(StickerRenderer, self).render(data, accepted_media_type, renderer_context)
-
+    
 
 class StickerFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
@@ -1581,11 +1583,6 @@ class StickerFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(approval__in=Approval.objects.filter(mooringlicence__in=MooringLicence.objects.all()))
 
         # Filter Year (FeeSeason)
-        # filter_fee_season_id = request.GET.get('filter_year')
-        # logger.debug(f'fee_season id: {filter_fee_season_id}')
-        # if filter_fee_season_id and not filter_fee_season_id.lower() == 'all':
-        #     fee_season = FeeSeason.objects.get(id=filter_fee_season_id)
-        #     queryset = queryset.filter(fee_constructor__fee_season=fee_season)
         filter_year = request.GET.get('filter_year')
         if filter_year and not filter_year.lower() == 'all':
             filter_year = datetime.strptime(filter_year, '%Y-%m-%d').date()
@@ -1597,9 +1594,6 @@ class StickerFilterBackend(DatatablesFilterBackend):
         if filter_sticker_status_id and not filter_sticker_status_id.lower() == 'all':
             queryset = queryset.filter(status=filter_sticker_status_id)
 
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -1629,7 +1623,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class StickerViewSet(viewsets.ModelViewSet):
+class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Sticker.objects.none()
     serializer_class = StickerSerializer
 
@@ -1654,7 +1648,7 @@ class StickerViewSet(viewsets.ModelViewSet):
         data['user'] = request.user.id
         serializer = StickerActionDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        details = serializer.save()
+        serializer.save()
 
         # Update Sticker
         sticker.record_returned()
@@ -1682,9 +1676,6 @@ class StickerViewSet(viewsets.ModelViewSet):
         sticker.record_lost()
         serializer = StickerSerializer(sticker)
 
-        # Write approval history
-        # sticker.approval.write_approval_history()
-
         return Response({'sticker': serializer.data})
 
     @detail_route(methods=['POST',], detail=True)
@@ -1692,7 +1683,6 @@ class StickerViewSet(viewsets.ModelViewSet):
     def request_replacement(self, request, *args, **kwargs):
         # internal
         sticker = self.get_object()
-        # data = request.data
         data = {}
 
         if not sticker.printing_date or not (sticker.status == "current"):
@@ -1711,50 +1701,24 @@ class StickerViewSet(viewsets.ModelViewSet):
         return Response({'sticker_action_detail_ids': [details.id,]})
 
 
-class StickerPaginatedViewSet(viewsets.ModelViewSet):
+class StickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (StickerFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (StickerRenderer,)
     queryset = Sticker.objects.none()
     serializer_class = StickerSerializer
-    search_fields = ['id', ]
-    page_size = 10
 
     def get_queryset(self):
-        debug = self.request.GET.get('debug', 'f')
-        if debug.lower() in ['true', 't', 'yes', 'y']:
-            debug = True
-        else:
-            debug = False
-
         qs = Sticker.objects.none()
         if is_internal(self.request):
-            if debug:
-                qs = Sticker.objects.all()
-            else:
-                qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
+            qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
         return qs
 
-    def list(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
 
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = StickerSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
-
-
-class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
+class DcvAdmissionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DcvAdmissionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (DcvAdmissionRenderer,)
     queryset = DcvAdmission.objects.none()
     serializer_class = ListDcvAdmissionSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
@@ -1765,33 +1729,16 @@ class DcvAdmissionPaginatedViewSet(viewsets.ModelViewSet):
 
         return qs
 
-    @list_route(methods=['GET',], detail=False)
-    def list_external(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
 
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListDcvAdmissionSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
-
-
-class WaitingListAllocationViewSet(viewsets.ModelViewSet):
+class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = WaitingListAllocation.objects.all().order_by('id')
     serializer_class = WaitingListAllocationSerializer
 
     def get_queryset(self):
-        # return super().get_queryset()
         user = self.request.user
         if is_internal(self.request):
             qs = WaitingListAllocation.objects.all()
             return qs
-        elif is_customer(self.request):
-            queryset =  WaitingListAllocation.objects.filter(Q(current_proposal__proposal_applicant__email_user_id=self.request.user.id))
-            return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListAllocation.objects.none()
 
 
@@ -1799,44 +1746,47 @@ class WaitingListAllocationViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create_mooring_licence_application(self, request, *args, **kwargs):
         with transaction.atomic():
-            waiting_list_allocation = self.get_object()
-            proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-            selected_mooring_id = request.data.get("selected_mooring_id")
-            allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
+            if is_internal(request):
+                waiting_list_allocation = self.get_object()
+                proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
+                selected_mooring_id = request.data.get("selected_mooring_id")
+                allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
 
-            current_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
+                current_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-            new_proposal = None
-            if allocated_mooring:
-                new_proposal = MooringLicenceApplication.objects.create(
-                    submitter=request.user.id, #the user that had created the application, not the applicant
-                    proposal_type=proposal_type,
-                    allocated_mooring=allocated_mooring,
-                    waiting_list_allocation=waiting_list_allocation,
-                    date_invited=current_date,
-                )
-                waiting_list_allocation.proposal_applicant.copy_self_to_proposal(new_proposal)
-                logger.info(f'Offering new Mooring Site Licence application: [{new_proposal}], which has been created from the waiting list allocation: [{waiting_list_allocation}].')
+                new_proposal = None
+                if allocated_mooring:
+                    new_proposal = MooringLicenceApplication.objects.create(
+                        submitter=request.user.id, #the user that had created the application, not the applicant
+                        proposal_type=proposal_type,
+                        allocated_mooring=allocated_mooring,
+                        waiting_list_allocation=waiting_list_allocation,
+                        date_invited=current_date,
+                    )
+                    waiting_list_allocation.proposal_applicant.copy_self_to_proposal(new_proposal)
+                    logger.info(f'Offering new Mooring Site Licence application: [{new_proposal}], which has been created from the waiting list allocation: [{waiting_list_allocation}].')
 
-                # Copy vessel details to the new proposal
-                waiting_list_allocation.current_proposal.copy_vessel_details(new_proposal)
-                logger.info(f'Vessel details have been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
+                    # Copy vessel details to the new proposal
+                    waiting_list_allocation.current_proposal.copy_vessel_details(new_proposal)
+                    logger.info(f'Vessel details have been copied from the proposal: [{waiting_list_allocation.current_proposal}] to the mooring site licence application: [{new_proposal}].')
 
-                new_proposal.null_vessel_on_create = False
-                new_proposal.save()
+                    new_proposal.null_vessel_on_create = False
+                    new_proposal.save()
 
-                waiting_list_allocation.log_user_action(f'Offer new Mooring Site Licence application: {new_proposal.lodgement_number}.', request)
+                    waiting_list_allocation.log_user_action(f'Offer new Mooring Site Licence application: {new_proposal.lodgement_number}.', request)
 
-            if new_proposal:
-                # send email
-                send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)
-                # update waiting_list_allocation
-                waiting_list_allocation.internal_status = Approval.INTERNAL_STATUS_OFFERED
-                waiting_list_allocation.wla_order = None
-                waiting_list_allocation.save()
-                waiting_list_allocation.set_wla_order()
+                if new_proposal:
+                    # send email
+                    send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)
+                    # update waiting_list_allocation
+                    waiting_list_allocation.internal_status = Approval.INTERNAL_STATUS_OFFERED
+                    waiting_list_allocation.wla_order = None
+                    waiting_list_allocation.save()
+                    waiting_list_allocation.set_wla_order()
 
-            return Response({"proposal_created": new_proposal.lodgement_number})
+                return Response({"proposal_created": new_proposal.lodgement_number})
+            else:
+                raise serializers.ValidationError("user not authorised to create mooring licence application")
         
 
 def removeAUPFromMooring(request, mooring_id, approval_id):

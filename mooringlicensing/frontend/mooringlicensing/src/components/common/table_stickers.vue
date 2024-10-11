@@ -356,7 +356,7 @@ export default {
                 ordering: true,
                 order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
                 ajax: {
-                    "url": api_endpoints.stickers_paginated_list + '?format=datatables&debug=' + vm.debug,
+                    "url": api_endpoints.stickers_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
