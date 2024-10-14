@@ -338,7 +338,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
     approval_level = models.CharField('Activity matrix approval level', max_length=255,null=True,blank=True)
-    approval_level_document = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='approval_level_document', on_delete=models.SET_NULL)
+    approval_level_document = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='approval_level_document', on_delete=models.SET_NULL) #TODO not used, remove
     approval_comment = models.TextField(blank=True)
     #If the proposal is created as part of migration of approvals
     migrated=models.BooleanField(default=False)
@@ -1282,33 +1282,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                         applicant_field=getattr(self, self.applicant_field)
                         # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
-            except:
-                raise
-
-    def assign_approval_level_document(self, request):
-        with transaction.atomic():
-            #TODO add auth - approver only
-            try:
-                approval_level_document = request.data['approval_level_document']
-                if approval_level_document != 'null':
-                    try:
-                        document = self.documents.get(input_name=str(approval_level_document))
-                    except ProposalDocument.DoesNotExist:
-                        document = self.documents.get_or_create(input_name=str(approval_level_document), name=str(approval_level_document))[0]
-                    document.name = str(approval_level_document)
-                    document._file = approval_level_document
-                    document.save()
-                    d=ProposalDocument.objects.get(id=document.id)
-                    self.approval_level_document = d
-                    comment = 'Approval Level Document Added: {}'.format(document.name)
-                else:
-                    self.approval_level_document = None
-                    comment = 'Approval Level Document Deleted: {}'.format(request.data['approval_level_document_name'])
-                self.save(version_comment=comment) # to allow revision to be added to reversion history
-                self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
-                applicant_field=getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
-                return self
             except:
                 raise
 
@@ -5498,7 +5471,6 @@ class ProposalUserAction(UserAction):
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
     ACTION_WITHDRAW_PROPOSAL = "Withdraw application {}"
-    ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
     ACTION_SUBMIT_OTHER_DOCUMENTS = 'Submit other documents'
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
@@ -5734,7 +5706,7 @@ class HelpPage(models.Model):
 
 import reversion
 
-reversion.register(ProposalDocument, follow=['approval_level_document'])
+reversion.register(ProposalDocument)
 reversion.register(RequirementDocument, follow=[])
 reversion.register(ProposalType, follow=['proposal_set',])
 # TODO: fix this to improve performance

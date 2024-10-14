@@ -974,7 +974,6 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
         instance = self.get_object()
         action = request.data.get('action')
 
-        #TODO review 
         if action == 'delete':
             document_id = request.data.get('document_id')
             document = MooringReportDocument.objects.filter(
@@ -982,7 +981,7 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
                 id=document_id,
             )
             if document.first()._file and os.path.isfile(document.first()._file.path):
-                os.remove(document.first()._file.path) #TODO do we want to do this???
+                os.remove(document.first()._file.path)
             if document.first():
                 original_file_name = document.first().name
                 document.first().delete()
@@ -1005,8 +1004,6 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
             )
             instance.mooring_report_documents.add(document)
             document._file.save(new_filename, ContentFile(_file.read()))
-
-            #ProposalMooringReportDocument.objects.create(proposal=instance, mooring_report_document=document)
 
             logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
 
@@ -1048,8 +1045,7 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
-    # @basic_exception_handler
+    @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
@@ -1086,9 +1082,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return ProposalForEndorserSerializer
         return super(ProposalViewSet, self).get_serializer_class()
 
-    # def retrieve(self, request, *args, **kwargs):
-    #     return super(ProposalViewSet, self).retrieve(request, *args, **kwargs)
-
     def get_object(self):
         id = self.kwargs.get('id')
         logger.info(f'Getting proposal in the ProposalViewSet by the ID: [{id}]...')
@@ -1111,10 +1104,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             queryset = Proposal.objects.filter(
                 Q(proposal_applicant__email_user_id=request_user.id)
             )
-            #TODO do we need to exclude migrated proposals?
-            #.exclude(migrated=True)
-
-            # For the endoser to view the endosee's proposal
+            # For the endoser to view the endorsee's proposal
             if 'uuid' in self.request.query_params:
                 uuid = self.request.query_params.get('uuid', '')
                 if uuid:
@@ -1124,7 +1114,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         # Add the above proposal to the queryset the accessing user can access to
                         queryset = queryset | pro
             return queryset
-        logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
 
     def internal_serializer_class(self):
@@ -1144,7 +1133,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['PUT'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def reinstate_wl_allocation(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1152,7 +1140,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             # Internal user is accessing
             # Proposal is ML application and the status of it is 'discarded'
             wlallocation = instance.child_obj.reinstate_wl_allocation(request)
-            return Response({'lodgement_number': wlallocation.lodgement_number})  # TODO
+            return Response({'lodgement_number': wlallocation.lodgement_number})
         else:
             msg = f'This application: [{instance}] does not meet the conditions to put the original WLAllocation to the waiting list queue.'
             logger.warn(msg)
@@ -1205,15 +1193,12 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             raise serializers.ValidationError("user not authorised to change applicant")
         
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def vessel_rego_document(self, request, *args, **kwargs):
         instance = self.get_object()
         action = request.data.get('action')
 
-        if action == 'list':
-            pass
-        elif action == 'delete':
+        if action == 'delete':
             document_id = request.data.get('document_id')
             document = VesselRegistrationDocument.objects.get(
                 proposal=instance,
@@ -1226,8 +1211,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 original_file_ext = document.original_file_ext
                 document.delete()
                 logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-        elif action == 'cancel':
-            pass
         elif action == 'save':
             filename = request.data.get('filename')
             _file = request.data.get('_file')
@@ -1262,22 +1245,12 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_electoral_roll_document(self, request, *args, **kwargs):
     def electoral_roll_document(self, request, *args, **kwargs):
         instance = self.get_object()
         action = request.data.get('action')
 
-        # returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
-
-        if action == 'list':
-            pass
-        elif action == 'delete':
+        if action == 'delete':
             document_id = request.data.get('document_id')
             document = ElectoralRollDocument.objects.get(
                 proposal=instance,
@@ -1286,14 +1259,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if document._file and os.path.isfile(document._file.path):
                 os.remove(document._file.path)
             if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
                 original_file_name = document.name
                 document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
                 logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
         elif action == 'save':
             filename = request.data.get('filename')
             _file = request.data.get('_file')
@@ -1315,7 +1283,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
 
-        # returned_file_data = []
         docs_in_limbo = instance.electoral_roll_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
 
@@ -1324,22 +1291,12 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_hull_identification_number_document(self, request, *args, **kwargs):
     def hull_identification_number_document(self, request, *args, **kwargs):
         instance = self.get_object()
         action = request.data.get('action')
-
-        # returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
-
-        if action == 'list':
-            pass
-        elif action == 'delete':
+        
+        if action == 'delete':
             document_id = request.data.get('document_id')
             document = HullIdentificationNumberDocument.objects.get(
                 proposal=instance,
@@ -1348,48 +1305,33 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if document._file and os.path.isfile(document._file.path):
                 os.remove(document._file.path)
             if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
                 original_file_name = document.name
                 document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
                 logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
         elif action == 'save':
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
             filepath = pathlib.Path(filename)
-            # original_file_name = filepath.stem
-            # original_file_ext = filepath.suffix
 
             # Calculate a new unique filename
             if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
                 unique_id = uuid.uuid4()
-                # new_filename = unique_id.hex + original_file_ext
                 new_filename = unique_id.hex + filepath.suffix
             else:
-                # new_filename = original_file_name + original_file_ext
                 new_filename = filepath.stem + filepath.suffix
 
             document = HullIdentificationNumberDocument.objects.create(
                 proposal=instance,
                 name=filepath.stem + filepath.suffix
-                # original_file_name=original_file_name,
-                # original_file_ext=original_file_ext,
             )
-            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
+
             document._file.save(new_filename, ContentFile(_file.read()))
 
             logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
-        # returned_file_data = []
         docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
-        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
-        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
         all_the_docs = docs_in_limbo
 
         returned_file_data = construct_dict_from_docs(all_the_docs)
@@ -1397,22 +1339,12 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_insurance_certificate_document(self, request, *args, **kwargs):
     def insurance_certificate_document(self, request, *args, **kwargs):
         instance = self.get_object()
         action = request.data.get('action')
 
-        # returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
-
-        if action == 'list':
-            pass
-        elif action == 'delete':
+        if action == 'delete':
             document_id = request.data.get('document_id')
             document = InsuranceCertificateDocument.objects.get(
                 proposal=instance,
@@ -1421,11 +1353,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if document._file and os.path.isfile(document._file.path):
                 os.remove(document._file.path)
             if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
                 original_file_name = document.name
                 document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
                 logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
         elif action == 'cancel':
             pass
@@ -1434,35 +1363,24 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             _file = request.data.get('_file')
 
             filepath = pathlib.Path(filename)
-            # original_file_name = filepath.stem
-            # original_file_ext = filepath.suffix
 
             # Calculate a new unique filename
             if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
                 unique_id = uuid.uuid4()
-                # new_filename = unique_id.hex + original_file_ext
                 new_filename = unique_id.hex + filepath.suffix
             else:
-                # new_filename = original_file_name + original_file_ext
                 new_filename = filepath.stem + filepath.suffix
 
             document = InsuranceCertificateDocument.objects.create(
                 proposal=instance,
                 name=filepath.stem + filepath.suffix
-                # original_file_name=original_file_name,
-                # original_file_ext=original_file_ext,
             )
-            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
             document._file.save(new_filename, ContentFile(_file.read()))
 
             logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
-        # returned_file_data = []
         docs_in_limbo = instance.insurance_certificate_documents.all()  # Files uploaded when vessel_ownership is unknown
-        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
-        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
         all_the_docs = docs_in_limbo
 
         returned_file_data = construct_dict_from_docs(all_the_docs)
@@ -1470,53 +1388,50 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['GET',], detail=True)
-    def compare_list(self, request, *args, **kwargs):
-        """ Returns the reversion-compare urls --> list"""
-        current_revision_id = Version.objects.get_for_object(self.get_object()).first().revision_id
-        versions = Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
-        version_ids = [i.id for i in versions]
-        urls = ['?version_id2={}&version_id1={}'.format(version_ids[0], version_ids[i+1]) for i in range(len(version_ids)-1)]
-        return Response(urls)
-
-    @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.action_logs.all()
-        serializer = ProposalUserActionSerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = ProposalUserActionSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = ProposalLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = ProposalLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['proposal'] = u'{}'.format(instance.id)
-            request.data['staff'] = u'{}'.format(request.user.id)
-            request.data._mutable=mutable
-            serializer = ProposalLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['proposal'] = u'{}'.format(instance.id)
+                request.data['staff'] = u'{}'.format(request.user.id)
+                request.data._mutable=mutable
+                serializer = ProposalLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -1535,27 +1450,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         qs = qs.filter(status = 'requested')
         serializer = AmendmentRequestDisplaySerializer(qs,many=True)
         return Response(serializer.data)
-
-    @list_route(methods=['GET',], detail=False)
-    def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status='discarded')
-        serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
-        return Response(serializer.data)
-
-    @list_route(methods=['GET',], detail=False)
-    def user_list_paginated(self, request, *args, **kwargs):
-        """
-        Placing Paginator class here (instead of settings.py) allows specific method for desired behaviour),
-        otherwise all serializers will use the default pagination class
-
-        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-        """
-        proposals = self.get_queryset().exclude(processing_status='discarded')
-        paginator = DatatablesPageNumberPagination()
-        paginator.page_size = proposals.count()
-        result_page = paginator.paginate_queryset(proposals, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
     def internal_proposal(self, request, *args, **kwargs):
@@ -1621,54 +1515,62 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.assign_officer(request, request.user)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.assign_officer(request, request.user)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
-        instance = self.get_object()
-        user_id = request.data.get('assessor_id',None)
-        user = None
-        if not user_id:
-            raise serializers.ValidationError('An assessor id is required')
-        try:
-            user = EmailUser.objects.get(id=user_id)
-        except EmailUser.DoesNotExist:
-            raise serializers.ValidationError('A user with the id passed in does not exist')
-        instance.assign_officer(request,user)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            user_id = request.data.get('assessor_id',None)
+            user = None
+            if not user_id:
+                raise serializers.ValidationError('An assessor id is required')
+            try:
+                user = EmailUser.objects.get(id=user_id)
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError('A user with the id passed in does not exist')
+            instance.assign_officer(request,user)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        raise serializers.ValidationError('User cannot assign proposal')
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.unassign(request)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.unassign(request)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        raise serializers.ValidationError('User cannot unassign proposal')
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def switch_status(self, request, *args, **kwargs):
-        instance = self.get_object()
-        status = request.data.get('status')
-        approver_comment = request.data.get('approver_comment')
-        instance.move_to_status(request, status, approver_comment)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            status = request.data.get('status')
+            approver_comment = request.data.get('approver_comment')
+            instance.move_to_status(request, status, approver_comment)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        raise serializers.ValidationError('User cannot change proposal status')
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def bypass_endorsement(self, request, *args, **kwargs):
-        instance = self.get_object()
         if is_internal(request):
+            instance = self.get_object()
             #check if an AUA awaiting endorsement
             if instance.application_type_code == 'aua' and instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
                 #run function to move to with_assessor (include auth check in model func)
@@ -1706,24 +1608,25 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
-        instance = self.get_object()
-        status = request.data.get('status')
-        if not status:
-            raise serializers.ValidationError('Status is required')
+        if is_internal(request):
+            instance = self.get_object()
+            status = request.data.get('status')
+            if not status:
+                raise serializers.ValidationError('Status is required')
+            else:
+                if not status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR,]:
+                    raise serializers.ValidationError('The status provided is not allowed')
+            instance.reissue_approval(request)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
         else:
-            if not status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR,]:
-                raise serializers.ValidationError('The status provided is not allowed')
-        instance.reissue_approval(request)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+            serializers.ValidationError("User not authorised to reissue approval")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def renew_amend_approval_wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-
-        #TODO add auth check - internal or applicant (covered by get_queryset, but additional checks still warranted)
         approval = instance.approval
         ## validation
         renew_amend_conditions = {
@@ -1744,7 +1647,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = instance.amend_approval(request)
 
         return Response({"id":instance.id})
-    
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -1759,15 +1661,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         else:
             raise serializers.ValidationError("not authorised to assess proposal")
-
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def approval_level_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance = instance.assign_approval_level_document(request)
-        serializer = InternalProposalSerializer(instance,context={'request':request})
-        return Response(serializer.data)
-
+        
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):

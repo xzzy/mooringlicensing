@@ -70,6 +70,7 @@ def is_customer(request):
     # return request.user.is_authenticated() and (is_model_backend(request) or is_email_auth_backend(request))
     return request.user.is_authenticated and (is_model_backend(request) or is_email_auth_backend(request))
 
+#TODO check is in any of the ML officer groups, not just "department user"
 def is_internal(request):
     return is_departmentUser(request)
 
@@ -80,6 +81,7 @@ def is_authorised_to_pay_auto_approved(request, instance):
         return True
     return False
 
+#TODO modifying an application on behalf of an external user - assessors only or any internal user?
 def is_authorised_to_modify(request, instance):
     authorised = True
 

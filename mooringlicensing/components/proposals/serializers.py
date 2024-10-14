@@ -937,7 +937,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
     allowed_assessors = serializers.SerializerMethodField()
-    approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
@@ -968,7 +967,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 #'end_date',
                 'application_type',
                 'approval_level',
-                'approval_level_document',
                 'approval_id',
                 'title',
                 'customer_status',
@@ -1276,12 +1274,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
         if obj.previous_application and obj.previous_application.preferred_bay:
             preferred_bay_id = obj.previous_application.preferred_bay.id
         return preferred_bay_id
-
-    def get_approval_level_document(self,obj):
-        if obj.approval_level_document is not None:
-            return [obj.approval_level_document.name,obj.approval_level_document._file.url]
-        else:
-            return obj.approval_level_document
 
     def get_assessor_mode(self,obj):
         request = self.context['request']
