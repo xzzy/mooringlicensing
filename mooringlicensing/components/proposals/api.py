@@ -95,6 +95,8 @@ from mooringlicensing.components.approvals.models import (
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit,
     MooringLicence, VesselOwnershipOnApproval, MooringOnApproval
 )
+from mooringlicensing.components.main.models import ApplicationType
+from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.approvals.email import (
     send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, 
     send_reissue_aap_after_sale_recorded_email, send_reissue_aup_after_sale_recorded_email
@@ -1666,36 +1668,44 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
         print('final_approval() in ProposalViewSet')
-        instance = self.get_object()
-        serializer = ProposedApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.final_approval(request, serializer.validated_data)
-        return Response()
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedApprovalSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.final_approval(request, serializer.validated_data)
+            return Response()
+        else:
+            raise serializers.ValidationError("not authorised to approve proposal")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProposedDeclineSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.proposed_decline(request,serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedDeclineSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.proposed_decline(request,serializer.validated_data)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to decline proposal")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProposedDeclineSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.final_decline(request,serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance, context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedDeclineSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.final_decline(request,serializer.validated_data)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance, context={'request':request})
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to decline proposal")
 
     @detail_route(methods=['post'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def draft(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -1707,13 +1717,11 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         
     @detail_route(methods=['post'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def internal_save(self, request, *args, **kwargs):
-        if (is_internal(request)): #TODO: better auth, using groups/permissions
+        if (is_internal(request)):
             with transaction.atomic():
                 instance = self.get_object()
-
                 save_proponent_data(instance,request,self.action)
                 instance = self.get_object()
                 serializer_class = self.internal_serializer_class()
@@ -1721,7 +1729,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 return Response(serializer.data)
 
     @detail_route(methods=['post'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -1759,9 +1766,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['GET',], detail=True)
     def get_max_vessel_length_for_aa_component(self, request, *args, **kwargs):
         try:
-            from mooringlicensing.components.payments_ml.models import FeeConstructor
-            from mooringlicensing.components.main.models import ApplicationType
-
             proposal = self.get_object()
             logger.info(f'Calculating the max vessel length for the AA component without any additional cost for the Proposal: [{proposal}]...')
 
@@ -1771,9 +1775,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             # Retrieve vessel
             vid = request.GET.get('vid', None)
             vessel = Vessel.objects.get(id=int(vid)) if vid else None
-
             max_amount_paid = proposal.get_max_amount_paid_for_aa_component(target_date, vessel)
-
             application_type_aa = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
             fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type_aa, target_date)
             max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
@@ -1793,7 +1795,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         try:
             instance = self.get_object()
             if instance.vessel_ownership and not instance.vessel_ownership.end_date:
-                #vessel_details = instance.vessel_details
                 vessel_details = instance.vessel_details.vessel.latest_vessel_details
                 vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
                 vessel = vessel_details.vessel
@@ -1802,7 +1803,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 vessel_ownership_data = {}
                 if not instance.editable_vessel_details:
                     vessel_data["rego_no"] = vessel.rego_no
-                #else:
+
                 vessel_ownership_data = {}
                 if instance.vessel_ownership:
                     vessel_ownership_serializer = VesselOwnershipSerializer(instance.vessel_ownership)
@@ -1826,7 +1827,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] is being destroyed by the user: [{request.user}].')
 
-        if instance.child_obj.application_type_code == MooringLicenceApplication.code and request.query_params.get('action', '') in ['withdraw',]:
+        if (instance.child_obj.application_type_code == MooringLicenceApplication.code and 
+            request.query_params.get('action', '') in ['withdraw',] and
+            is_internal(request)):
             instance.withdraw(request, *args, **kwargs)
         else:
             instance.destroy(request, *args, **kwargs)
@@ -1909,8 +1912,6 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProposalStandardRequirementSerializer
 
     def get_queryset(self):
-        from mooringlicensing.components.main.models import ApplicationType
-
         qs = ProposalStandardRequirement.objects.none()
         user = self.request.user
         if is_internal(self.request) or is_customer(self.request):

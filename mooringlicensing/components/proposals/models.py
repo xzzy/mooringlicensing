@@ -453,27 +453,29 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return str(self.lodgement_number)
 
     def withdraw(self, request, *args, **kwargs):
-        #TODO add auth - only the applicant or an assessor should be able to withdraw (also add status check?)
-        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        self.save()
-        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
-        self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number), request)
+        #only an assessor should be able to withdraw
+        if self.is_assessor(request): 
+            self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+            self.save()
+            logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+            self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number), request)
 
-        # Perform post-processing for each application type after discarding.
-        self.child_obj.process_after_withdrawn()
+            # Perform post-processing for each application type after discarding.
+            self.child_obj.process_after_withdrawn()
 
     def destroy(self, request, *args, **kwargs):
-        #TODO add auth - only the applicant or an assessor should be able to discard (also add status check?)
-        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        self.save()
-        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
-        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number), request)
+        #only the applicant or an assessor should be able to discard while in draft
+        if self.processing_status == Proposal.PROCESSING_STATUS_DRAFT and (request.user.id == self.applicant or self.is_assessor(request)):
+            self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+            self.save()
+            logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+            self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number), request)
 
-        # Perform post-processing for each application type after discarding.
-        self.child_obj.process_after_discarded()
+            # Perform post-processing for each application type after discarding.
+            self.child_obj.process_after_discarded()
 
-        # Send email
-        send_application_discarded_email(self, request)
+            # Send email
+            send_application_discarded_email(self, request)
 
     def copy_vessel_details(self, proposal):
         #TODO add auth - this is used when creating a mooring license from a waiting list allocation - should only be allowed for groups that can offer mooring
@@ -4971,10 +4973,6 @@ class VesselOwnership(RevisionedMixin):
         if self.company_ownerships.count():
             company_ownership = self.company_ownerships.filter(vesselownershipcompanyownership__status__in=status_list).order_by('created').last()
             return company_ownership
-            # company_ownership = self.company_ownerships.all().order_by('updated').last()
-            # for voco in VesselOwnershipCompanyOwnership.objects.filter(vessel_ownership=self, company_ownership=company_ownership):
-            #     if voco.status in status_list:
-            #         return company_ownership
         return CompanyOwnership.objects.none()
     
     @property
