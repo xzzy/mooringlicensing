@@ -29,7 +29,7 @@ from mooringlicensing.components.proposals.utils import (
 )
 from mooringlicensing.components.proposals.models import (
     ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, 
-    MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference,
+    MooringReportDocument, VesselOwnershipCompanyOwnership,
     ProposalType, ProposalApplicant, VesselRegistrationDocument, ProposalSiteLicenseeMooringRequest
 )
 from mooringlicensing.components.main.utils import (
@@ -1844,7 +1844,6 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
 
     def get_queryset(self):
         queryset = ProposalRequirement.objects.none()
-        user = self.request.user
         if is_internal(self.request):
             queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
         return queryset
@@ -1853,7 +1852,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def move_up(self, request, *args, **kwargs):
         instance = self.get_object()
-        if (instance.has_assessor_mode(request.user)):
+        if (instance.proposal.has_assessor_mode(request.user)):
             instance.up()
             instance.save()
         serializer = self.get_serializer(instance)
@@ -1863,7 +1862,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def move_down(self, request, *args, **kwargs):
         instance = self.get_object()
-        if (instance.has_assessor_mode(request.user)):
+        if (instance.proposal.has_assessor_mode(request.user)):
             instance.down()
             instance.save()
         serializer = self.get_serializer(instance)
@@ -1873,7 +1872,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def discard(self, request, *args, **kwargs):
         instance = self.get_object()
-        if (instance.has_assessor_mode(request.user)):
+        if (instance.proposal.has_assessor_mode(request.user)):
             instance.is_deleted = True
             instance.save()
         serializer = self.get_serializer(instance)
@@ -1884,14 +1883,16 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if (instance.proposal.has_assessor_mode(request.user)):
+            serializer.save()
         return Response(serializer.data)
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data= request.data)
         serializer.is_valid(raise_exception = True)
-        instance = serializer.save()
+        if (instance.proposal.has_assessor_mode(request.user)):
+            instance = serializer.save()
         return Response(serializer.data)
 
 
@@ -1909,8 +1910,6 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
                 application_type = ApplicationType.objects.get(code=application_type_code)
                 queries |= Q(application_type=application_type)
             qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -1922,7 +1921,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
     
 
-class AmendmentRequestViewSet(viewsets.ModelViewSet):
+class AmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
 
@@ -1935,77 +1934,48 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
             queryset = AmendmentRequest.objects.filter(
                 Q(proposal_applicant__email_user_id=user.id)
             )
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        data = request.data
-        reason_id = request.data.get('reason_id')
+
         proposal = request.data.get('proposal')
-        data['reason'] = reason_id
-        data['proposal'] = proposal['id']
+        try:
+            instance = Proposal.objects.get(id=proposal['id'])
+        except:
+            raise serializers.ValidationError("Invalid proposal id")
+        
+        if instance.has_assessor_mode(request.user):
+            data = request.data
+            reason_id = request.data.get('reason_id')
+            
+            data['reason'] = reason_id
+            data['proposal'] = proposal['id']
 
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception = True)
-        instance = serializer.save()
-        logger.info(f'New AmendmentRequest: [{instance}] has been created.')
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception = True)
+            instance = serializer.save()
+            logger.info(f'New AmendmentRequest: [{instance}] has been created.')
 
-        instance.generate_amendment(request)
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+            instance.generate_amendment(request)
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("user not authorised to make an amendment request")
 
 
 class AmendmentRequestReasonChoicesView(views.APIView):
 
-    renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
-        choices_list = []
-        choices=AmendmentReason.objects.all()
-        if choices:
-            for c in choices:
-                choices_list.append({'key': c.id,'value': c.reason})
-        return Response(choices_list)
-
-
-class SearchKeywordsView(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def post(self,request, format=None):
-        qs = []
-        searchWords = request.data.get('searchKeywords')
-        searchProposal = request.data.get('searchProposal')
-        searchApproval = request.data.get('searchApproval')
-        searchCompliance = request.data.get('searchCompliance')
-        if searchWords:
-            qs= searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance)
-        serializer = SearchKeywordSerializer(qs, many=True)
-        return Response(serializer.data)
-
-
-class SearchReferenceView(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def post(self,request, format=None):
-        try:
-            qs = []
-            reference_number = request.data.get('reference_number')
-            if reference_number:
-                qs= search_reference(reference_number)
-            serializer = SearchReferenceSerializer(qs)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                print(e)
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+        if is_internal(request):
+            choices_list = []
+            choices=AmendmentReason.objects.all()
+            if choices:
+                for c in choices:
+                    choices_list.append({'key': c.id,'value': c.reason})
+            return Response(choices_list)
+        else:
+            return Response()
 
 
 class VesselOwnershipViewSet(viewsets.ModelViewSet):

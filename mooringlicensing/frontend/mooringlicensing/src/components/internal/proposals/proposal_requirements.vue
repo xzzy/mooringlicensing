@@ -219,7 +219,6 @@ export default {
             console.log('fetchRequirements')
             let vm = this;
             let url = api_endpoints.proposal_standard_requirements
-            //let url = api_endpoints.proposal_requirements
             console.log('url: ' + url)
             vm.$http.get(url, {params: {'application_type_code': vm.proposal.application_type_code}}).then((response) => {
                 vm.requirements = response.body
@@ -257,6 +256,7 @@ export default {
         sendDirection(req,direction){
             let movement = direction == 'down'? 'move_down': 'move_up';
             this.$http.get(helpers.add_endpoint_json(api_endpoints.proposal_requirements,req+'/'+movement)).then((response) => {
+                this.$refs.requirements_datatable.vmDataTable.ajax.reload()
             },(error) => {
                 console.log(error);
 
@@ -266,16 +266,12 @@ export default {
             // Move the row up
             let vm = this;
             e.preventDefault();
-            var tr = $(e.target).parents('tr');
-            vm.moveRow(tr, 'up');
             vm.sendDirection($(e.target).parent().data('id'),'up');
         },
         moveDown(e) {
             // Move the row down
             e.preventDefault();
             let vm = this;
-            var tr = $(e.target).parents('tr');
-            vm.moveRow(tr, 'down');
             vm.sendDirection($(e.target).parent().data('id'),'down');
         },
         moveRow(row, direction) {

@@ -114,8 +114,6 @@ api_patterns = [
     re_path(r'^api/',include(router.urls)),
     re_path(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
-    re_path(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
-    re_path(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
     re_path(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     re_path(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
     re_path(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
