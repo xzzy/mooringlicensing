@@ -59,7 +59,6 @@ from mooringlicensing.components.proposals.models import (
     Company,
     CompanyOwnership,
     Mooring,
-    ProposalMooringReportDocument,
 )
 from mooringlicensing.components.proposals.serializers import (
     ProposalForEndorserSerializer,
@@ -411,6 +410,7 @@ class GetVesselRegoNos(views.APIView):
 
         data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
         return Response({"results": data_transform})
+
 
 class GetCompanyNames(views.APIView):
 
@@ -974,40 +974,41 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
     @basic_exception_handler
     def mooring_report_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
+        
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = MooringReportDocument.objects.filter(
+                    proposalmooringreportdocument__proposal=instance,
+                    id=document_id,
+                )
+                if document.first()._file and os.path.isfile(document.first()._file.path):
+                    os.remove(document.first()._file.path)
+                if document.first():
+                    original_file_name = document.first().name
+                    document.first().delete()
+                    logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-        if action == 'delete':
-            document_id = request.data.get('document_id')
-            document = MooringReportDocument.objects.filter(
-                proposalmooringreportdocument__proposal=instance,
-                id=document_id,
-            )
-            if document.first()._file and os.path.isfile(document.first()._file.path):
-                os.remove(document.first()._file.path)
-            if document.first():
-                original_file_name = document.first().name
-                document.first().delete()
-                logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+                filepath = pathlib.Path(filename)
 
-            filepath = pathlib.Path(filename)
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                new_filename = filepath.stem + filepath.suffix
+                document = MooringReportDocument.objects.create(
+                    name=filepath.stem + filepath.suffix
+                )
+                instance.mooring_report_documents.add(document)
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            document = MooringReportDocument.objects.create(
-                name=filepath.stem + filepath.suffix
-            )
-            instance.mooring_report_documents.add(document)
-            document._file.save(new_filename, ContentFile(_file.read()))
-
-            logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
 
         docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
@@ -1198,45 +1199,46 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def vessel_rego_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        if action == 'delete':
-            document_id = request.data.get('document_id')
-            document = VesselRegistrationDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                original_file_name = document.original_file_name
-                original_file_ext = document.original_file_ext
-                document.delete()
-                logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = VesselRegistrationDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.original_file_name
+                    original_file_ext = document.original_file_ext
+                    document.delete()
+                    logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-            filepath = pathlib.Path(filename)
-            original_file_name = filepath.stem
-            original_file_ext = filepath.suffix
+                filepath = pathlib.Path(filename)
+                original_file_name = filepath.stem
+                original_file_ext = filepath.suffix
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + original_file_ext
-            else:
-                new_filename = original_file_name + original_file_ext
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + original_file_ext
+                else:
+                    new_filename = original_file_name + original_file_ext
 
-            document = VesselRegistrationDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix,
-                original_file_name=original_file_name,
-                original_file_ext=original_file_ext,
-            )
-            document._file.save(new_filename, ContentFile(_file.read()))
+                document = VesselRegistrationDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix,
+                    original_file_name=original_file_name,
+                    original_file_ext=original_file_ext,
+                )
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
         docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
         docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
@@ -1250,40 +1252,41 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def electoral_roll_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        if action == 'delete':
-            document_id = request.data.get('document_id')
-            document = ElectoralRollDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                original_file_name = document.name
-                document.delete()
-                logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = ElectoralRollDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.name
+                    document.delete()
+                    logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-            filepath = pathlib.Path(filename)
+                filepath = pathlib.Path(filename)
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                new_filename = filepath.stem + filepath.suffix
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            document = ElectoralRollDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix
-            )
-            document._file.save(new_filename, ContentFile(_file.read()))
+                document = ElectoralRollDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix
+                )
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
 
         docs_in_limbo = instance.electoral_roll_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
@@ -1296,41 +1299,42 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def hull_identification_number_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
-        
-        if action == 'delete':
-            document_id = request.data.get('document_id')
-            document = HullIdentificationNumberDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                original_file_name = document.name
-                document.delete()
-                logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
 
-            filepath = pathlib.Path(filename)
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = HullIdentificationNumberDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.name
+                    document.delete()
+                    logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                new_filename = filepath.stem + filepath.suffix
+                filepath = pathlib.Path(filename)
 
-            document = HullIdentificationNumberDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix
-            )
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            document._file.save(new_filename, ContentFile(_file.read()))
+                document = HullIdentificationNumberDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix
+                )
 
-            logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
+                document._file.save(new_filename, ContentFile(_file.read()))
+
+                logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
         docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
@@ -1344,42 +1348,41 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @basic_exception_handler
     def insurance_certificate_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        if action == 'delete':
-            document_id = request.data.get('document_id')
-            document = InsuranceCertificateDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                original_file_name = document.name
-                document.delete()
-                logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = InsuranceCertificateDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.name
+                    document.delete()
+                    logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-            filepath = pathlib.Path(filename)
+                filepath = pathlib.Path(filename)
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                new_filename = filepath.stem + filepath.suffix
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            document = InsuranceCertificateDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix
-            )
-            document._file.save(new_filename, ContentFile(_file.read()))
+                document = InsuranceCertificateDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix
+                )
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
         docs_in_limbo = instance.insurance_certificate_documents.all()  # Files uploaded when vessel_ownership is unknown
@@ -1410,7 +1413,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1837,13 +1839,11 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response()
 
 
-class ProposalRequirementViewSet(viewsets.ModelViewSet):
+class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
 
     def get_queryset(self):
-        # qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        # return qs
         queryset = ProposalRequirement.objects.none()
         user = self.request.user
         if is_internal(self.request):
@@ -1852,8 +1852,6 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
             queryset = ProposalRequirement.objects.filter(
                 Q(proposal_applicant__email_user_id=user.id)
             )
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @detail_route(methods=['GET',], detail=True)
@@ -1993,6 +1991,7 @@ class SearchKeywordsView(views.APIView):
             qs= searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance)
         serializer = SearchKeywordSerializer(qs, many=True)
         return Response(serializer.data)
+
 
 class SearchReferenceView(views.APIView):
     renderer_classes = [JSONRenderer,]
