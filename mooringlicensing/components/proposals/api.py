@@ -1978,7 +1978,7 @@ class AmendmentRequestReasonChoicesView(views.APIView):
             return Response()
 
 
-class VesselOwnershipViewSet(viewsets.ModelViewSet):
+class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = VesselOwnership.objects.all().order_by('id')
     serializer_class = VesselOwnershipSerializer
 
@@ -1990,11 +1990,9 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             queryset = VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return VesselOwnership.objects.none()
 
     @detail_route(methods=['POST'], detail=True)
-    
     @basic_exception_handler
     def process_vessel_registration_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -2118,7 +2116,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class CompanyViewSet(viewsets.ModelViewSet):
+class CompanyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Company.objects.all().order_by('id')
     serializer_class = CompanySerializer
 
@@ -2131,7 +2129,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
             companyownerships = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
             queryset = Company.objects.filter(Q(companyownership__in=companyownerships))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Company.objects.none()
 
     @detail_route(methods=['POST',], detail=True)
@@ -2157,7 +2154,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
         return Response(empty_co)
 
 
-class CompanyOwnershipViewSet(viewsets.ModelViewSet):
+class CompanyOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = CompanyOwnership.objects.all().order_by('id')
     serializer_class = CompanyOwnershipSerializer
     
@@ -2169,50 +2166,12 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             queryset = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return CompanyOwnership.objects.none()
 
-    @detail_route(methods=['GET',], detail=True)
-    @basic_exception_handler
-    def lookup_company_ownership(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        vessel_details = vessel.latest_vessel_details
-        vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
-        vessel_serializer = VesselSerializer(vessel)
-        vessel_data = vessel_serializer.data
-        vessel_data["vessel_details"] = vessel_details_serializer.data
 
-        # vessel_ownership
-        vessel_ownership_data = {}
-        # check if this emailuser has a matching record for this vessel
-        owner_qs = Owner.objects.filter(emailuser=request.user)
-        if owner_qs:
-            owner = owner_qs[0]
-            vo_qs = vessel.vesselownership_set.filter(owner=owner)
-            if vo_qs:
-                vessel_ownership = vo_qs[0]
-                vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-                vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
-        vessel_data["vessel_ownership"] = vessel_ownership_data
-        return Response(vessel_data)
-
-
-class VesselViewSet(viewsets.ModelViewSet):
+class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
-
-    def get_queryset(self):
-        queryset = Vessel.objects.none()
-        user = self.request.user
-        queryset = Vessel.objects.all().order_by('id')
-        #if is_internal(self.request):
-        #    queryset = Vessel.objects.all().order_by('id')
-        #elif is_customer(self.request):
-        #    owner = Owner.objects.filter(emailuser=user.id)
-        #    if owner:
-        #        queryset = owner.first().vessels.distinct()
-        return queryset
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2283,38 +2242,36 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = VesselLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = VesselLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['vessel'] = u'{}'.format(instance.id)
-            request.data._mutable=mutable
-            serializer = VesselLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['vessel'] = u'{}'.format(instance.id)
+                request.data._mutable=mutable
+                serializer = VesselLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
-
-    @detail_route(methods=['GET',], detail=True)
-    @basic_exception_handler
-    def action_log(self, request, *args, **kwargs):
-        return Response([])
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2322,8 +2279,6 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel = self.get_object()
         owner_set = Owner.objects.filter(emailuser=request.user.id)
         if owner_set:
-            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
-            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             if vo_set:
                 serializer = VesselOwnershipSerializer(vo_set[0])
@@ -2335,8 +2290,9 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def full_details(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        return Response(VesselFullSerializer(vessel).data)
+        if is_internal(request):
+            vessel = self.get_object()
+            return Response(VesselFullSerializer(vessel).data)
  
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -2365,39 +2321,39 @@ class VesselViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',], detail=False)
     def list_internal(self, request, *args, **kwargs):
+        if is_internal(request):
+            search_text = request.GET.get('search[value]', '')
+            target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+            if target_email_user_id:
+                try:
+                    owner = Owner.objects.get(emailuser=target_email_user_id)
+                except ObjectDoesNotExist:
+                    raise serializers.ValidationError("user does not exist with provided email user id")
+                except:
+                    raise serializers.ValidationError("error")
+            else:
+                raise serializers.ValidationError("no email user id provided")
 
-        search_text = request.GET.get('search[value]', '')
-        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
-        if target_email_user_id:
-            try:
-                owner = Owner.objects.get(emailuser=target_email_user_id)
-            except ObjectDoesNotExist:
-                raise serializers.ValidationError("user does not exist with provided email user id")
-            except:
-                raise serializers.ValidationError("error")
+            vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_vessel_ownership_ids = []
+                matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
+                for vo in vessel_ownership_list:
+                    vd = vo.vessel.latest_vessel_details
+                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
+                            search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
+                            vd.vessel_type in matching_vessel_type_choices or
+                            search_text in vo.end_date.strftime('%d/%m/%Y')
+                    ):
+                        search_text_vessel_ownership_ids.append(vo.id)
+                vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+
+            serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
+            return Response(serializer.data)
         else:
-            raise serializers.ValidationError("no email user id provided")
-
-        vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
-
-        # TODO review - rewrite following for vessel_ownership_list
-        if search_text:
-            search_text = search_text.lower()
-            search_text_vessel_ownership_ids = []
-            matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
-            for vo in vessel_ownership_list:
-                vd = vo.vessel.latest_vessel_details
-                if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
-                        search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                        vd.vessel_type in matching_vessel_type_choices or
-                        search_text in vo.end_date.strftime('%d/%m/%Y')
-                ):
-                    search_text_vessel_ownership_ids.append(vo.id)
-            vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
-
-        serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
-        return Response(serializer.data)
-
+            raise serializers.ValidationError("user not authorised")
 
     @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):
@@ -2438,14 +2394,9 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringBaySerializer
 
     def get_queryset(self):
-        # return MooringBay.objects.filter(active=True)
-
         queryset = MooringBay.objects.none()
-        user = self.request.user
         if is_internal(self.request) or is_customer(self.request):
             queryset = MooringBay.objects.filter(active=True)
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @list_route(methods=['GET',], detail=False)
@@ -2470,9 +2421,6 @@ class MooringFilterBackend(DatatablesFilterBackend):
         if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
             queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
 
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -2508,38 +2456,17 @@ class MooringFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class MooringRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(MooringRenderer, self).render(data, accepted_media_type, renderer_context)
-
-
-class MooringPaginatedViewSet(viewsets.ModelViewSet):
+class MooringPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (MooringFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (MooringRenderer,)
     queryset = Mooring.objects.none()
     serializer_class = ListMooringSerializer
-    page_size = 10
 
     def get_queryset(self):
-        request_user = self.request.user
         qs = Mooring.objects.none()
-
         if is_internal(self.request):
             qs = Mooring.private_moorings.filter(active=True)
-
         return qs
-
-    @list_route(methods=['GET',], detail=False)
-    def list_internal(self, request, *args, **kwargs):
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
-
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListMooringSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
 
 
 class MooringViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2547,14 +2474,9 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringSerializer
 
     def get_queryset(self):
-        # return Mooring.objects.filter(active=True)
-
         queryset = Mooring.objects.none()
-        user = self.request.user
         if is_internal(self.request) or is_customer(self.request):
             queryset = Mooring.objects.filter(active=True)
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @detail_route(methods=['POST',], detail=True)
@@ -2572,7 +2494,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
             return Response(data)
         raise serializers.ValidationError("not authorised to view related bookings")
-
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2607,51 +2528,39 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = MooringLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = MooringLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['mooring'] = u'{}'.format(instance.id)
-            request.data._mutable=mutable
-            serializer = MooringLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['mooring'] = u'{}'.format(instance.id)
+                request.data._mutable=mutable
+                serializer = MooringLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
-
-    @detail_route(methods=['GET',], detail=True)
-    @basic_exception_handler
-    def action_log(self, request, *args, **kwargs):
-        return Response([])
-
-    @list_route(methods=['GET',], detail=False)
-    @basic_exception_handler
-    def internal_list(self, request, *args, **kwargs):
-        # add security
-        mooring_qs = Mooring.private_moorings.filter(active=True)
-        serializer = ListMooringSerializer(mooring_qs, many=True)
-        return Response(serializer.data)
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def fetch_mooring_name(self, request, *args, **kwargs):
-        # add security
         instance = self.get_object()
         return Response({"name": instance.name})
-
