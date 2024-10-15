@@ -10,11 +10,9 @@ from django.db.models import Q, CharField, Value
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, views, mixins
-from rest_framework.decorators import renderer_classes
 from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import action as list_route
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
 from datetime import datetime
 from ledger_api_client.settings_base import TIME_ZONE
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
@@ -115,8 +113,6 @@ from mooringlicensing.helpers import (
 )
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework_datatables.renderers import DatatablesRenderer
-from reversion.models import Version
 from copy import deepcopy
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -1460,6 +1456,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
             return Response(serializer.data)
+        return Response()
     
     @detail_route(methods=['POST',], detail=True)
     def internal_endorse(self, request, *args, **kwargs):
@@ -1487,6 +1484,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
             return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     def internal_decline(self, request, *args, **kwargs):
@@ -1514,6 +1512,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
             return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler

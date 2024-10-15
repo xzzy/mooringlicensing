@@ -1,39 +1,19 @@
 import logging
-import traceback
-# import os
-# import datetime
-# import base64
-# import geojson
+
 from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework_datatables.renderers import DatatablesRenderer
-# from wsgiref.util import FileWrapper
-from django.db.models import Q, Min, CharField, Value
+from django.db.models import Q, CharField, Value
 from django.db.models.functions import Concat
 from django.db import transaction
-# from django.http import HttpResponse
-# from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
 from django.conf import settings
-# from django.contrib import messages
-# from django.utils import timezone
-from rest_framework import viewsets, serializers, views
-# from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework import viewsets, serializers, views, mixins
 from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import action as list_route
-from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
-# from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
-# from rest_framework.pagination import PageNumberPagination
-# from datetime import datetime, timedelta
-# from collections import OrderedDict
 from django.core.cache import cache
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from ledger_api_client.managed_models import SystemUser
 
-# from ledger.address.models import Country
-# from datetime import datetime, timedelta, date
 from mooringlicensing.components.compliances.models import (
    Compliance,
    ComplianceAmendmentRequest,
@@ -55,7 +35,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 logger = logging.getLogger(__name__)
 
 
-class ComplianceViewSet(viewsets.ModelViewSet):
+class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     serializer_class = ComplianceSerializer
     queryset = Compliance.objects.none()
 
@@ -63,18 +43,21 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Compliance.objects.all()
         elif is_customer(self.request):
-            queryset =  Compliance.objects.filter(Q(proposal__proposal_applicant__email_user_id=self.request.user.id)).exclude(processing_status='discarded')
+            queryset =  Compliance.objects.filter(
+                Q(proposal__proposal_applicant__email_user_id=self.request.user.id)
+            ).exclude(processing_status='discarded')
             return queryset
         return Compliance.objects.none()
 
     @detail_route(methods=['GET',], detail=True)
     def internal_compliance(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = InternalComplianceSerializer(instance,context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = InternalComplianceSerializer(instance,context={'request':request})
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -112,10 +95,12 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.assign_to(request.user,request)
-        serializer = InternalComplianceSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            instance.assign_to(request.user,request)
+            serializer = InternalComplianceSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -190,7 +175,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -239,7 +223,6 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
 
 class ComplianceAmendmentReasonChoicesView(views.APIView):
 
-    renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
         choices_list = []
         choices=ComplianceAmendmentReason.objects.all()
@@ -250,7 +233,6 @@ class ComplianceAmendmentReasonChoicesView(views.APIView):
 
 
 class GetComplianceStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         #data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
@@ -338,4 +320,3 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
-
