@@ -97,7 +97,6 @@ export default {
                 proposal: vm.proposal,
                 num_files: 0,
                 input_name: 'amendment_request_doc',
-                requirement_documents: [],
             },
             reason_choices: {},
             errors: false,

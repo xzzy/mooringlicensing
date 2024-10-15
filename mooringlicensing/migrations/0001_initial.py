@@ -901,7 +901,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(blank=True, max_length=255, verbose_name='name')),
                 ('description', models.TextField(blank=True, verbose_name='description')),
                 ('uploaded_date', models.DateTimeField(auto_now_add=True)),
-                ('_file', models.FileField(max_length=512, upload_to=mooringlicensing.components.proposals.models.update_requirement_doc_filename)),
+                #('_file', models.FileField(max_length=512, upload_to=mooringlicensing.components.proposals.models.update_requirement_doc_filename)),
                 ('input_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('can_delete', models.BooleanField(default=True)),
                 ('visible', models.BooleanField(default=True)),

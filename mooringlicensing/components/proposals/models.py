@@ -102,9 +102,6 @@ def update_onhold_doc_filename(instance, filename):
 def update_proposal_required_doc_filename(instance, filename):
     return '{}/proposals/{}/required_documents/{}'.format(settings.MEDIA_APP_DIR, instance.proposal.id,filename)
 
-def update_requirement_doc_filename(instance, filename):
-    return '{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, instance.requirement.proposal.id,filename)
-
 def update_proposal_comms_log_filename(instance, filename):
     return '{}/proposals/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.proposal.id, instance.log_entry.id, filename)
 
@@ -5548,28 +5545,6 @@ class ProposalRequirement(OrderedModel):
                 return True
         return False
 
-    def add_documents(self, request):
-        with transaction.atomic():
-            try:
-                # save the files
-                data = json.loads(request.data.get('data'))
-                if not data.get('update'):
-                    documents_qs = self.requirement_documents.filter(input_name='requirement_doc', visible=True)
-                    documents_qs.delete()
-                for idx in range(data['num_files']):
-                    _file = request.data.get('file-'+str(idx))
-                    document = self.requirement_documents.create(
-                        _file=_file, 
-                        name=_file.name,
-                        input_name = data['input_name'],
-                        can_delete = True
-                    )
-                # end save documents
-                self.save()
-            except:
-                raise
-        return
-
 
 @receiver(pre_delete, sender=Proposal)
 def delete_documents(sender, instance, *args, **kwargs):
@@ -5735,5 +5710,5 @@ reversion.register(AmendmentRequest, follow=[])
 reversion.register(ProposalDeclinedDetails, follow=[])
 reversion.register(ProposalStandardRequirement, follow=['proposalrequirement_set'])
 reversion.register(ProposalUserAction, follow=[])
-reversion.register(ProposalRequirement, follow=['requirement_documents', 'proposalrequirement_set', 'compliance_requirement'])
+reversion.register(ProposalRequirement, follow=['proposalrequirement_set', 'compliance_requirement'])
 reversion.register(HelpPage, follow=[])

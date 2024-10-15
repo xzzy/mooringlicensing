@@ -172,11 +172,11 @@ class Migration(migrations.Migration):
             name='_file',
             field=models.FileField(max_length=512, null=True, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.approvals.models.RenewalDocument.upload_to),
         ),
-        migrations.AlterField(
-            model_name='requirementdocument',
-            name='_file',
-            field=models.FileField(max_length=512, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.proposals.models.update_requirement_doc_filename),
-        ),
+        #migrations.AlterField(
+        #    model_name='requirementdocument',
+        #    name='_file',
+        #    field=models.FileField(max_length=512, storage=django.core.files.storage.FileSystemStorage(base_url='/private-media/', location='/data/data/projects/mooringlicensing/private-media'), upload_to=mooringlicensing.components.proposals.models.update_requirement_doc_filename),
+        #),
         migrations.AlterField(
             model_name='signedlicenceagreementdocument',
             name='_file',
