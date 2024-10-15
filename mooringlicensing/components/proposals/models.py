@@ -138,18 +138,6 @@ class ProposalDocument(Document):
         verbose_name = "Application Document"
 
 
-class RequirementDocument(Document):
-    requirement = models.ForeignKey('ProposalRequirement',related_name='requirement_documents', on_delete=models.CASCADE)
-    _file = models.FileField(storage=private_storage,upload_to=update_requirement_doc_filename, max_length=512)
-    input_name = models.CharField(max_length=255,null=True,blank=True)
-    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
-
-    def delete(self):
-        if self.can_delete:
-            return super(RequirementDocument, self).delete()
-
-
 VESSEL_TYPES = (
         ('catamaran', 'Catamaran'),
         ('bow_rider', 'Bow Rider'),
@@ -338,7 +326,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
     approval_level = models.CharField('Activity matrix approval level', max_length=255,null=True,blank=True)
-    approval_level_document = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='approval_level_document', on_delete=models.SET_NULL) #TODO not used, remove
     approval_comment = models.TextField(blank=True)
     #If the proposal is created as part of migration of approvals
     migrated=models.BooleanField(default=False)
@@ -5705,7 +5692,6 @@ class HelpPage(models.Model):
 import reversion
 
 reversion.register(ProposalDocument)
-reversion.register(RequirementDocument, follow=[])
 reversion.register(ProposalType, follow=['proposal_set',])
 # TODO: fix this to improve performance
 #reversion.register(Proposal, follow=['documents', 'succeeding_proposals', 'comms_logs', 'companyownership_set', 'insurance_certificate_documents', 'hull_identification_number_documents', 'electoral_roll_documents', 'mooring_report_documents', 'written_proof_documents', 'signed_licence_agreement_documents', 'proof_of_identity_documents', 'proposalrequest_set', 'proposaldeclineddetails', 'action_logs', 'requirements', 'application_fees', 'approval_history_records', 'approvals', 'sticker_set', 'compliances'])

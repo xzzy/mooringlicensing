@@ -15,7 +15,6 @@ from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.proposals.models import (
     Proposal,
-    ProposalApplicant,
     ProposalUserAction,
     ProposalLogEntry,
     VesselLogEntry,
@@ -24,8 +23,6 @@ from mooringlicensing.components.proposals.models import (
     ProposalStandardRequirement,
     ProposalDeclinedDetails,
     AmendmentRequest,
-    AmendmentReason,
-    RequirementDocument,
     VesselDetails,
     VesselOwnership,
     Vessel,
@@ -1375,15 +1372,8 @@ class MooringLogEntrySerializer(CommunicationLogEntrySerializer):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
 
-class RequirementDocumentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RequirementDocument
-        fields = ('id', 'name', '_file')
-
-
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
-    requirement_documents = RequirementDocumentSerializer(many=True, read_only=True)
     read_due_date = serializers.SerializerMethodField()
 
     class Meta:
@@ -1402,7 +1392,6 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
             'requirement',
             'is_deleted',
             'copied_from',
-            'requirement_documents',
             'require_due_date',
             'copied_for_renewal',
             'read_due_date',

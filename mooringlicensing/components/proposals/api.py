@@ -45,7 +45,6 @@ from mooringlicensing.components.proposals.models import (
     AmendmentRequest,
     AmendmentReason,
     VesselDetails,
-    RequirementDocument,
     WaitingListApplication,
     AnnualAdmissionApplication,
     AuthorisedUserApplication,
@@ -1848,18 +1847,15 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         user = self.request.user
         if is_internal(self.request):
             queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        elif is_customer(self.request):
-            queryset = ProposalRequirement.objects.filter(
-                Q(proposal_applicant__email_user_id=user.id)
-            )
         return queryset
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def move_up(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.up()
-        instance.save()
+        if (instance.has_assessor_mode(request.user)):
+            instance.up()
+            instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -1867,8 +1863,9 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def move_down(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.down()
-        instance.save()
+        if (instance.has_assessor_mode(request.user)):
+            instance.down()
+            instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -1876,18 +1873,11 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def discard(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.is_deleted = True
-        instance.save()
+        if (instance.has_assessor_mode(request.user)):
+            instance.is_deleted = True
+            instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
-
-    @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def delete_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        RequirementDocument.objects.get(id=request.data.get('id')).delete()
-        return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
 
     @basic_exception_handler
     def update(self, request, *args, **kwargs):
@@ -2034,7 +2024,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         return VesselOwnership.objects.none()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
+    
     @basic_exception_handler
     def process_vessel_registration_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -2329,7 +2319,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
+    
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -2653,7 +2643,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
+    
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         with transaction.atomic():
