@@ -2,7 +2,7 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
-<p>Your authorised user application {{ proposal.lodgement_number }} has been declined.</p>
+<p>Your authorised user permit application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.</p>
 {% if details %}<p>Details: {{ details }}</p>{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

@@ -16,6 +16,7 @@ import django_countries
 import pytz
 import uuid
 from mooringlicensing.components.approvals.email import send_aup_revoked_due_to_mooring_swap_email
+from mooringlicensing.components.proposals.email import send_aua_declined_by_endorser_email
 from mooringlicensing.ledger_api_utils import retrieve_system_user
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
@@ -362,6 +363,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     waiting_list_allocation = models.ForeignKey('mooringlicensing.WaitingListAllocation',null=True,blank=True, related_name="ria_generated_proposal", on_delete=models.SET_NULL)
     date_invited = models.DateField(blank=True, null=True)  # The date RIA has invited the WLAllocation holder.  This application is expired in a configurable number of days after the invitation without submit.
     invitee_reminder_sent = models.BooleanField(default=False)
+    invitee_reminder_date = models.DateTimeField(blank=True, null=True)
     temporary_document_collection_id = models.IntegerField(blank=True, null=True)
     # MLA documents
     proof_of_identity_documents = models.ManyToManyField('ProofOfIdentityDocument', through=ProposalProofOfIdentityDocument)
@@ -3580,7 +3582,6 @@ class AuthorisedUserApplication(Proposal):
             approval.expiry_date = self.end_date
             approval.submitter = self.submitter
             approval.renewal_sent = False
-            approval.expiry_notice_sent = False
             approval.renewal_count += 1
             approval.save()
 
@@ -4537,6 +4538,7 @@ class ProposalSiteLicenseeMooringRequest(models.Model):
         self.approved_by_endorser = False
         self.save()
         logger.info(f'Endorsement declined for the Proposal: [{self.proposal}], Mooring: [{self.mooring}] by the endorser: [{request.user}].')
+        send_aua_declined_by_endorser_email(self.proposal,request)
         self.proposal.check_endorsements(request)
 
 class MooringLogDocument(Document):

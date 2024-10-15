@@ -2,9 +2,9 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.html" %}
-<p>You are reminded of the invitation to apply for a mooring site licence based on your current Waiting List Allocation {{ proposal.lodgement_number }}.
+<p>This is a reminder that you have not responded to our offer of a mooring site licence based on your current Waiting List Allocation {{ approval.lodgement_number }}.
 <p>If you do not accept the offer within the timeframe provided the offer will lapse and your name will be removed from the waiting list. The mooring site licence will then be offered to the next eligible waitlisted person.</p>
-<p>You are required to submit your application within {{ number_of_days }} number before {{ due_date }}.</p>
-<p>Please click <a href="{{ proposal_external_url }}">here</a> to access the application.</p>
+<p>You are required to submit your application before the due date {{ due_date }}.</p>
+<p>Please click <a href="{{ public_url }}">here</a> to login to your account.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

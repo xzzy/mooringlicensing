@@ -2,11 +2,8 @@
 
 {% block content_body %}
 <p>Dear {{ endorser.first_name }} {{ endorser.last_name}},</p>
-<p>{{ applicant.first_name }} {{ applicant.last_name}} has submitted an application for authorised use of your mooring site {{ mooring_name }}. Your endorsement of this application is due by {{ due_date }}.
-<ul>
-    <li>Please click <a href="{{ endorse_url }}">here</a> if you want to endorse the application.</li>
-    <li>Please click <a href="{{ decline_url }}">here</a> if you want to decline the application.</li>
-    <li>Please click <a href="{{ proposal_url }}">here</a> if you want to view the application details before endorsing or declining.</li>
-</ul>
+
+<p>Your endorsement for authorised use of your mooring site {{ mooring_name }} by {{ applicant.first_name }} {{ applicant.last_name}} with vessel {{vessel_rego_no}} is due by {{ due_date }}. </p>
+<p>Please click <a href="{{ dashboard_external_url }}">here</a> to login and check the endorsement section on the dashboard.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {% endblock %}

@@ -2,7 +2,7 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-Your authorised user application {{ proposal.lodgement_number }} has been declined.
+Your authorised user permit application {{ proposal.lodgement_number }} has been approved. Please see attached document for more details.
 {% if details %}Details: {{ details }}{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}

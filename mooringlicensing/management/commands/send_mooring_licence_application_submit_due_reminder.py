@@ -1,68 +1,100 @@
 from datetime import timedelta
-
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
+
 import logging
 
 from mooringlicensing.components.proposals.email import send_invitee_reminder_email
+from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.components.proposals.models import Proposal, MooringLicenceApplication
 from mooringlicensing.management.commands.utils import construct_email_message
-from mooringlicensing.settings import CODE_DAYS_IN_PERIOD_MLA, CODE_DAYS_BEFORE_PERIOD_MLA
+from mooringlicensing.settings import CODE_DAYS_FOR_FIRST_REMINDER, CODE_DAYS_FOR_SECOND_REMINDER, CODE_DAYS_FOR_FINAL_REMINDER, CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA
 
 logger = logging.getLogger('cron_tasks')
 cron_email = logging.getLogger('cron_email')
 
 
 class Command(BaseCommand):
-    help = 'Send email to waiting list allocation holder invited to apply for a mooring licence configurable number of days before end of configurable period in which the mooring licence application needs to be submitted'
+    help = 'Send an email to remind the WLA to accept the offered mooring licence before the offer expires'
 
     def handle(self, *args, **options):
-
-        errors = []
-        updates = []
         today = timezone.localtime(timezone.now()).date()
 
-        # Retrieve the number of days before expiry date of the approvals to email
-        days_type_period = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
-        days_setting_period = NumberOfDaysSetting.get_setting_by_date(days_type_period, today)
-        if not days_setting_period:
-            raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_period.name, today))
+        self.perform(WaitingListAllocation.code, today, **options)
+        self.perform(MooringLicence.code, today, **options)
 
-        days_type_before = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_PERIOD_MLA)
-        days_setting_before = NumberOfDaysSetting.get_setting_by_date(days_type_before, today)
-        if not days_setting_before:
-            raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_before.name, today))
+    def perform(self, approval_type, today, **options):
+        errors = []
+        updates = []
 
-        boundary_date = today - timedelta(days=days_setting_period.number_of_days) + timedelta(days=days_setting_before.number_of_days)
+        #Retrieve the date for which reminder email need to be sent
+        if approval_type == WaitingListAllocation.code:
+            approval_class = WaitingListAllocation
+            days_type_first_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_FIRST_REMINDER)
+            days_setting_first_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_first_reminder, today)
+            if not days_setting_first_reminder:
+                raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_first_reminder.name, today))
+            
+            days_type_second_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SECOND_REMINDER)
+            days_setting_second_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_second_reminder, today)
+            if not days_setting_second_reminder:
+                raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_second_reminder.name, today))
 
+            days_type_final_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_FINAL_REMINDER)
+            days_setting_final_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_final_reminder, today)
+            if not days_setting_final_reminder:
+                raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_final_reminder.name, today))
+
+            days_type_total_period = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
+            days_setting_total_period = NumberOfDaysSetting.get_setting_by_date(days_type_total_period, today)
+            if not days_setting_total_period:
+                raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_total_period.name, today))
+        else:
+            # Do nothing
+            return
+        days_first_reminder = days_setting_first_reminder.number_of_days
+        days_second_reminder = days_setting_second_reminder.number_of_days
+        days_final_reminder = days_setting_final_reminder.number_of_days
+        total_expire_period = days_setting_total_period.number_of_days
+        
+        notification_date_first = today + timedelta(days=days_first_reminder-total_expire_period)
+        notification_date_second = today + timedelta(days=days_second_reminder-total_expire_period) 
+        notification_date_final = today + timedelta(days=days_final_reminder-total_expire_period) 
         logger.info('Running command {}'.format(__name__))
 
-        # Construct queries
-        queries = Q()
-        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_DRAFT)
-        queries &= Q(lodgement_date__lt=boundary_date)
-        queries &= Q(invitee_reminder_sent=False)
-
-        for a in MooringLicenceApplication.objects.filter(queries):
+        # Get approvals
+        if approval_type == WaitingListAllocation.code:
+            queries = Q()
+            queries &= Q(status=Approval.APPROVAL_STATUS_CURRENT)
+            queries &= Q(internal_status=Approval.INTERNAL_STATUS_OFFERED)
+            queries &= (Q(issue_date__date=notification_date_first) | Q(issue_date__date=notification_date_second) | Q(issue_date__date=notification_date_final))
+            approvals = approval_class.objects.filter(queries)
+           
+        for a in approvals:
             try:
-                due_date = a.lodgement_date + timedelta(days=days_setting_period.number_of_days)
-                send_invitee_reminder_email(a, due_date, days_setting_before.number_of_days)
-                a.invitee_reminder_sent = True
-                a.save()
-                logger.info('Reminder to invitee sent for Proposal {}'.format(a.lodgement_number))
-                updates.append(a.lodgement_number)
+                proposal = a.current_proposal
+                today = timezone.localtime(timezone.now())
+                if(proposal.invitee_reminder_date is None or proposal.invitee_reminder_date.date() != today.date()):
+                    due_date = a.issue_date + timedelta(total_expire_period)
+                    send_invitee_reminder_email(a, due_date)
+                    proposal.invitee_reminder_sent = True
+                    proposal.invitee_reminder_date = today
+                    a.save()
+                    proposal.save()
+                    updates.append(a.lodgement_number)
+                    logger.info('Reminder to permission holder sent for Approval {}'.format(a.lodgement_number))
             except Exception as e:
-                err_msg = 'Error sending reminder to invitee for Proposal {}'.format(a.lodgement_number)
+                err_msg = 'Error sending reminder to permission holder for Approval {}'.format(a.lodgement_number)
                 logger.error('{}\n{}'.format(err_msg, str(e)))
                 errors.append(err_msg)
+       
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
+        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(
+        #     errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
+        # msg = '<p>{} ({}) completed. {}. IDs updated: {}.</p>'.format(cmd_name, approval_type, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)

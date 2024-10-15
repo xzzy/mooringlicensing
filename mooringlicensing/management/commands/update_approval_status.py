@@ -63,8 +63,8 @@ class Command(BaseCommand):
                         send_approval_suspend_email_notification(a)
 
                         proposal = a.current_proposal
-                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(a.id), user)
-                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(proposal.lodgement_number), user)
+                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(a.id), None)
+                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(proposal.lodgement_number), None)
                         logger.info('Updated Approval {} status to {}'.format(a.id, a.status))
                         updates.append(dict(suspended=a.lodgement_number))
                     except Exception as e:
@@ -85,8 +85,8 @@ class Command(BaseCommand):
                         send_approval_cancel_email_notification(a)
 
                         proposal = a.current_proposal
-                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id), user)
-                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number), user)
+                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id), None)
+                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number), None)
                         logger.info('Updated Approval {} status to {}'.format(a.id, a.status))
                         updates.append(dict(cancelled=a.lodgement_number))
                     except Exception as e:
@@ -96,17 +96,18 @@ class Command(BaseCommand):
 
             if a.surrender_details and a.set_to_surrender:
                 surrender_date = datetime.datetime.strptime(a.surrender_details['surrender_date'], '%d/%m/%Y')
-                surrender_date = surrender_date.date()                
+                surrender_date = surrender_date.date()
+                stickers_to_be_returned = a._process_stickers()          
                 if surrender_date <= today:
                     try:
                         a.status = Approval.APPROVAL_STATUS_SURRENDERED
                         a.set_to_surrender = False
                         a.save()
-                        send_approval_surrender_email_notification(a)
+                        send_approval_surrender_email_notification(a, stickers_to_be_returned=stickers_to_be_returned)
 
                         proposal = a.current_proposal
-                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id), user)
-                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.lodgement_number), user)
+                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id), None)
+                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.lodgement_number), None)
                         logger.info('Updated Approval {} status to {}'.format(a.id, a.status))
                         updates.append(dict(surrendered=a.lodgement_number))
                     except Exception as e:
@@ -125,8 +126,8 @@ class Command(BaseCommand):
                         a.save()
 
                         proposal = a.current_proposal
-                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(a.id), user)
-                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(proposal.lodgement_number), user)
+                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(a.id), None)
+                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_REINSTATE_APPROVAL.format(proposal.lodgement_number), None)
                         logger.info('Updated Approval {} status to {}'.format(a.id, a.status))
                         updates.append(dict(current=a.lodgement_number))
                     except Exception as e:
@@ -147,8 +148,8 @@ class Command(BaseCommand):
                         send_approval_cancel_email_notification(a)
 
                         proposal = a.current_proposal
-                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id), user)
-                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number), user)
+                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(a.id), None)
+                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_CANCEL_APPROVAL.format(proposal.lodgement_number), None)
                         logger.info('Updated Approval {} status to {}'.format(a.id,a.status))
                         updates.append(dict(cancelled=a.lodgement_number))
                     except Exception as e:
@@ -167,8 +168,8 @@ class Command(BaseCommand):
 
                         send_approval_surrender_email_notification(a)
                         proposal = a.current_proposal
-                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id), user)
-                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.lodgement_number), user)
+                        ApprovalUserAction.log_action(a, ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(a.id), None)
+                        ProposalUserAction.log_action(proposal, ProposalUserAction.ACTION_SURRENDER_APPROVAL.format(proposal.lodgement_number), None)
                         logger.info('Updated Approval {} status to {}'.format(a.id, a.status))
                         updates.append(dict(surrendered=a.lodgement_number))
                     except Exception as e:

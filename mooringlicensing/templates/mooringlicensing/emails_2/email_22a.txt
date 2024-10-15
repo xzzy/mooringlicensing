@@ -2,15 +2,14 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-Your application {{ proposal.lodgement_number }} to amend your authorised user permit has been conditionally approved pending payment of your fees. Please see attached invoice for more details.
+Your application {{ proposal.lodgement_number }} to amend your authorised user permit has been conditionally approved pending payment of your fees. Please see attached document for more details.
 {% if stickers_to_be_returned|length > 0 %}
-If you have not already done so, you are required to return your old sticker
+If you have been issued a new sticker, you are required to return your old sticker
     {% for sticker in stickers_to_be_returned %}
     {{ sticker.number }}{% if forloop.last %}{% else %},{% endif %}
     {% endfor %}
-to the Rottnest Island Authority. Failure to return or surrender stickers to RIA upon request, or prior to the sale or disposal of your vessel, can result in the cancellation of your authorised user permit. Once revoked, authorised user permits and mooring site authorisations cannot be re-instated.
+to the Rottnest Island Authority and the new sticker for your vessel will be mailed to you in the coming days.
 {% endif %}
-The new sticker for your vessel will be mailed to you in the coming days.
 Entry to the Reserve and access to the Shared Mooring System (SMS) is NOT approved until your current sticker is clearly displayed on the port side of your vessel. Penalties apply.
 Please access {{ payment_url }} to pay the fees for your authorised user permit.
 {% if details %}Details: {{ details }}{% endif %}

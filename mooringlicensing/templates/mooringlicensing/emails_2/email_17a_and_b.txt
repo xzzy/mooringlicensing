@@ -3,10 +3,10 @@
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
 {% if decision == 'approved' %}
-Your waiting list allocation application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached or click here to access your application.
+Your waiting list application {{ approval.lodgement_number }} has been approved. Please see your waitlist confirmation attached or click here to access your application.
 {% endif %}
 {% if decision == 'declined' %}
-Your waiting list allocation application {{ approval.lodgement_number }} has been declined.
+Your waiting list application {{ approval.lodgement_number }} has been declined.
 {% endif %}
 {% if details %}Details: {{ details }}{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
