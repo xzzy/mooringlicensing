@@ -826,36 +826,6 @@ class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
 
-    #TODO remove
-    def create(self, request, *args, **kwargs):
-        with transaction.atomic():
-            try:
-                system_user = SystemUser.objects.get(ledger_id=request.user)
-            except:
-                raise serializers.ValidationError("system user does not exist")
-            
-            try:
-                proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-            except:
-                raise serializers.ValidationError("proposal type does not exist")
-            mooring_id = request.data.get('mooring_id')
-            mooring=None
-            if mooring_id:
-                mooring = Mooring.objects.get(id=mooring_id)
-
-            obj = MooringLicenceApplication.objects.create(
-                    submitter=request.user.id,
-                    proposal_type=proposal_type,
-                    allocated_mooring=mooring,
-                    )
-            logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
-            obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
-
-            create_proposal_applicant(obj, system_user)
-
-            serialized_obj = ProposalSerializer(obj.proposal)
-            return Response(serialized_obj.data)
-
 
 class WaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
@@ -971,7 +941,10 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
     def mooring_report_document(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+        if ((
+            instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or
+            instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+            ) or is_internal(request)):
             action = request.data.get('action')
             if action == 'delete':
                 document_id = request.data.get('document_id')

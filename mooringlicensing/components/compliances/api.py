@@ -222,7 +222,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         raise serializers.ValidationError("User not authorised to add comms log")
     
 
-class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
+class ComplianceAmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ComplianceAmendmentRequest.objects.all()
     serializer_class = ComplianceAmendmentRequestSerializer
 
@@ -248,25 +248,26 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
 class ComplianceAmendmentReasonChoicesView(views.APIView):
 
     def get(self,request, format=None):
-        choices_list = []
-        choices=ComplianceAmendmentReason.objects.all()
-        if choices:
-            for c in choices:
-                choices_list.append({'key': c.id,'value': c.reason})
-        return Response(choices_list)
+        if is_internal(request):
+            choices_list = []
+            choices=ComplianceAmendmentReason.objects.all()
+            if choices:
+                for c in choices:
+                    choices_list.append({'key': c.id,'value': c.reason})
+            return Response(choices_list)
+        return Response()
 
 
 class GetComplianceStatusesDict(views.APIView):
 
     def get(self, request, format=None):
-        #data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
-        #return Response(data)
         data = {}
         if not cache.get('compliance_internal_statuses_dict') or not cache.get('compliance_external_statuses_dict'):
             cache.set('compliance_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Compliance.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
             cache.set('compliance_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
         data['external_statuses'] = cache.get('compliance_external_statuses_dict')
-        data['internal_statuses'] = cache.get('compliance_internal_statuses_dict')
+        if is_internal(request):
+            data['internal_statuses'] = cache.get('compliance_internal_statuses_dict')
         return Response(data)
 
 
@@ -308,13 +309,11 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class CompliancePaginatedViewSet(viewsets.ModelViewSet):
+class CompliancePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     queryset = Compliance.objects.none()
     serializer_class = ListComplianceSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
@@ -331,16 +330,3 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded").distinct()
         return qs
-
-    @list_route(methods=['GET',], detail=False)
-    def list_external(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
-
-        #result_page = self.paginator.paginate_queryset(qs, request)
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)

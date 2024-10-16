@@ -47,7 +47,7 @@ export default {
         return {
             proposals_url: api_endpoints.proposals_paginated_external,
             approvals_url: api_endpoints.approvals_paginated_external,
-            compliances_url: api_endpoints.compliances_paginated_external,
+            compliances_url: api_endpoints.compliances_paginated,
 
             system_name: api_endpoints.system_name,
         }

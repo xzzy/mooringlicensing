@@ -47,7 +47,7 @@ module.exports = {
     dcvpermits_paginated_list: '/api/dcvpermits_paginated',
     dcvadmissions_paginated_list: '/api/dcvadmissions_paginated',
     stickers_paginated_list: '/api/stickers_paginated',
-    compliances_paginated_external: '/api/compliances_paginated/list_external',
+    compliances_paginated: '/api/compliances_paginated',
     moorings_paginated_internal: '/api/moorings_paginated/list_internal',
     compliances:"/api/compliances.json",
     vessel_external_list: '/api/vessel/list_external',

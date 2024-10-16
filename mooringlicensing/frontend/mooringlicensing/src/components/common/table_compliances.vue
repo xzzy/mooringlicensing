@@ -54,125 +54,6 @@ export default {
             // selected values for filtering
             filterComplianceStatus: null,
             compliance_statuses: [],
-
-            // Datatable settings
-            /*
-            compliances_headers: ['Id', 'Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'],
-            compliances_options: {
-                searching: false,
-                autoWidth: false,
-                language: {
-                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
-                },
-                responsive: true,
-                serverSide: true,
-
-                ajax: {
-                    "url": api_endpoints.compliances_paginated_external + '?format=datatables',
-                    "dataSrc": 'data',
-
-                    // adding extra GET params for Custom filtering
-                    "data": function ( d ) {
-                        // Add filters selected
-                        d.filter_compliance_status = vm.filterComplianceStatus;
-                    }
-                },
-                dom: 'lBfrtip',
-                buttons:[
-                    //{
-                    //    extend: 'csv',
-                    //    exportOptions: {
-                    //        columns: ':visible'
-                    //    }
-                    //},
-                ],
-                columns: [
-                    {
-                        // 1. ID
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: false,
-                        'render': function(row, type, full){
-                            return full.id
-                        }
-                    },
-                    {
-                        // 2. Lodgement Number
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.lodgement_number
-                        }
-                    },
-                    {
-                        // 3. Licence/Permit
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.approval_number
-                        }
-                    },
-                    {
-                        // 4. Condition
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let requirement = '';
-                            if (full.requirement) {
-                                requirement = full.requirement.requirement;
-                            }
-                            return requirement;
-                        }
-                    },
-                    {
-                        // 5. Due Date
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let dueDate = '';
-                            if (full.requirement) {
-                                dueDate = full.requirement.read_due_date;
-                            }
-                            return dueDate;
-                        }
-                    },
-                    {
-                        // 6. Status
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return full.status
-                        }
-                    },
-                    {
-                        // 7. Action
-                        data: "id",
-                        orderable: true,
-                        searchable: true,
-                        visible: true,
-                        'render': function(row, type, full){
-                            return 'not implemented'
-                        }
-                    },
-                ],
-                processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                },
-
-            },
-            */
         }
     },
     components:{
@@ -401,7 +282,7 @@ export default {
                 ],
 
                 ajax: {
-                    "url": api_endpoints.compliances_paginated_external + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
+                    "url": api_endpoints.compliances_paginated + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
