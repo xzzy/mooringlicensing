@@ -12,7 +12,7 @@ from mooringlicensing.components.approvals.views import DcvAdmissionFormView
 from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
-    StickerReplacementFeeSuccessView, RefundProposalHistoryView, ProposalPaymentHistoryView, ApplicationFeeAlreadyPaid, \
+    StickerReplacementFeeSuccessView, ApplicationFeeAlreadyPaid, \
     ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload, \
     StickerReplacementFeeSuccessViewPreload
 from mooringlicensing.components.proposals import views as proposal_views
@@ -179,11 +179,6 @@ urlpatterns = [
     re_path(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
     re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
     re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
-
-    re_path(r'^proposal-payment-history/(?P<pk>[0-9]+)/', ProposalPaymentHistoryView.as_view(), name='view_proposal_payment_history'),
-    re_path(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
-    re_path(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
-    re_path(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
     re_path(r'^api/remove-AUP-from-mooring/(?P<mooring_id>\d+)/(?P<approval_id>\d+)$',approval_api.removeAUPFromMooring, name='remove_AUP_from_mooring'),

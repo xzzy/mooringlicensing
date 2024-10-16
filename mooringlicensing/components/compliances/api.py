@@ -7,7 +7,6 @@ from django.db import transaction
 from django.conf import settings
 from rest_framework import viewsets, serializers, views, mixins
 from rest_framework.decorators import action as detail_route
-from rest_framework.decorators import action as list_route
 from rest_framework.response import Response
 from django.core.cache import cache
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
@@ -33,7 +32,6 @@ from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 logger = logging.getLogger(__name__)
-
 
 class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     serializer_class = ComplianceSerializer
