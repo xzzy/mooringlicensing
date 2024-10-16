@@ -1,14 +1,11 @@
 import traceback
-from django.http import Http404, HttpResponse, HttpResponseRedirect, JsonResponse
-# from ledger.payments.utils import oracle_parser_on_invoice
+from django.http import HttpResponse, HttpResponseRedirect
 from django.db import transaction
 from wsgiref.util import FileWrapper
-from rest_framework import viewsets, serializers, status, generics, views
-# from rest_framework.decorators import detail_route, list_route, renderer_classes, parser_classes
+from rest_framework import viewsets, serializers, status, views
+
 from rest_framework.decorators import action as detail_route
-from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
 
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from mooringlicensing.components.main.models import (
@@ -16,70 +13,21 @@ from mooringlicensing.components.main.models import (
         TemporaryDocumentCollection,
         )
 from mooringlicensing.components.main.serializers import (
-    GlobalSettingsSerializer,
     OracleSerializer,
     TemporaryDocumentCollectionSerializer,
     BookingSettlementReportSerializer,
 )
 from mooringlicensing.components.main.process_document import save_document, cancel_document, delete_document
-from django.core.exceptions import ValidationError
-# from django.db.models import Q
 
-from mooringlicensing.components.payments_ml import reports
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.proposals.serializers import ProposalSerializer
-# from ledger.checkout.utils import create_basket_session, create_checkout_session, place_order_submission, get_cookie_basket
-# from collections import namedtuple
-# import json
-# from decimal import Decimal
 
 import logging
 from mooringlicensing.helpers import is_customer, is_internal
 
-from mooringlicensing.settings import LEDGER_SYSTEM_ID, SYSTEM_NAME
+from mooringlicensing.settings import LEDGER_SYSTEM_ID
 
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
-
-class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Proposal.objects.none()
-    serializer_class = ProposalSerializer
-    lookup_field = 'id'
-
-    def create(self, request, *args, **kwargs):
-        response = super(PaymentViewSet, self).create(request, *args, **kwargs)
-        # here may be placed additional operations for
-        # extracting id of the object and using reverse()
-        fallback_url = request.build_absolute_uri('/')
-        return HttpResponseRedirect(redirect_to=fallback_url + '/success/')
-
-
-class BookingSettlementReportView(views.APIView):
-   renderer_classes = (JSONRenderer,)
-
-   def get(self,request,format=None):
-       try:
-           http_status = status.HTTP_200_OK
-           #parse and validate data
-           report = None
-           data = {
-               "date":request.GET.get('date'),
-           }
-           serializer = BookingSettlementReportSerializer(data=data)
-           serializer.is_valid(raise_exception=True)
-           filename = 'Booking Settlement Report-{}'.format(str(serializer.validated_data['date']))
-           # Generate Report
-           report = reports.booking_bpoint_settlement_report(serializer.validated_data['date'])
-           if report:
-               response = HttpResponse(FileWrapper(report), content_type='text/csv')
-               response['Content-Disposition'] = 'attachment; filename="{}.csv"'.format(filename)
-               return response
-           else:
-               raise serializers.ValidationError('No report was generated.')
-       except serializers.ValidationError:
-           raise
-       except Exception as e:
-           traceback.print_exc()
 
 
 def oracle_integration(date, override):
@@ -92,7 +40,6 @@ class GetExternalDashboardSectionsList(views.APIView):
     """
     Return the section's name list for the external dashboard
     """
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         # data = ['LicencesAndPermitsTable', 'ApplicationsTable', 'CompliancesTable', 'WaitingListTable', 'AuthorisedUserApplicationsTable',]
@@ -102,7 +49,6 @@ class GetExternalDashboardSectionsList(views.APIView):
 
 
 class OracleJob(views.APIView):
-    renderer_classes = [JSONRenderer,]
 
     @basic_exception_handler
     def get(self, request, format=None):
@@ -144,7 +90,6 @@ class TemporaryDocumentCollectionViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data)
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     def process_temp_document(self, request, *args, **kwargs):
         print("process_temp_document")
         print(request.data)

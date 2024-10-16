@@ -80,7 +80,6 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             if 'num_participants' in request.data:
                 if request.FILES:
-                    # if num_adults is present instance.submit is executed after payment in das_payment/views.py
                     for f in request.FILES:
                         document = instance.documents.create(name=str(request.FILES[f]),_file = request.FILES[f])
             else:

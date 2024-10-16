@@ -63,7 +63,6 @@ router.register(r'proposal_standard_requirements', proposal_api.ProposalStandard
 router.register(r'users', users_api.UserViewSet, 'users')
 router.register(r'amendment_request', proposal_api.AmendmentRequestViewSet, 'amendment_request')
 router.register(r'compliance_amendment_request', compliances_api.ComplianceAmendmentRequestViewSet, 'compliance_amendment_request')
-router.register(r'payment', main_api.PaymentViewSet, 'payment')
 router.register(r'mooringbays', proposal_api.MooringBayViewSet, 'mooringbays')
 router.register(r'vessel', proposal_api.VesselViewSet, 'vessel')
 router.register(r'mooring', proposal_api.MooringViewSet, 'mooring')
@@ -115,7 +114,6 @@ api_patterns = [
     re_path(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
-    re_path(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
     re_path(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
 ]
 
