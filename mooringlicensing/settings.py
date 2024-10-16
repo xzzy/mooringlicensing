@@ -63,7 +63,6 @@ INSTALLED_APPS += [
     'rest_framework',
     'rest_framework_datatables',
     'reset_migrations',
-    'ckeditor',
     'ledger_api_client',
     'appmonitor_client',
     'crispy_bootstrap5',
@@ -147,17 +146,6 @@ os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','
 ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 
 BASE_URL=env('BASE_URL')
-
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'full',
-        'height': 300,
-        'width': '100%',
-    },
-    'awesome_ckeditor': {
-        'toolbar': 'Basic',
-    },
-}
 
 CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
 if CONSOLE_EMAIL_BACKEND:

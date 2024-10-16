@@ -57,7 +57,6 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
-from ckeditor.fields import RichTextField
 
 # from ledger.checkout.utils import createCustomBasket
 # from ledger.payments.invoice.utils import CreateInvoiceBasket

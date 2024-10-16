@@ -1,7 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from mooringlicensing.components.main.models import SystemMaintenance
-from ckeditor.widgets import CKEditorWidget
 from django.conf import settings
 import pytz
 from datetime import datetime, timedelta
