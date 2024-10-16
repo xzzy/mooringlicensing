@@ -11,7 +11,7 @@ from django.db.models import Q
 from mooringlicensing import settings
 from mooringlicensing.components.proposals.models import (ElectoralRollDocument, HullIdentificationNumberDocument, 
                                                           InsuranceCertificateDocument, ProofOfIdentityDocument, Proposal,
-                                                          HelpPage, AuthorisedUserApplication, Mooring, 
+                                                          AuthorisedUserApplication, Mooring, 
                                                           MooringLicenceApplication, SignedLicenceAgreementDocument, 
                                                           VesselRegistrationDocument, WrittenProofDocument,
                                                           ProposalSiteLicenseeMooringRequest,
@@ -92,15 +92,6 @@ class ComplianceHistoryCompareView(HistoryCompareDetailView):
     View for reversion_compare
     """
     model = Compliance
-    template_name = 'mooringlicensing/reversion_history.html'
-
-
-
-class HelpPageHistoryCompareView(HistoryCompareDetailView):
-    """
-    View for reversion_compare
-    """
-    model = HelpPage
     template_name = 'mooringlicensing/reversion_history.html'
 
 

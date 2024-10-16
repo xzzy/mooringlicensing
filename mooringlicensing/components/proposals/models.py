@@ -5568,27 +5568,6 @@ def clone_proposal_with_status_reset(original_proposal):
             raise
 
 
-class HelpPage(models.Model):
-    HELP_TEXT_EXTERNAL = 1
-    HELP_TEXT_INTERNAL = 2
-    HELP_TYPE_CHOICES = (
-        (HELP_TEXT_EXTERNAL, 'External'),
-        (HELP_TEXT_INTERNAL, 'Internal'),
-    )
-
-    content = RichTextField()
-    description = models.CharField(max_length=256, blank=True, null=True)
-    help_type = models.SmallIntegerField('Help Type', choices=HELP_TYPE_CHOICES, default=HELP_TEXT_EXTERNAL)
-    version = models.SmallIntegerField(default=1, blank=False, null=False)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        unique_together = (
-                'help_type',
-                'version'
-                )
-
-
 import reversion
 
 reversion.register(ProposalDocument)
@@ -5636,4 +5615,3 @@ reversion.register(ProposalDeclinedDetails, follow=[])
 reversion.register(ProposalStandardRequirement, follow=['proposalrequirement_set'])
 reversion.register(ProposalUserAction, follow=[])
 reversion.register(ProposalRequirement, follow=['proposalrequirement_set', 'compliance_requirement'])
-reversion.register(HelpPage, follow=[])

@@ -12,10 +12,7 @@ from mooringlicensing import settings
 from mooringlicensing.helpers import is_internal, is_customer
 from mooringlicensing.forms import *
 from mooringlicensing.components.approvals.models import Approval, DcvAdmission, DcvPermit
-from mooringlicensing.components.proposals.models import (
-        Proposal, 
-        HelpPage
-        )
+from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.compliances.models import Compliance
 from django.core.management import call_command
 from django.db.models import Q
@@ -135,24 +132,6 @@ def first_time(request):
     context['dev'] = settings.DEV_STATIC
     context['dev_url'] = settings.DEV_STATIC_URL
     return render(request, 'mooringlicensing/dash/index.html', context)
-
-
-class HelpView(LoginRequiredMixin, TemplateView):
-    template_name = 'mooringlicensing/help.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(HelpView, self).get_context_data(**kwargs)
-
-        if self.request.user.is_authenticated:
-            application_type = kwargs.get('application_type', None)
-            if kwargs.get('help_type', None)=='assessor':
-                if is_internal(self.request):
-                    qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_INTERNAL).order_by('-version')
-                    context['help'] = qs.first()
-            else:
-                qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_EXTERNAL).order_by('-version')
-                context['help'] = qs.first()
-        return context
 
 
 class LoginSuccess(TemplateView):

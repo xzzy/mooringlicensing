@@ -203,6 +203,7 @@ class Compliance(RevisionedMixin):
                 raise
 
     def delete_document(self, request, document):
+        #TODO add status/auth handling
         with transaction.atomic():
             try:
                 if document:
