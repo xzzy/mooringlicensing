@@ -826,6 +826,7 @@ class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
 
+    #TODO remove
     def create(self, request, *args, **kwargs):
         with transaction.atomic():
             try:
@@ -1888,11 +1889,14 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data= request.data)
-        serializer.is_valid(raise_exception = True)
-        if (instance.proposal.has_assessor_mode(request.user)):
-            instance = serializer.save()
-        return Response(serializer.data)
+        if is_internal(request):
+            serializer = self.get_serializer(data= request.data)
+            serializer.is_valid(raise_exception = True)
+            if (instance.proposal.has_assessor_mode(request.user)):
+                instance = serializer.save()
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("User not authorised to create proposal requirement")
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
