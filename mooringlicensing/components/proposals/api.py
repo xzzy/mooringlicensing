@@ -1349,6 +1349,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         return Response({'filedata': returned_file_data})
 
+
     @detail_route(methods=['POST'], detail=True)
     @renderer_classes((JSONRenderer,))
     @basic_exception_handler
@@ -1859,7 +1860,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
-        print('final_approval() in ProposalViewSet')
         instance = self.get_object()
         serializer = ProposedApprovalSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2509,9 +2509,9 @@ class VesselViewSet(viewsets.ModelViewSet):
     def lookup_vessel_ownership(self, request, *args, **kwargs):
         vessel = self.get_object()
         if is_internal(request):
-            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.distinct("owner"), many=True)
+            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.order_by("owner","-updated").distinct("owner"), many=True)
         else:
-            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.filter(owner__emailuser=request.user.id).distinct("owner"), many=True)
+            serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.filter(owner__emailuser=request.user.id).order_by("owner","-updated").distinct("owner"), many=True)
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True)
@@ -2611,8 +2611,7 @@ class VesselViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError("error")
         else:
             raise serializers.ValidationError("no email user id provided")
-
-        vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
+        vessel_ownership_list = owner.vesselownership_set.order_by("vessel","-updated").distinct("vessel")
 
         # TODO review - rewrite following for vessel_ownership_list
         if search_text:
@@ -2639,7 +2638,7 @@ class VesselViewSet(viewsets.ModelViewSet):
         owner_qs = Owner.objects.filter(emailuser=request.user.id)
         if owner_qs:
             owner = owner_qs[0]
-            vessel_ownership_list = owner.vesselownership_set.distinct("vessel")
+            vessel_ownership_list = owner.vesselownership_set.order_by("vessel","-updated").distinct("vessel")
 
             # rewrite following for vessel_ownership_list
             if search_text:

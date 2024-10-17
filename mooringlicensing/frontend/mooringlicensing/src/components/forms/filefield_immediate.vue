@@ -209,7 +209,6 @@ export default {
 
         },
         delete_all_documents: function(){
-            console.log('aho')
             for (let item of this.documents){
                 this.delete_document(item)
             }
