@@ -48,7 +48,7 @@ module.exports = {
     dcvadmissions_paginated_list: '/api/dcvadmissions_paginated',
     stickers_paginated_list: '/api/stickers_paginated',
     compliances_paginated: '/api/compliances_paginated',
-    moorings_paginated_internal: '/api/moorings_paginated/list_internal',
+    moorings_paginated: '/api/moorings_paginated',
     compliances:"/api/compliances.json",
     vessel_external_list: '/api/vessel/list_external',
     vessel_internal_list: '/api/vessel/list_internal',
@@ -99,14 +99,4 @@ module.exports = {
     discard_proposal: function (id) {
         return `/api/proposal/${id}.json`;
     },
-    /*
-    proposals_paginated_internal:   "/api/proposal_paginated/proposals_internal/?format=datatables",
-    mooringlicensings: '/api/mooringlicensings/',
-    participants: '/api/participants/participants_list',
-    parks: '/api/parks/parks_list',
-    campgrounds: '/api/campgrounds/campgrounds_list',
-    camping_choices: '/api/mooringlicensings/camping_choices',
-    filter_list: '/api/mooringlicensings/filter_list/',
-    admin_data: '/admin_data/',
-    */
 }
