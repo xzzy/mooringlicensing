@@ -75,7 +75,7 @@ router.register(r'internal_dcv_admission', approval_api.InternalDcvAdmissionView
 # router.register(r'dcv_admission_external', mooringlicensing.components.approvals.api.DcvAdmissionViewSet, 'dcv_admission')
 router.register(r'company', proposal_api.CompanyViewSet, 'company')
 router.register(r'companyownership', proposal_api.CompanyOwnershipViewSet, 'companyownership')
-router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet, 'temporary_document')
+#router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet, 'temporary_document')
 
 api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
@@ -113,7 +113,6 @@ api_patterns = [
     re_path(r'^api/',include(router.urls)),
     re_path(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
-    re_path(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
     re_path(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
 ]
 
