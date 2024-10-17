@@ -1647,7 +1647,8 @@ class SaveVesselDetailsSerializer(serializers.ModelSerializer):
 class VesselOwnershipSerializer(serializers.ModelSerializer):
     # company_ownership = CompanyOwnershipSerializer()
     company_ownership = serializers.SerializerMethodField()
-
+    proposal_id = serializers.SerializerMethodField()
+    
     class Meta:
         model = VesselOwnership
         fields = '__all__'
@@ -1660,7 +1661,12 @@ class VesselOwnershipSerializer(serializers.ModelSerializer):
             data = serializer.data
         return data
 
-
+    def get_proposal_id(self, obj):
+        proposal = Proposal.objects.filter(vessel_ownership=obj).last()
+        if(proposal):
+            return proposal.id
+        return None
+    
 class VesselFullOwnershipSerializer(serializers.ModelSerializer):
     # company_ownership = CompanyOwnershipSerializer()
     company_ownership = serializers.SerializerMethodField()
