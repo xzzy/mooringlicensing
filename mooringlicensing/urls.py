@@ -3,28 +3,31 @@ from django.contrib import admin
 from django.urls import re_path, include
 from django.conf.urls.static import static
 from rest_framework import routers
-from django_media_serv.urls import urlpatterns as media_serv_patterns
 
-import mooringlicensing
-# import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.components.approvals.views import DcvAdmissionFormView
-from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
-    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
-    DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
-    StickerReplacementFeeSuccessView, ApplicationFeeAlreadyPaid, \
-    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload, \
+from mooringlicensing.components.payments_ml.views import (
+    ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView,
+    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, 
+    ConfirmationView, DcvAdmissionFeeView, 
+    DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, 
+    StickerReplacementFeeView, 
+    StickerReplacementFeeSuccessView, ApplicationFeeAlreadyPaid, 
+    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, 
+    DcvAdmissionFeeSuccessViewPreload, 
     StickerReplacementFeeSuccessViewPreload
+)
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.payments_ml import api as payments_api
 from mooringlicensing.components.proposals import api as proposal_api
 from mooringlicensing.components.approvals import api as approval_api
 from mooringlicensing.components.compliances import api as compliances_api
-from mooringlicensing.components.proposals.views import AuthorisedUserApplicationEndorseView, \
+from mooringlicensing.components.proposals.views import (
+    AuthorisedUserApplicationEndorseView, 
     MooringLicenceApplicationDocumentsUploadView
+)
 from mooringlicensing.components.users import api as users_api
 from mooringlicensing.components.main import api as main_api
-# from ledger.urls import urlpatterns as ledger_patterns
 from ledger_api_client.urls import urlpatterns as ledger_patterns
 
 # API patterns
@@ -134,10 +137,6 @@ urlpatterns = [
     re_path(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
     re_path(r'^login-success/$', views.LoginSuccess.as_view(), name='login-success'),
 
-    #following url is used to include url path when sending Proposal amendment request to user.
-    re_path(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
-    re_path(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
-
     # payment related urls
     re_path(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
     re_path(r'^application_fee_existing/(?P<invoice_reference>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
@@ -172,10 +171,11 @@ urlpatterns = [
     re_path(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
 
     # reversion history-compare
-    re_path(r'^history/proposal/(?P<pk>\d+)/$', proposal_views.ProposalHistoryCompareView.as_view(), name='proposal_history'),
-    re_path(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
-    re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
-    re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
+    #TODO this no longer works after ledger segregation - remove or replace
+    #re_path(r'^history/proposal/(?P<pk>\d+)/$', proposal_views.ProposalHistoryCompareView.as_view(), name='proposal_history'),
+    #re_path(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
+    #re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
+    #re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
     re_path(r'^api/remove-AUP-from-mooring/(?P<mooring_id>\d+)/(?P<approval_id>\d+)$',approval_api.removeAUPFromMooring, name='remove_AUP_from_mooring'),

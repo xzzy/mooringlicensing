@@ -1620,37 +1620,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    #TODO fix and implement - or remove
-    def preview_approval(self,request,details):
-        from mooringlicensing.components.approvals.models import PreviewTempApproval
-        with transaction.atomic():
-            try:
-                if self.processing_status != 'with_approver':
-                    raise ValidationError('Licence preview only available when processing status is with_approver. Current status {}'.format(self.processing_status))
-                if not self.can_assess(request.user):
-                    raise exceptions.ProposalNotAuthorized()
-
-                lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,] else None # renewals/amendments keep same licence number
-                preview_approval = PreviewTempApproval.objects.create(
-                    current_proposal = self,
-                    issue_date = timezone.now(),
-                    expiry_date = datetime.datetime.strptime(details.get('due_date'), '%d/%m/%Y').date(),
-                    start_date = datetime.datetime.strptime(details.get('start_date'), '%d/%m/%Y').date(),
-                    submitter = self.submitter,
-                    proxy_applicant = self.proxy_applicant,
-                    lodgement_number = lodgement_number
-                )
-
-                # Generate the preview document - get the value of the BytesIO buffer
-                licence_buffer = preview_approval.generate_doc(preview=True)
-
-                # clean temp preview licence object
-                transaction.set_rollback(True)
-
-                return licence_buffer
-            except:
-                raise
-
     def final_approval_for_WLA_AAA(self, request, details=None):
         with transaction.atomic():
             try:
