@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import View, TemplateView
 from mooringlicensing import settings
+from mooringlicensing.helpers import is_internal
 
 from mooringlicensing.components.proposals.models import (
     ElectoralRollDocument, HullIdentificationNumberDocument, 
@@ -73,11 +74,6 @@ logger = logging.getLogger(__name__)
 #    template_name = 'mooringlicensing/reversion_history.html'
 
 
-class TestEmailView(View):
-    def get(self, request, *args, **kwargs):
-        return HttpResponse('Test Email Script Completed')
-
-
 class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     template_name = 'mooringlicensing/proposals/mooring_licence_application_documents_upload.html'
 
@@ -87,29 +83,24 @@ class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     def get(self, request, *args, **kwargs):
         proposal = self.get_object()
 
-        #TODO add auth check here (and other TemplateView functions)
+        if is_internal(request) or proposal.proposal_applicant.email_user_id == request.user.id:
 
-        debug = self.request.GET.get('debug', 'f') #TODO use actual debug (if even needed)
-        if debug.lower() in ['true', 't', 'yes', 'y']:
-            debug = True
-        else:
-            debug = False
-
-        #TODO handle this better or elsewhere
-        if not proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS:
-            if not debug:
+            if not (proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS or
+                proposal.processing_status == Proposal.PROCESSING_STATUS_DRAFT):
                 raise ValidationError('You cannot upload documents for the application when it is not in awaiting-documents status')
 
-        context = {
-            'proposal': proposal,
-            'dev': settings.DEV_STATIC,
-            'dev_url': settings.DEV_STATIC_URL
-        }
+            context = {
+                'proposal': proposal,
+                'dev': settings.DEV_STATIC,
+                'dev_url': settings.DEV_STATIC_URL
+            }
 
-        if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
-            context['app_build_url'] = settings.DEV_APP_BUILD_URL
+            if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
+                context['app_build_url'] = settings.DEV_APP_BUILD_URL
 
-        return render(request, self.template_name, context)
+            return render(request, self.template_name, context)
+        else:
+            raise ValidationError('User not authorised to upload documents for mooring licence application')
 
 
 class AuthorisedUserApplicationEndorseView(TemplateView):
