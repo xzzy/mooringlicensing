@@ -1,6 +1,4 @@
 from rest_framework import  views
-
-from rest_framework.decorators import action as detail_route
 from rest_framework.response import Response
 
 from mooringlicensing.components.main.models import (

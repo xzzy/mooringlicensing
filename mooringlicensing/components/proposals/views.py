@@ -1,33 +1,18 @@
-import os
-from django.http import HttpResponse
+
 from django.core.exceptions import ValidationError
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import View, TemplateView
+from django.views.generic import TemplateView
 from mooringlicensing import settings
 from mooringlicensing.helpers import is_internal
 
 from mooringlicensing.components.proposals.models import (
-    ElectoralRollDocument, HullIdentificationNumberDocument, 
-    InsuranceCertificateDocument, ProofOfIdentityDocument, Proposal,
+    Proposal,
     AuthorisedUserApplication, Mooring, 
-    MooringLicenceApplication, SignedLicenceAgreementDocument, 
-    VesselRegistrationDocument, WrittenProofDocument,
+    MooringLicenceApplication, 
     ProposalSiteLicenseeMooringRequest,
 )
 
-from mooringlicensing.components.approvals.models import (
-    Approval, ApprovalDocument, ApprovalLogDocument, 
-    AuthorisedUserSummaryDocument, DcvAdmissionDocument, 
-    DcvPermitDocument, RenewalDocument, 
-    WaitingListOfferDocument,
-)
-
-from rest_framework.views import APIView
 import logging
-from mooringlicensing.components.proposals.utils import get_file_content_http_response
-
-from mooringlicensing.settings import PRIVATE_MEDIA_STORAGE_LOCATION
-
 logger = logging.getLogger(__name__)
 
 #TODO replace/remove

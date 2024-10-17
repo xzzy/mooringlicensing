@@ -3,70 +3,55 @@ import logging
 import math
 
 import ledger_api_client.utils
-# from ledger.checkout.utils import calculate_excl_gst
 import pytz
 import json
 
 from rest_framework.views import APIView
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
-# from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 from decimal import *
-# from ledger.payments.bpoint.models import BpointTransaction
-from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from mooringlicensing.components.main.models import ApplicationType
-# from mooringlicensing.components.payments_ml.invoice_pdf import create_invoice_pdf_bytes
 from rest_framework.response import Response
 from mooringlicensing.components.proposals.utils import save_proponent_data
 
 import dateutil.parser
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
-# from django.core.urlresolvers import reverse
 from django.urls import reverse
-from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views import View
 from django.views.generic import TemplateView
-# <<<<<<< HEAD
-# from ledger.basket.models import Basket
-# from ledger.payments.invoice.models import Invoice
-from ledger_api_client.ledger_models import Invoice, Basket
-# from ledger.payments.utils import update_payments
-from ledger_api_client.utils import update_payments, calculate_excl_gst
-# from oscar.apps.order.models import Order
-from ledger_api_client.order import Order
-# ||||||| 741adce2
-# from ledger.basket.models import Basket
-# from ledger.payments.invoice.models import Invoice
-# from ledger.payments.utils import update_payments
-# from oscar.apps.order.models import Order
-# =======
-# from ledger.basket.models import Basket
-# from ledger.payments.invoice.models import Invoice
-# from ledger.payments.utils import update_payments
-#from oscar.apps.order.models import Order
-# from ledger.order.models import Order
-# >>>>>>> main
+
+from ledger_api_client.ledger_models import Invoice
 
 from mooringlicensing.helpers import is_authorised_to_modify, is_applicant_address_set, is_authorised_to_pay_auto_approved
 from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email
-from mooringlicensing.components.approvals.email import send_dcv_permit_mail, send_dcv_admission_mail, \
+from mooringlicensing.components.approvals.email import (
+    send_dcv_permit_mail, send_dcv_admission_mail,
     send_sticker_replacement_email
-from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
-    DcvAdmissionFee, FeeItem, StickerActionFee, FeeItemStickerReplacement, FeeItemApplicationFee, FeeCalculation
-from mooringlicensing.components.payments_ml.utils import checkout, set_session_application_invoice, set_session_dcv_admission_invoice, get_session_sticker_action_invoice, delete_session_sticker_action_invoice
-from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction, \
-    AuthorisedUserApplication, MooringLicenceApplication, WaitingListApplication, AnnualAdmissionApplication, \
+)
+from mooringlicensing.components.payments_ml.models import (
+    ApplicationFee, DcvPermitFee, 
+    DcvAdmissionFee, FeeItem, StickerActionFee, 
+    FeeItemStickerReplacement, FeeItemApplicationFee, FeeCalculation
+)
+from mooringlicensing.components.payments_ml.utils import (
+    checkout, set_session_application_invoice, set_session_dcv_admission_invoice, 
+)
+from mooringlicensing.components.proposals.models import (
+    Proposal, ProposalUserAction, 
+    AuthorisedUserApplication, MooringLicenceApplication, 
+    WaitingListApplication, AnnualAdmissionApplication, 
     VesselDetails
-from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, LEDGER_SYSTEM_ID
-from rest_framework import status
-from ledger_api_client import utils
+)
+from mooringlicensing.settings import LEDGER_SYSTEM_ID
+from rest_framework import status, serializers
 
-# logger = logging.getLogger('mooringlicensing')
+from mooringlicensing.helpers import is_internal
+
 logger = logging.getLogger(__name__)
 
 
@@ -77,33 +62,36 @@ class DcvAdmissionFeeView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         dcv_admission = self.get_object()
-        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, created_by=dcv_admission.applicant, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
+        dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, 
+        created_by=dcv_admission.applicant, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
 
-        try:
-            with transaction.atomic():
-                set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
+        if (is_internal(request) or request.user.id == dcv_admission.applicant):
+            try:
+                with transaction.atomic():
+                    set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
 
-                lines, db_processes = dcv_admission.create_fee_lines()
+                    lines, db_processes = dcv_admission.create_fee_lines()
 
-                # request.session['db_processes'] = db_processes_after_success
-                new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
-                checkout_response = checkout(
-                    request,
-                    dcv_admission.applicant_obj,
-                    lines,
-                    return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
-                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
-                    booking_reference=str(dcv_admission_fee.uuid),
-                    invoice_text='DCV Admission Fee',
-                )
-                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
-                return checkout_response
+                    new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
+                    checkout_response = checkout(
+                        request,
+                        dcv_admission.applicant_obj,
+                        lines,
+                        return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
+                        return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
+                        booking_reference=str(dcv_admission_fee.uuid),
+                        invoice_text='DCV Admission Fee',
+                    )
+                    logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
+                    return checkout_response
 
-        except Exception as e:
-            logger.error('Error Creating DcvAdmission Fee: {}'.format(e))
-            if dcv_admission_fee:
-                dcv_admission_fee.delete()
-            raise
+            except Exception as e:
+                logger.error('Error Creating DcvAdmission Fee: {}'.format(e))
+                if dcv_admission_fee:
+                    dcv_admission_fee.delete()
+                raise
+        else:
+            raise serializers.ValidationError("User not authorised to access DCV Admission")
 
 
 class DcvPermitFeeView(TemplateView):
@@ -116,34 +104,33 @@ class DcvPermitFeeView(TemplateView):
         created_by = None if request.user.is_anonymous else request.user.id
         dcv_permit_fee = DcvPermitFee.objects.create(dcv_permit=dcv_permit, created_by=created_by, payment_type=DcvPermitFee.PAYMENT_TYPE_TEMPORARY)
 
-        try:
-            with transaction.atomic():
-                # set_session_dcv_permit_invoice(request.session, dcv_permit_fee)
+        if (is_internal(request) or request.user.id == dcv_permit.applicant):
+            try:
+                with transaction.atomic():
 
-                # lines, db_processes_after_success = create_fee_lines(dcv_permit)
-                lines, db_processes = dcv_permit.create_fee_lines()
+                    lines, db_processes = dcv_permit.create_fee_lines()
 
-                # request.session['db_processes'] = db_processes_after_success
-                new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_permit_fee.uuid, data=db_processes)
+                    new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_permit_fee.uuid, data=db_processes)
+                    checkout_response = checkout(
+                        request,
+                        dcv_permit.applicant_obj,
+                        lines,
+                        return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
+                        return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid}),
+                        booking_reference=str(dcv_permit_fee.uuid),
+                        invoice_text='DCV Permit Fee',
+                    )
+                    
+                    logger.info('{} built payment line item {} for DcvPermit Fee and handing over to payment gateway'.format(request.user, dcv_permit.id))
+                    return checkout_response
 
-                checkout_response = checkout(
-                    request,
-                    dcv_permit.applicant_obj,
-                    lines,
-                    return_url=request.build_absolute_uri(reverse('dcv_permit_fee_success', kwargs={"uuid": dcv_permit_fee.uuid})),
-                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_permit_fee_success_preload", kwargs={"uuid": dcv_permit_fee.uuid}),
-                    booking_reference=str(dcv_permit_fee.uuid),
-                    invoice_text='DCV Permit Fee',
-                )
-                
-                logger.info('{} built payment line item {} for DcvPermit Fee and handing over to payment gateway'.format(request.user, dcv_permit.id))
-                return checkout_response
-
-        except Exception as e:
-            logger.error('Error Creating DcvPermit Fee: {}'.format(e))
-            if dcv_permit_fee:
-                dcv_permit_fee.delete()
-            raise
+            except Exception as e:
+                logger.error('Error Creating DcvPermit Fee: {}'.format(e))
+                if dcv_permit_fee:
+                    dcv_permit_fee.delete()
+                raise
+        else:
+            raise serializers.ValidationError("User not authorised to access DCV Permit")        
 
 
 class ConfirmationView(TemplateView):
@@ -157,9 +144,6 @@ class ConfirmationView(TemplateView):
 
         if proposal.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code,):
             self.send_confirmation_mail(proposal, request)
-        else:
-            pass
-            # Confirmation email has been sent in the instance.process_after_submit()
 
         context = {
             'proposal': proposal,
@@ -174,7 +158,6 @@ class ConfirmationView(TemplateView):
         email_data = send_application_submit_confirmation_email(request, proposal, [to_email_addresses, ])
 
 
-# class ApplicationFeeExistingView(TemplateView):
 class ApplicationFeeExistingView(APIView):
     def get_object(self):
         return get_object_or_404(Invoice, reference=self.kwargs['invoice_reference'])
@@ -185,8 +168,6 @@ class ApplicationFeeExistingView(APIView):
 
         application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
 
-        # if application_fee.paid:
-        #     return redirect('application_fee_already_paid', proposal_pk=proposal.id)
         if get_invoice_payment_status(invoice.id) in ['paid', 'over_paid',]:
             return redirect('application_fee_already_paid', proposal_pk=application_fee.proposal.id)
 
