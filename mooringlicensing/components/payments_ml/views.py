@@ -65,33 +65,33 @@ class DcvAdmissionFeeView(TemplateView):
         dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, 
         created_by=dcv_admission.applicant, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
 
-        if (is_internal(request) or request.user.id == dcv_admission.applicant):
-            try:
-                with transaction.atomic():
-                    set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
+        #NOTE: DcvAdmission records can be created externally, so no auth-check has been provided here.
+        #should be okay, but may also warrant review to avoid unintended payments
 
-                    lines, db_processes = dcv_admission.create_fee_lines()
+        try:
+            with transaction.atomic():
+                set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
 
-                    new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
-                    checkout_response = checkout(
-                        request,
-                        dcv_admission.applicant_obj,
-                        lines,
-                        return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
-                        return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
-                        booking_reference=str(dcv_admission_fee.uuid),
-                        invoice_text='DCV Admission Fee',
-                    )
-                    logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
-                    return checkout_response
+                lines, db_processes = dcv_admission.create_fee_lines()
 
-            except Exception as e:
-                logger.error('Error Creating DcvAdmission Fee: {}'.format(e))
-                if dcv_admission_fee:
-                    dcv_admission_fee.delete()
-                raise
-        else:
-            raise serializers.ValidationError("User not authorised to access DCV Admission")
+                new_fee_calculation = FeeCalculation.objects.create(uuid=dcv_admission_fee.uuid, data=db_processes)
+                checkout_response = checkout(
+                    request,
+                    dcv_admission.applicant_obj,
+                    lines,
+                    return_url=request.build_absolute_uri(reverse('dcv_admission_fee_success', kwargs={"uuid": dcv_admission_fee.uuid})),
+                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("dcv_admission_fee_success_preload", kwargs={"uuid": dcv_admission_fee.uuid}),
+                    booking_reference=str(dcv_admission_fee.uuid),
+                    invoice_text='DCV Admission Fee',
+                )
+                logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
+                return checkout_response
+
+        except Exception as e:
+            logger.error('Error Creating DcvAdmission Fee: {}'.format(e))
+            if dcv_admission_fee:
+                dcv_admission_fee.delete()
+            raise
 
 
 class DcvPermitFeeView(TemplateView):
@@ -140,16 +140,20 @@ class ConfirmationView(TemplateView):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
 
     def post(self, request, *args, **kwargs):
+        
         proposal = self.get_object()
+        if is_internal(request) or (proposal.proposal_applicant.email_user_id == request.user.id):
 
-        if proposal.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code,):
-            self.send_confirmation_mail(proposal, request)
+            if proposal.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code,):
+                self.send_confirmation_mail(proposal, request)
 
-        context = {
-            'proposal': proposal,
-            'applicant': proposal.applicant_obj,
-        }
-        return render(request, self.template_name, context)
+            context = {
+                'proposal': proposal,
+                'applicant': proposal.applicant_obj,
+            }
+            return render(request, self.template_name, context)
+        else:
+            raise serializers.ValidationError("User not authorised to view Proposal details")
 
     @staticmethod
     def send_confirmation_mail(proposal, request):
@@ -387,16 +391,12 @@ class ApplicationFeeView(TemplateView):
                 try:
                     lines, db_processes_after_success = proposal.child_obj.create_fee_lines()  # Accessed by WL and AA
                 except Exception as e:
-                    # return HttpResponseRedirect(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))
-                    # return HttpResponse({'error': e})
-
                     self.template_name = 'mooringlicensing/payments_ml/fee_calculation_error.html'
                     context = {
                         'error_message': str(e),
                     }
                     return render(request, self.template_name, context)
 
-                # request.session['db_processes'] = db_processes_after_success
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
@@ -408,7 +408,6 @@ class ApplicationFeeView(TemplateView):
                     lines,
                     return_url,
                     return_preload_url,
-                    # booking_reference=str(application_fee.uuid),
                     booking_reference=reference,
                     invoice_text='{} ({})'.format(proposal.application_type.description, proposal.proposal_type.description),
                 )
@@ -540,6 +539,9 @@ class DcvPermitFeeSuccessView(TemplateView):
             dcv_permit_fee = DcvPermitFee.objects.get(uuid=uuid)
 
             dcv_permit = dcv_permit_fee.dcv_permit
+
+            #TODO auth
+
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{dcv_permit_fee.invoice_reference}/'
 
             context = {
@@ -643,23 +645,26 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
     def get(self, request, *args, **kwargs):
         proposal = get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
-        application_fee = proposal.get_main_application_fee()
-        invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+        if is_internal(request) or (proposal.proposal_applicant.email_user_id == request.user.id):
+            application_fee = proposal.get_main_application_fee()
+            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
 
-        context = {
-            'proposal': proposal,
-            'applicant': proposal.applicant_obj,
-            'application_fee': application_fee,
-            'invoice': invoice,
-        }
-        return render(request, self.template_name, context)
+            context = {
+                'proposal': proposal,
+                'applicant': proposal.applicant_obj,
+                'application_fee': application_fee,
+                'invoice': invoice,
+            }
+            return render(request, self.template_name, context)
+        else:
+            raise serializers.ValidationError("User not authorised to view proposal details")
 
 
 class ApplicationFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not ApplicationFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'ApplicationFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -747,9 +752,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 try:
                     inv = Invoice.objects.get(reference=invoice_reference)
-                    # order = Order.objects.get(number=inv.order_number)
-                    # order.user = request.user
-                    # order.save()
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
@@ -759,11 +761,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
                 application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 application_fee.expiry_time = None
-                # update_payments(invoice_ref)
 
-                # if proposal and invoice.payment_status in ('paid', 'over_paid',):
-                # inv_props = utils.get_invoice_properties(inv.id)
-                # invoice_payment_status = inv_props['data']['invoice']['payment_status']
                 invoice_payment_status = get_invoice_payment_status(inv.id)
                 if proposal and invoice_payment_status in ('paid', 'over_paid',):
                     logger.info('The fee for the proposal: {} has been fully paid'.format(proposal.lodgement_number))
@@ -788,7 +786,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
                             proposal.update_or_create_approval(current_datetime, request)   
 
                 else:
-                    # msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, invoice.payment_status)
                     msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, get_invoice_payment_status(invoice.id))
                     logger.error(msg)
                     raise Exception(msg)
@@ -799,9 +796,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
-            # this end-point is called by an unmonitored get request in ledger so there is no point having a
-            # a response body however we will return a status in case this is used on the ledger end in future
-            # return Response(status=status.HTTP_204_NO_CONTENT)
+
             return Response(status=status.HTTP_200_OK)
 
 
@@ -816,23 +811,26 @@ class ApplicationFeeSuccessView(TemplateView):
             application_fee = ApplicationFee.objects.get(uuid=uuid)
             proposal = application_fee.proposal
             applicant = proposal.applicant_obj
-            if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
-                #proposal.auto_approve_check(request)
-                if proposal.auto_approve:
-                    proposal.final_approval_for_WLA_AAA(request, details={})
 
-            wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
-            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
-            context = {
-                'proposal': proposal,
-                'applicant': applicant,
-                'fee_invoice': application_fee,
-                'is_wla_or_aaa': wla_or_aaa,
-                'invoice': invoice,
-                'invoice_url': invoice_url,
-            }
-            return render(request, self.template_name, context)
+            if (is_internal(request) or applicant.id == request.user.id):
+                if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
+                    if proposal.auto_approve:
+                        proposal.final_approval_for_WLA_AAA(request, details={})
+
+                wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+                invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+                context = {
+                    'proposal': proposal,
+                    'applicant': applicant,
+                    'fee_invoice': application_fee,
+                    'is_wla_or_aaa': wla_or_aaa,
+                    'invoice': invoice,
+                    'invoice_url': invoice_url,
+                }
+                return render(request, self.template_name, context)
+            else:
+                raise serializers.ValidationError("User not authorised to view Proposal details")
 
         except Exception as e:
             # Should not reach here
@@ -846,16 +844,21 @@ class DcvAdmissionPDFView(View):
     def get(self, request, *args, **kwargs):
         try:
             dcv_admission = get_object_or_404(DcvAdmission, id=self.kwargs['id'])
-            response = HttpResponse(content_type='application/pdf')
-            if dcv_admission.dcv_admission_documents.count() < 1:
-                logger.warning('DcvAdmission: {} does not have any admission document.'.format(dcv_admission))
-                return response
-            elif dcv_admission.dcv_admission_documents.count() == 1:
-                response.write(dcv_admission.dcv_admission_documents.first()._file.read())
-                return response
+
+            #even though it can be created without auth, this view should still be restricted
+            if (is_internal(request) or dcv_admission.applicant == request.user.id):
+                response = HttpResponse(content_type='application/pdf')
+                if dcv_admission.dcv_admission_documents.count() < 1:
+                    logger.warning('DcvAdmission: {} does not have any admission document.'.format(dcv_admission))
+                    return response
+                elif dcv_admission.dcv_admission_documents.count() == 1:
+                    response.write(dcv_admission.dcv_admission_documents.first()._file.read())
+                    return response
+                else:
+                    logger.warning('DcvAdmission: {} has more than one admissions.'.format(dcv_admission))
+                    return response
             else:
-                logger.warning('DcvAdmission: {} has more than one admissions.'.format(dcv_admission))
-                return response
+                raise serializers.ValidationError("User not authorised to view DCV Admission Document")
         except DcvAdmission.DoesNotExist:
             raise
         except Exception as e:
@@ -867,38 +870,22 @@ class DcvPermitPDFView(View):
     def get(self, request, *args, **kwargs):
         try:
             dcv_permit = get_object_or_404(DcvPermit, id=self.kwargs['id'])
-            response = HttpResponse(content_type='application/pdf')
-            if dcv_permit.dcv_permit_documents.count() < 1:
-                logger.warning('DcvPermit: {} does not have any permit document.'.format(dcv_permit))
-                return response
-            elif dcv_permit.dcv_permit_documents.count() == 1:
-                response.write(dcv_permit.dcv_permit_documents.first()._file.read())
-                return response
+
+            if (is_internal(request) or dcv_permit.applicant == request.user.id):
+                response = HttpResponse(content_type='application/pdf')
+                if dcv_permit.dcv_permit_documents.count() < 1:
+                    logger.warning('DcvPermit: {} does not have any permit document.'.format(dcv_permit))
+                    return response
+                elif dcv_permit.dcv_permit_documents.count() == 1:
+                    response.write(dcv_permit.dcv_permit_documents.first()._file.read())
+                    return response
+                else:
+                    logger.warning('DcvPermit: {} has more than one permits.'.format(dcv_permit))
+                    return response
             else:
-                logger.warning('DcvPermit: {} has more than one permits.'.format(dcv_permit))
-                return response
+                raise serializers.ValidationError("User not authorised to view DCV Permit Document")
         except DcvPermit.DoesNotExist:
             raise
         except Exception as e:
             logger.error('Error accessing the DcvPermit :{}'.format(e))
             raise
-
-
-class InvoicePDFView(View):
-    def get(self, request, *args, **kwargs):
-        raise Exception('Use ledger_api_utils.get_invoice_url() instead.')
-        # try:
-        #     invoice = get_object_or_404(Invoice, reference=self.kwargs['reference'])
-        #
-        #     response = HttpResponse(content_type='application/pdf')
-        #     response.write(create_invoice_pdf_bytes('invoice.pdf', invoice,))
-        #     return response
-        # except Invoice.DoesNotExist:
-        #     raise
-        # except Exception as e:
-        #     logger.error('Error accessing the Invoice :{}'.format(e))
-        #     raise
-
-    def get_object(self):
-        return get_object_or_404(Invoice, reference=self.kwargs['reference'])
-

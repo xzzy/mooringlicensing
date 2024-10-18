@@ -7,7 +7,7 @@ from rest_framework import routers
 from mooringlicensing import views
 from mooringlicensing.components.approvals.views import DcvAdmissionFormView
 from mooringlicensing.components.payments_ml.views import (
-    ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView,
+    ApplicationFeeView, ApplicationFeeSuccessView, 
     DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, 
     ConfirmationView, DcvAdmissionFeeView, 
     DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, 
@@ -160,7 +160,6 @@ urlpatterns = [
     re_path(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     re_path(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
     re_path(r'^dcv_admission_form/$', DcvAdmissionFormView.as_view(), name='dcv_admission_form'),
-    re_path(r'payments/invoice-pdf/(?P<reference>\d+)', InvoicePDFView.as_view(), name='invoice-pdf'),
     re_path(r'payments/dcv-permit-pdf/(?P<id>\d+)', DcvPermitPDFView.as_view(), name='dcv-permit-pdf'),
     re_path(r'payments/dcv-admission-pdf/(?P<id>\d+)', DcvAdmissionPDFView.as_view(), name='dcv-admission-pdf'),
 
@@ -179,7 +178,7 @@ urlpatterns = [
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
     re_path(r'^api/remove-AUP-from-mooring/(?P<mooring_id>\d+)/(?P<approval_id>\d+)$',approval_api.removeAUPFromMooring, name='remove_AUP_from_mooring'),
-   re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
+    re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
 ] + ledger_patterns #+ media_serv_patterns
 
 
