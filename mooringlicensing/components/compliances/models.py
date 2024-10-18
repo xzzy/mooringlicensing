@@ -174,7 +174,7 @@ class Compliance(RevisionedMixin):
             try:
                 if self.processing_status=='discarded':
                     raise ValidationError('You cannot submit this compliance with requirements as it has been discarded.')
-                if self.processing_status == 'future' or 'due':
+                if self.processing_status in ['future','due','overdue']:
                     self.processing_status = 'with_assessor'
                     self.customer_status = 'with_assessor'
                     self.submitter = request.user.id
@@ -203,14 +203,23 @@ class Compliance(RevisionedMixin):
                 raise
 
     def delete_document(self, request, document):
-        with transaction.atomic():
-            try:
-                if document:
-                    doc = self.documents.get(id=document[2])
-                    doc.delete()
-                return self
-            except:
-                raise ValidationError('Document not found')
+        #TODO use System Groups
+        if (
+            is_internal(request) or 
+            (
+                self.processing_status in ['future','due','overdue'] and
+                (request.user.id == self.holder_id or is_internal(request))
+            )
+        ):
+            with transaction.atomic():
+                try:
+                    if document:
+                        doc = self.documents.get(id=document[2])
+                        if doc.can_delete:
+                            doc.delete()
+                    return self
+                except:
+                    raise ValidationError('Document not found')
 
 
     def assign_to(self, user, request):

@@ -5,10 +5,7 @@ from django.conf import settings
 from django_countries import countries
 from rest_framework import viewsets, serializers, views
 from rest_framework.decorators import action as detail_route
-from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
-from rest_framework.permissions import BasePermission, OR
 from django.core.cache import cache
 from ledger_api_client.managed_models import SystemUser
 from django.core.paginator import Paginator, EmptyPage
@@ -79,8 +76,6 @@ class GetProfile(views.APIView):
 
 class GetPerson(views.APIView):
     def get(self, request):
-        #TODO either reform is_internal or replace this check to use auth groups 
-        #(permission_classes work too when implemented)
         if is_internal(request): 
             search_term = request.GET.get('search_term', '')
             page_number = request.GET.get('page_number', 1)
@@ -153,39 +148,43 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     def comms_log(self, request, *args, **kwargs):
         try:
-            instance = self.get_object()
-            qs = EmailUserLogEntry.objects.filter(email_user_id=instance.id)
-            serializer = EmailUserCommsSerializer(qs, many=True)
-            return Response(serializer.data)
+            if is_internal(request):
+                instance = self.get_object()
+                qs = EmailUserLogEntry.objects.filter(email_user_id=instance.id)
+                serializer = EmailUserCommsSerializer(qs, many=True)
+                return Response(serializer.data)
+            return Response()
         except Exception as e:
             print(e)
             raise serializers.ValidationError("error")
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, *args, **kwargs):
-        try:
-            with transaction.atomic():
-                instance = self.get_object()
-                kwargs = {
-                    'subject': request.data.get('subject', ''),
-                    'text': request.data.get('text', ''),
-                    'email_user_id': instance.id,
-                    'customer': instance.id,
-                    'staff': request.data.get('staff', request.user.id),
-                    'to': request.data.get('to', ''),
-                    'fromm': request.data.get('fromm', ''),
-                    'cc': '',
-                }
-                eu_entry = EmailUserLogEntry.objects.create(**kwargs)
+        if is_internal(request):
+            try:                
+                with transaction.atomic():
+                    instance = self.get_object()
+                    kwargs = {
+                        'subject': request.data.get('subject', ''),
+                        'text': request.data.get('text', ''),
+                        'email_user_id': instance.id,
+                        'customer': instance.id,
+                        'staff': request.data.get('staff', request.user.id),
+                        'to': request.data.get('to', ''),
+                        'fromm': request.data.get('fromm', ''),
+                        'cc': '',
+                    }
+                    eu_entry = EmailUserLogEntry.objects.create(**kwargs)
 
-                # for attachment in attachments:
-                for f in request.FILES:
-                    document = eu_entry.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                    )
-                return Response({})
-        except Exception as e:
-            print(e)
-            raise serializers.ValidationError("error")
+                    # for attachment in attachments:
+                    for f in request.FILES:
+                        document = eu_entry.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                        )
+                    return Response({})                
+            except Exception as e:
+                print(e)
+                raise serializers.ValidationError("error")
+        else:
+            raise serializers.ValidationError("user not authorised to add comms log")

@@ -95,14 +95,9 @@ export default {
     data() {
         let vm = this;
         return {
-            empty_list: '/api/empty_list',
-            //proposals_url: helpers.add_endpoint_json(api_endpoints.proposals,'user_list'),
-            //approvals_url: helpers.add_endpoint_json(api_endpoints.approvals,'user_list'),
-            //compliances_url: helpers.add_endpoint_json(api_endpoints.compliances,'user_list'),
-
             proposals_url: api_endpoints.proposals_paginated_external,
             approvals_url: api_endpoints.approvals_paginated_external,
-            compliances_url: api_endpoints.compliances_paginated_external,
+            compliances_url: api_endpoints.compliances_paginated,
 
             system_name: api_endpoints.system_name,
             allApprovalTypeFilter: ['ml', 'aap', 'aup'],

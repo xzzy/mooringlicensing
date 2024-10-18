@@ -99,7 +99,6 @@ from '@/utils/hooks'
                     vm.approval_id = null;
                 }).
                 on("select2:open",function (e) {
-                    //const searchField = $(".select2-search__field")
                     const searchField = $('[aria-controls="select2-sticker_lookup-results"]')
                     // move focus to select2 field
                     searchField[0].focus();
@@ -115,7 +114,3 @@ from '@/utils/hooks'
         },
     }
 </script>
-
-<style lang="css" scoped>
-</style>
-

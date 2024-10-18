@@ -341,11 +341,13 @@ export default {
             var error = null;
             try {
                 const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
+                const vesselData = res.body;
+                if (vesselData && vesselData.rego_no) {
+                    this.dcv_admission.dcv_vessel = Object.assign({}, vesselData);
+                }
             } catch(e) {
                 error = e;
-                
-            } finally {
-                if (error.status == '400'){
+                if (error && error.status == '400'){
                     //empty the search
                     var searchValue = "";
                     var err = "The selected vessel is already listed with RIA under another owner";
@@ -359,10 +361,7 @@ export default {
                     $(this.$refs.dcv_vessel_rego_nos).append(option).trigger('change');
                     
                 } else {
-                    const vesselData = res.body;
-                    if (vesselData && vesselData.rego_no) {
-                        this.dcv_admission.dcv_vessel = Object.assign({}, vesselData);
-                    }
+                    
                 }
             }
         },

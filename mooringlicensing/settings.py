@@ -63,7 +63,6 @@ INSTALLED_APPS += [
     'rest_framework',
     'rest_framework_datatables',
     'reset_migrations',
-    'ckeditor',
     'ledger_api_client',
     'appmonitor_client',
     'crispy_bootstrap5',
@@ -79,7 +78,7 @@ REST_FRAMEWORK = {
         'rest_framework_datatables.renderers.DatatablesRenderer',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
+    'PAGE_SIZE': 10,
 }
 
 MIDDLEWARE_CLASSES += [
@@ -147,17 +146,6 @@ os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','
 ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 
 BASE_URL=env('BASE_URL')
-
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'full',
-        'height': 300,
-        'width': '100%',
-    },
-    'awesome_ckeditor': {
-        'toolbar': 'Basic',
-    },
-}
 
 CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
 if CONSOLE_EMAIL_BACKEND:
@@ -287,6 +275,18 @@ GROUP_APPROVER_AUTHORISED_USER = 'Mooring Licensing - Approvers: Authorised User
 GROUP_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Site Licence'
 GROUP_DCV_PERMIT_ADMIN = 'Mooring Licensing - DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
 CUSTOM_GROUPS = [
+    GROUP_MOORING_LICENSING_ADMIN,
+    GROUP_MOORING_LICENSING_PAYMENT_OFFICER,
+    GROUP_ASSESSOR_WAITING_LIST,
+    GROUP_ASSESSOR_ANNUAL_ADMISSION,
+    GROUP_ASSESSOR_AUTHORISED_USER,
+    GROUP_ASSESSOR_MOORING_LICENCE,
+    GROUP_APPROVER_AUTHORISED_USER,
+    GROUP_APPROVER_MOORING_LICENCE,
+    GROUP_DCV_PERMIT_ADMIN,
+]
+INTERNAL_GROUPS = [
+    GROUP_ACCOUNT_MANAGEMENT_USER,
     GROUP_MOORING_LICENSING_ADMIN,
     GROUP_MOORING_LICENSING_PAYMENT_OFFICER,
     GROUP_ASSESSOR_WAITING_LIST,

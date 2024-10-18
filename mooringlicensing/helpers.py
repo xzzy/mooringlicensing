@@ -18,7 +18,9 @@ def belongs_to(user, group_name):
     :param group_name:
     :return:
     """
-    print("GROUP NAME", group_name)
+    if user.is_superuser:
+        return True
+    
     belongs_to_value = cache.get(
         "User-belongs_to" + str(user.id) + "group_name:" + group_name
     )
@@ -44,34 +46,20 @@ def is_email_auth_backend(request):
     return 'EmailAuth' in request.session.get('_auth_user_backend')
 
 def is_mooringlicensing_admin(request):
-    # return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
-    return request.user.is_authenticated and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
+    return request.user.is_authenticated and (belongs_to(request.user, settings.GROUP_MOORING_LICENSING_ADMIN))
 
 def is_account_management_user(request):
     return request.user.is_authenticated and (belongs_to(request.user, settings.GROUP_ACCOUNT_MANAGEMENT_USER))
 
-def in_dbca_domain(request):
-    return request.user.is_staff
-    # user = request.user
-    # domain = user.email.split('@')[1]
-    # if domain in settings.DEPT_DOMAINS:
-    #     if not user.is_staff:
-    #         # hack to reset department user to is_staff==True, if the user logged in externally (external departmentUser login defaults to is_staff=False)
-    #         user.is_staff = True
-    #         user.save()
-    #     return True
-    # return False
-
-def is_departmentUser(request):
-    # return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request)
-    return request.user.is_authenticated and is_model_backend(request) and in_dbca_domain(request)
-
 def is_customer(request):
-    # return request.user.is_authenticated() and (is_model_backend(request) or is_email_auth_backend(request))
     return request.user.is_authenticated and (is_model_backend(request) or is_email_auth_backend(request))
 
 def is_internal(request):
-    return is_departmentUser(request)
+    if request.user.is_authenticated:
+        for i in settings.INTERNAL_GROUPS:
+            if belongs_to(request.user, i):
+                return True
+    return False
 
 def is_authorised_to_pay_auto_approved(request, instance):
     if (instance.auto_approve and 
@@ -83,7 +71,7 @@ def is_authorised_to_pay_auto_approved(request, instance):
 def is_authorised_to_modify(request, instance):
     authorised = True
 
-    authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_DRAFT] #, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]
+    authorised &= instance.processing_status in [Proposal.PROCESSING_STATUS_DRAFT]
     authorised &= (request.user.email == instance.applicant_email or is_internal(request))
 
     if not authorised:
@@ -105,18 +93,21 @@ def is_applicant_address_set(instance):
     applicant = instance.proposal_applicant
 
     #residential address
-    if not applicant.residential_line1 or \
-        not applicant.residential_locality or \
-        not applicant.residential_state or \
-        not applicant.residential_country or \
-        not applicant.residential_postcode:
+    if (
+        not applicant.residential_line1 or 
+        not applicant.residential_locality or 
+        not applicant.residential_state or 
+        not applicant.residential_country or 
+        not applicant.residential_postcode
+        ):
         raise serializers.ValidationError('Residential Address details not provided')
 
     #postal same as residential OR postal address
-    if not applicant.postal_same_as_residential and \
-        (not applicant.postal_line1 or \
-        not applicant.postal_locality or \
-        not applicant.postal_state or \
-        not applicant.postal_country or \
-        not applicant.postal_postcode):
+    if (
+        not applicant.postal_line1 or 
+        not applicant.postal_locality or 
+        not applicant.postal_state or 
+        not applicant.postal_country or 
+        not applicant.postal_postcode       
+        ):
         raise serializers.ValidationError('Postal Address details not provided')

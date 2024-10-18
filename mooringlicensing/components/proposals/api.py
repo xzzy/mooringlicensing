@@ -1,4 +1,3 @@
-import json
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
 import os
@@ -6,23 +5,17 @@ import traceback
 import pathlib
 import uuid
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage, FileSystemStorage
 import pytz
 from django.db.models import Q, CharField, Value
 from django.db import transaction
 from django.core.exceptions import ValidationError
-from rest_framework import viewsets, serializers, status, views, mixins
-# from rest_framework.decorators import detail_route, list_route, renderer_classes
-from rest_framework.decorators import renderer_classes
+from rest_framework import viewsets, serializers, views, mixins
 from rest_framework.decorators import action as detail_route
 from rest_framework.decorators import action as list_route
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
 from datetime import datetime
-# from ledger.settings_base import TIME_ZONE
-from ledger_api_client.settings_base import TIME_ZONE, LOGGING
+from ledger_api_client.settings_base import TIME_ZONE
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-from ledger_api_client import api
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.components.proposals.utils import (
@@ -32,16 +25,17 @@ from mooringlicensing.components.proposals.utils import (
     change_proposal_applicant, 
     get_max_vessel_length_for_main_component,
 )
-from mooringlicensing.components.proposals.models import ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, MooringReportDocument, VesselOwnershipCompanyOwnership, searchKeyWords, search_reference, ProposalUserAction, \
+from mooringlicensing.components.proposals.models import (
+    ElectoralRollDocument, HullIdentificationNumberDocument, InsuranceCertificateDocument, 
+    MooringReportDocument, VesselOwnershipCompanyOwnership,
     ProposalType, ProposalApplicant, VesselRegistrationDocument, ProposalSiteLicenseeMooringRequest
+)
 from mooringlicensing.components.main.utils import (
     get_bookings, calculate_max_length,
 )
 from ledger_api_client.managed_models import SystemUser
 
 from django.core.cache import cache
-from django.urls import reverse
-from django.shortcuts import redirect
 from mooringlicensing.components.proposals.models import (
     Proposal,
     ProposalRequirement,
@@ -49,7 +43,6 @@ from mooringlicensing.components.proposals.models import (
     AmendmentRequest,
     AmendmentReason,
     VesselDetails,
-    RequirementDocument,
     WaitingListApplication,
     AnnualAdmissionApplication,
     AuthorisedUserApplication,
@@ -68,7 +61,6 @@ from mooringlicensing.components.proposals.serializers import (
     ProposalForEndorserSerializer,
     ProposalSerializer,
     InternalProposalSerializer,
-    #SaveProposalSerializer,
     ProposalUserActionSerializer,
     ProposalLogEntrySerializer,
     VesselLogEntrySerializer,
@@ -79,7 +71,6 @@ from mooringlicensing.components.proposals.serializers import (
     AmendmentRequestSerializer,
     ListProposalSerializer,
     ListProposalSiteLicenseeMooringRequestSerializer,
-    ListVesselDetailsSerializer,
     ListVesselOwnershipSerializer,
     VesselSerializer,
     VesselDetailsSerializer,
@@ -95,50 +86,56 @@ from mooringlicensing.components.proposals.serializers import (
     ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer,
     AmendmentRequestDisplaySerializer
 )
-from mooringlicensing.components.approvals.models import Approval, DcvVessel, WaitingListAllocation, Sticker, \
-    DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence, VesselOwnershipOnApproval, \
-    MooringOnApproval
-from mooringlicensing.components.approvals.email import send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, \
+from mooringlicensing.components.approvals.models import (
+    Approval, DcvVessel, WaitingListAllocation, Sticker, 
+    DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit,
+    MooringLicence, VesselOwnershipOnApproval, MooringOnApproval
+)
+from mooringlicensing.components.main.models import ApplicationType
+from mooringlicensing.components.payments_ml.models import FeeConstructor
+from mooringlicensing.components.approvals.email import (
+    send_reissue_ml_after_sale_recorded_email, send_reissue_wla_after_sale_recorded_email, 
     send_reissue_aap_after_sale_recorded_email, send_reissue_aup_after_sale_recorded_email
+)
 from mooringlicensing.components.approvals.serializers import (
-        ApprovalSerializer, 
-        LookupApprovalSerializer,
-        )
+    LookupApprovalSerializer,
+)
 from mooringlicensing.components.main.process_document import (
-    process_generic_document, delete_document, cancel_document,
+    process_generic_document
 )
 from mooringlicensing.components.main.decorators import (
-        basic_exception_handler, 
-        timeit, 
-        query_debugger
-        )
+    basic_exception_handler
+)
 from mooringlicensing.components.approvals.utils import get_wla_allowed
-from mooringlicensing.helpers import is_authorised_to_modify, is_customer, is_internal, is_applicant_address_set, is_authorised_to_submit_documents
+from mooringlicensing.helpers import (
+    is_authorised_to_modify, is_customer, is_internal, 
+    is_applicant_address_set, is_authorised_to_submit_documents
+)
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework_datatables.renderers import DatatablesRenderer
-from reversion.models import Version
 from copy import deepcopy
 from django.core.exceptions import ObjectDoesNotExist
 
 import logging
 
-from mooringlicensing.settings import PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, \
-    PAYMENT_SYSTEM_ID, BASE_DIR, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
+from mooringlicensing.settings import (
+    PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,
+    PAYMENT_SYSTEM_ID, MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE
+)
+from mooringlicensing.components.payments_ml.models import FeeItemStickerReplacement
 
 logger = logging.getLogger(__name__)
 
 class GetDcvOrganisations(views.APIView):
-    renderer_classes = [JSONRenderer, ]
-
+    
     def get(self, request, format=None):
-        data = DcvOrganisation.objects.all()
-        data_transform = [{'id': org.id, 'name': org.name} for org in data]
-        return Response(data_transform)
+        if is_internal(request): #currently only used internally, but may be acceptable for external access
+            data = DcvOrganisation.objects.all()
+            data_transform = [{'id': org.id, 'name': org.name} for org in data]
+            return Response(data_transform)
 
 
 class GetDcvVesselRegoNos(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
@@ -150,7 +147,6 @@ class GetDcvVesselRegoNos(views.APIView):
 
 
 class GetVessel(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
@@ -222,7 +218,6 @@ class GetVessel(views.APIView):
 
 
 class GetMooring(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
@@ -254,7 +249,6 @@ class GetMooring(views.APIView):
 
 
 class GetMooringBySiteLicensee(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
@@ -293,10 +287,9 @@ class GetMooringBySiteLicensee(views.APIView):
 
 
 class GetMooringPerBay(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, WaitingListAllocation
+        
         mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
@@ -370,7 +363,7 @@ class GetMooringPerBay(views.APIView):
 
 
 class GetVesselRegoNos(views.APIView):
-    renderer_classes = [JSONRenderer, ]
+
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         allow_add_new_vessel = request.GET.get('allow_add_new_vessel', 'true')
@@ -413,8 +406,8 @@ class GetVesselRegoNos(views.APIView):
         data_transform = [{'id': rego['id'], 'text': rego['rego_no']} for rego in data]
         return Response({"results": data_transform})
 
+
 class GetCompanyNames(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
@@ -427,7 +420,6 @@ class GetCompanyNames(views.APIView):
 
 
 class GetApplicationTypeDescriptions(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('application_type_descriptions')
@@ -438,11 +430,9 @@ class GetApplicationTypeDescriptions(views.APIView):
 
 
 class GetStickerReplacementFeeItem(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        from mooringlicensing.components.payments_ml.models import FeeItemStickerReplacement
-
+        
         current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
         fee_item = FeeItemStickerReplacement.get_fee_item_by_date(current_datetime.date())
 
@@ -450,14 +440,12 @@ class GetStickerReplacementFeeItem(views.APIView):
 
 
 class GetPaymentSystemId(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         return Response({'payment_system_id': PAYMENT_SYSTEM_ID})
 
 
 class GetApplicationTypeDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
@@ -470,7 +458,6 @@ class GetApplicationTypeDict(views.APIView):
 
 
 class GetApplicationCategoryDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
@@ -483,20 +470,20 @@ class GetApplicationCategoryDict(views.APIView):
 
 
 class GetApplicationStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = {}
         if not cache.get('application_internal_statuses_dict') or not cache.get('application_external_statuses_dict'):
-            cache.set('application_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
-            cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Proposal.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
+            cache.set('application_internal_statuses_dict',[{'code': i[0], 'description': i[1]} 
+                for i in Proposal.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
+            cache.set('application_external_statuses_dict',[{'code': i[0], 'description': i[1]} 
+                for i in Proposal.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
         data['external_statuses'] = cache.get('application_external_statuses_dict')
         data['internal_statuses'] = cache.get('application_internal_statuses_dict')
         return Response(data)
 
 
 class GetVesselTypesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('vessel_type_dict')
@@ -507,7 +494,6 @@ class GetVesselTypesDict(views.APIView):
 
 
 class GetInsuranceChoicesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
         data = cache.get('insurance_choice_dict')
@@ -518,34 +504,10 @@ class GetInsuranceChoicesDict(views.APIView):
 
 
 class GetMooringStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request):
         return Response(['Unlicensed', 'Licensed', 'Licence application'])
-
-
-class GetEmptyList(views.APIView):
-    renderer_classes = [JSONRenderer, ]
-
-    def get(self, request, format=None):
-        return Response([])
-
-
-class VersionableModelViewSetMixin(viewsets.ModelViewSet):
-    @detail_route(methods=['GET',], detail=True)
-    def history(self, request, *args, **kwargs):
-        _object = self.get_object()
-        _versions = Version.objects.get_for_object(_object)
-
-        _context = {
-            'request': request
-        }
-
-        _version_serializer = ProposalSerializer([v.object for v in _versions], many=True, context=_context)
-        # TODO
-        # check pagination
-        return Response(_version_serializer.data)
-
+    
 
 class ProposalFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
@@ -556,9 +518,9 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         try:
             super_queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view).distinct()
-            
         except Exception as e:
             logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
+
         setattr(view, '_datatables_total_count', total_count)
 
         search_text = request.GET.get('search[value]')
@@ -620,28 +582,17 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         filter_by_endorsement = True if filter_by_endorsement.lower() in ['true', 'yes', 't', 'y',] else False
         if filter_by_endorsement:
             filter_query &= (Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email,site_licensee_mooring_request__enabled=True))
-        #TODO commented this out - will check if need (but why exclude?)
-        #else:
-        #    filter_query &= ~Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email)
 
         # don't show discarded applications
         if not level == 'internal':
             filter_query &= ~Q(customer_status='discarded')
 
         queryset = queryset.filter(filter_query)
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
-        #queryset = queryset.order_by(*ordering)
+
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
-            #for num, item in enumerate(ordering):
-            #    if item == 'lodgement_number':
-            #        ordering[num] = 'id'
-            #    elif item == '-lodgement_number':
-            #        ordering[num] = '-id'
             queryset = queryset.order_by(*ordering)
         else:
             queryset = queryset.order_by('-id')
@@ -649,17 +600,10 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ProposalRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
-
-class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ModelViewSet):
+class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = ProposalSiteLicenseeMooringRequest.objects.none()
     serializer_class = ListProposalSiteLicenseeMooringRequestSerializer
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
@@ -674,20 +618,15 @@ class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ModelViewSet):
         return ProposalSiteLicenseeMooringRequest.objects.none()
          
 
-class ProposalPaginatedViewSet(viewsets.ModelViewSet):
+class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ProposalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
         all = Proposal.objects.all()
-        #TODO do we need to exclude migrated proposals?
-        #all = Proposal.objects.exclude(migrated=True)
 
         target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
 
@@ -699,29 +638,14 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
                         Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id) #| 
-                    #Q(site_licensee_mooring_request__site_licensee_email=request_user.email,site_licensee_mooring_request__enabled=True)
-                    )
+            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id))
             return qs
         return Proposal.objects.none()
 
-    def list(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
 
-        #result_page = self.paginator.paginate_queryset(qs.order_by('-id'), request)
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListProposalSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
-
-
-class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
+class AnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
     queryset = AnnualAdmissionApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -746,9 +670,9 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError("proposal type does not exist")
 
             obj = AnnualAdmissionApplication.objects.create(
-                    submitter=request.user.id,
-                    proposal_type=proposal_type
-                    )
+                submitter=request.user.id,
+                proposal_type=proposal_type
+            )
             logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
             obj.log_user_action(f'Annual Admission Application: {obj.lodgement_number} has been created.', request)
 
@@ -758,10 +682,10 @@ class AnnualAdmissionApplicationViewSet(viewsets.ModelViewSet):
 
             return Response(serialized_obj.data)
 
+
 class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
     queryset = AnnualAdmissionApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -804,10 +728,9 @@ class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
             raise serializers.ValidationError("not authorised to create application as an internal user")
         
 
-class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
+class AuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
     queryset = AuthorisedUserApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -848,7 +771,6 @@ class AuthorisedUserApplicationViewSet(viewsets.ModelViewSet):
 class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
     queryset = AuthorisedUserApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -888,10 +810,9 @@ class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
             raise serializers.ValidationError("not authorised to create application as an internal user")
 
 
-class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
+class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
     queryset = MooringLicenceApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -905,40 +826,10 @@ class MooringLicenceApplicationViewSet(viewsets.ModelViewSet):
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
 
-    def create(self, request, *args, **kwargs):
-        with transaction.atomic():
-            try:
-                system_user = SystemUser.objects.get(ledger_id=request.user)
-            except:
-                raise serializers.ValidationError("system user does not exist")
-            
-            try:
-                proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
-            except:
-                raise serializers.ValidationError("proposal type does not exist")
-            mooring_id = request.data.get('mooring_id')
-            mooring=None
-            if mooring_id:
-                mooring = Mooring.objects.get(id=mooring_id)
 
-            obj = MooringLicenceApplication.objects.create(
-                    submitter=request.user.id,
-                    proposal_type=proposal_type,
-                    allocated_mooring=mooring,
-                    )
-            logger.info(f'Mooring Licence Application: [{obj}] has been created by the user: [{request.user}].')
-            obj.log_user_action(f'Mooring Licence Application: {obj.lodgement_number} has been created.', request)
-
-            create_proposal_applicant(obj, system_user)
-
-            serialized_obj = ProposalSerializer(obj.proposal)
-            return Response(serialized_obj.data)
-
-
-class WaitingListApplicationViewSet(viewsets.ModelViewSet):
+class WaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
     serializer_class = ProposalSerializer
-    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -950,7 +841,6 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
                 Q(proxy_applicant=user.id) | 
                 Q(proposal_applicant__email_user_id=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return WaitingListApplication.objects.none()
 
     def create(self, request, *args, **kwargs):
@@ -981,6 +871,7 @@ class WaitingListApplicationViewSet(viewsets.ModelViewSet):
 
             serialized_obj = ProposalSerializer(obj.proposal)
             return Response(serialized_obj.data)
+
 
 class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
@@ -1032,69 +923,62 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
                 return Response(serialized_obj.data)
             raise serializers.ValidationError("not authorised to create application as an internal user")
 
-class ProposalByUuidViewSet(viewsets.ModelViewSet):
+
+class ProposalByUuidViewSet(viewsets.GenericViewSet):
     queryset = Proposal.objects.none()
 
     def get_object(self):
         uuid = self.kwargs.get('pk')
-        return MooringLicenceApplication.objects.get(uuid=uuid)
+        if is_internal(self.request):
+            qs = MooringLicenceApplication.objects.distinct('id')
+            return qs.get(uuid=uuid)
+        else:
+            qs = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=self.request.user.id).distinct('id')
+            return qs.get(uuid=uuid)
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_mooring_report_document(self, request, *args, **kwargs):
     def mooring_report_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
+        
+        if ((
+            instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or
+            instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS
+            ) or is_internal(request)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = MooringReportDocument.objects.filter(
+                    proposalmooringreportdocument__proposal=instance,
+                    id=document_id,
+                )
+                if document.first()._file and os.path.isfile(document.first()._file.path):
+                    os.remove(document.first()._file.path)
+                if document.first():
+                    original_file_name = document.first().name
+                    document.first().delete()
+                    logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-        # returned_data = process_generic_document(request, instance, document_type='mooring_report_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
+                filepath = pathlib.Path(filename)
 
-        if action == 'list':
-            pass
-        elif action == 'delete':
-            document_id = request.data.get('document_id')
-            document = MooringReportDocument.objects.get(
-                # proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
-                original_file_name = document.name
-                document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-                logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            filepath = pathlib.Path(filename)
+                document = MooringReportDocument.objects.create(
+                    name=filepath.stem + filepath.suffix
+                )
+                instance.mooring_report_documents.add(document)
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                new_filename = filepath.stem + filepath.suffix
+                logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
 
-            document = MooringReportDocument.objects.create(
-                # proposal=instance,
-                name=filepath.stem + filepath.suffix
-            )
-            instance.mooring_report_documents.add(document)
-            document._file.save(new_filename, ContentFile(_file.read()))
-
-            logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
-
-        # returned_file_data = []
         docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
 
@@ -1103,7 +987,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_written_proof_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1114,7 +997,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_signed_licence_agreement_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1125,7 +1007,6 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_proof_of_identity_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1136,8 +1017,7 @@ class ProposalByUuidViewSet(viewsets.ModelViewSet):
             return Response()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
-    # @basic_exception_handler
+    @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] has been submitted with UUID...')
@@ -1174,9 +1054,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return ProposalForEndorserSerializer
         return super(ProposalViewSet, self).get_serializer_class()
 
-    # def retrieve(self, request, *args, **kwargs):
-    #     return super(ProposalViewSet, self).retrieve(request, *args, **kwargs)
-
     def get_object(self):
         id = self.kwargs.get('id')
         logger.info(f'Getting proposal in the ProposalViewSet by the ID: [{id}]...')
@@ -1199,10 +1076,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             queryset = Proposal.objects.filter(
                 Q(proposal_applicant__email_user_id=request_user.id)
             )
-            #TODO do we need to exclude migrated proposals?
-            #.exclude(migrated=True)
-
-            # For the endoser to view the endosee's proposal
+            # For the endoser to view the endorsee's proposal
             if 'uuid' in self.request.query_params:
                 uuid = self.request.query_params.get('uuid', '')
                 if uuid:
@@ -1212,7 +1086,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         # Add the above proposal to the queryset the accessing user can access to
                         queryset = queryset | pro
             return queryset
-        logger.warning("User is neither customer nor internal user: {} <{}>".format(request_user.get_full_name(), request_user.email))
         return Proposal.objects.none()
 
     def internal_serializer_class(self):
@@ -1232,7 +1105,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['PUT'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def reinstate_wl_allocation(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1240,7 +1112,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             # Internal user is accessing
             # Proposal is ML application and the status of it is 'discarded'
             wlallocation = instance.child_obj.reinstate_wl_allocation(request)
-            return Response({'lodgement_number': wlallocation.lodgement_number})  # TODO
+            return Response({'lodgement_number': wlallocation.lodgement_number})
         else:
             msg = f'This application: [{instance}] does not meet the conditions to put the original WLAllocation to the waiting list queue.'
             logger.warn(msg)
@@ -1293,53 +1165,49 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             raise serializers.ValidationError("user not authorised to change applicant")
         
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def vessel_rego_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        if action == 'list':
-            pass
-        elif action == 'delete':
-            document_id = request.data.get('document_id')
-            document = VesselRegistrationDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                original_file_name = document.original_file_name
-                original_file_ext = document.original_file_ext
-                document.delete()
-                logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-        elif action == 'cancel':
-            pass
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = VesselRegistrationDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.original_file_name
+                    original_file_ext = document.original_file_ext
+                    document.delete()
+                    logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-            filepath = pathlib.Path(filename)
-            original_file_name = filepath.stem
-            original_file_ext = filepath.suffix
+                filepath = pathlib.Path(filename)
+                original_file_name = filepath.stem
+                original_file_ext = filepath.suffix
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + original_file_ext
-            else:
-                new_filename = original_file_name + original_file_ext
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + original_file_ext
+                else:
+                    new_filename = original_file_name + original_file_ext
 
-            document = VesselRegistrationDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix,
-                original_file_name=original_file_name,
-                original_file_ext=original_file_ext,
-            )
-            document._file.save(new_filename, ContentFile(_file.read()))
+                document = VesselRegistrationDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix,
+                    original_file_name=original_file_name,
+                    original_file_ext=original_file_ext,
+                )
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
         docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
         docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
@@ -1351,60 +1219,45 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_electoral_roll_document(self, request, *args, **kwargs):
     def electoral_roll_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        # returned_data = process_generic_document(request, instance, document_type='electoral_roll_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = ElectoralRollDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.name
+                    document.delete()
+                    logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-        if action == 'list':
-            pass
-        elif action == 'delete':
-            document_id = request.data.get('document_id')
-            document = ElectoralRollDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
-                original_file_name = document.name
-                document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-                logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+                filepath = pathlib.Path(filename)
 
-            filepath = pathlib.Path(filename)
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                new_filename = filepath.stem + filepath.suffix
+                document = ElectoralRollDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix
+                )
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            document = ElectoralRollDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix
-            )
-            document._file.save(new_filename, ContentFile(_file.read()))
+                logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
 
-            logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
-
-        # returned_file_data = []
         docs_in_limbo = instance.electoral_roll_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
 
@@ -1413,72 +1266,48 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_hull_identification_number_document(self, request, *args, **kwargs):
     def hull_identification_number_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        # returned_data = process_generic_document(request, instance, document_type='hull_identification_number_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = HullIdentificationNumberDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.name
+                    document.delete()
+                    logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-        if action == 'list':
-            pass
-        elif action == 'delete':
-            document_id = request.data.get('document_id')
-            document = HullIdentificationNumberDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
-                original_file_name = document.name
-                document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-                logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+                filepath = pathlib.Path(filename)
 
-            filepath = pathlib.Path(filename)
-            # original_file_name = filepath.stem
-            # original_file_ext = filepath.suffix
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                # new_filename = unique_id.hex + original_file_ext
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                # new_filename = original_file_name + original_file_ext
-                new_filename = filepath.stem + filepath.suffix
+                document = HullIdentificationNumberDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix
+                )
 
-            document = HullIdentificationNumberDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix
-                # original_file_name=original_file_name,
-                # original_file_ext=original_file_ext,
-            )
-            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
-            document._file.save(new_filename, ContentFile(_file.read()))
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
-        # returned_file_data = []
         docs_in_limbo = instance.hull_identification_number_documents.all()  # Files uploaded when vessel_ownership is unknown
-        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
-        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
         all_the_docs = docs_in_limbo
 
         returned_file_data = construct_dict_from_docs(all_the_docs)
@@ -1486,72 +1315,47 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
-    # def process_insurance_certificate_document(self, request, *args, **kwargs):
     def insurance_certificate_document(self, request, *args, **kwargs):
         instance = self.get_object()
-        action = request.data.get('action')
 
-        # returned_data = process_generic_document(request, instance, document_type='insurance_certificate_document')
-        # if returned_data:
-        #     return Response(returned_data)
-        # else:
-        #     return Response()
+        if (instance.processing_status == Proposal.PROCESSING_STATUS_DRAFT or instance.has_assessor_mode(request.user)):
+            action = request.data.get('action')
+            if action == 'delete':
+                document_id = request.data.get('document_id')
+                document = InsuranceCertificateDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                )
+                if document._file and os.path.isfile(document._file.path):
+                    os.remove(document._file.path)
+                if document:
+                    original_file_name = document.name
+                    document.delete()
+                    logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
+            elif action == 'save':
+                filename = request.data.get('filename')
+                _file = request.data.get('_file')
 
-        if action == 'list':
-            pass
-        elif action == 'delete':
-            document_id = request.data.get('document_id')
-            document = InsuranceCertificateDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
-            if document._file and os.path.isfile(document._file.path):
-                os.remove(document._file.path)
-            if document:
-                # original_file_name = document.original_file_name
-                # original_file_ext = document.original_file_ext
-                original_file_name = document.name
-                document.delete()
-                # logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
-                logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
-        elif action == 'cancel':
-            pass
-        elif action == 'save':
-            filename = request.data.get('filename')
-            _file = request.data.get('_file')
+                filepath = pathlib.Path(filename)
 
-            filepath = pathlib.Path(filename)
-            # original_file_name = filepath.stem
-            # original_file_ext = filepath.suffix
+                # Calculate a new unique filename
+                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
+                    unique_id = uuid.uuid4()
+                    new_filename = unique_id.hex + filepath.suffix
+                else:
+                    new_filename = filepath.stem + filepath.suffix
 
-            # Calculate a new unique filename
-            if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                unique_id = uuid.uuid4()
-                # new_filename = unique_id.hex + original_file_ext
-                new_filename = unique_id.hex + filepath.suffix
-            else:
-                # new_filename = original_file_name + original_file_ext
-                new_filename = filepath.stem + filepath.suffix
+                document = InsuranceCertificateDocument.objects.create(
+                    proposal=instance,
+                    name=filepath.stem + filepath.suffix
+                )
+                document._file.save(new_filename, ContentFile(_file.read()))
 
-            document = InsuranceCertificateDocument.objects.create(
-                proposal=instance,
-                name=filepath.stem + filepath.suffix
-                # original_file_name=original_file_name,
-                # original_file_ext=original_file_ext,
-            )
-            # path_format_string = 'proposal/{}/vessel_registration_documents/{}'
-            # document._file.save(path_format_string.format(instance.id, new_filename), ContentFile(_file.read()))
-            document._file.save(new_filename, ContentFile(_file.read()))
-
-            logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
+                logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
-        # returned_file_data = []
         docs_in_limbo = instance.insurance_certificate_documents.all()  # Files uploaded when vessel_ownership is unknown
-        # docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
-        # all_the_docs = docs_in_limbo | docs  # Merge two querysets
         all_the_docs = docs_in_limbo
 
         returned_file_data = construct_dict_from_docs(all_the_docs)
@@ -1559,53 +1363,49 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response({'filedata': returned_file_data})
 
     @detail_route(methods=['GET',], detail=True)
-    def compare_list(self, request, *args, **kwargs):
-        """ Returns the reversion-compare urls --> list"""
-        current_revision_id = Version.objects.get_for_object(self.get_object()).first().revision_id
-        versions = Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
-        version_ids = [i.id for i in versions]
-        urls = ['?version_id2={}&version_id1={}'.format(version_ids[0], version_ids[i+1]) for i in range(len(version_ids)-1)]
-        return Response(urls)
-
-    @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.action_logs.all()
-        serializer = ProposalUserActionSerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = ProposalUserActionSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = ProposalLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = ProposalLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['proposal'] = u'{}'.format(instance.id)
-            request.data['staff'] = u'{}'.format(request.user.id)
-            request.data._mutable=mutable
-            serializer = ProposalLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['proposal'] = u'{}'.format(instance.id)
+                request.data['staff'] = u'{}'.format(request.user.id)
+                request.data._mutable=mutable
+                serializer = ProposalLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -1625,33 +1425,13 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = AmendmentRequestDisplaySerializer(qs,many=True)
         return Response(serializer.data)
 
-    @list_route(methods=['GET',], detail=False)
-    def user_list(self, request, *args, **kwargs):
-        qs = self.get_queryset().exclude(processing_status='discarded')
-        serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
-        return Response(serializer.data)
-
-    @list_route(methods=['GET',], detail=False)
-    def user_list_paginated(self, request, *args, **kwargs):
-        """
-        Placing Paginator class here (instead of settings.py) allows specific method for desired behaviour),
-        otherwise all serializers will use the default pagination class
-
-        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
-        """
-        proposals = self.get_queryset().exclude(processing_status='discarded')
-        paginator = DatatablesPageNumberPagination()
-        paginator.page_size = proposals.count()
-        result_page = paginator.paginate_queryset(proposals, request)
-        serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
-        return paginator.get_paginated_response(serializer.data)
-
     @detail_route(methods=['GET',], detail=True)
     def internal_proposal(self, request, *args, **kwargs):
         if (is_internal(request)):
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
             return Response(serializer.data)
+        return Response()
     
     @detail_route(methods=['POST',], detail=True)
     def internal_endorse(self, request, *args, **kwargs):
@@ -1679,6 +1459,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
             return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     def internal_decline(self, request, *args, **kwargs):
@@ -1706,58 +1487,67 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
             return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.assign_officer(request, request.user)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.assign_officer(request, request.user)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
-        instance = self.get_object()
-        user_id = request.data.get('assessor_id',None)
-        user = None
-        if not user_id:
-            raise serializers.ValidationError('An assessor id is required')
-        try:
-            user = EmailUser.objects.get(id=user_id)
-        except EmailUser.DoesNotExist:
-            raise serializers.ValidationError('A user with the id passed in does not exist')
-        instance.assign_officer(request,user)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            user_id = request.data.get('assessor_id',None)
+            user = None
+            if not user_id:
+                raise serializers.ValidationError('An assessor id is required')
+            try:
+                user = EmailUser.objects.get(id=user_id)
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError('A user with the id passed in does not exist')
+            instance.assign_officer(request,user)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        raise serializers.ValidationError('User cannot assign proposal')
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.unassign(request)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.unassign(request)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        raise serializers.ValidationError('User cannot unassign proposal')
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def switch_status(self, request, *args, **kwargs):
-        instance = self.get_object()
-        status = request.data.get('status')
-        approver_comment = request.data.get('approver_comment')
-        instance.move_to_status(request, status, approver_comment)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            status = request.data.get('status')
+            approver_comment = request.data.get('approver_comment')
+            instance.move_to_status(request, status, approver_comment)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        raise serializers.ValidationError('User cannot change proposal status')
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def bypass_endorsement(self, request, *args, **kwargs):
-        instance = self.get_object()
         if is_internal(request):
+            instance = self.get_object()
             #check if an AUA awaiting endorsement
             if instance.application_type_code == 'aua' and instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
                 #run function to move to with_assessor (include auth check in model func)
@@ -1795,24 +1585,25 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
-        instance = self.get_object()
-        status = request.data.get('status')
-        if not status:
-            raise serializers.ValidationError('Status is required')
+        if is_internal(request):
+            instance = self.get_object()
+            status = request.data.get('status')
+            if not status:
+                raise serializers.ValidationError('Status is required')
+            else:
+                if not status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR,]:
+                    raise serializers.ValidationError('The status provided is not allowed')
+            instance.reissue_approval(request)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
         else:
-            if not status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR,]:
-                raise serializers.ValidationError('The status provided is not allowed')
-        instance.reissue_approval(request)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+            serializers.ValidationError("User not authorised to reissue approval")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def renew_amend_approval_wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
-
-        #TODO add auth check - internal or applicant (covered by get_queryset, but additional checks still warranted)
         approval = instance.approval
         ## validation
         renew_amend_conditions = {
@@ -1833,7 +1624,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             instance = instance.amend_approval(request)
 
         return Response({"id":instance.id})
-    
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -1848,48 +1638,49 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         else:
             raise serializers.ValidationError("not authorised to assess proposal")
-
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def approval_level_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance = instance.assign_approval_level_document(request)
-        serializer = InternalProposalSerializer(instance,context={'request':request})
-        return Response(serializer.data)
-
+        
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProposedApprovalSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.final_approval(request, serializer.validated_data)
-        return Response()
+        print('final_approval() in ProposalViewSet')
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedApprovalSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.final_approval(request, serializer.validated_data)
+            return Response()
+        else:
+            raise serializers.ValidationError("not authorised to approve proposal")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProposedDeclineSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.proposed_decline(request,serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance,context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedDeclineSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.proposed_decline(request,serializer.validated_data)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance,context={'request':request})
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to decline proposal")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = ProposedDeclineSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        instance.final_decline(request,serializer.validated_data)
-        serializer_class = self.internal_serializer_class()
-        serializer = serializer_class(instance, context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ProposedDeclineSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.final_decline(request,serializer.validated_data)
+            serializer_class = self.internal_serializer_class()
+            serializer = serializer_class(instance, context={'request':request})
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("not authorised to decline proposal")
 
     @detail_route(methods=['post'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def draft(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -1901,13 +1692,11 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         
     @detail_route(methods=['post'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def internal_save(self, request, *args, **kwargs):
-        if (is_internal(request)): #TODO: better auth, using groups/permissions
+        if (is_internal(request)):
             with transaction.atomic():
                 instance = self.get_object()
-
                 save_proponent_data(instance,request,self.action)
                 instance = self.get_object()
                 serializer_class = self.internal_serializer_class()
@@ -1915,7 +1704,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 return Response(serializer.data)
 
     @detail_route(methods=['post'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -1953,9 +1741,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['GET',], detail=True)
     def get_max_vessel_length_for_aa_component(self, request, *args, **kwargs):
         try:
-            from mooringlicensing.components.payments_ml.models import FeeConstructor
-            from mooringlicensing.components.main.models import ApplicationType
-
             proposal = self.get_object()
             logger.info(f'Calculating the max vessel length for the AA component without any additional cost for the Proposal: [{proposal}]...')
 
@@ -1965,9 +1750,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             # Retrieve vessel
             vid = request.GET.get('vid', None)
             vessel = Vessel.objects.get(id=int(vid)) if vid else None
-
             max_amount_paid = proposal.get_max_amount_paid_for_aa_component(target_date, vessel)
-
             application_type_aa = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
             fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type_aa, target_date)
             max_length = calculate_max_length(fee_constructor, max_amount_paid, proposal.proposal_type)
@@ -1987,7 +1770,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         try:
             instance = self.get_object()
             if instance.vessel_ownership and not instance.vessel_ownership.end_date:
-                #vessel_details = instance.vessel_details
                 vessel_details = instance.vessel_details.vessel.latest_vessel_details
                 vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
                 vessel = vessel_details.vessel
@@ -1996,7 +1778,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 vessel_ownership_data = {}
                 if not instance.editable_vessel_details:
                     vessel_data["rego_no"] = vessel.rego_no
-                #else:
+
                 vessel_ownership_data = {}
                 if instance.vessel_ownership:
                     vessel_ownership_serializer = VesselOwnershipSerializer(instance.vessel_ownership)
@@ -2020,7 +1802,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         instance = self.get_object()
         logger.info(f'Proposal: [{instance}] is being destroyed by the user: [{request.user}].')
 
-        if instance.child_obj.application_type_code == MooringLicenceApplication.code and request.query_params.get('action', '') in ['withdraw',]:
+        if (instance.child_obj.application_type_code == MooringLicenceApplication.code and 
+            request.query_params.get('action', '') in ['withdraw',] and
+            is_internal(request)):
             instance.withdraw(request, *args, **kwargs)
         else:
             instance.destroy(request, *args, **kwargs)
@@ -2028,31 +1812,23 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response()
 
 
-class ProposalRequirementViewSet(viewsets.ModelViewSet):
+class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
 
     def get_queryset(self):
-        # qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        # return qs
         queryset = ProposalRequirement.objects.none()
-        user = self.request.user
         if is_internal(self.request):
             queryset = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        elif is_customer(self.request):
-            queryset = ProposalRequirement.objects.filter(
-                Q(proposal_applicant__email_user_id=user.id)
-            )
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def move_up(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.up()
-        instance.save()
+        if (instance.proposal.has_assessor_mode(request.user)):
+            instance.up()
+            instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -2060,8 +1836,9 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def move_down(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.down()
-        instance.save()
+        if (instance.proposal.has_assessor_mode(request.user)):
+            instance.down()
+            instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -2069,33 +1846,31 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def discard(self, request, *args, **kwargs):
         instance = self.get_object()
-        instance.is_deleted = True
-        instance.save()
+        if (instance.proposal.has_assessor_mode(request.user)):
+            instance.is_deleted = True
+            instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
-
-    @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
-    @basic_exception_handler
-    def delete_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        RequirementDocument.objects.get(id=request.data.get('id')).delete()
-        return Response([dict(id=i.id, name=i.name,_file=i._file.url) for i in instance.requirement_documents.all()])
 
     @basic_exception_handler
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if (instance.proposal.has_assessor_mode(request.user)):
+            serializer.save()
         return Response(serializer.data)
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data= request.data)
-        serializer.is_valid(raise_exception = True)
-        instance = serializer.save()
-        return Response(serializer.data)
+        if is_internal(request):
+            serializer = self.get_serializer(data= request.data)
+            serializer.is_valid(raise_exception = True)
+            if (instance.proposal.has_assessor_mode(request.user)):
+                instance = serializer.save()
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("User not authorised to create proposal requirement")
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2103,8 +1878,6 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProposalStandardRequirementSerializer
 
     def get_queryset(self):
-        from mooringlicensing.components.main.models import ApplicationType
-
         qs = ProposalStandardRequirement.objects.none()
         user = self.request.user
         if is_internal(self.request) or is_customer(self.request):
@@ -2114,8 +1887,6 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
                 application_type = ApplicationType.objects.get(code=application_type_code)
                 queries |= Q(application_type=application_type)
             qs = ProposalStandardRequirement.objects.exclude(obsolete=True).filter(queries)
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return qs
 
     def list(self, request, *args, **kwargs):
@@ -2127,7 +1898,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
     
 
-class AmendmentRequestViewSet(viewsets.ModelViewSet):
+class AmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
 
@@ -2140,79 +1911,51 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
             queryset = AmendmentRequest.objects.filter(
                 Q(proposal_applicant__email_user_id=user.id)
             )
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        data = request.data
-        reason_id = request.data.get('reason_id')
+
         proposal = request.data.get('proposal')
-        data['reason'] = reason_id
-        data['proposal'] = proposal['id']
+        try:
+            instance = Proposal.objects.get(id=proposal['id'])
+        except:
+            raise serializers.ValidationError("Invalid proposal id")
+        
+        if instance.has_assessor_mode(request.user):
+            data = request.data
+            reason_id = request.data.get('reason_id')
+            
+            data['reason'] = reason_id
+            data['proposal'] = proposal['id']
 
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid(raise_exception = True)
-        instance = serializer.save()
-        logger.info(f'New AmendmentRequest: [{instance}] has been created.')
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception = True)
+            instance = serializer.save()
+            logger.info(f'New AmendmentRequest: [{instance}] has been created.')
 
-        instance.generate_amendment(request)
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+            instance.generate_amendment(request)
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("user not authorised to make an amendment request")
 
 
 class AmendmentRequestReasonChoicesView(views.APIView):
 
-    renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
-        choices_list = []
-        choices=AmendmentReason.objects.all()
-        if choices:
-            for c in choices:
-                choices_list.append({'key': c.id,'value': c.reason})
-        return Response(choices_list)
+        if is_internal(request):
+            choices_list = []
+            choices=AmendmentReason.objects.all()
+            if choices:
+                for c in choices:
+                    choices_list.append({'key': c.id,'value': c.reason})
+            return Response(choices_list)
+        else:
+            return Response()
 
 
-class SearchKeywordsView(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def post(self,request, format=None):
-        qs = []
-        searchWords = request.data.get('searchKeywords')
-        searchProposal = request.data.get('searchProposal')
-        searchApproval = request.data.get('searchApproval')
-        searchCompliance = request.data.get('searchCompliance')
-        if searchWords:
-            qs= searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance)
-        serializer = SearchKeywordSerializer(qs, many=True)
-        return Response(serializer.data)
-
-class SearchReferenceView(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def post(self,request, format=None):
-        try:
-            qs = []
-            reference_number = request.data.get('reference_number')
-            if reference_number:
-                qs= search_reference(reference_number)
-            serializer = SearchReferenceSerializer(qs)
-            return Response(serializer.data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            if hasattr(e,'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                print(e)
-                if hasattr(e,'message'):
-                    raise serializers.ValidationError(e.message)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
-
-
-class VesselOwnershipViewSet(viewsets.ModelViewSet):
+class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = VesselOwnership.objects.all().order_by('id')
     serializer_class = VesselOwnershipSerializer
 
@@ -2224,11 +1967,9 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             queryset = VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return VesselOwnership.objects.none()
 
     @detail_route(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def process_vessel_registration_document(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -2352,7 +2093,7 @@ class VesselOwnershipViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class CompanyViewSet(viewsets.ModelViewSet):
+class CompanyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Company.objects.all().order_by('id')
     serializer_class = CompanySerializer
 
@@ -2365,7 +2106,6 @@ class CompanyViewSet(viewsets.ModelViewSet):
             companyownerships = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
             queryset = Company.objects.filter(Q(companyownership__in=companyownerships))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Company.objects.none()
 
     @detail_route(methods=['POST',], detail=True)
@@ -2391,7 +2131,7 @@ class CompanyViewSet(viewsets.ModelViewSet):
         return Response(empty_co)
 
 
-class CompanyOwnershipViewSet(viewsets.ModelViewSet):
+class CompanyOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = CompanyOwnership.objects.all().order_by('id')
     serializer_class = CompanyOwnershipSerializer
     
@@ -2403,50 +2143,12 @@ class CompanyOwnershipViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             queryset = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return CompanyOwnership.objects.none()
 
-    @detail_route(methods=['GET',], detail=True)
-    @basic_exception_handler
-    def lookup_company_ownership(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        vessel_details = vessel.latest_vessel_details
-        vessel_details_serializer = VesselDetailsSerializer(vessel_details, context={'request': request})
-        vessel_serializer = VesselSerializer(vessel)
-        vessel_data = vessel_serializer.data
-        vessel_data["vessel_details"] = vessel_details_serializer.data
 
-        # vessel_ownership
-        vessel_ownership_data = {}
-        # check if this emailuser has a matching record for this vessel
-        owner_qs = Owner.objects.filter(emailuser=request.user)
-        if owner_qs:
-            owner = owner_qs[0]
-            vo_qs = vessel.vesselownership_set.filter(owner=owner)
-            if vo_qs:
-                vessel_ownership = vo_qs[0]
-                vessel_ownership_serializer = VesselOwnershipSerializer(vessel_ownership)
-                vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
-                vessel_ownership_data["individual_owner"] = False if vessel_ownership.company_ownership else True
-        vessel_data["vessel_ownership"] = vessel_ownership_data
-        return Response(vessel_data)
-
-
-class VesselViewSet(viewsets.ModelViewSet):
+class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
-
-    def get_queryset(self):
-        queryset = Vessel.objects.none()
-        user = self.request.user
-        queryset = Vessel.objects.all().order_by('id')
-        #if is_internal(self.request):
-        #    queryset = Vessel.objects.all().order_by('id')
-        #elif is_customer(self.request):
-        #    owner = Owner.objects.filter(emailuser=user.id)
-        #    if owner:
-        #        queryset = owner.first().vessels.distinct()
-        return queryset
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2517,38 +2219,36 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = VesselLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = VesselLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['vessel'] = u'{}'.format(instance.id)
-            request.data._mutable=mutable
-            serializer = VesselLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['vessel'] = u'{}'.format(instance.id)
+                request.data._mutable=mutable
+                serializer = VesselLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
-
-    @detail_route(methods=['GET',], detail=True)
-    @basic_exception_handler
-    def action_log(self, request, *args, **kwargs):
-        return Response([])
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2556,8 +2256,6 @@ class VesselViewSet(viewsets.ModelViewSet):
         vessel = self.get_object()
         owner_set = Owner.objects.filter(emailuser=request.user.id)
         if owner_set:
-            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel, company_ownership=None)
-            # vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             vo_set = vessel.filtered_vesselownership_set.filter(owner=owner_set[0], vessel=vessel).exclude(company_ownerships__vesselownershipcompanyownership__status=VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)
             if vo_set:
                 serializer = VesselOwnershipSerializer(vo_set[0])
@@ -2569,8 +2267,9 @@ class VesselViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def full_details(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        return Response(VesselFullSerializer(vessel).data)
+        if is_internal(request):
+            vessel = self.get_object()
+            return Response(VesselFullSerializer(vessel).data)
  
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
@@ -2599,38 +2298,38 @@ class VesselViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',], detail=False)
     def list_internal(self, request, *args, **kwargs):
+        if is_internal(request):
+            search_text = request.GET.get('search[value]', '')
+            target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
+            if target_email_user_id:
+                try:
+                    owner = Owner.objects.get(emailuser=target_email_user_id)
+                except ObjectDoesNotExist:
+                    raise serializers.ValidationError("user does not exist with provided email user id")
+                except:
+                    raise serializers.ValidationError("error")
+            else:
+                raise serializers.ValidationError("no email user id provided")
+            vessel_ownership_list = owner.vesselownership_set.order_by("vessel","-updated").distinct("vessel")
 
-        search_text = request.GET.get('search[value]', '')
-        target_email_user_id = int(self.request.GET.get('target_email_user_id', 0))
-        if target_email_user_id:
-            try:
-                owner = Owner.objects.get(emailuser=target_email_user_id)
-            except ObjectDoesNotExist:
-                raise serializers.ValidationError("user does not exist with provided email user id")
-            except:
-                raise serializers.ValidationError("error")
+            if search_text:
+                search_text = search_text.lower()
+                search_text_vessel_ownership_ids = []
+                matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
+                for vo in vessel_ownership_list:
+                    vd = vo.vessel.latest_vessel_details
+                    if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
+                            search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
+                            vd.vessel_type in matching_vessel_type_choices or
+                            search_text in vo.end_date.strftime('%d/%m/%Y')
+                    ):
+                        search_text_vessel_ownership_ids.append(vo.id)
+                vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
+
+            serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
+            return Response(serializer.data)
         else:
-            raise serializers.ValidationError("no email user id provided")
-        vessel_ownership_list = owner.vesselownership_set.order_by("vessel","-updated").distinct("vessel")
-
-        # TODO review - rewrite following for vessel_ownership_list
-        if search_text:
-            search_text = search_text.lower()
-            search_text_vessel_ownership_ids = []
-            matching_vessel_type_choices = [choice[0] for choice in VESSEL_TYPES if search_text in choice[1].lower()]
-            for vo in vessel_ownership_list:
-                vd = vo.vessel.latest_vessel_details
-                if (search_text in (vd.vessel_name.lower() if vd.vessel_name else '') or
-                        search_text in (vd.vessel.rego_no.lower() if vd.vessel.rego_no.lower() else '') or
-                        vd.vessel_type in matching_vessel_type_choices or
-                        search_text in vo.end_date.strftime('%d/%m/%Y')
-                ):
-                    search_text_vessel_ownership_ids.append(vo.id)
-            vessel_ownership_list = [vo for vo in vessel_ownership_list if vo.id in search_text_vessel_ownership_ids]
-
-        serializer = ListVesselOwnershipSerializer(vessel_ownership_list, context={'request': request}, many=True)
-        return Response(serializer.data)
-
+            raise serializers.ValidationError("user not authorised")
 
     @list_route(methods=['GET',], detail=False)
     def list_external(self, request, *args, **kwargs):
@@ -2671,14 +2370,9 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringBaySerializer
 
     def get_queryset(self):
-        # return MooringBay.objects.filter(active=True)
-
         queryset = MooringBay.objects.none()
-        user = self.request.user
         if is_internal(self.request) or is_customer(self.request):
             queryset = MooringBay.objects.filter(active=True)
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @list_route(methods=['GET',], detail=False)
@@ -2703,9 +2397,6 @@ class MooringFilterBackend(DatatablesFilterBackend):
         if filter_mooring_bay and not filter_mooring_bay.lower() == 'all':
             queryset = queryset.filter(mooring_bay_id=filter_mooring_bay)
 
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -2741,38 +2432,17 @@ class MooringFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class MooringRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-        return super(MooringRenderer, self).render(data, accepted_media_type, renderer_context)
-
-
-class MooringPaginatedViewSet(viewsets.ModelViewSet):
+class MooringPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (MooringFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (MooringRenderer,)
     queryset = Mooring.objects.none()
     serializer_class = ListMooringSerializer
-    page_size = 10
 
     def get_queryset(self):
-        request_user = self.request.user
         qs = Mooring.objects.none()
-
         if is_internal(self.request):
             qs = Mooring.private_moorings.filter(active=True)
-
         return qs
-
-    @list_route(methods=['GET',], detail=False)
-    def list_internal(self, request, *args, **kwargs):
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
-
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListMooringSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
 
 
 class MooringViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2780,14 +2450,9 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MooringSerializer
 
     def get_queryset(self):
-        # return Mooring.objects.filter(active=True)
-
         queryset = Mooring.objects.none()
-        user = self.request.user
         if is_internal(self.request) or is_customer(self.request):
             queryset = Mooring.objects.filter(active=True)
-        else:
-            logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return queryset
 
     @detail_route(methods=['POST',], detail=True)
@@ -2805,7 +2470,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             data = get_bookings(booking_date=booking_date, rego_no=None, mooring_id=mooring.mooring_bookings_id)
             return Response(data)
         raise serializers.ValidationError("not authorised to view related bookings")
-
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2840,51 +2504,39 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = MooringLogEntrySerializer(qs,many=True)
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = MooringLogEntrySerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['mooring'] = u'{}'.format(instance.id)
-            request.data._mutable=mutable
-            serializer = MooringLogEntrySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if is_internal(request):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['mooring'] = u'{}'.format(instance.id)
+                request.data._mutable=mutable
+                serializer = MooringLogEntrySerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
-
-    @detail_route(methods=['GET',], detail=True)
-    @basic_exception_handler
-    def action_log(self, request, *args, **kwargs):
-        return Response([])
-
-    @list_route(methods=['GET',], detail=False)
-    @basic_exception_handler
-    def internal_list(self, request, *args, **kwargs):
-        # add security
-        mooring_qs = Mooring.private_moorings.filter(active=True)
-        serializer = ListMooringSerializer(mooring_qs, many=True)
-        return Response(serializer.data)
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def fetch_mooring_name(self, request, *args, **kwargs):
-        # add security
         instance = self.get_object()
         return Response({"name": instance.name})
-

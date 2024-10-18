@@ -138,7 +138,6 @@ export default {
             if (this.unique_id){
                 url = helpers.add_endpoint_join(
                     api_endpoints.proposal_by_uuid,
-                    // this.unique_id + '/process_mooring_report_document/'
                     this.unique_id + '/mooring_report_document/'
                 )
             }

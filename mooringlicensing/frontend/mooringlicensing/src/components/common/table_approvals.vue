@@ -279,7 +279,7 @@ export default {
                     'Action',
                     'Grace period end date',
                     'Approval letter',
-                    'Sticker replacement',
+                    //'Sticker replacement',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -316,7 +316,7 @@ export default {
                     'Start Date',
                     'Expiry Date',
                     'Approval letter',
-                    'Sticker replacement',
+                    //'Sticker replacement',
                     'Vessel Rego',
                     'Grace period end date',
                     'Action',
@@ -644,7 +644,7 @@ export default {
                         name: 'stickers__number',
                     }
         },
-        columnStickerReplacement: function(){
+        /*columnStickerReplacement: function(){
             return {
                         data: "id",
                         orderable: false,
@@ -664,7 +664,7 @@ export default {
                         },
 
             }
-        },
+        },*/
         columnStickerMailedDate: function() {
             return {
                         data: "id",
@@ -779,7 +779,7 @@ export default {
                     vm.columnAction,
                     vm.columnGracePeriod,
                     vm.columnApprovalLetter,
-                    vm.columnStickerReplacement,
+                    //vm.columnStickerReplacement,
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -816,7 +816,7 @@ export default {
                     vm.columnStartDate,
                     vm.columnExpiryDate,
                     vm.columnApprovalLetter,
-                    vm.columnStickerReplacement,
+                    //vm.columnStickerReplacement,
                     vm.columnVesselRegos,
                     vm.columnGracePeriod,
                     vm.columnAction,

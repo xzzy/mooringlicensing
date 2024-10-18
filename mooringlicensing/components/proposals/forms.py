@@ -1,18 +1,9 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from mooringlicensing.components.proposals.models import HelpPage #ProposalAssessorGroup,ProposalApproverGroup
 from mooringlicensing.components.main.models import SystemMaintenance
-from ckeditor.widgets import CKEditorWidget
 from django.conf import settings
 import pytz
 from datetime import datetime, timedelta
-
-
-class MooringLicensingHelpPageAdminForm(forms.ModelForm):
-    content = forms.CharField(widget=CKEditorWidget())
-    class Meta:
-        model = HelpPage
-        fields = '__all__'
 
 
 class SystemMaintenanceAdminForm(forms.ModelForm):

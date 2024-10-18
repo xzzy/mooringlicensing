@@ -3,28 +3,31 @@ from django.contrib import admin
 from django.urls import re_path, include
 from django.conf.urls.static import static
 from rest_framework import routers
-from django_media_serv.urls import urlpatterns as media_serv_patterns
 
-import mooringlicensing
-# import mooringlicensing.components.approvals.api
 from mooringlicensing import views
 from mooringlicensing.components.approvals.views import DcvAdmissionFormView
-from mooringlicensing.components.payments_ml.views import ApplicationFeeView, ApplicationFeeSuccessView, InvoicePDFView, \
-    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, ConfirmationView, DcvAdmissionFeeView, \
-    DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, StickerReplacementFeeView, \
-    StickerReplacementFeeSuccessView, RefundProposalHistoryView, ProposalPaymentHistoryView, ApplicationFeeAlreadyPaid, \
-    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, DcvAdmissionFeeSuccessViewPreload, \
+from mooringlicensing.components.payments_ml.views import (
+    ApplicationFeeView, ApplicationFeeSuccessView, 
+    DcvPermitFeeView, DcvPermitFeeSuccessView, DcvPermitPDFView, 
+    ConfirmationView, DcvAdmissionFeeView, 
+    DcvAdmissionFeeSuccessView, DcvAdmissionPDFView, ApplicationFeeExistingView, 
+    StickerReplacementFeeView, 
+    StickerReplacementFeeSuccessView, ApplicationFeeAlreadyPaid, 
+    ApplicationFeeSuccessViewPreload, DcvPermitFeeSuccessViewPreload, 
+    DcvAdmissionFeeSuccessViewPreload, 
     StickerReplacementFeeSuccessViewPreload
+)
 from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.payments_ml import api as payments_api
 from mooringlicensing.components.proposals import api as proposal_api
 from mooringlicensing.components.approvals import api as approval_api
 from mooringlicensing.components.compliances import api as compliances_api
-from mooringlicensing.components.proposals.views import AuthorisedUserApplicationEndorseView, \
+from mooringlicensing.components.proposals.views import (
+    AuthorisedUserApplicationEndorseView, 
     MooringLicenceApplicationDocumentsUploadView
+)
 from mooringlicensing.components.users import api as users_api
 from mooringlicensing.components.main import api as main_api
-# from ledger.urls import urlpatterns as ledger_patterns
 from ledger_api_client.urls import urlpatterns as ledger_patterns
 
 # API patterns
@@ -63,7 +66,6 @@ router.register(r'proposal_standard_requirements', proposal_api.ProposalStandard
 router.register(r'users', users_api.UserViewSet, 'users')
 router.register(r'amendment_request', proposal_api.AmendmentRequestViewSet, 'amendment_request')
 router.register(r'compliance_amendment_request', compliances_api.ComplianceAmendmentRequestViewSet, 'compliance_amendment_request')
-router.register(r'payment', main_api.PaymentViewSet, 'payment')
 router.register(r'mooringbays', proposal_api.MooringBayViewSet, 'mooringbays')
 router.register(r'vessel', proposal_api.VesselViewSet, 'vessel')
 router.register(r'mooring', proposal_api.MooringViewSet, 'mooring')
@@ -76,13 +78,12 @@ router.register(r'internal_dcv_admission', approval_api.InternalDcvAdmissionView
 # router.register(r'dcv_admission_external', mooringlicensing.components.approvals.api.DcvAdmissionViewSet, 'dcv_admission')
 router.register(r'company', proposal_api.CompanyViewSet, 'company')
 router.register(r'companyownership', proposal_api.CompanyOwnershipViewSet, 'companyownership')
-router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet, 'temporary_document')
+#router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet, 'temporary_document')
 
 api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicantUser.as_view(), name='get-proposal-applicant-user'),
     re_path(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
-    re_path(r'^api/filtered_payments$', approval_api.ApprovalPaymentFilterViewSet.as_view(), name='filtered_payments'),
     re_path(r'^api/application_types$', proposal_api.GetApplicationTypeDescriptions.as_view(), name='get-application-type-descriptions'),
     re_path(r'^api/application_types_dict$', proposal_api.GetApplicationTypeDict.as_view(), name='get-application-type-dict'),
     re_path(r'^api/application_categories_dict$', proposal_api.GetApplicationCategoryDict.as_view(), name='get-application-category-dict'),
@@ -112,16 +113,10 @@ api_patterns = [
     re_path(r'^api/seasons_for_dcv_dict$', payments_api.GetSeasonsForDcvPermitDict.as_view(), name='get-approval-statuses-dict'),
     re_path(r'^api/compliance_statuses_dict$', compliances_api.GetComplianceStatusesDict.as_view(), name='get-compliance-statuses-dict'),
     re_path(r'^api/mooring_statuses_dict$', proposal_api.GetMooringStatusesDict.as_view(), name='get-mooring-statuses-dict'),
-    re_path(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
     re_path(r'^api/',include(router.urls)),
     re_path(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     re_path(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
-    re_path(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
-    re_path(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
-    re_path(r'^api/oracle_job$',main_api.OracleJob.as_view(), name='get-oracle'),
-    re_path(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),name='booking-settlements-report'),
     re_path(r'^api/external_dashboard_sections_list/$',main_api.GetExternalDashboardSectionsList.as_view(), name='get-external-dashboard-sections-list'),
-    
 ]
 
 # URL Patterns
@@ -136,16 +131,11 @@ urlpatterns = [
     re_path(r'^further_info/', views.MooringLicensingFurtherInformationView.as_view(), name='ds_further_info'),
     re_path(r'^internal/', views.InternalView.as_view(), name='internal'),
     re_path(r'^external/', views.ExternalView.as_view(), name='external'),
-    re_path(r'^firsttime/$', views.first_time, name='first_time'),
+    #re_path(r'^firsttime/$', views.first_time, name='first_time'),
     re_path(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     re_path(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
-    re_path(r'^help/(?P<application_type>[^/]+)/(?P<help_type>[^/]+)/$', views.HelpView.as_view(), name='help'),
     re_path(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
     re_path(r'^login-success/$', views.LoginSuccess.as_view(), name='login-success'),
-
-    #following url is used to include url path when sending Proposal amendment request to user.
-    re_path(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
-    re_path(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
     # payment related urls
     re_path(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
@@ -170,7 +160,6 @@ urlpatterns = [
     re_path(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     re_path(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
     re_path(r'^dcv_admission_form/$', DcvAdmissionFormView.as_view(), name='dcv_admission_form'),
-    re_path(r'payments/invoice-pdf/(?P<reference>\d+)', InvoicePDFView.as_view(), name='invoice-pdf'),
     re_path(r'payments/dcv-permit-pdf/(?P<id>\d+)', DcvPermitPDFView.as_view(), name='dcv-permit-pdf'),
     re_path(r'payments/dcv-admission-pdf/(?P<id>\d+)', DcvAdmissionPDFView.as_view(), name='dcv-admission-pdf'),
 
@@ -181,20 +170,15 @@ urlpatterns = [
     re_path(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
 
     # reversion history-compare
-    re_path(r'^history/proposal/(?P<pk>\d+)/$', proposal_views.ProposalHistoryCompareView.as_view(), name='proposal_history'),
-    re_path(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
-    re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
-    re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
-    re_path(r'^history/helppage/(?P<pk>\d+)/$', proposal_views.HelpPageHistoryCompareView.as_view(), name='helppage_history'),
-
-    re_path(r'^proposal-payment-history/(?P<pk>[0-9]+)/', ProposalPaymentHistoryView.as_view(), name='view_proposal_payment_history'),
-    re_path(r'^proposal-payment-history-refund/(?P<pk>[0-9]+)/', RefundProposalHistoryView.as_view(), name='view_refund_proposal_payment_history'),
-    re_path(r'^api/check_oracle_code$', payments_api.CheckOracleCodeView.as_view(), name='check_oracle_code'),
-    re_path(r'^api/refund_oracle$', payments_api.RefundOracleView.as_view(), name='refund_oracle'),
+    #TODO this no longer works after ledger segregation - remove or replace
+    #re_path(r'^history/proposal/(?P<pk>\d+)/$', proposal_views.ProposalHistoryCompareView.as_view(), name='proposal_history'),
+    #re_path(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
+    #re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
+    #re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
     re_path(r'^api/remove-AUP-from-mooring/(?P<mooring_id>\d+)/(?P<approval_id>\d+)$',approval_api.removeAUPFromMooring, name='remove_AUP_from_mooring'),
-   re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
+    re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
 ] + ledger_patterns #+ media_serv_patterns
 
 

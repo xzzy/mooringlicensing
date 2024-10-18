@@ -15,7 +15,6 @@ from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeConstructor
 from mooringlicensing.components.proposals.models import (
     Proposal,
-    ProposalApplicant,
     ProposalUserAction,
     ProposalLogEntry,
     VesselLogEntry,
@@ -24,8 +23,6 @@ from mooringlicensing.components.proposals.models import (
     ProposalStandardRequirement,
     ProposalDeclinedDetails,
     AmendmentRequest,
-    AmendmentReason,
-    RequirementDocument,
     VesselDetails,
     VesselOwnership,
     Vessel,
@@ -937,7 +934,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     current_assessor = serializers.SerializerMethodField()
     assessor_data = serializers.SerializerMethodField()
     allowed_assessors = serializers.SerializerMethodField()
-    approval_level_document = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
     requirements_completed=serializers.SerializerMethodField()
@@ -968,7 +964,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 #'end_date',
                 'application_type',
                 'approval_level',
-                'approval_level_document',
                 'approval_id',
                 'title',
                 'customer_status',
@@ -1277,12 +1272,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
             preferred_bay_id = obj.previous_application.preferred_bay.id
         return preferred_bay_id
 
-    def get_approval_level_document(self,obj):
-        if obj.approval_level_document is not None:
-            return [obj.approval_level_document.name,obj.approval_level_document._file.url]
-        else:
-            return obj.approval_level_document
-
     def get_assessor_mode(self,obj):
         request = self.context['request']
         user = request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
@@ -1383,15 +1372,8 @@ class MooringLogEntrySerializer(CommunicationLogEntrySerializer):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
 
-class RequirementDocumentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RequirementDocument
-        fields = ('id', 'name', '_file')
-
-
 class ProposalRequirementSerializer(serializers.ModelSerializer):
     due_date = serializers.DateField(input_formats=['%d/%m/%Y'],required=False,allow_null=True)
-    requirement_documents = RequirementDocumentSerializer(many=True, read_only=True)
     read_due_date = serializers.SerializerMethodField()
 
     class Meta:
@@ -1410,7 +1392,6 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
             'requirement',
             'is_deleted',
             'copied_from',
-            'requirement_documents',
             'require_due_date',
             'copied_for_renewal',
             'read_due_date',

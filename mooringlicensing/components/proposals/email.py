@@ -1044,13 +1044,6 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
             attachments.append(attachment)
             logger.info(f'Licence/Permit document: {file_name} has been attached.')
 
-            # add requirement documents
-            for requirement in proposal.requirements.exclude(is_deleted=True):
-                for doc in requirement.requirement_documents.all():
-                    file_name = doc._file.name
-                    attachment = (file_name, doc._file.file.read())
-                    attachments.append(attachment)
-                    logger.info(f'Requirement document: {file_name} has been attached.')
     if attach_au_summary_doc and proposal.approval and proposal.approval.authorised_user_summary_document:
         logger.info(f'Attaching AU summary document...')
 

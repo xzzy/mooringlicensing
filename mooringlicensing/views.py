@@ -12,10 +12,7 @@ from mooringlicensing import settings
 from mooringlicensing.helpers import is_internal, is_customer
 from mooringlicensing.forms import *
 from mooringlicensing.components.approvals.models import Approval, DcvAdmission, DcvPermit
-from mooringlicensing.components.proposals.models import (
-        Proposal, 
-        HelpPage
-        )
+from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.compliances.models import Compliance
 from django.core.management import call_command
 from django.db.models import Q
@@ -103,56 +100,9 @@ class InternalProposalView(DetailView):
         if self.request.user.is_authenticated:
             if is_internal(self.request):
                 return super(InternalProposalView, self).get(*args, **kwargs)
-            return redirect('external-proposal-detail')
+            return redirect('external')
         kwargs['form'] = LoginForm
-        return super(MooringLicensingRoutingDetailView, self).get(*args, **kwargs)
-
-
-# @login_required(login_url='ds_home')
-@login_required(login_url='home')
-def first_time(request):
-    context = {}
-    if request.method == 'POST':
-        form = FirstTimeForm(request.POST)
-        redirect_url = form.data['redirect_url']
-        if not redirect_url:
-            redirect_url = '/'
-        if form.is_valid():
-            # set user attributes
-            request.user.first_name = form.cleaned_data['first_name']
-            request.user.last_name = form.cleaned_data['last_name']
-            request.user.dob = form.cleaned_data['dob']
-            request.user.save()
-            return redirect(redirect_url)
-        context['form'] = form
-        context['redirect_url'] = redirect_url
-        return render(request, 'mooringlicensing/user_profile.html', context)
-    # GET default
-    if 'next' in request.GET:
-        context['redirect_url'] = request.GET['next']
-    else:
-        context['redirect_url'] = '/'
-    context['dev'] = settings.DEV_STATIC
-    context['dev_url'] = settings.DEV_STATIC_URL
-    return render(request, 'mooringlicensing/dash/index.html', context)
-
-
-class HelpView(LoginRequiredMixin, TemplateView):
-    template_name = 'mooringlicensing/help.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(HelpView, self).get_context_data(**kwargs)
-
-        if self.request.user.is_authenticated:
-            application_type = kwargs.get('application_type', None)
-            if kwargs.get('help_type', None)=='assessor':
-                if is_internal(self.request):
-                    qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_INTERNAL).order_by('-version')
-                    context['help'] = qs.first()
-            else:
-                qs = HelpPage.objects.filter(application_type__name__icontains=application_type, help_type=HelpPage.HELP_TEXT_EXTERNAL).order_by('-version')
-                context['help'] = qs.first()
-        return context
+        return redirect('')
 
 
 class LoginSuccess(TemplateView):
@@ -171,14 +121,7 @@ class ManagementCommandsView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         return is_internal(self.request)
 
     def get(self, request, *args, **kwargs):
-        debug = request.GET.get('debug', 'f')
-        if debug.lower() in ['true', 't', 'yes', 'y']:
-            debug = True
-        else:
-            debug = False
-
         context = self.get_context_data(**kwargs)
-        context.update({'debug': debug})
         return self.render_to_response(context)
 
     def post(self, request):
@@ -215,15 +158,14 @@ def is_authorised_to_access_dcv_admission_document(request,document_id):
         return True
     elif is_customer(request):
         user = request.user
-        return DcvAdmission.objects.filter(id=document_id).filter(submitter=user.id).exists()
+        return DcvAdmission.objects.filter(id=document_id).filter(applicant=user.id).exists()
     
 def is_authorised_to_access_dcv_permit_document(request,document_id):
     if is_internal(request):
         return True
     elif is_customer(request):
         user = request.user
-        #TODO applicant vs submitter
-        return DcvPermit.objects.filter(id=document_id).filter(submitter=user.id).exists()
+        return DcvPermit.objects.filter(id=document_id).filter(applicant=user.id).exists()
     
 def get_file_path_id(check_str,file_path):
     file_name_path_split = file_path.split("/")

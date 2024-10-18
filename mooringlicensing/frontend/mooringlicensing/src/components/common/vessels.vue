@@ -1024,7 +1024,6 @@ export default {
     },
     created: async function () {
         if (this.proposal){
-            // let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component`)
             let res = await this.$http.get(`${api_endpoints.proposal}${this.proposal.id}/get_max_vessel_length_for_main_component?uuid=${this.proposal.uuid}`);
             this.max_vessel_length_tuple = res.body
         }

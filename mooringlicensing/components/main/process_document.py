@@ -35,10 +35,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
         elif document_type == 'comms_log':
             comms_instance = instance.comms_logs.create()
 
-        if action == 'list':
-            # Retrieve list later of this function
-            pass
-        elif action == 'delete':
+        if action == 'delete':
             delete_document(request, instance, comms_instance, document_type, input_name)
         elif action == 'cancel':
             deleted = cancel_document(request, instance, comms_instance, document_type, input_name)
@@ -47,6 +44,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
 
         # HTTP Response varies by action and instance type
         ret = None
+        print(comms_instance, input_name, document_type)
         if comms_instance and action == 'cancel' and deleted:
             ret = deleted
         elif comms_instance:
@@ -74,8 +72,10 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             elif document_type == 'proof_of_identity_document':
                 documents_qs = instance.proof_of_identity_documents.filter(proposalproofofidentitydocument__enabled=True)
 
+            print(documents_qs)
+
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
-            ret = {'filedata': returned_file_data }
+            ret = {'filedata': returned_file_data}
         else:
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name, ) for d in instance.documents.all() if d._file]
             ret = {'filedata': returned_file_data}
@@ -189,6 +189,7 @@ def cancel_document(request, instance, comms_instance, document_type, input_name
 def save_document(request, instance, comms_instance, document_type, input_name=None):
     # example document_type
     document = None
+    proposal_document = None
     path = ''
 
     if 'filename' in request.data and input_name:
@@ -210,18 +211,22 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         # elif document_type == 'mooring_report_document':
         if document_type == 'mooring_report_document':
             document = instance.mooring_report_documents.get_or_create(input_name=input_name, name=filename)[0]
+            proposal_document = ProposalMooringReportDocument.objects.filter(mooring_report_document=document).first()
             # path_format_string = '{}/proposals/{}/mooring_report_documents/{}'
             path_format_string = 'proposal/{}/mooring_report_documents/{}'
         elif document_type == 'written_proof_document':
             document = instance.written_proof_documents.get_or_create(input_name=input_name, name=filename)[0]
+            proposal_document = ProposalWrittenProofDocument.objects.filter(written_proof_document=document).first()
             # path_format_string = '{}/proposals/{}/written_proof_documents/{}'
             path_format_string = 'proposal/{}/written_proof_documents/{}'
         elif document_type == 'signed_licence_agreement_document':
             document = instance.signed_licence_agreement_documents.get_or_create(input_name=input_name, name=filename)[0]
+            proposal_document = ProposalSignedLicenceAgreementDocument.objects.filter(signed_licence_agreement_document=document).first()            
             # path_format_string = '{}/proposals/{}/signed_licence_agreement_documents/{}'
             path_format_string = 'proposal/{}/signed_licence_agreement_documents/{}'
         elif document_type == 'proof_of_identity_document':
             document = instance.proof_of_identity_documents.get_or_create(input_name=input_name, name=filename)[0]
+            proposal_document = ProposalProofOfIdentityDocument.objects.filter(proof_of_identity_document=document).first()
             # path_format_string = '{}/proposals/{}/proof_of_identity_documents/{}'
             path_format_string = 'proposal/{}/proof_of_identity_documents/{}'
         elif document_type == 'waiting_list_offer_document':
@@ -260,6 +265,9 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
     if document and path:
         document._file = path
         document.save()
+        if proposal_document:
+            proposal_document.enabled = True
+            proposal_document.save()
         logger.info(f'Document: [{document}] has been saved for the proposal: [{instance}].')
 
 # For transferring files from temp doc objs to default doc objs

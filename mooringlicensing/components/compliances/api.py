@@ -1,39 +1,18 @@
 import logging
-import traceback
-# import os
-# import datetime
-# import base64
-# import geojson
+
 from rest_framework_datatables.filters import DatatablesFilterBackend
-from rest_framework_datatables.renderers import DatatablesRenderer
-# from wsgiref.util import FileWrapper
-from django.db.models import Q, Min, CharField, Value
+from django.db.models import Q, CharField, Value
 from django.db.models.functions import Concat
 from django.db import transaction
-# from django.http import HttpResponse
-# from django.core.files.base import ContentFile
-from django.core.exceptions import ValidationError
 from django.conf import settings
-# from django.contrib import messages
-# from django.utils import timezone
-from rest_framework import viewsets, serializers, views
-# from rest_framework.decorators import detail_route, list_route, renderer_classes
+from rest_framework import viewsets, serializers, views, mixins
 from rest_framework.decorators import action as detail_route
-from rest_framework.decorators import action as list_route
-from rest_framework.decorators import renderer_classes
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
-# from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, BasePermission
-# from rest_framework.pagination import PageNumberPagination
-# from datetime import datetime, timedelta
-# from collections import OrderedDict
 from django.core.cache import cache
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from mooringlicensing.components.main.decorators import basic_exception_handler
 from ledger_api_client.managed_models import SystemUser
 
-# from ledger.address.models import Country
-# from datetime import datetime, timedelta, date
 from mooringlicensing.components.compliances.models import (
    Compliance,
    ComplianceAmendmentRequest,
@@ -54,8 +33,7 @@ from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 logger = logging.getLogger(__name__)
 
-
-class ComplianceViewSet(viewsets.ModelViewSet):
+class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     serializer_class = ComplianceSerializer
     queryset = Compliance.objects.none()
 
@@ -63,18 +41,21 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return Compliance.objects.all()
         elif is_customer(self.request):
-            queryset =  Compliance.objects.filter(Q(proposal__proposal_applicant__email_user_id=self.request.user.id)).exclude(processing_status='discarded')
+            queryset =  Compliance.objects.filter(
+                Q(proposal__proposal_applicant__email_user_id=self.request.user.id)
+            ).exclude(processing_status='discarded')
             return queryset
         return Compliance.objects.none()
 
     @detail_route(methods=['GET',], detail=True)
     def internal_compliance(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = InternalComplianceSerializer(instance,context={'request':request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = InternalComplianceSerializer(instance,context={'request':request})
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def submit(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -85,7 +66,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
                                                     .format(instance.processing_status))
 
-            #TODO replace is_internal with group membership check
             if instance.proposal.applicant_email != request.user.email and not is_internal(request): 
                 raise serializers.ValidationError('You are not authorised to modify this application.')
 
@@ -100,7 +80,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 
             if 'num_participants' in request.data:
                 if request.FILES:
-                    # if num_adults is present instance.submit is executed after payment in das_payment/views.py
                     for f in request.FILES:
                         document = instance.documents.create(name=str(request.FILES[f]),_file = request.FILES[f])
             else:
@@ -112,58 +91,79 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.assign_to(request.user,request)
-        serializer = InternalComplianceSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if is_internal(request):
+            instance = self.get_object()
+            instance.assign_to(request.user,request)
+            serializer = InternalComplianceSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def delete_document(self, request, *args, **kwargs):
-        instance = self.get_object()
-        doc=request.data.get('document')
-        instance.delete_document(request, doc)
-        serializer = ComplianceSerializer(instance)
-        return Response(serializer.data)
+        if (
+            is_internal(request) or 
+            (
+                self.processing_status in ['future','due','overdue'] and
+                (request.user.id == self.holder_id or is_internal(request))
+            )
+        ):
+            instance = self.get_object()
+            doc=request.data.get('document')
+            instance.delete_document(request, doc)
+            serializer = ComplianceSerializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("User not authorised to delete document")
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
-        instance = self.get_object()
-        user_id = request.data.get('user_id',None)
-        user = None
-        if not user_id:
-            raise serializers.ValiationError('A user id is required')
-        try:
-            user = EmailUser.objects.get(id=user_id)
-        except EmailUser.DoesNotExist:
-            raise serializers.ValidationError('A user with the id passed in does not exist')
-        instance.assign_to(user,request)
-        serializer = InternalComplianceSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            user_id = request.data.get('user_id',None)
+            user = None
+            if not user_id:
+                raise serializers.ValiationError('A user id is required')
+            try:
+                user = EmailUser.objects.get(id=user_id)
+            except EmailUser.DoesNotExist:
+                raise serializers.ValidationError('A user with the id passed in does not exist')
+            instance.assign_to(user,request)
+            serializer = InternalComplianceSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to assign compliance")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.unassign(request)
-        serializer = InternalComplianceSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.unassign(request)
+            serializer = InternalComplianceSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to unassign compliance")
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def accept(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.accept(request)
-        serializer = InternalComplianceSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.accept(request)
+            serializer = InternalComplianceSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to accept compliance")
+    
     @detail_route(methods=['GET',], detail=True)
     def discard(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
-        instance.save()
-        serializer = InternalComplianceSerializer(instance, context={'request': request})
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
+            instance.save()
+            serializer = InternalComplianceSerializer(instance, context={'request': request})
+            return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to discard compliance")
+    
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def amendment_request(self, request, *args, **kwargs):
@@ -176,91 +176,95 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.action_logs.all()
-        serializer = ComplianceActionSerializer(qs,many=True)
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = ComplianceActionSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
-        instance = self.get_object()
-        qs = instance.comms_logs.all()
-        serializer = ComplianceCommsSerializer(qs,many=True)
-        return Response(serializer.data)
+        if (is_internal(request)):
+            instance = self.get_object()
+            qs = instance.comms_logs.all()
+            serializer = ComplianceCommsSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
-    @renderer_classes((JSONRenderer,))
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
-        with transaction.atomic():
-            instance = self.get_object()
-            mutable=request.data._mutable
-            request.data._mutable=True
-            request.data['compliance'] = u'{}'.format(instance.id)
-            request.data['staff'] = u'{}'.format(request.user.id)
-            request.data._mutable=mutable
-            serializer = ComplianceCommsSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            comms = serializer.save()
-            # Save the files
-            for f in request.FILES:
-                document = comms.documents.create(
-                    name = str(request.FILES[f]),
-                    _file = request.FILES[f]
-                )
-            # End Save Documents
+        if (is_internal(request)):
+            with transaction.atomic():
+                instance = self.get_object()
+                mutable=request.data._mutable
+                request.data._mutable=True
+                request.data['compliance'] = u'{}'.format(instance.id)
+                request.data['staff'] = u'{}'.format(request.user.id)
+                request.data._mutable=mutable
+                serializer = ComplianceCommsSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                comms = serializer.save()
+                # Save the files
+                for f in request.FILES:
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                    )
+                # End Save Documents
 
-            return Response(serializer.data)
+                return Response(serializer.data)
+        raise serializers.ValidationError("User not authorised to add comms log")
+    
 
-
-class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
+class ComplianceAmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ComplianceAmendmentRequest.objects.all()
     serializer_class = ComplianceAmendmentRequestSerializer
 
     def get_queryset(self):
         queryset = ComplianceAmendmentRequest.objects.none()
-        user = self.request.user
         if is_internal(self.request):
             queryset = ComplianceAmendmentRequest.objects.all()
-        elif is_customer(self.request):
-            queryset = ComplianceAmendmentRequest.objects.filter(Q(compliance__proposal__proposal_applicant__email_user_id=user.id))
         return queryset
 
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data= request.data)
-        serializer.is_valid(raise_exception = True)
-        instance = serializer.save()
-        instance.generate_amendment(request)
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        if is_internal(request):
+            serializer = self.get_serializer(data= request.data)
+            serializer.is_valid(raise_exception = True)
+            instance = serializer.save()
+            instance.generate_amendment(request)
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError("user not authorised to make an amendment request")
 
 
 class ComplianceAmendmentReasonChoicesView(views.APIView):
 
-    renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
-        choices_list = []
-        choices=ComplianceAmendmentReason.objects.all()
-        if choices:
-            for c in choices:
-                choices_list.append({'key': c.id,'value': c.reason})
-        return Response(choices_list)
+        if is_internal(request):
+            choices_list = []
+            choices=ComplianceAmendmentReason.objects.all()
+            if choices:
+                for c in choices:
+                    choices_list.append({'key': c.id,'value': c.reason})
+            return Response(choices_list)
+        return Response()
 
 
 class GetComplianceStatusesDict(views.APIView):
-    renderer_classes = [JSONRenderer, ]
 
     def get(self, request, format=None):
-        #data = [{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES]
-        #return Response(data)
         data = {}
         if not cache.get('compliance_internal_statuses_dict') or not cache.get('compliance_external_statuses_dict'):
             cache.set('compliance_internal_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Compliance.PROCESSING_STATUS_CHOICES], settings.LOV_CACHE_TIMEOUT)
             cache.set('compliance_external_statuses_dict',[{'code': i[0], 'description': i[1]} for i in Compliance.CUSTOMER_STATUS_CHOICES if i[0] != 'discarded'], settings.LOV_CACHE_TIMEOUT)
         data['external_statuses'] = cache.get('compliance_external_statuses_dict')
-        data['internal_statuses'] = cache.get('compliance_internal_statuses_dict')
+        if is_internal(request):
+            data['internal_statuses'] = cache.get('compliance_internal_statuses_dict')
         return Response(data)
 
 
@@ -302,13 +306,11 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class CompliancePaginatedViewSet(viewsets.ModelViewSet):
+class CompliancePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     queryset = Compliance.objects.none()
     serializer_class = ListComplianceSerializer
-    search_fields = ['lodgement_number', ]
-    page_size = 10
 
     def get_queryset(self):
         request_user = self.request.user
@@ -325,17 +327,3 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
         elif is_customer(self.request):
             qs = Compliance.objects.filter(Q(approval__proposal__proposal_applicant__email_user_id=request_user.id)).exclude(processing_status="discarded").distinct()
         return qs
-
-    @list_route(methods=['GET',], detail=False)
-    def list_external(self, request, *args, **kwargs):
-        """
-        User is accessing /external/ page
-        """
-        qs = self.get_queryset()
-        qs = self.filter_queryset(qs)
-
-        #result_page = self.paginator.paginate_queryset(qs, request)
-        result_page = self.paginator.paginate_queryset(qs, request)
-        serializer = ListComplianceSerializer(result_page, context={'request': request}, many=True)
-        return self.paginator.get_paginated_response(serializer.data)
-

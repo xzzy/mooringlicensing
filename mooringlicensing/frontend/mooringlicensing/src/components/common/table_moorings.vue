@@ -248,7 +248,7 @@ export default {
                 searchDelay: 500,
 
                 ajax: {
-                    "url": api_endpoints.moorings_paginated_internal + '?format=datatables',
+                    "url": api_endpoints.moorings_paginated + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
