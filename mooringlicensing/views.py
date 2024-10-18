@@ -100,38 +100,9 @@ class InternalProposalView(DetailView):
         if self.request.user.is_authenticated:
             if is_internal(self.request):
                 return super(InternalProposalView, self).get(*args, **kwargs)
-            return redirect('external-proposal-detail')
+            return redirect('external')
         kwargs['form'] = LoginForm
-        return super(MooringLicensingRoutingDetailView, self).get(*args, **kwargs)
-
-
-# @login_required(login_url='ds_home')
-@login_required(login_url='home')
-def first_time(request):
-    context = {}
-    if request.method == 'POST':
-        form = FirstTimeForm(request.POST)
-        redirect_url = form.data['redirect_url']
-        if not redirect_url:
-            redirect_url = '/'
-        if form.is_valid():
-            # set user attributes
-            request.user.first_name = form.cleaned_data['first_name']
-            request.user.last_name = form.cleaned_data['last_name']
-            request.user.dob = form.cleaned_data['dob']
-            request.user.save()
-            return redirect(redirect_url)
-        context['form'] = form
-        context['redirect_url'] = redirect_url
-        return render(request, 'mooringlicensing/user_profile.html', context)
-    # GET default
-    if 'next' in request.GET:
-        context['redirect_url'] = request.GET['next']
-    else:
-        context['redirect_url'] = '/'
-    context['dev'] = settings.DEV_STATIC
-    context['dev_url'] = settings.DEV_STATIC_URL
-    return render(request, 'mooringlicensing/dash/index.html', context)
+        return redirect('')
 
 
 class LoginSuccess(TemplateView):
@@ -150,14 +121,7 @@ class ManagementCommandsView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
         return is_internal(self.request)
 
     def get(self, request, *args, **kwargs):
-        debug = request.GET.get('debug', 'f')
-        if debug.lower() in ['true', 't', 'yes', 'y']:
-            debug = True
-        else:
-            debug = False
-
         context = self.get_context_data(**kwargs)
-        context.update({'debug': debug})
         return self.render_to_response(context)
 
     def post(self, request):
