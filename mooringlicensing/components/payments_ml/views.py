@@ -166,53 +166,43 @@ class ApplicationFeeExistingView(APIView):
         invoice = self.get_object()
         logger.info(f'Getting payment screen for the future invoice: [{invoice}] ...')
 
-        application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
+        if is_internal(request) or invoice.owner.id == request.user.id:
+            application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
 
-        if get_invoice_payment_status(invoice.id) in ['paid', 'over_paid',]:
-            return redirect('application_fee_already_paid', proposal_pk=application_fee.proposal.id)
+            if get_invoice_payment_status(invoice.id) in ['paid', 'over_paid',]:
+                return redirect('application_fee_already_paid', proposal_pk=application_fee.proposal.id)
 
-        try:
-            with transaction.atomic():
-                db_processes = {
-                    'for_existing_invoice': True,
-                    'fee_item_application_fee_ids': [],
-                }
-                fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
-                for fee_item_application_fee in fee_item_application_fees:
-                    db_processes['fee_item_application_fee_ids'].append(fee_item_application_fee.id)
+            try:
+                with transaction.atomic():
+                    db_processes = {
+                        'for_existing_invoice': True,
+                        'fee_item_application_fee_ids': [],
+                    }
+                    fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
+                    for fee_item_application_fee in fee_item_application_fees:
+                        db_processes['fee_item_application_fee_ids'].append(fee_item_application_fee.id)
 
-                new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes)
+                    new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes)
 
-                return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
-                fallback_url = request.build_absolute_uri(reverse("external"))
-                payment_session = ledger_api_client.utils.generate_payment_session(request, invoice.reference, return_url, fallback_url)
-                return HttpResponseRedirect(payment_session['payment_url'])
+                    return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
+                    fallback_url = request.build_absolute_uri(reverse("external"))
+                    payment_session = ledger_api_client.utils.generate_payment_session(request, invoice.reference, return_url, fallback_url)
+                    return HttpResponseRedirect(payment_session['payment_url'])
 
-        except Exception as e:
-            logger.error('Error Creating Application Fee: {}'.format(e))
-            raise
+            except Exception as e:
+                logger.error('Error Creating Application Fee: {}'.format(e))
+                raise
+        else:
+            raise serializers.ValidationError("User not authorised to pay for application")
 
 
 class StickerReplacementFeeView(TemplateView):
-    def get_object(self):
-        if 'approval_pk' in self.kwargs:
-            return get_object_or_404(Approval, id=self.kwargs['approval_pk'])
-        elif 'sticker_id' in self.kwargs:
-            return get_object_or_404(Sticker, id=self.kwargs['sticker_id'])
-        else:
-            # Should not reach here
-            pass
 
     def post(self, request, *args, **kwargs):
-        # approval = self.get_object()
         data = request.POST.get('data')
         data = json.loads(data)
         ids = data['sticker_action_detail_ids']
 
-        # 1. Validate data
-        # raise forms.ValidationError('Validation error')
-
-        # 2. Store detais in the session
         sticker_action_fee = StickerActionFee.objects.create(created_by=request.user.id, payment_type=StickerActionFee.PAYMENT_TYPE_TEMPORARY)
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
 
@@ -238,29 +228,31 @@ class StickerReplacementFeeView(TemplateView):
                     line = {
                         'ledger_description': 'Sticker Replacement Fee, sticker: {} @{}'.format(sticker_action_detail.sticker, target_datetime_str),
                         'oracle_code': application_type.get_oracle_code_by_date(current_datetime.date()),
-                        # 'price_incl_tax': 0 if sticker_action_detail.waive_the_fee else fee_item.amount,
-                        # 'price_excl_tax': 0 if sticker_action_detail.waive_the_fee else ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_item.incur_gst else fee_item.amount,
                         'price_incl_tax': total_amount,
                         'price_excl_tax': total_amount_excl_tax,
                         'quantity': 1,
                     }
                     if not applicant:
-                        applicant_obj = sticker_action_detail.sticker.approval.applicant_obj
+                        applicant = sticker_action_detail.sticker.approval.applicant_obj
                     lines.append(line)
 
-                checkout_response = checkout(
-                    request,
-                    # request.user,
-                    applicant_obj,
-                    lines,
-                    return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
-                    return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
-                    booking_reference=str(sticker_action_fee.uuid),
-                    invoice_text='{}'.format(application_type.description),
-                )
 
-                logger.info('{} built payment line item(s) {} for Sticker Replacement Fee and handing over to payment gateway'.format('User {} with id {}'.format(request.user.get_full_name(), request.user.id), sticker_action_fee))
-                return checkout_response
+                if is_internal(request) or (applicant and applicant.id == request.user.id): 
+                    checkout_response = checkout(
+                        request,
+                        # request.user,
+                        applicant,
+                        lines,
+                        return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
+                        return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
+                        booking_reference=str(sticker_action_fee.uuid),
+                        invoice_text='{}'.format(application_type.description),
+                    )
+
+                    logger.info('{} built payment line item(s) {} for Sticker Replacement Fee and handing over to payment gateway'.format('User {} with id {}'.format(request.user.get_full_name(), request.user.id), sticker_action_fee))
+                    return checkout_response
+                else:
+                    raise serializers.ValidationError("User not authorised to pay for sticker replacement")        
 
         except Exception as e:
             logger.error('Error handling StickerActionFee: {}'.format(e))
@@ -296,7 +288,6 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
             sticker_action_fee.save()
 
             if sticker_action_fee.payment_type == StickerActionFee.PAYMENT_TYPE_TEMPORARY:
-                # if fee_inv:
                 sticker_action_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 sticker_action_fee.expiry_time = None
                 sticker_action_fee.save()
@@ -306,22 +297,12 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
                     old_sticker = sticker_action_detail.sticker
                     new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST, sticker_action_detail)
                     old_sticker_numbers.append(old_sticker.number)
-                    # Send email with the invoice
-                send_sticker_replacement_email(request, old_sticker_numbers, new_sticker.approval, invoice.reference)
-
-                # sticker_action_detail = sticker_action_details.first()
-                # old_sticker = sticker_action_detail.sticker
-                # new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST)
-
                 # Send email with the invoice
-                # send_sticker_replacement_email(request, old_sticker, new_sticker, invoice.reference)
+                send_sticker_replacement_email(request, old_sticker_numbers, new_sticker.approval, invoice.reference)
 
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
-            # this end-point is called by an unmonitored get request in ledger so there is no point having a
-            # a response body however we will return a status in case this is used on the ledger end in future
-            # return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(status=status.HTTP_200_OK)
 
 
@@ -335,20 +316,20 @@ class StickerReplacementFeeSuccessView(TemplateView):
         try:
             sticker_action_fee = StickerActionFee.objects.get(uuid=uuid)
             invoice = Invoice.objects.get(reference=sticker_action_fee.invoice_reference)
-            # invoice_url = get_invoice_url(invoice.reference, request)
-            # api_key = settings.LEDGER_API_KEY
-            # invoice_url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
-            invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
-            # invoice_pdf = requests.get(url=url)
-            applicant = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
 
-            context = {
-                'applicant': applicant,
-                'fee_invoice': sticker_action_fee,
-                'invoice': invoice,
-                'invoice_url': invoice_url,
-            }
-            return render(request, self.template_name, context)
+            if is_internal(request) or invoice.owner.id == request.user.id:
+                invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
+                applicant = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
+
+                context = {
+                    'applicant': applicant,
+                    'fee_invoice': sticker_action_fee,
+                    'invoice': invoice,
+                    'invoice_url': invoice_url,
+                }
+                return render(request, self.template_name, context)
+            else:
+                raise serializers.ValidationError("User not authorised to view payment details")
 
         except Exception as e:
             # Should not reach here

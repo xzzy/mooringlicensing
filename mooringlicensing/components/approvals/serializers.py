@@ -1228,6 +1228,7 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
     user_detail = serializers.SerializerMethodField()
     waive_the_fee = serializers.BooleanField(required=False)
     change_sticker_address = serializers.BooleanField(required=False)
+    new_postal_address_country = serializers.SerializerMethodField()
 
     class Meta:
         model = StickerActionDetail
@@ -1252,6 +1253,9 @@ class StickerActionDetailSerializer(serializers.ModelSerializer):
             'new_postal_address_country',
             'new_postal_address_postcode',
         )
+    
+    def get_new_postal_address_country(self, obj):
+        return obj.new_postal_address_country.code
 
     def get_user_detail(self, obj):
         serializer = UserSerializer(retrieve_system_user(obj.user))
