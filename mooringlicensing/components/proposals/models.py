@@ -494,8 +494,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             while True:
                 if proposal.previous_application:
                     if proposal.previous_application.vessel_ownership:
-                        if proposal.previous_application.vessel_ownership.excludable(proposal):
-                            vessel_ownerships.append(proposal.previous_application.vessel_ownership)
+                        #if proposal.previous_application.vessel_ownership.excludable(proposal):
+                        vessel_ownerships.append(proposal.previous_application.vessel_ownership)
 
                 if get_out_of_loop:
                     break

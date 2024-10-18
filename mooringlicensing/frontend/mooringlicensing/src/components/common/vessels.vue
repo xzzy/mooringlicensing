@@ -399,9 +399,12 @@ export default {
         },
         vesselRegoDocumentUrl: function () {
             let url = ''
-            if (this.proposal){
+            if (this.proposal && this.proposal.id){
                 // Call a function defined in the ProposalViewSet
                 url = '/api/proposal/' + this.proposal.id + '/vessel_rego_document/'
+            }
+            else if (this.vesselOwnership.proposal_id){
+                url = '/api/proposal/' + this.vesselOwnership.proposal_id + '/vessel_rego_document/'
             }
             return url
         },
@@ -426,6 +429,10 @@ export default {
                 // )
                 // Call a function defined in the ProposalViewSet
                 url = '/api/proposal/' + this.proposal.id + '/hull_identification_number_document/'
+            }
+            else if (this.vesselOwnership.proposal_id){
+                url = '/api/proposal/' + this.vesselOwnership.proposal_id + '/hull_identification_number_document/'
+                console.log(url)
             }
             return url
         },
