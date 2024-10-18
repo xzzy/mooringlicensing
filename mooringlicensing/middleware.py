@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
 
-# TODO: rework for system user (use system user values to determine redirect, redirect to sys user page)
 class FirstTimeNagScreenMiddleware(object):
     def __init__(self, get_response):
         self.get_response = get_response
@@ -38,7 +37,6 @@ class FirstTimeNagScreenMiddleware(object):
                 system_user_addresses = SystemUserAddress.objects.filter(system_user=system_user)
                 residential_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[0][0])
                 postal_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[1][0])
-                #billing_address = system_user_addresses.filter(address_type=SystemUserAddress.ADDRESS_TYPE[2][0])
 
             if (not system_user_exists or
                 not system_user.legal_first_name or 
@@ -46,7 +44,6 @@ class FirstTimeNagScreenMiddleware(object):
                 not system_user.legal_dob or
                 not residential_address.exists() or 
                 not postal_address.exists() or
-                #not billing_address.exists() or
                 not system_user.mobile_number
                 ):
                 # We don't want to redirect the user when the user is accessing the firsttime page or logout page.
@@ -62,7 +59,6 @@ class CacheControlMiddleware(object):
     def __init__(self, get_response):
         self.get_response = get_response
 
-    # def process_response(self, request, response):
     def __call__(self, request):
         response = self.get_response(request)
         if request.path[:5] == '/api/' or request.path == '/':
