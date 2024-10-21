@@ -315,6 +315,10 @@ def sticker_export():
                     ])
                     logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
                     updates.append(sticker.number)
+
+                    #TODO review and implement (or remove)
+                    #new_approval_history_entry.stickers.add(sticker)
+
                 except Exception as e:
                     err_msg = 'Error adding sticker: {} details to spreadsheet.'.format(sticker.number)
                     logger.error('{}\n{}'.format(err_msg, str(e)))
