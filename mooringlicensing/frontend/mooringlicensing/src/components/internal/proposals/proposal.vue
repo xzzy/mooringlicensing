@@ -957,8 +957,6 @@ export default {
         },
         refreshRequirements: function(bool){
               let vm=this;
-              //vm.proposal.requirements_completed=bool;
-              //console.log('here', bool);
               vm.requirementsComplete = bool;
         },
         assignTo: function(){

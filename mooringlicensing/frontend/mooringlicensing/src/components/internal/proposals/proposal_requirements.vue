@@ -297,8 +297,6 @@ export default {
         },
         setApplicationWorkflowState(bool){
             let vm=this;
-            //vm.proposal.requirements_completed=bool;
-            //console.log('child', bool);
             vm.$emit('refreshRequirements',bool);
         }
 

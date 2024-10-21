@@ -33,7 +33,7 @@ class UserForEndorserSerializer(serializers.ModelSerializer):
         else:
             return obj.last_name
       
-#NOTE: may still be needed in some capacity but may warrant adjustment
+
 class ProposalApplicantSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     ledger_id = serializers.SerializerMethodField()
@@ -57,7 +57,6 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
             'residential_country',
             'residential_postcode',
 
-            'postal_same_as_residential',
             'postal_line1',
             'postal_line2',
             'postal_line3',

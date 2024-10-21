@@ -1016,7 +1016,6 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         elif is_customer(self.request):
             queryset = DcvPermit.objects.filter(Q(applicant=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
 
 
@@ -1124,7 +1123,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
         elif is_customer(self.request):
             queryset = DcvPermit.objects.filter(Q(applicant=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
 
     @staticmethod
