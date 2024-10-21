@@ -1,11 +1,9 @@
 import logging
 from confy import env
 from django.http import HttpResponse, Http404
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
-# from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 
 from mooringlicensing import settings

@@ -1,14 +1,10 @@
 from rest_framework import serializers
-from django.db.models import Sum, Max
-
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import (
         CommunicationsLogEntry,
-        GlobalSettings, TemporaryDocumentCollection,
+        TemporaryDocumentCollection,
         )
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
-from ledger_api_client import utils
-
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 
 
@@ -35,21 +31,6 @@ class CommunicationLogEntrySerializer(serializers.ModelSerializer):
 
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
-
-
-class GlobalSettingsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = GlobalSettings
-        fields = ('key', 'value')
-
-
-class BookingSettlementReportSerializer(serializers.Serializer):
-    date = serializers.DateTimeField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
-
-
-class OracleSerializer(serializers.Serializer):
-    date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
-    override = serializers.BooleanField(default=False)
 
 
 class InvoiceSerializer(serializers.ModelSerializer):
@@ -86,10 +67,3 @@ class InvoiceSerializer(serializers.ModelSerializer):
 
     def get_ledger_payment_url(self, invoice):
         return f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={invoice.reference}'
-
-
-class TemporaryDocumentCollectionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TemporaryDocumentCollection
-        fields = ('id',)
-

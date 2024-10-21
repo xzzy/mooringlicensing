@@ -7,13 +7,6 @@ from mooringlicensing.components.main.models import GlobalSettings
 
 
 def create_dcv_permit_pdf_tytes(dcv_permit):
-    #import ipdb; ipdb.set_trace()
-    # print ("Letter File")
-    # confirmation_doc = None
-    # if booking.annual_booking_period_group.letter:
-    #     print (booking.annual_booking_period_group.letter.path)
-    #     confirmation_doc = booking.annual_booking_period_group.letter.path
-    # confirmation_doc = settings.BASE_DIR+"/mooring/templates/doc/AnnualAdmissionStickerLetter.docx"
 
     licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_DCV_PERMIT_TEMPLATE_FILE)
 
@@ -23,24 +16,11 @@ def create_dcv_permit_pdf_tytes(dcv_permit):
         raise Exception('DcvPermit template file not found.')
 
     doc = DocxTemplate(path_to_template)
-    # address = ''
-    # if len(booking.details.get('postal_address_line_2', '')) > 0:
-    #     address = '{}, {}'.format(booking.details.get('postal_address_line_1', ''),
-    #                               booking.details.get('postal_address_line_2', ''))
-    # else:
-    #     address = '{}'.format(booking.details.get('postal_address_line_1', ''))
-    # bookingdate = booking.created + timedelta(hours=8)
-    # todaydate = datetime.utcnow() + timedelta(hours=8)
-    # stickercreated = ''
-    # if booking.sticker_created:
-    #     sc = booking.sticker_created + timedelta(hours=8)
-    #     stickercreated = sc.strftime('%d %B %Y')
+
     serializer_context = {
-            'dcv_permit': dcv_permit,
-            }
-    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
-    # context = context_obj.data
-    # doc.render(context)
+        'dcv_permit': dcv_permit,
+    }
+    
     context = dcv_permit.get_context_for_licence_permit()
     if 'p_address_line2' in context and context['p_address_line2'] is None:
         context['p_address_line2'] = '' 
@@ -75,12 +55,7 @@ def create_dcv_admission_pdf_bytes(dcv_admission_arrival):
         raise Exception('DcvAdmission template file not found.')
 
     doc = DocxTemplate(path_to_template)
-    # serializer_context = {
-    #     'dcv_admission': dcv_admission_arrival.dcv_admission,
-    # }
-    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
-    # context = context_obj.data
-    # doc.render(context)
+
     context = dcv_admission_arrival.get_context_for_licence_permit()
     doc.render(context)
 

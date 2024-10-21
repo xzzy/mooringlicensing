@@ -1,6 +1,6 @@
 from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.compliances.models import (
-    Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
+    Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
@@ -96,7 +96,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
 
     def get_customer_status(self, obj):
         return obj.get_customer_status_display()
-
 
 
 class InternalComplianceSerializer(serializers.ModelSerializer):
@@ -274,10 +273,6 @@ class ListComplianceSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         request = self.context.get('request')
-        #today = timezone.localtime(timezone.now()).date()
-        #if obj.customer_status == Compliance.CUSTOMER_STATUS_DUE and today < obj.due_date:
-        #    return 'Overdue'
-        #else:
         return obj.get_processing_status_display() if request.GET.get('level') == 'internal' else obj.get_customer_status_display()
 
     def get_approval_number(self, obj):
@@ -302,4 +297,3 @@ class ListComplianceSerializer(serializers.ModelSerializer):
                 user_name = get_user_name(system_user)
                 assigned_to = user_name["full_name"]
         return assigned_to
-
