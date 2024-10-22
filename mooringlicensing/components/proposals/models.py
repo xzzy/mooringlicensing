@@ -595,8 +595,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
+        from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit
         logger.info(f'Calculating the amount paid so far for the AA component through the proposal(s) which leads to the proposal: [{self}]...')
 
+        max_amount_paid = 0
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
@@ -610,7 +612,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     continue_loop = False
                     break
                 proposal_id_list.append(proposal.id)
-                
+
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
                     application_fee__proposal=proposal,
                     fee_item__fee_constructor__application_type=annual_admission_type):
@@ -625,7 +627,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
 
                     if target_vessel != vessel:
-                        from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit
 
                         if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
                             # When ML, customer is adding a new vessel to the ML
@@ -663,68 +664,84 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     # Assign the previous application, then perform checking above again
                     proposal = proposal.previous_application
             else:
+                continue_loop = False
                 break
         return max_amount_paid
 
     def get_amounts_paid_so_far(self, proposal):
+        from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
+
         max_amounts_paid = {
             ApplicationType.objects.get(code=WaitingListApplication.code): Decimal('0.0'),
             ApplicationType.objects.get(code=AnnualAdmissionApplication.code): Decimal('0.0'),
             ApplicationType.objects.get(code=AuthorisedUserApplication.code): Decimal('0.0'),
             ApplicationType.objects.get(code=MooringLicenceApplication.code): Decimal('0.0'),
         }
-        max_count = 50  # To avoid infinite loop, set max number of iterations
-        loop_count = 0
-        while loop_count <= max_count:
-            loop_count += 1
+
+        proposal_id_list = []
+        continue_loop = True
+
+        while continue_loop:
             if proposal:
-                for application_fee in proposal.application_fees.all():
-                    for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
+                if proposal.id in proposal_id_list:
+                    continue_loop = False
+                    break
+                proposal_id_list.append(proposal.id)
+
+                for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
+                    application_fee__proposal=proposal):
                         # When not for AAP component
                         # or for AAP component and fee_item paid is for this vessel
                         amount_paid = fee_item_application_fee.amount_paid
-#                        if max_amounts_paid[fee_item_application_fee.application_type] < amount_paid:
-#                            # The amount paid found is larger than the one stored, update it.
-#                            max_amounts_paid[fee_item_application_fee.application_type] = amount_paid
-                        max_amounts_paid[fee_item_application_fee.application_type] += amount_paid
+                        if amount_paid:
+                            max_amounts_paid[fee_item_application_fee.application_type] += amount_paid
                 if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
                     # Now, 'prev_application' is the very first application for this season
                     # We are not interested in any older applications
+                    continue_loop = False
                     break
                 else:
                     # Assign the previous application, then perform checking above again
                     proposal = proposal.previous_application
             else:
+                continue_loop = False
                 break
         return max_amounts_paid
 
     def get_amounts_paid_so_far_for_aa_through_other_approvals(self, proposal, vessel):
+        from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
 
         max_amount_paid = 0
-        max_count = 50  # To avoid infinite loop, set max number of iterations
-        loop_count = 0
-        while loop_count <= max_count:
-            loop_count += 1
+        proposal_id_list = []
+        continue_loop = True
+
+        while continue_loop:
             if proposal:
-                for application_fee in proposal.application_fees.all():
-                    for fee_item_application_fee in application_fee.feeitemapplicationfee_set.all():
-                        if fee_item_application_fee.application_type == annual_admission_type and fee_item_application_fee.vessel_details.vessel == vessel:
-                            # When not for AAP component
-                            # or for AAP component and fee_item paid is for this vessel
-                            amount_paid = fee_item_application_fee.amount_paid
-#                            if max_amount_paid < amount_paid:
-#                                # The amount paid found is larger than the one stored, update it.
-#                                max_amount_paid = amount_paid
-                            max_amount_paid += amount_paid
+                if proposal.id in proposal_id_list:
+                    continue_loop = False
+                    break
+                proposal_id_list.append(proposal.id)
+
+                for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
+                    application_fee__proposal=proposal,
+                    fee_item__fee_constructor__application_type=annual_admission_type,
+                    vessel_details__vessel=vessel):
+                    # When not for AAP component
+                    # or for AAP component and fee_item paid is for this vessel
+                    amount_paid = fee_item_application_fee.amount_paid
+                    if amount_paid:
+                        max_amount_paid += amount_paid
                 if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
                     # Now, 'prev_application' is the very first application for this season
                     # We are not interested in any older applications
+                    continue_loop = False
                     break
                 else:
                     # Assign the previous application, then perform checking above again
                     proposal = proposal.previous_application
             else:
+                continue_loop = False
                 break
         return max_amount_paid
 
