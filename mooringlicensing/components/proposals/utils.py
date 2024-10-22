@@ -65,7 +65,7 @@ from django.db.models import Q
 # logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
-
+#TODO this never appears to be used - remove 
 def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
     data = {}
     special_fields_list = []
