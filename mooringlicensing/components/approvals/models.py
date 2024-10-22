@@ -2964,16 +2964,8 @@ class DcvPermit(RevisionedMixin):
                 attachment = (file_name, licence_document.file.read(), 'application/pdf')
         return attachment
 
-    def get_target_date(self, applied_date):
-        return applied_date
-
-    @property
-    def expiry_date(self):
-        return self.expiry_date
-
     @property
     def fee_paid(self):
-        # if self.invoice and self.invoice.payment_status in ['paid', 'over_paid']:
         if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
             return True
         return False
@@ -2988,20 +2980,6 @@ class DcvPermit(RevisionedMixin):
                 except Invoice.DoesNotExist:
                     logger.error(f'Invoice: [{dcv_permit_fee.invoice_reference}] not found.')
         return invoice
-
-        # if self.dcv_permit_fees.count() < 1:
-        #     return None
-        # elif self.dcv_permit_fees.count() == 1:
-        #     dcv_permit_fee = self.dcv_permit_fees.first()
-        #     try:
-        #         invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
-        #         return invoice
-        #     except:
-        #         return None
-        # else:
-        #     msg = 'DcvPermit: {} has {} DcvPermitFees.  There should be 0 or 1.'.format(self, self.dcv_permit_fees.count())
-        #     logger.error(msg)
-        #     raise ValidationError(msg)
 
     @classmethod
     def get_next_id(cls):
@@ -3034,14 +3012,12 @@ class DcvPermit(RevisionedMixin):
 
     def get_fee_amount_adjusted(self, fee_item, vessel_length):
         # Adjust fee amount if needed
-        # return fee_item.amount
         return fee_item.get_absolute_amount(vessel_length)
 
     class Meta:
         app_label = 'mooringlicensing'
 
     def __str__(self):
-        # return f'{self.lodgement_number} (M)' if self.migrated else f'{self.lodgement_number}'
         lodgement_number = '---'
         if self.lodgement_number:
             lodgement_number = self.lodgement_number
@@ -3050,7 +3026,6 @@ class DcvPermit(RevisionedMixin):
 
 def update_dcv_admission_doc_filename(instance, filename):
     return '{}/dcv_admissions/{}/admissions/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
-
 
 def update_dcv_permit_doc_filename(instance, filename):
     return '{}/dcv_permits/{}/permits/{}'.format(settings.MEDIA_APP_DIR, instance.id, filename)
@@ -3066,7 +3041,6 @@ class DcvAdmissionDocument(Document):
         return self.relative_path_to_file(dcv_admission_id, filename)
 
     dcv_admission = models.ForeignKey(DcvAdmission, related_name='dcv_admission_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(upload_to=update_dcv_admission_doc_filename, max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -3094,7 +3068,6 @@ class DcvPermitDocument(Document):
         return self.relative_path_to_file(dcv_permit_id, filename)
 
     dcv_permit = models.ForeignKey(DcvPermit, related_name='dcv_permit_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(upload_to=update_dcv_permit_doc_filename, max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -3288,8 +3261,6 @@ class Sticker(models.Model):
             return new_sticker
 
     def get_sticker_colour(self):
-        # colour = self.approval.child_obj.sticker_colour
-        # colour += '/' + self.get_vessel_size_colour()
         colour = ''
         if type(self.approval.child_obj) not in [AnnualAdmissionPermit,]:
             colour = self.get_vessel_size_colour()
@@ -3398,17 +3369,18 @@ class StickerActionDetail(models.Model):
 
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
-    #if hasattr(instance, 'documents'):
-    #    for document in instance.documents.all():
     if hasattr(instance, 'approval_documents'):
         for document in instance.approval_documents.all():
             try:
                 document.delete()
             except:
-                pass
+                continue
 
 
 import reversion
+#TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
+#for example - AgeGroup is a reference field and does need history
+#another example - ApprovalLogEntry records never change and only need to be tracked via Approval (if at all)
 reversion.register(WaitingListOfferDocument, follow=[])
 reversion.register(RenewalDocument, follow=['renewal_document'])
 reversion.register(AuthorisedUserSummaryDocument, follow=['approvals'])
