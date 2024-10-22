@@ -370,6 +370,7 @@ class ApplicationFeeView(TemplateView):
                     continue
 
             setattr(request,"data",post_data)
+            #auth checked in save_proponent_data func
             save_proponent_data(proposal, request, "submit", auto_approved)
 
             proposal = self.get_object()

@@ -738,8 +738,7 @@ class AuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
             qs = AuthorisedUserApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
-            Q(proposal_applicant__email_user_id=user.id))
+            queryset = AuthorisedUserApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AuthorisedUserApplication.objects.none()
@@ -820,8 +819,7 @@ class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
             qs = MooringLicenceApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
-            Q(proposal_applicant__email_user_id=user.id))
+            queryset = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
@@ -837,9 +835,7 @@ class WaitingListApplicationViewSet(viewsets.GenericViewSet):
             qs = WaitingListApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = WaitingListApplication.objects.filter(
-                Q(proxy_applicant=user.id) | 
-                Q(proposal_applicant__email_user_id=user.id))
+            queryset = WaitingListApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         return WaitingListApplication.objects.none()
 

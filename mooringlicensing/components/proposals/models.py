@@ -308,7 +308,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     lodgement_sequence = models.IntegerField(blank=True, default=0)
     lodgement_date = models.DateTimeField(blank=True, null=True)
 
-    proxy_applicant = models.IntegerField(blank=True, null=True) # not currently used by ML
     submitter = models.IntegerField(blank=True, null=True)
 
     assigned_officer = models.IntegerField(blank=True, null=True)
@@ -993,13 +992,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant(self):
-        if self.proxy_applicant:
-            applicant = retrieve_system_user(self.proxy_applicant)
-            if applicant:
-                return "{} {}".format(
-                    applicant.legal_first_name,
-                    applicant.last_name)
-        elif self.proposal_applicant:
+        if self.proposal_applicant:
             applicant = retrieve_system_user(self.proposal_applicant.email_user_id)
             if applicant:
                 return "{} {}".format(
@@ -1009,35 +1002,23 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def applicant_email(self):
-
-        if self.proxy_applicant:
-            applicant = retrieve_email_userro(self.proxy_applicant)
-            return applicant.email
-        elif self.proposal_applicant:
+        if self.proposal_applicant:
             return self.proposal_applicant.email
         return ""
 
     @property
     def applicant_id(self):
-        if self.proxy_applicant:
-            return self.proxy_applicant.id
-        elif self.proposal_applicant:
+        if self.proposal_applicant:
             return self.proposal_applicant.email_user_id
         return None
 
     @property
     def applicant_type(self):
-        if self.proxy_applicant:
-            return self.APPLICANT_TYPE_PROXY
-        else:
-            return self.APPLICANT_TYPE_SUBMITTER
+        return self.APPLICANT_TYPE_SUBMITTER
 
     @property
     def applicant_field(self):
-        if self.proxy_applicant:
-            return 'proxy_applicant'
-        else:
-            return 'submitter'
+        return 'submitter'
 
     @property
     def get_history(self):

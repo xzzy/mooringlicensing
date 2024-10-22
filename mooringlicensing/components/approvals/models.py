@@ -49,6 +49,7 @@ from mooringlicensing.components.approvals.email import (
 )
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
 from ledger_api_client.utils import calculate_excl_gst
+
 from django.core.files.storage import FileSystemStorage
 
 from mooringlicensing.doctopdf import create_authorised_user_summary_doc_bytes, create_approval_doc_bytes
@@ -297,12 +298,6 @@ class Approval(RevisionedMixin):
     internal_status = models.CharField(max_length=40, choices=INTERNAL_STATUS_CHOICES, blank=True, null=True)
     licence_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='licence_document', on_delete=models.SET_NULL)
     authorised_user_summary_document = models.ForeignKey(AuthorisedUserSummaryDocument, blank=True, null=True, related_name='approvals', on_delete=models.SET_NULL)
-    
-    #TODO remove this - appears to be unused
-    cover_letter_document = models.ForeignKey(ApprovalDocument, blank=True, null=True, related_name='cover_letter_document', on_delete=models.SET_NULL)
-    
-    #TODO remove this - appears to be unused
-    replaced_by = models.OneToOneField('self', blank=True, null=True, related_name='replace', on_delete=models.SET_NULL)
 
     current_proposal = models.ForeignKey(Proposal,related_name='approvals', null=True, on_delete=models.SET_NULL)
     renewal_document = models.ForeignKey(RenewalDocument, blank=True, null=True, related_name='renewal_document', on_delete=models.SET_NULL)
@@ -315,18 +310,7 @@ class Approval(RevisionedMixin):
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
     submitter = models.IntegerField(blank=True, null=True)
-
-    #TODO - remove
-    proxy_applicant = models.IntegerField(blank=True, null=True)
-
-    #TODO remove this - appears to be unused
-    extracted_fields = JSONField(blank=True, null=True)
-
     cancellation_details = models.TextField(blank=True)
-    
-    #TODO remove this - appears to be unused
-    extend_details = models.TextField(blank=True)
-
     cancellation_date = models.DateField(blank=True, null=True)
     set_to_cancel = models.BooleanField(default=False)
     set_to_suspend = models.BooleanField(default=False)
@@ -386,20 +370,6 @@ class Approval(RevisionedMixin):
         ) if (self.proposal_applicant and 
             self.proposal_applicant.email_user_id
         ) else None
-
-    #TODO remove - does not appear to be in use
-    def get_max_fee_item(self, fee_season, vessel_details=None):
-        max_fee_item = None
-        for proposal in self.proposal_set.all():
-            fee_items = proposal.get_fee_items_paid(fee_season, vessel_details)
-
-            for fee_item in fee_items:
-                if not max_fee_item:
-                    max_fee_item = fee_item
-                else:
-                    if max_fee_item.get_absolute_amount() < fee_item.get_absolute_amount():
-                        max_fee_item = fee_item
-        return max_fee_item
 
     def get_licence_document_as_attachment(self):
         attachment = None
@@ -622,13 +592,9 @@ class Approval(RevisionedMixin):
         all_linked_ids = Proposal.objects.filter(Q(previous_application__in=ids) | Q(id__in=ids)).values_list('lodgement_number', flat=True)
         return all_linked_ids
 
-    #TODO proxy_applicant not in use, this should be removed
     @property
     def applicant_type(self):
-        if self.proxy_applicant:
-            return "proxy_applicant"
-        else:
-            return "submitter"
+        return "submitter"
 
     @property
     def title(self):
@@ -684,11 +650,6 @@ class Approval(RevisionedMixin):
 
     def __str__(self):
         return f'{self.lodgement_number} {self.status}'
-
-    #TODO remove - does not appear to be in use
-    @property
-    def reference(self):
-        return 'L{}'.format(self.id)
 
     @property
     def can_external_action(self):
@@ -1206,7 +1167,7 @@ class WaitingListAllocation(Approval):
         """
         logger.info(f'Ordering the allocations for the Waiting List Allocation: [{self}], bay: [{self.current_proposal.preferred_bay}]...')
         reorder_wla(self.current_proposal.preferred_bay)
-        self.refresh_from_db()  # Should be self.proposal.refresh_from_db()???
+        self.refresh_from_db()
         return self
 
     def processes_after_cancel(self):
@@ -1442,40 +1403,6 @@ class AnnualAdmissionPermit(Approval):
             logger.info(f'No new sticker is going to be created because this is amendment application with the same vessel and the same sticker colour.')
 
         return new_sticker, existing_sticker_to_be_returned
-
-    #TODO investigate - this does not appear to be used, remove if so
-    def _calc_stickers(self, proposal):
-        # New sticker created with status Ready
-        new_sticker = self._create_new_sticker_by_proposal(proposal)
-        # Old sticker goes to status To be Returned
-        current_stickers = self._get_current_stickers()
-        for current_sticker in current_stickers:
-            current_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
-            current_sticker.save()
-            logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker {current_sticker}.')
-        if current_stickers:
-            if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
-                # When the application does not change to new vessel,
-                # it gets 'printing_sticker' status
-                proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                proposal.save()
-                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal {proposal}.')
-            else:
-                # When the application changes to new vessel
-                # it gets 'sticker_to_be_returned' status
-                new_sticker.status = Sticker.STICKER_STATUS_NOT_READY_YET
-                new_sticker.save()
-                logger.info(f'Status: [{Sticker.STICKER_STATUS_NOT_READY_YET}] has been set to the sticker {new_sticker}.')
-
-                proposal.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
-                proposal.save()
-                logger.info(f'Status: [{Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED}] has been set to the proposal {proposal}.')
-        else:
-            # Even when 'amendment' application, there might be no current stickers because of sticker-lost, etc
-            proposal.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-            proposal.save()
-            logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal {proposal}.')
-        return [], list(current_stickers)
 
 
 class AuthorisedUserPermit(Approval):
@@ -2168,7 +2095,6 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    #TODO add warning for these exceptions in this function - if it gets here then the customer has paid but stickers have NOT been made
                     raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
@@ -2483,9 +2409,6 @@ class ApprovalLogEntry(CommunicationsLogEntry):
         app_label = 'mooringlicensing'
 
     def save(self, **kwargs):
-        # save the application reference if the reference not provided
-        if not self.reference:
-            self.reference = self.approval.id
         super(ApprovalLogEntry, self).save(**kwargs)
 
 class ApprovalLogDocument(Document):
@@ -2842,9 +2765,6 @@ class DcvPermit(RevisionedMixin):
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
 
-    #TODO remove - DCVPermits are not renewable
-    renewal_sent = models.BooleanField(default=False)
-
     migrated = models.BooleanField(default=False)
 
     # Following fields are null unless payment success
@@ -2951,7 +2871,7 @@ class DcvPermit(RevisionedMixin):
             'vessel_name': self.dcv_vessel.vessel_name,
             'expiry_date': self.end_date.strftime('%d/%m/%Y'),
             'public_url': get_public_url(),
-            'submitter_fullname': self.applicant_obj.get_full_name(), #TODO need submitter AND applicant names - use applicant for now
+            'submitter_fullname': self.applicant_obj.get_full_name(),
         }
         return context
 
@@ -3384,7 +3304,7 @@ import reversion
 reversion.register(WaitingListOfferDocument, follow=[])
 reversion.register(RenewalDocument, follow=['renewal_document'])
 reversion.register(AuthorisedUserSummaryDocument, follow=['approvals'])
-reversion.register(ApprovalDocument, follow=['approvalhistory_set', 'licence_document', 'cover_letter_document'])
+reversion.register(ApprovalDocument, follow=['approvalhistory_set', 'licence_document'])
 reversion.register(MooringOnApproval, follow=['approval', 'mooring', 'sticker'])
 reversion.register(VesselOwnershipOnApproval, follow=['approval', 'vessel_ownership'])
 reversion.register(ApprovalHistory, follow=[])
