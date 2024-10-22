@@ -3847,10 +3847,10 @@ class MooringLicenceApplication(Proposal):
         if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
             total_amount = float(GlobalSettings.objects.get(key=GlobalSettings.KEY_FEE_AMOUNT_OF_SWAP_MOORINGS).value)
             incur_gst = True if GlobalSettings.objects.get(key=GlobalSettings.KEY_SWAP_MOORINGS_INCLUDES_GST).value.lower() in ['true', 't', 'yes', 'y'] else False
-            if settings.DEBUG:
+            if settings.ROUND_FEE_ITEMS:
                 # In debug environment, we want to avoid decimal number which may cuase some kind of error.
-                total_amount = math.ceil(total_amount)
-                total_amount_excl_tax = math.ceil(calculate_excl_gst(total_amount)) if incur_gst else math.ceil(total_amount)
+                total_amount = round(float(total_amount))
+                total_amount_excl_tax = round(float(calculate_excl_gst(total_amount))) if incur_gst else round(float(total_amount))
             else:
                 total_amount_excl_tax = calculate_excl_gst(total_amount) if incur_gst else total_amount
 

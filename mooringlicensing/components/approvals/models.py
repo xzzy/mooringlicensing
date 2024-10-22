@@ -2698,10 +2698,10 @@ class DcvAdmission(RevisionedMixin):
 
             private_visit = 'YES' if dcv_admission_arrival.private_visit else 'NO'
 
-            if settings.DEBUG:
+            if settings.ROUND_FEE_ITEMS:
                 # In debug environment, we want to avoid decimal number which may cuase some kind of error.
-                total_amount = math.ceil(total_amount)
-                total_amount_excl_tax = math.ceil(calculate_excl_gst(total_amount)) if fee_constructor.incur_gst else math.ceil(total_amount)
+                total_amount = round(float(total_amount))
+                total_amount_excl_tax = round(float(calculate_excl_gst(total_amount))) if fee_constructor.incur_gst else round(float(total_amount))
             else:
                 total_amount_excl_tax = calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount
 
@@ -2791,7 +2791,7 @@ class AgeGroup(models.Model):
 class AdmissionType(models.Model):
     ADMISSION_TYPE_LANDING = 'landing'
     ADMISSION_TYPE_EXTENDED_STAY = 'extended_stay'
-    ADMISSION_TYPE_WATER_BASED = 'water_based'  # Replace 'not_landing'
+    ADMISSION_TYPE_WATER_BASED = 'water_based'
     ADMISSION_TYPE_APPROVED_EVENTS = 'approved_events'
 
     TYPE_CHOICES = (
@@ -2841,7 +2841,10 @@ class DcvPermit(RevisionedMixin):
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
+
+    #TODO remove - DCVPermits are not renewable
     renewal_sent = models.BooleanField(default=False)
+
     migrated = models.BooleanField(default=False)
 
     # Following fields are null unless payment success
@@ -2907,25 +2910,21 @@ class DcvPermit(RevisionedMixin):
         db_processes_after_success['season_end_date'] = fee_constructor.fee_season.end_date.__str__()
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
-        if settings.DEBUG:
+        if settings.ROUND_FEE_ITEMS:
             # In debug environment, we want to avoid decimal number which may cuase some kind of error.
-            total_amount = math.ceil(fee_item.amount)
-            total_amount_excl_tax = math.ceil(ledger_api_client.utils.calculate_excl_gst(fee_item.amount)) if fee_constructor.incur_gst else math.ceil(fee_item.amount)
+            total_amount = round(float(fee_item.amount))
+            total_amount_excl_tax = round(float(ledger_api_client.utils.calculate_excl_gst(fee_item.amount))) if fee_constructor.incur_gst else round(float(fee_item.amount))
         else:
             total_amount = fee_item.amount
             total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount
 
         line_items = [
             {
-                # 'ledger_description': '{} Fee: {} (Season: {} to {}) @{}'.format(
                 'ledger_description': '{} Fee: {} @{}'.format(
                     fee_constructor.application_type.description,
                     self.lodgement_number,
-                    # fee_constructor.fee_season.start_date.strftime('%d/%m/%Y'),
-                    # fee_constructor.fee_season.end_date.strftime('%d/%m/%Y'),
                     target_datetime_str,
                 ),
-                # 'oracle_code': application_type.oracle_code,
                 'oracle_code': ApplicationType.get_current_oracle_code_by_application(application_type.code),
                 'price_incl_tax': total_amount,
                 'price_excl_tax': total_amount_excl_tax,
