@@ -447,7 +447,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def destroy(self, request, *args, **kwargs):
         #only the applicant or an assessor should be able to discard while in draft
-        if self.processing_status == Proposal.PROCESSING_STATUS_DRAFT and (request.user.id == self.applicant or self.is_assessor(request)):
+        if self.processing_status == Proposal.PROCESSING_STATUS_DRAFT and ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request)):
             self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
             self.save()
             logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
@@ -487,13 +487,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             # we want to exclude the ownership percentages from the previous applications.
             proposal = self
 
-            while True:
+            proposal_id_list = []
+            continue_loop = True
+            while continue_loop:
+                if proposal.id in proposal_id_list:
+                    continue_loop = False
+                    break
+                proposal_id_list.append(proposal.id)
+
                 if proposal.previous_application:
                     if proposal.previous_application.vessel_ownership:
                         #if proposal.previous_application.vessel_ownership.excludable(proposal):
                         vessel_ownerships.append(proposal.previous_application.vessel_ownership)
 
                 if get_out_of_loop:
+                    continue_loop = False
                     break
 
                 # Retrieve the previous application
@@ -501,6 +509,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if not proposal:
                     # No previous application exists.  Get out of the loop
+                    continue_loop = False
                     break
                 else:
                     # Previous application exists
@@ -509,7 +518,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # In this case, we don't want to go back any further once this proposal is processed in the next loop.  Therefore we set the flat to True
                         get_out_of_loop = True
 
-        return vessel_ownerships
+        return list(set(vessel_ownerships))
 
     @property
     def submitter_obj(self):
@@ -753,10 +762,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return None
 
     def invoices_display(self):
-        ret_list = []
         invoice_references = [item.invoice_reference for item in self.application_fees.filter(system_invoice=False)]
         return Invoice.objects.filter(reference__in=invoice_references)
 
+    #TODO determine if this is used (remove if not)
     @staticmethod
     def get_corresponding_amendment_fee_item(accept_null_vessel, fee_constructor, fee_item, target_date, vessel_length):
         proposal_type_amendment = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
@@ -796,13 +805,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             fee_item = fee_items[0]
             return fee_item.fee_period
 
-    # @property
-    # def different_sticker_colour(self):
-    #     from mooringlicensing.components.approvals.models import Sticker
-    #     next_colour = Sticker.get_vessel_size_colour_by_length(self.vessel_length)
-    #     current_colour = Sticker.get_vessel_size_colour_by_length(self.previous_application.vessel_length)
-    #     return True if next_colour == current_colour else False
-
     @property
     def vessel_removed(self):
         # for AUP, AAP manage_stickers
@@ -831,8 +833,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             if type(self) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
                 raise ValidationError("Only for AUP, AAA")
-        # if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
-        #     raise ValidationError("Only for AUP, AAA")
+
         changed = False
         if (
                 self.previous_application and
@@ -854,8 +855,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             if type(self) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
                 raise ValidationError("Only for AUP, AAA")
-        # if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
-        #     raise ValidationError("Only for AUP, AAA")
+
         new = False
         if (
                 self.previous_application and
@@ -866,6 +866,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             new = True
         return new
 
+    #TODO check if used (remove if not)
     def does_have_valid_associations(self):
         # Check if this application has valid associations with other applications and approvals
         return self.child_obj.does_have_valid_associations()
@@ -956,9 +957,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def start_date(self):
-        if self.migrated:
-            return datetime.datetime(2020,9,1).date()
-
         start_date = None
         application_fee = self.get_main_application_fee()
         if application_fee:
@@ -970,9 +968,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def end_date(self):
-        if self.migrated:
-            return datetime.datetime(2021,11,30).date()
-
         end_date = None
         application_fee = self.get_main_application_fee()
         if application_fee:
@@ -982,6 +977,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             end_date = self.fee_season.end_date
         return end_date
 
+    #TODO this is used but essentially does nothing - remove
     @property
     def editable_vessel_details(self):
         editable = True
@@ -989,7 +985,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def fee_paid(self):
-        # if (self.invoice and self.invoice.payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
         if (self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False
@@ -998,6 +993,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def fee_amount(self):
         return self.invoice.amount if self.fee_paid else None
 
+    #TODO this is not used and does not work - if something like this is needed it would work better elsewhere - remove
     @property
     def reversion_ids(self):
         current_revision_id = Version.objects.get_for_object(self).first().revision_id
@@ -1027,27 +1023,24 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.proposal_applicant.email_user_id
         return None
 
+    #TODO this is not required anymore - should be removed
     @property
     def applicant_type(self):
         return self.APPLICANT_TYPE_SUBMITTER
 
     @property
-    def applicant_field(self):
-        return 'submitter'
-
-    @property
     def get_history(self):
         """ Return the prev proposal versions """
         l = []
+        proposal_ids = []
         p = copy.deepcopy(self)
         while (p.previous_application):
+            if p.id in proposal_ids:
+                break
+            proposal_ids.append(p.id)
             l.append( dict(id=p.previous_application.id, modified=p.previous_application.modified_date) )
             p = p.previous_application
         return l
-
-    @property
-    def is_assigned(self):
-        return self.assigned_officer is not None
 
     @property
     def can_user_edit(self):
@@ -1073,7 +1066,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        # return group.user_set.all() if group else []
         ids = group.get_system_group_member_ids() if group else []
         users = EmailUserRO.objects.filter(id__in=ids)
         return users
@@ -1081,7 +1073,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def compliance_assessors(self):
         group = self.__assessor_group()
-        # return group.user_set.all() if group else []
         ids = group.get_system_group_member_ids() if group else []
         users = EmailUserRO.objects.filter(id__in=ids)
         return users
@@ -1091,7 +1082,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             group = self.__approver_group()
         else:
             group = self.__assessor_group()
-        # return True if group and group.user_set.filter(id=request.user.id).values_list('id', flat=True) else False
         return True if group and request.user.id in group.get_system_group_member_ids() else False
 
     @property
@@ -1112,20 +1102,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def amendment_requests(self):
-        qs =AmendmentRequest.objects.filter(proposal=self)
+        qs = AmendmentRequest.objects.filter(proposal=self)
         return qs
 
     #Check if there is an pending amendment request exist for the proposal
     @property
     def pending_amendment_request(self):
-        qs =AmendmentRequest.objects.filter(proposal = self, status = "requested")
+        qs = AmendmentRequest.objects.filter(proposal = self, status = "requested")
         if qs:
-            return True
-        return False
-
-    @property
-    def is_amendment_proposal(self):
-        if self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
             return True
         return False
 
@@ -1134,18 +1118,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def __approver_group(self):
         return self.child_obj.approver_group
-
-    def __check_proposal_filled_out(self):
-        if not self.data:
-            raise exceptions.ProposalNotComplete()
-        missing_fields = []
-        required_fields = {
-        }
-        for k,v in required_fields.items():
-            val = getattr(self,k)
-            if not val:
-                missing_fields.append(v)
-        return missing_fields
 
     @property
     def assessor_recipients(self):
@@ -1199,7 +1171,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 return self.child_obj.is_approver(user)
 
     def has_assessor_mode(self,user):
-        # status_without_assessor = ['with_approver','approved','awaiting_payment','declined','draft']
         if isinstance(user, EmailUserRO):
             user = user.id
 
@@ -1227,10 +1198,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             return ProposalUserAction.log_action(self, action)
 
-    @property
-    def is_submitted(self):
-        return True if self.lodgement_date else False
-
     def update(self,request,viewset):
         from mooringlicensing.components.proposals.utils import save_proponent_data
         
@@ -1255,16 +1222,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
-                        applicant_field=getattr(self, self.applicant_field)
-                        # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_APPROVER.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
                 else:
                     if officer.id != self.assigned_officer:
                         self.assigned_officer = officer.id
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
-                        applicant_field=getattr(self, self.applicant_field)
-                        # applicant_field.log_user_action(ProposalUserAction.ACTION_ASSIGN_TO_ASSESSOR.format(self.id,'{}({})'.format(officer.get_full_name(),officer.email)),request)
             except:
                 raise
 
@@ -1279,16 +1242,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
-                        applicant_field=getattr(self, self.applicant_field)
-                        # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_APPROVER.format(self.id),request)
                 else:
                     if self.assigned_officer:
                         self.assigned_officer = None
                         self.save()
                         # Create a log entry for the proposal
                         self.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
-                        applicant_field=getattr(self, self.applicant_field)
-                        # applicant_field.log_user_action(ProposalUserAction.ACTION_UNASSIGN_ASSESSOR.format(self.id),request)
             except:
                 raise
 
@@ -1342,7 +1301,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.is_assessor(request.user):
             if type(self.child_obj) == AuthorisedUserApplication and self.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR:
                 if self.site_licensee_mooring_request.filter(enabled=True,declined_by_endorser=False,approved_by_endorser=False).exists():
-                    #run function to move to awaiting_endorsement (include auth check in model func)
+                    #run function to move to awaiting_endorsement
                     self.processing_status = Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT
                     self.save()
                     send_endorsement_of_authorised_user_application_email(request, self.child_obj)
@@ -1357,7 +1316,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             vessels = []
             if type(self.child_obj) == MooringLicenceApplication:
-                # vessels.append([vo.vessel for vo in self.listed_vessels.all()])
                 vessels.extend([vo.vessel for vo in self.listed_vessels.all()])
             else:
                 vessels.append(self.vessel_details.vessel)
@@ -1422,8 +1380,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.move_to_status(request, Proposal.PROCESSING_STATUS_WITH_APPROVER, approver_comment)
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.lodgement_number), request)
-                applicant_field = getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_DECLINE.format(self.id), request)
 
                 send_approver_approve_decline_email_notification(request, self)
             except:
@@ -1459,10 +1415,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
-                applicant_field=getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_DECLINE.format(self.id),request)
                 # update WLA internal_status
-
                 ## ML
                 if type(self.child_obj) == MooringLicenceApplication and self.waiting_list_allocation:
                     # Originated WLAllocation should gets the status 'waiting' again.
@@ -1488,8 +1441,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
-                applicant_field=getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
             except:
                 raise
 
@@ -1507,8 +1458,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
-                applicant_field=getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
             except:
                 raise
 
@@ -1592,7 +1541,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
 
                 self.proposed_issuance_approval = {
-                    'current_date': current_date.strftime('%d/%m/%Y'),  # start_date and expiry_date are determined when making payment or approved???
+                    'current_date': current_date.strftime('%d/%m/%Y'), 
                     'mooring_bay_id': details.get('mooring_bay_id'),
                     'mooring_id': mooring_id,
                     'ria_mooring_name': ria_mooring_name,
@@ -1609,8 +1558,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.save()
                 # Log proposal action
                 self.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.lodgement_number), request)
-                applicant_field = getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_PROPOSED_APPROVAL.format(self.id), request)
 
                 send_approver_approve_decline_email_notification(request, self)
                 return self
@@ -1636,11 +1583,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                    if self.application_fees.count() < 1 and not self.migrated:
+                    if self.application_fees.count() < 1:
                         raise ValidationError('Payment record not found for the Annual Admission Application: {}'.format(self))
-                    # elif self.application_fees.count() > 1:
-                    #     raise ValidationError('More than 1 payment records found for the Annual Admission Application: {}'.format(self))
-
+                    
                     if details:
                         # When auto_approve, there are no 'details' because details are created from the modal when assessment
                         self.proposed_issuance_approval = {
@@ -1690,8 +1635,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             req.save()
 
                 # Generate compliances
-                from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-                #target_proposal = self.previous_application if self.previous_application else self
+                from mooringlicensing.components.compliances.models import Compliance
                 target_proposal = self.previous_application if self.proposal_type.code == 'amendment' else self
                 for compliance in Compliance.objects.filter(
                     approval=approval.approval,
@@ -1702,19 +1646,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     compliance.customer_status = 'discarded'
                     compliance.post_reminder_sent=True
                     compliance.save()
-                #approval_compliances.delete()
                 self.generate_compliances(approval, request)
 
-                applicant_field = getattr(self, self.applicant_field)
                 # Log proposal action
                 if details:
                     # When not auto-approve
                     self.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.lodgement_number), request)
-                    # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVED.format(self.id), request)
                 else:
                     # When auto approve
                     self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.lodgement_number),)
-                    # applicant_field.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id),)
 
                 # set proposal status to approved - can change later after manage_stickers
                 self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
@@ -1733,8 +1673,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     elif new_sticker:
                         self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 self.save()
-
-                from mooringlicensing.components.approvals.models import Sticker
 
                 # set wla order
                 from mooringlicensing.components.approvals.models import WaitingListAllocation
@@ -1781,7 +1719,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.child_obj.refresh_from_db()
 
     def final_approval_for_AUA_MLA(self, request=None):
-        from mooringlicensing.components.approvals.models import MooringOnApproval
         with transaction.atomic():
             try:
                 from mooringlicensing.components.approvals.models import Sticker
@@ -1808,19 +1745,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if not request or (request and self.approval and self.approval.reissued):
                     # system reissue or admin reissue
                     approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-
-                    #--- Reflect any changes made in the function above (update_or_create_approval) ---#
-                    # self.approval.refresh_from_db()
-                    # self.refresh_from_db()
-                    # self.child_obj.refresh_from_db()
                     self.refresh()
-                    #-------------------------------#
 
                     self.approval = approval.approval
                     self.save()
                 else:
                     ## prepare invoice
-                    # from mooringlicensing.components.payments_ml.utils import create_fee_lines, make_serializable
                     from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee
 
                     # create fee lines tells us whether a payment is required
@@ -5331,11 +5261,8 @@ class AmendmentRequest(ProposalRequest):
                         logger.info(f'Status: [{Proposal.PROCESSING_STATUS_DRAFT}] has been set to the proposal: [{proposal}]')
                     # Create a log entry for the proposal
                     proposal.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
-                    applicant_field = getattr(proposal, proposal.applicant_field)
-                    # applicant_field.log_user_action(ProposalUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
 
                     # send email
-
                     send_amendment_email_notification(self, request, proposal)
 
                 self.save()

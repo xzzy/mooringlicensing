@@ -241,7 +241,7 @@ class VesselOwnershipOnApproval(RevisionedMixin):
         app_label = 'mooringlicensing'
         unique_together = ("vessel_ownership", "approval")
 
-#TODO - review, why have this when reversion records available?
+
 class ApprovalHistory(RevisionedMixin):
 
     reason = models.CharField(max_length=100, blank=True, null=True)
@@ -592,6 +592,7 @@ class Approval(RevisionedMixin):
         all_linked_ids = Proposal.objects.filter(Q(previous_application__in=ids) | Q(id__in=ids)).values_list('lodgement_number', flat=True)
         return all_linked_ids
 
+    #TODO this is not required anymore - should be removed
     @property
     def applicant_type(self):
         return "submitter"
