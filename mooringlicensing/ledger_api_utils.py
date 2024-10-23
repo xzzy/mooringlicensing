@@ -1,9 +1,6 @@
 from ledger_api_client import utils
 from ledger_api_client.ledger_models import EmailUserRO
 from ledger_api_client.managed_models import SystemUser
-from ledger_api_client import api
-from io import StringIO
-import json
 import logging
 from mooringlicensing.components.main.decorators import basic_exception_handler
 

@@ -3,7 +3,6 @@ from mooringlicensing.components.main.serializers import CommunicationLogEntrySe
 from mooringlicensing.components.proposals.models import ProposalApplicant
 from rest_framework import serializers
 from mooringlicensing.components.users.models import EmailUserLogEntry
-from mooringlicensing.helpers import in_dbca_domain
 from django_countries.serializer_fields import CountryField
 
 class UserForEndorserSerializer(serializers.ModelSerializer):
@@ -104,7 +103,6 @@ class UserSerializer(serializers.ModelSerializer):
     residential_address_list = serializers.SerializerMethodField()
     postal_address_list = serializers.SerializerMethodField()
     billing_address_list = serializers.SerializerMethodField()
-    is_department_user = serializers.SerializerMethodField()
 
     class Meta:
         model = SystemUser
@@ -124,7 +122,6 @@ class UserSerializer(serializers.ModelSerializer):
             "residential_address_list",
             "postal_address_list",
             "billing_address_list",
-            "is_department_user",
         )
 
     def get_ledger_id(self, obj):
@@ -143,13 +140,6 @@ class UserSerializer(serializers.ModelSerializer):
     def get_billing_address_list(self, obj):
         billing_addresses = SystemUserAddress.objects.filter(address_type=SystemUserAddress.ADDRESS_TYPE[2][0],system_user=obj)
         return UserAddressSerializer(billing_addresses, many=True).data
-
-    def get_is_department_user(self, obj):
-        if obj.email:
-            request = self.context["request"] if self.context else None
-            if request:
-                return in_dbca_domain(request)
-        return False
     
 
 class EmailUserCommsSerializer(CommunicationLogEntrySerializer):

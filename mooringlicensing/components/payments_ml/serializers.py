@@ -135,7 +135,7 @@ class DcvPermitSimpleSerializer(serializers.ModelSerializer):
             if obj.dcv_organisation:
                 return obj.dcv_organisation.name
             else:
-                return obj.submitter_obj.get_full_name() + ' (P)' #TODO applicant vs submitter
+                return obj.applicant_obj.get_full_name() + ' (P)'
         except:
             return ''
 
@@ -191,7 +191,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'lodgement_number',
-            'submitter', #TODO applicant vs submitter
+            'submitter',
             'applicant',
             'lodgement_datetime',
             'dcv_vessel_id',

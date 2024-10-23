@@ -376,18 +376,6 @@ export default {
                 vm.selectedApprovalLodgementNumber = lodgement_number
             })
         },
-        // fetchData: function(){
-        //     let vm = this
-
-        //     vm.$http.get(api_endpoints.fee_item_sticker_replacement).then(
-        //         (response) => {
-        //             vm.fee_item = response.body
-        //         },
-        //         (error) => {
-        //             console.log(error)
-        //         }
-        //     )
-        // }
     },
     created:function () {
         // this.fetchData()

@@ -2582,11 +2582,6 @@ class MooringLicence(Approval):
     #    return self.current_vessel_attributes('current_vessels_rego', proposal)
 
 
-class PreviewTempApproval(Approval):
-    class Meta:
-        app_label = 'mooringlicensing'
-
-
 class ApprovalLogEntry(CommunicationsLogEntry):
     approval = models.ForeignKey(Approval, related_name='comms_logs', on_delete=models.CASCADE)
 
@@ -2600,18 +2595,16 @@ class ApprovalLogEntry(CommunicationsLogEntry):
         super(ApprovalLogEntry, self).save(**kwargs)
 
 class ApprovalLogDocument(Document):
-# def update_approval_comms_log_filename(instance, filename):
-#     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
+
     @staticmethod
     def relative_path_to_file(proposal_id, filename):
         return f'proposal/{proposal_id}/approvals/communications/{filename}'
 
     def upload_to(self, filename):
-        proposal_id = self.approval.current_proposal.id
+        proposal_id = self.log_entry.approval.current_proposal.id
         return self.relative_path_to_file(proposal_id, filename)
 
     log_entry = models.ForeignKey('ApprovalLogEntry', related_name='documents', null=True, on_delete=models.CASCADE)
-    # _file = models.FileField(upload_to=update_approval_comms_log_filename, null=True, max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -2691,7 +2684,6 @@ class DcvAdmission(RevisionedMixin):
         (DCV_ADMISSION_STATUS_UNPAID, 'Unpaid'),
         (DCV_ADMISSION_STATUS_CANCELLED, 'Cancelled'),
     )
-    #TODO applicant vs submitter?
     #status
     submitter = models.IntegerField(blank=True, null=True)
     applicant = models.IntegerField(blank=True, null=True)
@@ -2953,7 +2945,6 @@ class DcvPermit(RevisionedMixin):
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
-    #TODO applicant vs submitter
     applicant = models.IntegerField(blank=True, null=True)
     submitter = models.IntegerField(blank=True, null=True)
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
@@ -3541,7 +3532,6 @@ reversion.register(WaitingListAllocation, follow=['proposal_set', 'ria_generated
 reversion.register(AnnualAdmissionPermit, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
 reversion.register(AuthorisedUserPermit, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
 reversion.register(MooringLicence, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances', 'mooring'])
-reversion.register(PreviewTempApproval, follow=['proposal_set', 'waiting_list_offer_documents', 'renewal_documents', 'authorised_user_summary_documents', 'approval_documents', 'mooringonapproval_set', 'vesselownershiponapproval_set', 'approvalhistory_set', 'replace', 'comms_logs', 'action_logs', 'stickers', 'compliances'])
 reversion.register(ApprovalLogEntry, follow=['documents'])
 reversion.register(ApprovalLogDocument, follow=[])
 reversion.register(ApprovalUserAction, follow=[])

@@ -5,7 +5,6 @@ from django.core import management
 from django_cron import CronJobBase, Schedule
 from django.conf import settings
 
-#from mooringlicensing.components.payments_ml.utils import oracle_integration
 from mooringlicensing.components.main.api import oracle_integration
 
 

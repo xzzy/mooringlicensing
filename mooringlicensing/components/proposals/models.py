@@ -57,7 +57,6 @@ from mooringlicensing.components.main.decorators import (
         timeit, 
         query_debugger
         )
-from ckeditor.fields import RichTextField
 
 # from ledger.checkout.utils import createCustomBasket
 # from ledger.payments.invoice.utils import CreateInvoiceBasket
@@ -103,9 +102,6 @@ def update_onhold_doc_filename(instance, filename):
 def update_proposal_required_doc_filename(instance, filename):
     return '{}/proposals/{}/required_documents/{}'.format(settings.MEDIA_APP_DIR, instance.proposal.id,filename)
 
-def update_requirement_doc_filename(instance, filename):
-    return '{}/proposals/{}/requirement_documents/{}'.format(settings.MEDIA_APP_DIR, instance.requirement.proposal.id,filename)
-
 def update_proposal_comms_log_filename(instance, filename):
     return '{}/proposals/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.proposal.id, instance.log_entry.id, filename)
 
@@ -137,18 +133,6 @@ class ProposalDocument(Document):
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Application Document"
-
-
-class RequirementDocument(Document):
-    requirement = models.ForeignKey('ProposalRequirement',related_name='requirement_documents', on_delete=models.CASCADE)
-    _file = models.FileField(storage=private_storage,upload_to=update_requirement_doc_filename, max_length=512)
-    input_name = models.CharField(max_length=255,null=True,blank=True)
-    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
-    visible = models.BooleanField(default=True) # to prevent deletion on file system, hidden and still be available in history
-
-    def delete(self):
-        if self.can_delete:
-            return super(RequirementDocument, self).delete()
 
 
 VESSEL_TYPES = (
@@ -339,7 +323,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
     approval_level = models.CharField('Activity matrix approval level', max_length=255,null=True,blank=True)
-    approval_level_document = models.ForeignKey(ProposalDocument, blank=True, null=True, related_name='approval_level_document', on_delete=models.SET_NULL)
     approval_comment = models.TextField(blank=True)
     #If the proposal is created as part of migration of approvals
     migrated=models.BooleanField(default=False)
@@ -472,27 +455,29 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return str(self.lodgement_number)
 
     def withdraw(self, request, *args, **kwargs):
-        #TODO add auth - only the applicant or an assessor should be able to withdraw (also add status check?)
-        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        self.save()
-        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
-        self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number), request)
+        #only an assessor should be able to withdraw
+        if self.is_assessor(request): 
+            self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+            self.save()
+            logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+            self.log_user_action(ProposalUserAction.ACTION_WITHDRAW_PROPOSAL.format(self.lodgement_number), request)
 
-        # Perform post-processing for each application type after discarding.
-        self.child_obj.process_after_withdrawn()
+            # Perform post-processing for each application type after discarding.
+            self.child_obj.process_after_withdrawn()
 
     def destroy(self, request, *args, **kwargs):
-        #TODO add auth - only the applicant or an assessor should be able to discard (also add status check?)
-        self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
-        self.save()
-        logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
-        self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number), request)
+        #only the applicant or an assessor should be able to discard while in draft
+        if self.processing_status == Proposal.PROCESSING_STATUS_DRAFT and (request.user.id == self.applicant or self.is_assessor(request)):
+            self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+            self.save()
+            logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
+            self.log_user_action(ProposalUserAction.ACTION_DISCARD_PROPOSAL.format(self.lodgement_number), request)
 
-        # Perform post-processing for each application type after discarding.
-        self.child_obj.process_after_discarded()
+            # Perform post-processing for each application type after discarding.
+            self.child_obj.process_after_discarded()
 
-        # Send email
-        send_application_discarded_email(self, request)
+            # Send email
+            send_application_discarded_email(self, request)
 
     def copy_vessel_details(self, proposal):
         #TODO add auth - this is used when creating a mooring license from a waiting list allocation - should only be allowed for groups that can offer mooring
@@ -1304,33 +1289,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    def assign_approval_level_document(self, request):
-        with transaction.atomic():
-            #TODO add auth - approver only
-            try:
-                approval_level_document = request.data['approval_level_document']
-                if approval_level_document != 'null':
-                    try:
-                        document = self.documents.get(input_name=str(approval_level_document))
-                    except ProposalDocument.DoesNotExist:
-                        document = self.documents.get_or_create(input_name=str(approval_level_document), name=str(approval_level_document))[0]
-                    document.name = str(approval_level_document)
-                    document._file = approval_level_document
-                    document.save()
-                    d=ProposalDocument.objects.get(id=document.id)
-                    self.approval_level_document = d
-                    comment = 'Approval Level Document Added: {}'.format(document.name)
-                else:
-                    self.approval_level_document = None
-                    comment = 'Approval Level Document Deleted: {}'.format(request.data['approval_level_document_name'])
-                self.save(version_comment=comment) # to allow revision to be added to reversion history
-                self.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
-                applicant_field=getattr(self, self.applicant_field)
-                # applicant_field.log_user_action(ProposalUserAction.ACTION_APPROVAL_LEVEL_DOCUMENT.format(self.id),request)
-                return self
-            except:
-                raise
-
     def unassign(self,request):
         with transaction.atomic():
             try:
@@ -1676,37 +1634,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 send_approver_approve_decline_email_notification(request, self)
                 return self
 
-            except:
-                raise
-
-    #TODO fix and implement - or remove
-    def preview_approval(self,request,details):
-        from mooringlicensing.components.approvals.models import PreviewTempApproval
-        with transaction.atomic():
-            try:
-                if self.processing_status != 'with_approver':
-                    raise ValidationError('Licence preview only available when processing status is with_approver. Current status {}'.format(self.processing_status))
-                if not self.can_assess(request.user):
-                    raise exceptions.ProposalNotAuthorized()
-
-                lodgement_number = self.previous_application.approval.lodgement_number if self.proposal_type in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,] else None # renewals/amendments keep same licence number
-                preview_approval = PreviewTempApproval.objects.create(
-                    current_proposal = self,
-                    issue_date = timezone.now(),
-                    expiry_date = datetime.datetime.strptime(details.get('due_date'), '%d/%m/%Y').date(),
-                    start_date = datetime.datetime.strptime(details.get('start_date'), '%d/%m/%Y').date(),
-                    submitter = self.submitter,
-                    proxy_applicant = self.proxy_applicant,
-                    lodgement_number = lodgement_number
-                )
-
-                # Generate the preview document - get the value of the BytesIO buffer
-                licence_buffer = preview_approval.generate_doc(preview=True)
-
-                # clean temp preview licence object
-                transaction.set_rollback(True)
-
-                return licence_buffer
             except:
                 raise
 
@@ -5021,10 +4948,6 @@ class VesselOwnership(RevisionedMixin):
         if self.company_ownerships.count():
             company_ownership = self.company_ownerships.filter(vesselownershipcompanyownership__status__in=status_list).order_by('created').last()
             return company_ownership
-            # company_ownership = self.company_ownerships.all().order_by('updated').last()
-            # for voco in VesselOwnershipCompanyOwnership.objects.filter(vessel_ownership=self, company_ownership=company_ownership):
-            #     if voco.status in status_list:
-            #         return company_ownership
         return CompanyOwnership.objects.none()
     
     @property
@@ -5522,7 +5445,6 @@ class ProposalUserAction(UserAction):
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
     ACTION_WITHDRAW_PROPOSAL = "Withdraw application {}"
-    ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
     ACTION_SUBMIT_OTHER_DOCUMENTS = 'Submit other documents'
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
@@ -5615,28 +5537,6 @@ class ProposalRequirement(OrderedModel):
                 return True
         return False
 
-    def add_documents(self, request):
-        with transaction.atomic():
-            try:
-                # save the files
-                data = json.loads(request.data.get('data'))
-                if not data.get('update'):
-                    documents_qs = self.requirement_documents.filter(input_name='requirement_doc', visible=True)
-                    documents_qs.delete()
-                for idx in range(data['num_files']):
-                    _file = request.data.get('file-'+str(idx))
-                    document = self.requirement_documents.create(
-                        _file=_file, 
-                        name=_file.name,
-                        input_name = data['input_name'],
-                        can_delete = True
-                    )
-                # end save documents
-                self.save()
-            except:
-                raise
-        return
-
 
 @receiver(pre_delete, sender=Proposal)
 def delete_documents(sender, instance, *args, **kwargs):
@@ -5657,109 +5557,10 @@ def clone_proposal_with_status_reset(original_proposal):
         except:
             raise
 
-def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance, is_internal= True):
-    from mooringlicensing.utils import search, search_approval, search_compliance
-    from mooringlicensing.components.approvals.models import Approval
-    from mooringlicensing.components.compliances.models import Compliance
-    qs = []
-    application_types=[ApplicationType.TCLASS, ApplicationType.EVENT, ApplicationType.FILMING]
-    if is_internal:
-        # proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=['discarded','draft'])
-        proposal_list = Proposal.objects.filter(application_type__name__in=application_types).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT,])
-        approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
-        compliance_list = Compliance.objects.all()
-    if searchWords:
-        if searchProposal:
-            for p in proposal_list:
-                if p.search_data:
-                    try:
-                        results = search(p.search_data, searchWords)
-                        final_results = {}
-                        if results:
-                            for r in results:
-                                for key, value in r.items():
-                                    final_results.update({'key': key, 'value': value})
-                            res = {
-                                'number': p.lodgement_number,
-                                'id': p.id,
-                                'type': 'Proposal',
-                                'applicant': p.applicant,
-                                'text': final_results,
-                                }
-                            qs.append(res)
-                    except:
-                        raise
-        if searchApproval:
-            for a in approval_list:
-                try:
-                    results = search_approval(a, searchWords)
-                    qs.extend(results)
-                except:
-                    raise
-        if searchCompliance:
-            for c in compliance_list:
-                try:
-                    results = search_compliance(c, searchWords)
-                    qs.extend(results)
-                except:
-                    raise
-    return qs
-
-def search_reference(reference_number):
-    from mooringlicensing.components.approvals.models import Approval
-    from mooringlicensing.components.compliances.models import Compliance
-    proposal_list = Proposal.objects.all().exclude(processing_status__in=['discarded'])
-    approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
-    compliance_list = Compliance.objects.all().exclude(processing_status__in=['future'])
-    record = {}
-    try:
-        result = proposal_list.get(lodgement_number = reference_number)
-        record = {  'id': result.id,
-                    'type': 'proposal' }
-    except Proposal.DoesNotExist:
-        try:
-            result = approval_list.get(lodgement_number = reference_number)
-            record = {  'id': result.id,
-                        'type': 'approval' }
-        except Approval.DoesNotExist:
-            try:
-                for c in compliance_list:
-                    if c.reference == reference_number:
-                        record = {  'id': c.id,
-                                    'type': 'compliance' }
-            except:
-                raise ValidationError('Record with provided reference number does not exist')
-    if record:
-        return record
-    else:
-        raise ValidationError('Record with provided reference number does not exist')
-
-
-class HelpPage(models.Model):
-    HELP_TEXT_EXTERNAL = 1
-    HELP_TEXT_INTERNAL = 2
-    HELP_TYPE_CHOICES = (
-        (HELP_TEXT_EXTERNAL, 'External'),
-        (HELP_TEXT_INTERNAL, 'Internal'),
-    )
-
-    content = RichTextField()
-    description = models.CharField(max_length=256, blank=True, null=True)
-    help_type = models.SmallIntegerField('Help Type', choices=HELP_TYPE_CHOICES, default=HELP_TEXT_EXTERNAL)
-    version = models.SmallIntegerField(default=1, blank=False, null=False)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-        unique_together = (
-                'help_type',
-                'version'
-                )
-
 
 import reversion
 
-reversion.register(ProposalDocument, follow=['approval_level_document'])
-reversion.register(RequirementDocument, follow=[])
+reversion.register(ProposalDocument)
 reversion.register(ProposalType, follow=['proposal_set',])
 # TODO: fix this to improve performance
 #reversion.register(Proposal, follow=['documents', 'succeeding_proposals', 'comms_logs', 'companyownership_set', 'insurance_certificate_documents', 'hull_identification_number_documents', 'electoral_roll_documents', 'mooring_report_documents', 'written_proof_documents', 'signed_licence_agreement_documents', 'proof_of_identity_documents', 'proposalrequest_set', 'proposaldeclineddetails', 'action_logs', 'requirements', 'application_fees', 'approval_history_records', 'approvals', 'sticker_set', 'compliances'])
@@ -5803,5 +5604,4 @@ reversion.register(AmendmentRequest, follow=[])
 reversion.register(ProposalDeclinedDetails, follow=[])
 reversion.register(ProposalStandardRequirement, follow=['proposalrequirement_set'])
 reversion.register(ProposalUserAction, follow=[])
-reversion.register(ProposalRequirement, follow=['requirement_documents', 'proposalrequirement_set', 'compliance_requirement'])
-reversion.register(HelpPage, follow=[])
+reversion.register(ProposalRequirement, follow=['proposalrequirement_set', 'compliance_requirement'])

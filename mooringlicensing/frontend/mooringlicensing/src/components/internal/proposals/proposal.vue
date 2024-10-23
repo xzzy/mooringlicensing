@@ -131,7 +131,6 @@
             :processing_status="proposal.processing_status"
             :proposal_id="proposal.id"
             :proposal_type='proposal.proposal_type.code'
-            :isApprovalLevelDocument="isApprovalLevelDocument"
             :submitter_email="proposal.submitter.email"
             :applicant_email="applicant_email"
             @refreshFromResponse="refreshFromResponse"
@@ -470,9 +469,6 @@ export default {
         canSeeSubmission: function(){
             return this.proposal && (this.proposal.processing_status != 'With Assessor (Requirements)' && this.proposal.processing_status != 'With Approver' && !this.isFinalised)
         },
-        isApprovalLevelDocument: function(){
-            return this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null ? true : false;
-        },
         applicant_email:function(){
             return this.proposal && this.proposal.applicant && this.proposal.applicant.email ? this.proposal.applicant.email : '';
         },
@@ -788,10 +784,6 @@ export default {
         },
         proposedApproval: function(){
             console.log('proposedApproval')
-            /*
-            if(this.proposal.proposed_issuance_approval == null){
-            }
-            */
             this.uuid++;
             this.$nextTick(() => {
                 this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
@@ -800,47 +792,16 @@ export default {
         },
         issueProposal:function(){
             console.log('%cin issueProposal', 'color:#f33;')
-            //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
-
-            //save approval level comment before opening 'issue approval' modal
-            if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
-                console.log('%cin issueProposal 1', 'color:#f33;')
-                if (this.proposal.approval_level_comment!=''){
-                    console.log('%cin issueProposal 2', 'color:#f33;')
-                    let vm = this;
-                    let data = new FormData();
-                    data.append('approval_level_comment', vm.proposal.approval_level_comment)
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal.id+'/approval_level_comment'), data, {emulateJSON:true}).then(
-                        res => {
-                            vm.proposal = res.body;
-                            vm.refreshFromResponse(res);
-                        }, err => {
-                            console.log(err);
-                        }
-                    );
+            this.uuid++;
+            this.$nextTick(() => {
+                if (this.proposal.proposed_issuance_approval != null){
+                    this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval)
+                } else {
+                    this.$refs.proposed_approval.approval = {}
                 }
-            }
-            if(this.isApprovalLevelDocument && this.proposal.approval_level_comment==''){
-                swal(
-                    'Error',
-                    'Please add Approval document or comments before final approval',
-                    'error'
-                )
-            } else {
-                this.uuid++;
-                this.$nextTick(() => {
-                    if (this.proposal.proposed_issuance_approval != null){
-                        console.log('Here!!!')
-                        this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval)
-                    } else {
-                        this.$refs.proposed_approval.approval = {}
-                    }
-                    this.$refs.proposed_approval.state = 'final_approval';
-                    this.$refs.proposed_approval.isApprovalLevelDocument = this.isApprovalLevelDocument;
-                    this.$refs.proposed_approval.isModalOpen = true;
-                });
-            }
-
+                this.$refs.proposed_approval.state = 'final_approval';
+                this.$refs.proposed_approval.isModalOpen = true;
+            });
         },
         declineProposal:function(){
             console.log('in declineProposal')

@@ -42,7 +42,7 @@ def create_dcv_permit_pdf_tytes(dcv_permit):
     # context = context_obj.data
     # doc.render(context)
     context = dcv_permit.get_context_for_licence_permit()
-    if context['p_address_line2'] is None:
+    if 'p_address_line2' in context and context['p_address_line2'] is None:
         context['p_address_line2'] = '' 
     doc.render(context)
 
@@ -153,7 +153,7 @@ def create_approval_doc_bytes(approval):
     doc = DocxTemplate(path_to_template)
 
     context = approval.child_obj.get_context_for_licence_permit() if type(approval) == Approval else approval.get_context_for_licence_permit()
-    if context['p_address_line2'] is None:
+    if 'p_address_line2' in context and context['p_address_line2'] is None:
         context['p_address_line2'] = ''
     doc.render(context)
 
