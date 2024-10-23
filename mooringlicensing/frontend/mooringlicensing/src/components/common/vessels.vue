@@ -599,9 +599,16 @@ export default {
                         }
                         return query;
                     },
+                    processResults: function(data, params){  // This function is called after the results are returned.
+                                                             // Mainly used for modifying the items before being displayed.
+                        console.log({data})
+                        return {
+                            results: data.results,  // This is the array of items to be displayed
+                        }
+                    }
                 },
             }).
-                on("select2:select", async function (e) {
+                on("select2:select", function (e) {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
                     vm.$nextTick(async () => {
