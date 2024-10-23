@@ -495,7 +495,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if proposal.previous_application:
                     if proposal.previous_application.vessel_ownership:
-                        #if proposal.previous_application.vessel_ownership.excludable(proposal):
                         vessel_ownerships.append(proposal.previous_application.vessel_ownership)
 
                 if get_out_of_loop:
@@ -863,11 +862,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         ):
             new = True
         return new
-
-    #TODO check if used (remove if not)
-    def does_have_valid_associations(self):
-        # Check if this application has valid associations with other applications and approvals
-        return self.child_obj.does_have_valid_associations()
 
     @property
     def final_status(self):
@@ -2198,6 +2192,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             vessel_exists = True if self.listed_vessels.filter(end_date__isnull=True) else False
         return vessel_exists
 
+    #TODO does not appear to be in use but may still be needed - review
     def validate_vessel_length(self, request):
         self.child_obj.validate_vessel_length(request)
 
@@ -2543,16 +2538,15 @@ class WaitingListApplication(Proposal):
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         # Get blocking proposals 
-        # Checking if there are any applications still in process, but it might not be necessary to check for that because the blocking approvals are checked below.
+        # Checking if there are any applications still in progress
         proposals = Proposal.objects.filter(
             Q(vessel_details__vessel=self.vessel_ownership.vessel) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True))  # Vessel has not been sold yet
         ).exclude(id=self.id)
         child_proposals = [proposal.child_obj for proposal in proposals]
         logger.debug(f'child_proposals: [{child_proposals}]')
-        # proposals_wla = []
-        # proposals_mla = []
-        blocking_proposals = []  # 
+        
+        blocking_proposals = []  
         for proposal in child_proposals:
             if proposal.processing_status not in [
                 Proposal.PROCESSING_STATUS_APPROVED, 
@@ -2570,9 +2564,8 @@ class WaitingListApplication(Proposal):
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True))  # Vessel has not been sold yet
         ).exclude(approval_id=self.approval_id)
         approvals = [ah.approval for ah in approval_histories]
-        approvals = list(dict.fromkeys(approvals))  # remove duplicateS
-        # approvals_wla = []
-        # approvals_ml = []
+        approvals = list(dict.fromkeys(approvals))  # remove duplicates
+
         blocking_approvals = []
 
         for approval in approvals:
@@ -2580,7 +2573,6 @@ class WaitingListApplication(Proposal):
                 if type(approval.child_obj) == WaitingListAllocation or type(approval.child_obj) == MooringLicence:
                     blocking_approvals.append(approval)      
 
-        # if (proposals_wla or approvals_wla or proposals_mla or approvals_ml):
         if (blocking_proposals):
             msg = f'The vessel: {self.vessel_ownership.vessel} is already listed in another active waiting list or mooring license application'
             logger.error(msg)
@@ -2601,6 +2593,7 @@ class WaitingListApplication(Proposal):
             msg = "Person can have only one WLA, Waiting List application, Mooring Site Licence, and Mooring Site Licence application"
             logger.error(msg)
             raise serializers.ValidationError(msg)
+    
     
     def validate_vessel_length(self, request):
         min_mooring_vessel_size_str = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value
@@ -2658,7 +2651,6 @@ class WaitingListApplication(Proposal):
                 vessel_length = -1
                 accept_null_vessel = True
             else:
-                # msg = 'No vessel specified for the application {}'.format(self.lodgement_number)
                 msg = 'The application fee admin data has not been set up correctly for the Waiting List application type.  Please contact the Rottnest Island Authority.'
                 logger.error(msg)
                 raise Exception(msg)
@@ -2718,17 +2710,11 @@ class WaitingListApplication(Proposal):
     def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        # return user in self.assessor_group.user_set.all()
         return user in self.assessor_group.get_system_group_member_ids()
-
-    #def is_approver(self, user):
-     #   return False
 
     def is_approver(self, user):
         if isinstance(user, EmailUserRO):
             user = user.id
-        #return user in self.approver_group.user_set.all()
-        # return user in self.assessor_group.user_set.all()
         return user in self.assessor_group.get_system_group_member_ids()
 
     def save(self, *args, **kwargs):
@@ -2742,12 +2728,6 @@ class WaitingListApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         attachments = []
         if self.invoice:
-            # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-            # api_key = settings.LEDGER_API_KEY
-            # url = settings.LEDGER_API_URL + '/ledgergw/invoice-pdf/' + api_key + '/' + self.invoice.reference
-            # url = get_invoice_url(self.invoice.reference, request)
-            # invoice_pdf = requests.get(url=url)
-
             api_key = settings.LEDGER_API_KEY
             url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
             invoice_pdf = requests.get(url=url)
@@ -2772,25 +2752,6 @@ class WaitingListApplication(Proposal):
 
     def process_after_approval(self, request=None, total_amount=0):
         logger.debug(f'called in [{self}]')
-
-    def does_have_valid_associations(self):
-        """
-        Check if this application has valid associations with other applications and approvals
-        """
-        # TODO: correct the logic.  just partially implemented
-        valid = True
-
-        # Rules for proposal
-        proposals = WaitingListApplication.objects.\
-            filter(vessel_details__vessel=self.vessel_details.vessel).\
-            exclude(
-                Q(id=self.id) | Q(processing_status__in=(Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DISCARDED))
-            )
-        if proposals:
-            # The vessel in this application is already part of another application
-            valid = False
-
-        return valid
 
 
 class AnnualAdmissionApplication(Proposal):
@@ -2915,7 +2876,6 @@ class AnnualAdmissionApplication(Proposal):
                 vessel_length = -1
                 accept_null_vessel = True
             else:
-                # msg = 'No vessel specified for the application {}'.format(self.lodgement_number)
                 msg = 'The application fee admin data has not been set up correctly for the Annual Admission Permit application type.  Please contact the Rottnest Island Authority.'
                 logger.error(msg)
                 raise Exception(msg)
@@ -2964,7 +2924,6 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def assessor_group(self):
-        # return Group.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
         return ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - Assessors: Annual Admission")
 
     @property
@@ -2973,7 +2932,6 @@ class AnnualAdmissionApplication(Proposal):
 
     @property
     def assessor_recipients(self):
-        # return [i.email for i in self.assessor_group.user_set.all()]
         return [retrieve_email_userro(id).email for id in self.assessor_group.get_system_group_member_ids()]
 
     @property
@@ -2981,22 +2939,17 @@ class AnnualAdmissionApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        # return user in dself.assessor_group.user_set.all()
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
-
-    #def is_approver(self, user):
-     #   return False
-
-    def is_approver(self, user):
         # return user in self.assessor_group.user_set.all()
         if isinstance(user, EmailUserRO):
             user = user.id
         return user in self.assessor_group.get_system_group_member_ids()
 
+    def is_approver(self, user):
+        if isinstance(user, EmailUserRO):
+            user = user.id
+        return user in self.assessor_group.get_system_group_member_ids()
+
     def save(self, *args, **kwargs):
-        #application_type_acronym = self.application_type.acronym if self.application_type else None
         super(AnnualAdmissionApplication, self).save(*args,**kwargs)
         if self.lodgement_number == '':
             new_lodgment_id = '{1}{0:06d}'.format(self.proposal_id, self.prefix)
@@ -3007,11 +2960,6 @@ class AnnualAdmissionApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         attachments = []
         if self.invoice:
-        #     invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', self.invoice,)
-        #     attachment = ('invoice#{}.pdf'.format(self.invoice.reference), invoice_bytes, 'application/pdf')
-        #     attachments.append(attachment)
-        #     url = get_invoice_url(self.invoice.reference, request)
-        #     invoice_pdf = requests.get(url=url)
             api_key = settings.LEDGER_API_KEY
             url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + self.invoice.reference
             invoice_pdf = requests.get(url=url)
@@ -3036,13 +2984,6 @@ class AnnualAdmissionApplication(Proposal):
         if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,PROPOSAL_TYPE_RENEWAL):
             return True
         return False
-
-    def does_have_valid_associations(self):
-        """
-        Check if this application has valid associations with other applications and approvals
-        """
-        # TODO: implement logic
-        return True
 
 
 class AuthorisedUserApplication(Proposal):
@@ -3165,7 +3106,6 @@ class AuthorisedUserApplication(Proposal):
                 vessel_length = -1
                 accept_null_vessel = True
             else:
-                # msg = 'No vessel specified for the application {}'.format(self.lodgement_number)
                 msg = 'The application fee admin data has not been set up correctly for the Authorised User Permit application type.  Please contact the Rottnest Island Authority.'
                 logger.error(msg)
                 raise Exception(msg)
@@ -3273,7 +3213,6 @@ class AuthorisedUserApplication(Proposal):
         return [retrieve_email_userro(i).email for i in self.approver_group.get_system_group_member_ids()]
 
     def is_assessor(self, user):
-        # return user in self.assessor_group.user_set.all()
         if isinstance(user, EmailUserRO):
             user = user.id
         return user in self.assessor_group.get_system_group_member_ids()
@@ -3292,8 +3231,6 @@ class AuthorisedUserApplication(Proposal):
         self.proposal.refresh_from_db()
 
     def send_emails_after_payment_success(self, request):
-        # ret_value = send_submit_email_notification(request, self)
-        # TODO: Send payment success email to the applicant
         return True
 
     def get_mooring_authorisation_preference(self):
@@ -3337,7 +3274,6 @@ class AuthorisedUserApplication(Proposal):
         mooring_preference = self.get_mooring_authorisation_preference()
 
         if not (self.auto_approve and (self.proposal_type.code == PROPOSAL_TYPE_RENEWAL or self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT)):
-            # if mooring_preference.lower() != 'ria' and self.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
             if ((mooring_preference.lower() != 'ria' and self.proposal_type.code == PROPOSAL_TYPE_NEW) or
                 (mooring_preference.lower() != 'ria' and self.proposal_type.code != PROPOSAL_TYPE_NEW and not self.keep_existing_mooring)):
                 # Mooring preference is 'site_licensee' and which is new mooring applying for.
@@ -3356,9 +3292,6 @@ class AuthorisedUserApplication(Proposal):
     def update_or_create_approval(self, current_datetime, request=None):
         logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
         # This function is called after payment success for new/amendment/renewal application
-
-        created = None
-
         # Manage approval
         approval_created = False
         if self.proposal_type.code == PROPOSAL_TYPE_NEW:
@@ -3402,7 +3335,6 @@ class AuthorisedUserApplication(Proposal):
             approval.save()
 
         # update proposed_issuance_approval and MooringOnApproval if not system reissue (no request) or auto_approve
-        existing_mooring_count = None
         if request and not self.auto_approve:
             # Create MooringOnApproval records
             ## also see logic in approval.add_mooring()
@@ -3480,7 +3412,7 @@ class AuthorisedUserApplication(Proposal):
             stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
             stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING,])
 
-        if len(stickers_to_be_returned): #TODO this should include before and after this application's sticker has printed
+        if len(stickers_to_be_returned):
             a_sticker = stickers_to_be_returned[0]  # All the stickers to be returned should have the same vessel, so just pick the first one
             if self.vessel_ownership and a_sticker.vessel_ownership.vessel.rego_no == self.vessel_ownership.vessel.rego_no:
                 # Same vessel
@@ -3506,15 +3438,12 @@ class AuthorisedUserApplication(Proposal):
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
 
         self.save()
-        # self.refresh_from_db()
-        # self.proposal.refresh_from_db()
         self.proposal.save()
 
         approval.generate_doc()
         self.proposal.refresh()  # so that the approval doc field is updated by the doc generated above
 
         # Email
-        # send_aua_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
         send_application_approved_or_declined_email(self, 'approved_paid', request, stickers_to_be_returned)
 
         # Email to ML holder when new moorings added
@@ -3537,12 +3466,6 @@ class AuthorisedUserApplication(Proposal):
         else:
             approval.write_approval_history()
 
-        #if existing_mooring_count and approval.mooringonapproval_set.count() > existing_mooring_count:
-        #    approval.write_approval_history('mooring_add')
-        #elif created:
-        #    approval.write_approval_history('new')
-        #else:
-        #    approval.write_approval_history()
         self.save()
         self.proposal.save()
 
@@ -3554,13 +3477,6 @@ class AuthorisedUserApplication(Proposal):
         if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,):
             return True
         return False
-
-    def does_have_valid_associations(self):
-        """
-        Check if this application has valid associations with other applications and approvals
-        """
-        # TODO: implement logic
-        return True
 
 
 class MooringLicenceApplication(Proposal):
@@ -3583,7 +3499,7 @@ class MooringLicenceApplication(Proposal):
         return wlallocation
 
     def validate_against_existing_proposals_and_approvals(self):
-        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
+        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         # Get blocking proposals
@@ -3739,7 +3655,6 @@ class MooringLicenceApplication(Proposal):
                 vessel_length = -1
                 accept_null_vessel = True
             else:
-                # msg = 'No vessel specified for the application {}'.format(self.lodgement_number)
                 msg = 'The application fee admin data has not been set up correctly for the Mooring Site Licence application type.  Please contact the Rottnest Island Authority.'
                 logger.error(msg)
                 raise Exception(msg)
@@ -3792,17 +3707,14 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def assessor_group(self):
-        # return Group.objects.get(name="Mooring Licensing - Assessors: Mooring Licence")
         return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_ASSESSOR_MOORING_LICENCE)
 
     @property
     def approver_group(self):
-        # return Group.objects.get(name="Mooring Licensing - Approvers: Mooring Licence")
         return ledger_api_client.managed_models.SystemGroup.objects.get(name=GROUP_APPROVER_MOORING_LICENCE)
 
     @property
     def assessor_recipients(self):
-        # return [i.email for i in self.assessor_group.user_set.all()]
         emails = []
         for id in self.assessor_group.get_system_group_member_ids():
             emails.append(retrieve_email_userro(id).email)
@@ -3810,20 +3722,17 @@ class MooringLicenceApplication(Proposal):
 
     @property
     def approver_recipients(self):
-        # return [i.email for i in self.approver_group.user_set.all()]
         emails = []
         for id in self.approver_group.get_system_group_member_ids():
             emails.append(retrieve_email_userro(id).email)
         return emails
 
     def is_assessor(self, user):
-        # return user in self.assessor_group.user_set.all()
         if isinstance(user, EmailUserRO):
             user = user.id
         return user in self.assessor_group.get_system_group_member_ids()
 
     def is_approver(self, user):
-        # return user in self.approver_group.user_set.all()
         if isinstance(user, EmailUserRO):
             user = user.id
         return user in self.approver_group.get_system_group_member_ids()
@@ -3837,8 +3746,7 @@ class MooringLicenceApplication(Proposal):
         self.proposal.refresh_from_db()
 
     def process_after_submit_other_documents(self, request):
-        from mooringlicensing.components.approvals.models import WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit, MooringLicence
-        # Somehow in this function, followings update parent too as we expected as polymorphism
+        from mooringlicensing.components.approvals.models import WaitingListAllocation
         self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         if self.waiting_list_allocation:
             self.waiting_list_allocation.internal_status = WaitingListAllocation.INTERNAL_STATUS_SUBMITTED
@@ -3852,8 +3760,6 @@ class MooringLicenceApplication(Proposal):
         send_other_documents_submitted_notification_email(request, self)
 
     def send_emails_after_payment_success(self, request):
-        # ret_value = send_submit_email_notification(request, self)
-        # TODO: Send email (payment success, granted/printing-sticker)
         return True
 
     def set_auto_approve(self,request):
@@ -3920,7 +3826,7 @@ class MooringLicenceApplication(Proposal):
                 mooring = self.allocated_mooring
             else:
                 mooring = existing_mooring_licence.mooring if existing_mooring_licence else self.allocated_mooring
-            created = None
+
             approval_created = False
 
             if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
@@ -3939,7 +3845,7 @@ class MooringLicenceApplication(Proposal):
 
                     if current_mooring:
                         if current_mooring.mooring_licence == approval:
-                            # Mooring and MooringLicence is a 1TO1 relation.  To prevent it from having 1TOMany relation, set None to both moorings.
+                            # Mooring should only ever have one mooring license assigned at a time, set mooring_licence to None prior to adding new one
                             current_mooring.mooring_licence = None
                             current_mooring.save()
                             logger.info(f'Remove the link between the MSL: [{approval}] and the mooring: [{current_mooring}].')
@@ -3968,7 +3874,6 @@ class MooringLicenceApplication(Proposal):
                 )
 
                 if approval_created:
-                    from mooringlicensing.components.approvals.models import Approval
                     logger.info(f'Approval: [{approval}] has been created.')
                     approval.cancel_existing_annual_admission_permit(current_datetime.date())
 
@@ -3991,7 +3896,6 @@ class MooringLicenceApplication(Proposal):
                 vooa, created = approval.add_vessel_ownership(vessel_ownership=self.vessel_ownership)
 
                 # updating checkboxes
-                #if self.approval:
                 for vo1 in self.proposed_issuance_approval.get('vessel_ownership'):
                     for vo2 in self.approval.vesselownershiponapproval_set.all():
                         # convert proposed_issuance_approval to an end_date
@@ -4011,15 +3915,12 @@ class MooringLicenceApplication(Proposal):
             if request:
                 # Generate compliances
                 from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-                #if self.proposal_type == PROPOSAL_TYPE_AMENDMENT:
-                #target_proposal = self.previous_application if self.previous_application else self.proposal
                 target_proposal = self.previous_application if self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT else self.proposal
                 for compliance in Compliance.objects.filter(
                     approval=approval.approval,
                     proposal=target_proposal,
                     processing_status='future',
                     ):
-                #approval_compliances.delete()
                     compliance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
                     compliance.customer_status = Compliance.CUSTOMER_STATUS_DISCARDED
                     compliance.post_reminder_sent=True
@@ -4050,7 +3951,6 @@ class MooringLicenceApplication(Proposal):
                 approval.generate_au_summary_doc(request.user)
 
             # Email with attachments
-            # send_mla_approved_or_declined_email_new_renewal(self, 'approved_paid', request, stickers_to_be_returned)
             send_application_approved_or_declined_email(self, 'approved_paid', request, stickers_to_be_returned)
 
             # Log proposal action
@@ -4080,13 +3980,6 @@ class MooringLicenceApplication(Proposal):
         if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
             return True
         return False
-
-    def does_have_valid_associations(self):
-        """
-        Check if this application has valid associations with other applications and approvals
-        """
-        # TODO: implement logic
-        return True
 
 
 class ProposalLogDocument(Document):
@@ -4124,7 +4017,6 @@ class ProposalLogEntry(CommunicationsLogEntry):
         super(ProposalLogEntry, self).save(**kwargs)
 
 
-# not for admin - data comes from Mooring Bookings
 class MooringBay(RevisionedMixin):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=3, blank=True, null=True)
@@ -4146,9 +4038,7 @@ class PrivateMooringManager(models.Manager):
 
 class AuthorisedUserMooringManager(models.Manager):
     def get_queryset(self):
-        # from mooringlicensing.components.approvals.models import Approval
-        # ret = super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2, mooring_licence__status=Approval.APPROVAL_STATUS_CURRENT)
-        ret = super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2,)  # Can any mooring be an authorised user mooring, can't it?
+        ret = super(AuthorisedUserMooringManager, self).get_queryset().filter(mooring_bookings_mooring_specification=2,)
         return ret
 
 
@@ -4171,7 +4061,6 @@ class AvailableMooringManager(models.Manager):
         return super(AvailableMooringManager, self).get_queryset().filter(id__in=available_ids)
 
 
-# not for admin - data comes from Mooring Bookings
 class Mooring(RevisionedMixin):
     MOORING_SPECIFICATION = (
          (1, 'Rental Mooring'),
@@ -4190,7 +4079,7 @@ class Mooring(RevisionedMixin):
     mooring_bookings_mooring_specification = models.IntegerField(choices=MOORING_SPECIFICATION)
     mooring_bookings_bay_id = models.IntegerField()
     # model managers
-    objects = models.Manager()
+    objects = models.Manager() 
     private_moorings = PrivateMooringManager()
     authorised_user_moorings = AuthorisedUserMooringManager()
     available_moorings = AvailableMooringManager()
@@ -4224,31 +4113,6 @@ class Mooring(RevisionedMixin):
                 active_mooring_on_approval.save()
                 logger.info(f'End date: [{today}] has been set to the MooringOnApproval: [{active_mooring_on_approval}] .')
 
-                # Set 'to_be_returned' to the sticker
-                # from mooringlicensing.components.approvals.models import Sticker
-                # sticker = active_mooring_on_approval.sticker
-                # if sticker:
-                #     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
-                #     sticker.save()
-                #     # TODO: check existence of other valid moorings
-                #     # This sticker may have another mooring which is still valid.  In that case a new sticker must be printed.
-                # else:
-                #     # Should not reach here
-                #     logger.warn(f'')
-
-                # Cancel AUP
-                # affected_aup = active_mooring_on_approval.approval
-                # affected_aup.approval_cancellation(
-                #     request, 
-                #     {
-                #         'cancellation_date': today,
-                #         'cancellation_details': 'The licence has been cancelled due to a mooring swap.',
-                #         'cancel_due_to_mooring_swap': True,
-                #         'mooring': self,
-                #         'sticker': sticker,
-                #     }
-                # )
-
                 active_mooring_on_approval.approval.manage_stickers()  
                 active_mooring_on_approval.approval.generate_doc()
                 send_aup_revoked_due_to_mooring_swap_email(request, active_mooring_on_approval.approval.child_obj, active_mooring_on_approval.mooring, [active_mooring_on_approval.sticker,])
@@ -4261,6 +4125,7 @@ class Mooring(RevisionedMixin):
         verbose_name_plural = "Moorings"
         app_label = 'mooringlicensing'
 
+    #TODO does not appear to be in use but may be needed? review
     @property
     def specification_display(self):
         return self.get_mooring_bookings_mooring_specification_display()
@@ -4270,7 +4135,6 @@ class Mooring(RevisionedMixin):
 
     @property
     def status(self):
-        from mooringlicensing.components.approvals.models import MooringOnApproval
         status = ''
         ## check for Mooring Licences
         if self.mooring_licence and self.mooring_licence.status in ['current', 'suspended']:
@@ -4283,11 +4147,8 @@ class Mooring(RevisionedMixin):
                     status = 'Licence Application'
         return status if status else 'Unlicensed'
 
-    #def suitable_vessel(self, vessel_details=None):
     def suitable_vessel(self, vessel_details):
         suitable = True
-        #if not vessel_details:
-         #   suitable = ''
         if vessel_details.vessel_applicable_length > self.vessel_size_limit or vessel_details.vessel_draft > self.vessel_draft_limit:
             suitable = False
         return suitable
@@ -4629,8 +4490,11 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     berth_mooring = models.CharField(max_length=200, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
+
+    # TODO review how this works and determine if needed
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+
     objects = models.Manager()
     filtered_objects = VesselDetailsManager()
 
@@ -4647,12 +4511,10 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
 
 
 class CompanyOwnership(RevisionedMixin):
-    # Possible status flow
-    # 'draft' --> 'approved' --> 'old'
-    #         \-> 'declined'
+
     COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
     COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
-    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old' #TODO review - remove if not needed
     COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
     STATUS_TYPES = (
         (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
@@ -4661,13 +4523,15 @@ class CompanyOwnership(RevisionedMixin):
         (COMPANY_OWNERSHIP_STATUS_DECLINED, 'Declined'),
     )
     blocking_proposal = models.ForeignKey(Proposal, blank=True, null=True, on_delete=models.SET_NULL)
-    # status = models.CharField(max_length=50, choices=STATUS_TYPES, default=COMPANY_OWNERSHIP_STATUS_DRAFT) # can be approved, old, draft, declined
+
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
     company = models.ForeignKey('Company', on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
+    
     ## TODO: delete start and end dates if no longer required
     start_date = models.DateTimeField(default=timezone.now)
     end_date = models.DateTimeField(null=True, blank=True)
+
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True, blank=True)
 
@@ -4680,15 +4544,7 @@ class CompanyOwnership(RevisionedMixin):
 
     def save(self, *args, **kwargs):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
-        ## do not allow multiple draft or approved status per vessel_id
-        # restrict multiple draft records
-        # if not self.pk:
-        #     company_ownerships = CompanyOwnership.objects.filter(vessel=self.vessel, company=self.company)
-        #     for company_ownership in company_ownerships:
-        #         if company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT:
-        #             raise ValueError("Multiple draft status records for the same company/vessel combination are not allowed")
-        #         elif company_ownership.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED and self.status == CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED:
-        #             raise ValueError("Multiple approved status records for the same company/vessel combination are not allowed")
+
         existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
         if existing_record:
             prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
@@ -4712,7 +4568,7 @@ class CompanyOwnership(RevisionedMixin):
 class VesselOwnershipCompanyOwnership(RevisionedMixin):
     COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
     COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
-    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old' #TODO review - remove if not needed
     COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
     STATUS_TYPES = (
         (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
@@ -4733,7 +4589,6 @@ class VesselOwnershipCompanyOwnership(RevisionedMixin):
 
 class VesselOwnershipManager(models.Manager):
     def get_queryset(self):
-        #latest_ids = VesselOwnership.objects.values("owner", "vessel", "company_ownership").annotate(id=Max('id')).values_list('id', flat=True)
         # Do not show sold vessels
         latest_ids = VesselOwnership.objects.filter(end_date__isnull=True).values("owner", "vessel", "company_ownerships").annotate(id=Max('id')).values_list('id', flat=True)
         return super(VesselOwnershipManager, self).get_queryset().filter(id__in=latest_ids)
@@ -4748,8 +4603,11 @@ class VesselOwnership(RevisionedMixin):
     end_date = models.DateField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
+
+    # TODO review how this works and determine if needed
     # for cron job
     exported = models.BooleanField(default=False) # must be False after every add/edit
+
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()
     ## Name as shown on DoT registration papers
@@ -4782,6 +4640,7 @@ class VesselOwnership(RevisionedMixin):
         else:
             return self.percentage
 
+    #TODO does not appear to be used but may still be needed - review
     @property
     def company_ownership_latest(self):
         if self.company_ownerships.count():
@@ -4797,34 +4656,6 @@ class VesselOwnership(RevisionedMixin):
     def __str__(self):
         return f'id:{self.id}, owner: {self.owner}, company_ownership: [{self.get_latest_company_ownership([VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,])}], vessel: {self.vessel}'
 
-    def excludable(self, originated_proposal):
-        # Return True if self is excludable from the percentage calculation
-
-        def get_latest_proposals(proposal, latest_proposals_list):
-            if not proposal.succeeding_proposals.count():
-                if proposal not in latest_proposals_list:
-                    latest_proposals_list.append(proposal)
-            else:
-                for succeeding_proposal in proposal.succeeding_proposals.all():
-                    get_latest_proposals(succeeding_proposal, latest_proposals_list)
-
-        excludable = True
-
-        latest_proposals = []
-        for proposal in self.proposal_set.exclude(processing_status__in=[
-            Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_DISCARDED,
-        ]):
-            get_latest_proposals(proposal, latest_proposals)
-
-        for proposal in latest_proposals:
-            if proposal == originated_proposal:
-                continue
-            from mooringlicensing.components.approvals.models import Approval
-            if proposal.approval and proposal.approval.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]:
-                excludable = False
-
-        return excludable
 
     def get_fee_items_paid(self):
         # Return all the fee_items for this vessel
@@ -4875,7 +4706,7 @@ class VesselRegistrationDocument(Document):
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
     hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
-    # test
+
     proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='temp_vessel_registration_documents', on_delete=models.CASCADE)
     original_file_name = models.CharField(max_length=512, null=True, blank=True)
     original_file_ext = models.CharField(max_length=255, null=True, blank=True)
@@ -4911,10 +4742,8 @@ class Owner(RevisionedMixin):
                 return emailuser.get_full_name()
             else:
                 return ''
-            # return emailuser.get_full_name()
         else:
             return ''
-        # return self.emailuser.get_full_name()
 
 
 class Company(RevisionedMixin):
@@ -4939,7 +4768,6 @@ class InsuranceCertificateDocument(Document):
         return self.relative_path_to_file(proposal_id, filename)
 
     proposal = models.ForeignKey(Proposal,related_name='insurance_certificate_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -4966,7 +4794,6 @@ class HullIdentificationNumberDocument(Document):
         return self.relative_path_to_file(proposal_id, filename)
 
     proposal = models.ForeignKey(Proposal,related_name='hull_identification_number_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -4993,7 +4820,6 @@ class ElectoralRollDocument(Document):
         return self.relative_path_to_file(proposal_id, filename)
 
     proposal = models.ForeignKey(Proposal,related_name='electoral_roll_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -5016,12 +4842,9 @@ class MooringReportDocument(Document):
         return f'proposal/{proposal_id}/mooring_report_documents/{filename}'
 
     def upload_to(self, filename):
-        # proposal_id = self.proposal.id
         proposal = self.proposal_set.first()
         return self.relative_path_to_file(proposal.id, filename)
 
-    # proposal = models.ForeignKey(Proposal, related_name='mooring_report_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -5039,14 +4862,12 @@ class MooringReportDocument(Document):
 
 
 class WrittenProofDocument(Document):
-    # proposal = models.ForeignKey(Proposal, related_name='written_proof_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
+
     @staticmethod
     def relative_path_to_file(proposal_id, filename):
         return f'proposal/{proposal_id}/written_proof_documents/{filename}'
 
     def upload_to(self, filename):
-        # proposal_id = self.proposal.id
         proposal = self.proposal_set.first()
         return self.relative_path_to_file(proposal.id, filename)
 
@@ -5072,12 +4893,9 @@ class SignedLicenceAgreementDocument(Document):
         return f'proposal/{proposal_id}/signed_licence_agreement_documents/{filename}'
 
     def upload_to(self, filename):
-        # proposal_id = self.proposal.id
         proposal = self.proposal_set.first()
         return self.relative_path_to_file(proposal.id, filename)
 
-    # proposal = models.ForeignKey(Proposal, related_name='signed_licence_agreement_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -5100,11 +4918,9 @@ class ProofOfIdentityDocument(Document):
         return f'proposal/{proposal_id}/proof_of_identity_documents/{filename}'
 
     def upload_to(self, filename):
-        # proposal_id = self.proposal.id
         proposal = self.proposal_set.first()
         return self.relative_path_to_file(proposal.id, filename)
-    # proposal = models.ForeignKey(Proposal, related_name='proof_of_identity_documents', on_delete=models.CASCADE)
-    # _file = models.FileField(max_length=512)
+
     _file = models.FileField(
         null=True,
         max_length=512,
@@ -5155,17 +4971,6 @@ class AmendmentReason(models.Model):
         return self.reason
 
 
-# class BackToAssessor(models.Model):
-#     details = models.TextField(blank=True)
-#     proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE)
-#
-#     class Meta:
-#         app_label = 'mooringlicensing'
-#
-#     def __str__(self):
-#         return self.details
-
-
 class AmendmentRequest(ProposalRequest):
     STATUS_CHOICES = (('requested', 'Requested'), ('amended', 'Amended'))
 
@@ -5207,7 +5012,6 @@ class ProposalDeclinedDetails(models.Model):
         app_label = 'mooringlicensing'
 
 
-# @python_2_unicode_compatible
 class ProposalStandardRequirement(RevisionedMixin):
     text = models.TextField()
     code = models.CharField(max_length=10, unique=True)
@@ -5331,47 +5135,15 @@ class ProposalRequirement(OrderedModel):
     def requirement(self):
         return self.standard_requirement.text if self.standard else self.free_requirement
 
-    def can_referral_edit(self,user):
-        if self.proposal.processing_status=='with_referral':
-            if self.referral_group:
-                group =  ReferralRecipientGroup.objects.filter(id=self.referral_group.id)
-                #user=request.user
-                if group and group[0] in user.referralrecipientgroup_set.all():
-                    return True
-                else:
-                    return False
-        return False
-
-    def can_district_assessor_edit(self,user):
-        allowed_status=['with_district_assessor', 'partially_approved', 'partially_declined']
-        if self.district_proposal and self.district_proposal.processing_status=='with_assessor_requirements' and self.proposal.processing_status in allowed_status:
-            if self.district_proposal.can_process_requirements(user):
-                return True
-        return False
-
-
+#TODO review/remove
 @receiver(pre_delete, sender=Proposal)
 def delete_documents(sender, instance, *args, **kwargs):
     for document in instance.documents.all():
         document.delete()
 
-def clone_proposal_with_status_reset(original_proposal):
-    with transaction.atomic():
-        try:
-            proposal = type(original_proposal.child_obj).objects.create()
-            proposal.processing_status = Proposal.PROCESSING_STATUS_DRAFT
-            proposal.previous_application = original_proposal
-            proposal.approval = original_proposal.approval
-            proposal.null_vessel_on_create = not original_proposal.vessel_on_proposal()
-
-            proposal.save(no_revision=True)
-            return proposal
-        except:
-            raise
-
-
 import reversion
 
+#TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
 reversion.register(ProposalDocument)
 reversion.register(ProposalType, follow=['proposal_set',])
 # TODO: fix this to improve performance

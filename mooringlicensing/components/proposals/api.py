@@ -2506,6 +2506,16 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             serializer = MooringLogEntrySerializer(qs,many=True)
             return Response(serializer.data)
         return Response()
+    
+    @detail_route(methods=['GET',], detail=True)
+    @basic_exception_handler
+    def action_log(self, request, *args, **kwargs):
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = ProposalUserActionSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler

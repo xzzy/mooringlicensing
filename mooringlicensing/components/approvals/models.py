@@ -3288,6 +3288,7 @@ class StickerActionDetail(models.Model):
         ordering = ['-date_created']
 
 
+#TODO review/remove
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
     if hasattr(instance, 'approval_documents'):
