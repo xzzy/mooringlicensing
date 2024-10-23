@@ -1303,10 +1303,14 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             pass
         elif action == 'delete':
             document_id = request.data.get('document_id')
-            document = VesselRegistrationDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
+            try:
+                document = VesselRegistrationDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                    can_delete=True,
+                )
+            except:
+                raise serializers.ValidationError("Vessel Registration Document can't be deleted")
             if document._file and os.path.isfile(document._file.path):
                 os.remove(document._file.path)
             if document:
@@ -1430,10 +1434,15 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             pass
         elif action == 'delete':
             document_id = request.data.get('document_id')
-            document = HullIdentificationNumberDocument.objects.get(
-                proposal=instance,
-                id=document_id,
-            )
+            try:
+                document = HullIdentificationNumberDocument.objects.get(
+                    proposal=instance,
+                    id=document_id,
+                    can_delete=True,
+                )
+            except:
+                raise serializers.ValidationError("Hull Identification Number Document can't be deleted")
+                
             if document._file and os.path.isfile(document._file.path):
                 os.remove(document._file.path)
             if document:
