@@ -92,14 +92,12 @@ def update_mooring_comms_log_filename(instance, filename):
 
 #copied from helpers
 def is_applicant_postal_address_set(instance):
-
     applicant = instance.proposal_applicant
-    #postal same as residential OR postal address
-    return applicant and (applicant.postal_line1 and
-        applicant.postal_locality and
-        applicant.postal_state and
-        applicant.postal_country and 
-        applicant.postal_postcode)
+    return applicant and (applicant.postal_address_line1 and
+        applicant.postal_address_locality and
+        applicant.postal_address_state and
+        applicant.postal_address_country and 
+        applicant.postal_address_postcode)
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents', on_delete=models.CASCADE)
@@ -2333,23 +2331,22 @@ class ProposalApplicant(RevisionedMixin):
     dob = models.DateField(auto_now=False, auto_now_add=False, null=True, blank=True, verbose_name="date of birth", help_text='')
 
     # Residential address
-    residential_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
-    residential_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
-    residential_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
-    residential_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
-    residential_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
-    residential_country = CountryField(default='AU', null=True, blank=True)
-    residential_postcode = models.CharField(max_length=10, null=True, blank=True)
+    residential_address_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
+    residential_address_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
+    residential_address_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
+    residential_address_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
+    residential_address_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
+    residential_address_country = CountryField(default='AU', null=True, blank=True)
+    residential_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
     # Postal address
-    postal_same_as_residential = models.BooleanField(default=False,null=True)
-    postal_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
-    postal_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
-    postal_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
-    postal_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
-    postal_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
-    postal_country = CountryField(default='AU', null=True, blank=True)
-    postal_postcode = models.CharField(max_length=10, null=True, blank=True)
+    postal_address_line1 = models.CharField('Line 1', max_length=255, null=True, blank=True)
+    postal_address_line2 = models.CharField('Line 2', max_length=255, null=True, blank=True)
+    postal_address_line3 = models.CharField('Line 3', max_length=255, null=True, blank=True)
+    postal_address_locality = models.CharField('Suburb / Town', max_length=255, null=True, blank=True)
+    postal_address_state = models.CharField(max_length=255, default='WA', null=True, blank=True)
+    postal_address_country = CountryField(default='AU', null=True, blank=True)
+    postal_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
     # Contact
     email = models.EmailField(null=True, blank=True,)
@@ -2364,41 +2361,6 @@ class ProposalApplicant(RevisionedMixin):
 
     def __str__(self):
         return f'{self.email}: {self.first_name} {self.last_name} (ID: {self.id})'
-
-    @property
-    def postal_address_line1(self):
-        if self.postal_same_as_residential:
-            return self.residential_line1
-        else:
-            return self.postal_line1
-
-    @property
-    def postal_address_line2(self):
-        if self.postal_same_as_residential:
-            return self.residential_line2
-        else:
-            return self.postal_line2
-
-    @property
-    def postal_address_state(self):
-        if self.postal_same_as_residential:
-            return self.residential_state
-        else:
-            return self.postal_state
-
-    @property
-    def postal_address_suburb(self):
-        if self.postal_same_as_residential:
-            return self.residential_locality
-        else:
-            return self.postal_locality
-
-    @property
-    def postal_address_postcode(self):
-        if self.postal_same_as_residential:
-            return self.residential_postcode
-        else:
-            return self.postal_postcode
         
     def get_full_name(self):
         full_name = '{} {}'.format(self.first_name, self.last_name)
@@ -2412,22 +2374,21 @@ class ProposalApplicant(RevisionedMixin):
             last_name = self.last_name,
             dob = self.dob,
 
-            residential_line1 = self.residential_line1,
-            residential_line2 = self.residential_line2,
-            residential_line3 = self.residential_line3,
-            residential_locality = self.residential_locality,
-            residential_state = self.residential_state,
-            residential_country = self.residential_country,
-            residential_postcode = self.residential_postcode,
+            residential_address_line1 = self.residential_address_line1,
+            residential_address_line2 = self.residential_address_line2,
+            residential_address_line3 = self.residential_address_line3,
+            residential_address_locality = self.residential_address_locality,
+            residential_address_state = self.residential_address_state,
+            residential_address_country = self.residential_address_country,
+            residential_address_postcode = self.residential_address_postcode,
 
-            postal_same_as_residential = self.postal_same_as_residential,
-            postal_line1 = self.postal_line1,
-            postal_line2 = self.postal_line2,
-            postal_line3 = self.postal_line3,
-            postal_locality = self.postal_locality,
-            postal_state = self.postal_state,
-            postal_country = self.postal_country,
-            postal_postcode = self.postal_postcode,
+            postal_address_line1 = self.postal_address_line1,
+            postal_address_line2 = self.postal_address_line2,
+            postal_address_line3 = self.postal_address_line3,
+            postal_address_locality = self.postal_address_locality,
+            postal_address_state = self.postal_address_state,
+            postal_address_country = self.postal_address_country,
+            postal_address_postcode = self.postal_address_postcode,
 
             email_user_id = self.email_user_id,
             email = self.email,

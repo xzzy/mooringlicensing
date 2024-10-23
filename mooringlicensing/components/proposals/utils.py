@@ -1164,22 +1164,22 @@ def change_proposal_applicant(proposal_applicant, system_user):
     proposal_applicant.dob = system_user.legal_dob
 
     # Residential address
-    proposal_applicant.residential_line1 = None
-    proposal_applicant.residential_line2 = None
-    proposal_applicant.residential_line3 = None
-    proposal_applicant.residential_locality = None
-    proposal_applicant.residential_state = None
-    proposal_applicant.residential_country = None
-    proposal_applicant.residential_postcode = None
+    proposal_applicant.residential_address_line1 = None
+    proposal_applicant.residential_address_line2 = None
+    proposal_applicant.residential_address_line3 = None
+    proposal_applicant.residential_address_locality = None
+    proposal_applicant.residential_address_state = None
+    proposal_applicant.residential_address_country = None
+    proposal_applicant.residential_address_postcode = None
 
     # Postal address
-    proposal_applicant.postal_line1 = None
-    proposal_applicant.postal_line2 = None
-    proposal_applicant.postal_line3 = None
-    proposal_applicant.postal_locality = None
-    proposal_applicant.postal_state = None
-    proposal_applicant.postal_country = None
-    proposal_applicant.postal_postcode = None
+    proposal_applicant.postal_address_line1 = None
+    proposal_applicant.postal_address_line2 = None
+    proposal_applicant.postal_address_line3 = None
+    proposal_applicant.postal_address_locality = None
+    proposal_applicant.postal_address_state = None
+    proposal_applicant.postal_address_country = None
+    proposal_applicant.postal_address_postcode = None
     
     proposal_applicant.save()
 
@@ -1203,24 +1203,22 @@ def update_proposal_applicant(proposal, request):
         proposal_applicant.dob = correct_date
  
         if 'residential_address' in proposal_applicant_data:
-            proposal_applicant.residential_line1 = proposal_applicant_data['residential_address']['line1']
-            proposal_applicant.residential_line2 = proposal_applicant_data['residential_address']['line2']
-            proposal_applicant.residential_line3 = proposal_applicant_data['residential_address']['line3']
-            proposal_applicant.residential_locality = proposal_applicant_data['residential_address']['locality']
-            proposal_applicant.residential_state = proposal_applicant_data['residential_address']['state']
-            proposal_applicant.residential_country = proposal_applicant_data['residential_address']['country']
-            proposal_applicant.residential_postcode = proposal_applicant_data['residential_address']['postcode']
-
-        #proposal_applicant.postal_same_as_residential = proposal_applicant_data['postal_same_as_residential']
+            proposal_applicant.residential_address_line1 = proposal_applicant_data['residential_address']['line1']
+            proposal_applicant.residential_address_line2 = proposal_applicant_data['residential_address']['line2']
+            proposal_applicant.residential_address_line3 = proposal_applicant_data['residential_address']['line3']
+            proposal_applicant.residential_address_locality = proposal_applicant_data['residential_address']['locality']
+            proposal_applicant.residential_address_state = proposal_applicant_data['residential_address']['state']
+            proposal_applicant.residential_address_country = proposal_applicant_data['residential_address']['country']
+            proposal_applicant.residential_address_postcode = proposal_applicant_data['residential_address']['postcode']
 
         if 'postal_address' in proposal_applicant_data:
-            proposal_applicant.postal_line1 = proposal_applicant_data['postal_address']['line1']
-            proposal_applicant.postal_line2 = proposal_applicant_data['postal_address']['line2']
-            proposal_applicant.postal_line3 = proposal_applicant_data['postal_address']['line3']
-            proposal_applicant.postal_locality = proposal_applicant_data['postal_address']['locality']
-            proposal_applicant.postal_state = proposal_applicant_data['postal_address']['state']
-            proposal_applicant.postal_country = proposal_applicant_data['postal_address']['country']
-            proposal_applicant.postal_postcode = proposal_applicant_data['postal_address']['postcode']
+            proposal_applicant.postal_address_line1 = proposal_applicant_data['postal_address']['line1']
+            proposal_applicant.postal_address_line2 = proposal_applicant_data['postal_address']['line2']
+            proposal_applicant.postal_address_line3 = proposal_applicant_data['postal_address']['line3']
+            proposal_applicant.postal_address_locality = proposal_applicant_data['postal_address']['locality']
+            proposal_applicant.postal_address_state = proposal_applicant_data['postal_address']['state']
+            proposal_applicant.postal_address_country = proposal_applicant_data['postal_address']['country']
+            proposal_applicant.postal_address_postcode = proposal_applicant_data['postal_address']['postcode']
 
         proposal_applicant.email = proposal_applicant_data['email']
         try:

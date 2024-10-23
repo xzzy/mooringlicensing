@@ -37,8 +37,8 @@ class UserForEndorserSerializer(serializers.ModelSerializer):
 class ProposalApplicantSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     ledger_id = serializers.SerializerMethodField()
-    residential_country = CountryField()
-    postal_country = CountryField()
+    residential_address_country = CountryField()
+    postal_address_country = CountryField()
 
     class Meta:
         model = ProposalApplicant
@@ -49,21 +49,21 @@ class ProposalApplicantSerializer(serializers.ModelSerializer):
             'full_name',
             'dob',
 
-            'residential_line1',
-            'residential_line2',
-            'residential_line3',
-            'residential_locality',
-            'residential_state',
-            'residential_country',
-            'residential_postcode',
+            'residential_address_line1',
+            'residential_address_line2',
+            'residential_address_line3',
+            'residential_address_locality',
+            'residential_address_state',
+            'residential_address_country',
+            'residential_address_postcode',
 
-            'postal_line1',
-            'postal_line2',
-            'postal_line3',
-            'postal_locality',
-            'postal_state',
-            'postal_country',
-            'postal_postcode',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
 
             'email',
             'phone_number',
