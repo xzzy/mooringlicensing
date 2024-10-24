@@ -13,14 +13,15 @@ import pytz
 from django.conf import settings
 from django.db import connection, transaction
 
-from mooringlicensing.components.approvals.models import Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, \
+from mooringlicensing.components.approvals.models import (
+    Sticker, AnnualAdmissionPermit, AuthorisedUserPermit,
     MooringLicence, Approval, WaitingListAllocation
+)
 from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
-    Proposal,
     StickerPrintingBatch
 )
 from mooringlicensing.components.main.decorators import query_debugger
@@ -31,21 +32,10 @@ import logging
 
 from mooringlicensing.components.users.serializers import ProposalApplicantSerializer
 
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
-
-# def belongs_to(user, group_name):
-#     """
-#     Check if the user belongs to the given group.
-#     :param user:
-#     :param group_name:
-#     :return:
-#     """
-#     return user.groups.filter(name=group_name).exists()
 
 
 def is_payment_officer(user):
-    # return user.is_authenticated() and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
     from mooringlicensing.helpers import belongs_to
     return user.is_authenticated and (belongs_to(user, settings.GROUP_MOORING_LICENSING_PAYMENT_OFFICER) or user.is_superuser)
 
@@ -119,7 +109,7 @@ def retrieve_mooring_areas():
                     raise Exception('You must set MOORING_GROUP_ID env var')
                 else:
                     mooring_group_id = env('MOORING_GROUP_ID')
-                #mooring_group_id = 1
+
                 if mooring.get('mooring_specification') != 2 or mooring_group_id not in mooring.get('mooring_group'):
                     continue
                 mooring_qs = Mooring.objects.filter(mooring_bookings_id=mooring.get("id"))
@@ -185,7 +175,6 @@ def retrieve_mooring_areas():
             return [], records_updated
 
     except Exception as e:
-        #raise e
         logger.error('retrieve_mooring_areas() error', exc_info=True)
         # email only prints len() of error list
         return ['check log',], records_updated
@@ -206,7 +195,7 @@ def retrieve_marine_parks():
                     raise Exception('You must set MOORING_GROUP_ID env var')
                 else:
                     mooring_group_id = env('MOORING_GROUP_ID')
-                #mooring_group_id = 1
+
                 if mooring_group_id != bay.get('mooring_group'):
                     continue
                 mooring_bay_qs = MooringBay.objects.filter(mooring_bookings_id=bay.get("id"))
@@ -247,11 +236,7 @@ def sticker_export():
     and store it as a StickerPrintingBatch object.
     """
     logger = logging.getLogger('cron_tasks')
-    # TODO: Implement below
-    # Note: if the user wants to apply for e.g. three new authorisations,
-    # then the user needs to submit three applications. The system will
-    # combine them onto one sticker if payment is received on one day
-    # (applicant is notified to pay once RIA staff approve the application)
+
     stickers = Sticker.objects.filter(
         sticker_printing_batch__isnull=True,
         status=Sticker.STICKER_STATUS_READY,
@@ -366,7 +351,6 @@ def email_stickers_document():
 
                 # Update sticker status
                 stickers = Sticker.objects.filter(sticker_printing_batch=batch)
-                # stickers.update(status=Sticker.STICKER_STATUS_AWAITING_PRINTING)
                 for sticker in stickers:
                     sticker.status = Sticker.STICKER_STATUS_AWAITING_PRINTING
                     sticker.save()
@@ -395,6 +379,7 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
+#TODO review - do we still need DoT information?
 def get_dot_vessel_information(request,json_string):
     DOT_URL=settings.DOT_URL
     paramGET=json_string.replace("\n", "")
@@ -431,7 +416,7 @@ def export_to_mooring_booking(approval_id):
                 print("Server unavailable")
                 raise Exception("Server unavailable")
             resp_dict = json.loads(resp.text)
-            #logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
+
             if resp_dict.get("status") == 200:
                 updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id))
                 approval.export_to_mooring_booking = False
@@ -453,7 +438,7 @@ def export_to_mooring_booking(approval_id):
                     print("Server unavailable")
                     raise Exception("Server unavailable")
                 resp_dict = json.loads(resp.text)
-                #logger.info('Export status for approval_id {}: {}'.format(approval_id, resp.text))
+
                 if resp_dict.get("status") == 200:
                     updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
                 else:
@@ -467,12 +452,6 @@ def export_to_mooring_booking(approval_id):
         print(str(e))
         logger.error(str(e))
         raise e
-
-@query_debugger
-def test_list_approval_serializer(approval_id):
-    approval = Approval.objects.get(id=approval_id)
-    serializer = ListApprovalSerializer(approval)
-    return serializer.data
 
 
 def calculate_minimum_max_length(fee_items_interested, max_amount_paid):

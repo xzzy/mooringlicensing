@@ -1,7 +1,5 @@
 import os
 
-from io import BytesIO
-# from oscar.templatetags.currency_filters import currency
 from ledger_api_client.utils import currency
 from reportlab.lib import enums
 from reportlab.lib.pagesizes import A4
@@ -11,7 +9,6 @@ from reportlab.lib.utils import ImageReader
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from django.conf import settings
-# from ledger.checkout.utils import calculate_excl_gst
 from ledger_api_client.utils import calculate_excl_gst
 from mooringlicensing.components.main.utils import to_local_tz
 from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeItemStickerReplacement
@@ -341,17 +338,6 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     doc.build(elements)
 
     return invoice_buffer
-
-# proposal needs to be nullable for Annual site fees
-# def create_invoice_pdf_bytes(filename, invoice, proposal=None):
-#     invoice_buffer = BytesIO()
-#     _create_invoice(invoice_buffer, invoice, proposal)
-#
-# #     Get the value of the BytesIO buffer
-#     value = invoice_buffer.getvalue()
-#     invoice_buffer.close()
-#
-#     return value
 
 
 def create_annual_rental_fee_invoice(invoice_buffer, approval, invoice):

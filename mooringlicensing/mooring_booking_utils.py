@@ -1237,10 +1237,6 @@ def daterange(start_date, end_date):
         yield start_date + timedelta(n)
 
 
-def oracle_integration(date,override):
-    system = '0516'
-    oracle_codes = oracle_parser_on_invoice(date,system,'Mooring Booking',override=override)
-
 def admissions_lines(booking_mooring):
     lines = []
     for bm in booking_mooring:

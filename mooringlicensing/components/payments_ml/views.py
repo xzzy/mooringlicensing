@@ -1,6 +1,5 @@
 import datetime
 import logging
-import math
 
 import ledger_api_client.utils
 import pytz
@@ -27,7 +26,7 @@ from ledger_api_client.ledger_models import Invoice
 
 from mooringlicensing.helpers import is_authorised_to_modify, is_applicant_address_set, is_authorised_to_pay_auto_approved
 from mooringlicensing import settings
-from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, Approval, StickerActionDetail, Sticker
+from mooringlicensing.components.approvals.models import DcvPermit, DcvAdmission, StickerActionDetail, Sticker
 from mooringlicensing.components.payments_ml.email import send_application_submit_confirmation_email
 from mooringlicensing.components.approvals.email import (
     send_dcv_permit_mail, send_dcv_admission_mail,
@@ -608,36 +607,23 @@ class DcvPermitFeeSuccessViewPreload(APIView):
 
                 dcv_permit_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 dcv_permit_fee.expiry_time = None
-                # update_payments(invoice_reference)
 
-                # if dcv_permit and invoice.payment_status in ('paid', 'over_paid',):
                 if dcv_permit and get_invoice_payment_status(invoice.id):
                     self.adjust_db_operations(dcv_permit, db_operations)
                     dcv_permit.generate_dcv_permit_doc()
                 else:
-                    # logger.error('Invoice payment status is {}'.format(invoice.payment_status))
                     logger.error('Invoice payment status is {}'.format(get_invoice_payment_status(invoice.id)))
                     raise
 
                 dcv_permit_fee.save()
-                # request.session[self.LAST_DCV_PERMIT_FEE_ID] = dcv_permit_fee.id
-                # delete_session_dcv_permit_invoice(request.session)
 
                 send_dcv_permit_mail(dcv_permit, invoice, request)
-
-                # context = {
-                #     'dcv_permit': dcv_permit,
-                #     'submitter': submitter,
-                #     'fee_invoice': dcv_permit_fee,
-                # }
-                # return render(request, self.template_name, context)
 
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
             # this end-point is called by an unmonitored get request in ledger so there is no point having a
             # a response body however we will return a status in case this is used on the ledger end in future
-            # return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(status=status.HTTP_200_OK)
 
 

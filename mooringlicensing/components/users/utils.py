@@ -1,8 +1,5 @@
-import logging
-
 from django.conf import settings
 from django.core.files.base import ContentFile
-#from django.core.files.storage import default_storage
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_str
 
@@ -77,7 +74,6 @@ def get_user_name(user):
 
 def _log_user_email(email_message, target_email_user, customer, sender=None, attachments=[]):
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject
         fromm = smart_str(sender) if sender else smart_str(email_message.from_email)
@@ -108,7 +104,6 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
     kwargs = {
         'subject': subject,
         'text': text,
-        # 'emailuser': target_email_user if target_email_user else customer,
         'email_user_id': target_email_user if target_email_user else customer,
         'customer': customer,
         'staff': staff,
@@ -124,5 +119,4 @@ def _log_user_email(email_message, target_email_user, customer, sender=None, att
         path = private_storage.save(path_to_file, ContentFile(attachment[1]))
         email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
 
-    # return email_entry
     return None

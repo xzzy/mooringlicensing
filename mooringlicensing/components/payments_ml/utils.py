@@ -1,29 +1,23 @@
 import logging
-# from _pydecimal import Decimal
 import decimal
-import math
 
 import pytz
 from django.http import HttpResponse
 from django.urls import reverse
-# from ledger.checkout.utils import create_basket_session, create_checkout_session, calculate_excl_gst, use_existing_basket_from_invoice
 from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst, use_existing_basket_from_invoice
-# from ledger.settings_base import TIME_ZONE
 from ledger_api_client.settings_base import *
 from mooringlicensing import settings
-from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, \
+from mooringlicensing.components.payments_ml.models import (
+    ApplicationFee, DcvPermitFee, 
     DcvAdmissionFee, StickerActionFee
+)
 
-#test
-
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
 
 def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):
     basket_params = {
         'products': make_serializable(lines),
-        # 'products': [{'ledger_description': 'test', 'oracle_code': 'T1 EXEMPT', 'price_incl_tax': 138.0, 'price_excl_tax': 125.454545454545, 'quantity': 1}],
         'vouchers': vouchers,
         'system': settings.PAYMENT_SYSTEM_ID,
         'custom_basket': True,
@@ -39,27 +33,16 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
         'return_url': return_url,
         'return_preload_url': return_preload_url,
         'force_redirect': True,
-        'invoice_text': invoice_text,  # 'Reservation for Jawaid Mushtaq from 2019-05-17 to 2019-05-19 at RIA 005'
+        'invoice_text': invoice_text, 
         'basket_owner': email_user.id,
         'session_type': 'ledger_api',
     }
-    # if proxy or request.user.is_anonymous():
+
     if proxy or request.user.is_anonymous:
-        # checkout_params['basket_owner'] = email_user.id
         checkout_params['basket_owner'] = email_user.id
 
     create_checkout_session(request, checkout_params)
 
-    # response = HttpResponseRedirect(reverse('checkout:index'))
-    # response = HttpResponseRedirect(reverse('ledgergw-payment-details'))
-    # inject the current basket into the redirect response cookies
-    # or else, anonymous users will be directionless
-    # response.set_cookie(
-    #     settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
-    #     max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
-    #     secure=settings.OSCAR_BASKET_COOKIE_SECURE,
-    #     httponly=True,
-    # )
     response = HttpResponse(
         "<script> window.location='" + reverse('ledgergw-payment-details') + "';</script> <a href='" + reverse(
             'ledgergw-payment-details'
@@ -119,8 +102,6 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
     return {
         'ledger_description': ledger_description,
         'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
-        # 'price_incl_tax': float(fee_amount_adjusted),
-        # 'price_excl_tax': float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted),
         'price_incl_tax': total_amount,
         'price_excl_tax': total_amount_excl_tax,
         'quantity': 1,
@@ -167,10 +148,6 @@ def set_session_application_invoice(session, application_fee):
     session.modified = True
 
 
-class ItemNotSetInSessionException(Exception):
-    pass
-
-
 def get_session_application_invoice(session):
     print('in get_session_application_invoice')
 
@@ -179,7 +156,7 @@ def get_session_application_invoice(session):
         application_fee_id = session[NAME_SESSION_APPLICATION_INVOICE]
     else:
         # Reach here when the ApplicationFeeSuccessView is accessed 2nd time.  Which is correct.
-        raise ItemNotSetInSessionException('Application not in Session')
+        raise Exception('Application not in Session')
 
     try:
         return ApplicationFee.objects.get(id=application_fee_id)
@@ -187,6 +164,7 @@ def get_session_application_invoice(session):
         raise
 
 
+#TODO review - does not appear to be required
 def delete_session_application_invoice(session):
     print('in delete_session_application_invoice')
 
@@ -195,12 +173,12 @@ def delete_session_application_invoice(session):
         del session[NAME_SESSION_APPLICATION_INVOICE]
         session.modified = True
 
-
+#TODO review - does not appear to be required
 def set_session_dcv_permit_invoice(session, dcv_permit_fee):
     session[NAME_SESSION_DCV_PERMIT_INVOICE] = dcv_permit_fee.id
     session.modified = True
 
-
+#TODO review - does not appear to be required
 def get_session_dcv_permit_invoice(session):
     if NAME_SESSION_DCV_PERMIT_INVOICE in session:
         dcv_permit_fee_id = session[NAME_SESSION_DCV_PERMIT_INVOICE]
@@ -212,7 +190,7 @@ def get_session_dcv_permit_invoice(session):
     except DcvPermitFee.DoesNotExist:
         raise Exception('DcvPermit not found for application {}'.format(dcv_permit_fee_id))
 
-
+#TODO review - does not appear to be required
 def delete_session_dcv_permit_invoice(session):
     if NAME_SESSION_DCV_PERMIT_INVOICE in session:
         del session[NAME_SESSION_DCV_PERMIT_INVOICE]
@@ -223,7 +201,7 @@ def set_session_dcv_admission_invoice(session, dcv_admission_fee):
     session[NAME_SESSION_DCV_ADMISSION_INVOICE] = dcv_admission_fee.id
     session.modified = True
 
-
+#TODO review - does not appear to be required
 def get_session_dcv_admission_invoice(session):
     if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
         dcv_admission_fee_id = session[NAME_SESSION_DCV_ADMISSION_INVOICE]
@@ -235,7 +213,7 @@ def get_session_dcv_admission_invoice(session):
     except DcvAdmissionFee.DoesNotExist:
         raise Exception('DcvAdmission not found for application {}'.format(dcv_admission_fee_id))
 
-
+#TODO review - does not appear to be required
 def delete_session_dcv_admission_invoice(session):
     if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
         del session[NAME_SESSION_DCV_ADMISSION_INVOICE]
@@ -250,7 +228,7 @@ def make_serializable(line_items):
                 line[key] = float(line[key])
     return line_items
 
-
+#TODO review - does not appear to be required
 def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
 
     basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
@@ -269,12 +247,7 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
         application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
         if application_fee:
             application_fee = application_fee[0]
-            # checkout_params['basket_owner'] = application_fee.approval.relevant_applicant_email_user.id
             checkout_params['basket_owner'] = application_fee.proposal.applicant_id
-        else:
-            # Should not reach here
-            # At the moment, there should be only the 'annual rental fee' invoices for anonymous user
-            pass
 
     create_checkout_session(request, checkout_params)
 
@@ -291,10 +264,3 @@ def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_su
         secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
     )
     return response
-
-
-def oracle_integration(date,override):
-    #system = '0517'
-    oracle_codes = oracle_parser(date, settings.PAYMENT_SYSTEM_ID, 'Disturbance Approval System', override=override)
-
-

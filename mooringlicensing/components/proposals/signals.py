@@ -1,9 +1,7 @@
 import logging
-from ledger_api_client.settings_base import TIME_ZONE
 from django.db.models.signals import post_save
-from django.db.models import Q
 from django.dispatch import receiver
-from mooringlicensing.components.proposals.models import Mooring, MooringLicenceApplication, Proposal, CompanyOwnership, VesselOwnershipCompanyOwnership
+from mooringlicensing.components.proposals.models import MooringLicenceApplication, Proposal, CompanyOwnership, VesselOwnershipCompanyOwnership
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +51,6 @@ class ProposalListener(object):
                     logger.info(f'Status: [{VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DECLINED}] has been set to the VesselOwnershipCompanyOwnership: [{voco_draft}].')
 
             if instance.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER,]:
-                # if instance.vessel_ownership.individual_owner:
                 if instance.individual_owner:
                     # Proposal.status is 'approved'/'printing_sticker' and the vessel is individually owned.
 
