@@ -179,7 +179,6 @@ class Compliance(RevisionedMixin):
                 raise
 
     def delete_document(self, request, document):
-        #TODO use System Groups
         if (
             is_internal(request) or 
             (
@@ -200,24 +199,21 @@ class Compliance(RevisionedMixin):
 
     def assign_to(self, user, request):
         with transaction.atomic():
-            #TODO use System Groups and also check assignee
-            if is_internal(request):
+            if is_internal(request) and user in self.allowed_assessors and request.user in self.allowed_assessors:
                 self.assigned_to = user.id
                 self.save()
                 self.log_user_action(ComplianceUserAction.ACTION_ASSIGN_TO.format(user.get_full_name()),request)
 
     def unassign(self,request):
         with transaction.atomic():
-            #TODO use System Groups
-            if is_internal(request):
+            if is_internal(request) and request.user in self.allowed_assessors:
                 self.assigned_to = None
                 self.save()
                 self.log_user_action(ComplianceUserAction.ACTION_UNASSIGN,request)
 
     def accept(self, request):
         with transaction.atomic():
-            #TODO use System Groups
-            if self.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and is_internal(request):
+            if self.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and is_internal(request) and request.user in self.allowed_assessors:
                 self.processing_status = Compliance.PROCESSING_STATUS_APPROVED
                 self.customer_status = Compliance.CUSTOMER_STATUS_APPROVED
                 self.save()

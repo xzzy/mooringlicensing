@@ -152,10 +152,11 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     def discard(self, request, *args, **kwargs):
         if (is_internal(request)):
             instance = self.get_object()
-            instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
-            instance.save()
-            serializer = InternalComplianceSerializer(instance, context={'request': request})
-            return Response(serializer.data)
+            if instance.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and request.user in instance.allowed_assessors:
+                instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
+                instance.save()
+                serializer = InternalComplianceSerializer(instance, context={'request': request})
+                return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to discard compliance")
     
     @detail_route(methods=['GET',], detail=True)
