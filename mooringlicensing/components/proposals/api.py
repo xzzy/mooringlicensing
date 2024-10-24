@@ -2098,15 +2098,8 @@ class CompanyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     serializer_class = CompanySerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
-            qs = Company.objects.all().order_by('id')
-            return qs
-        elif is_customer(self.request):
-            companyownerships = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
-            queryset = Company.objects.filter(Q(companyownership__in=companyownerships))
-            return queryset
-        return Company.objects.none()
+        qs = Company.objects.all().order_by('id')
+        return qs
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
