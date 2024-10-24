@@ -4464,7 +4464,7 @@ class CompanyOwnership(RevisionedMixin):
 
     COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
     COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
-    COMPANY_OWNERSHIP_STATUS_OLD = 'old' #TODO review - remove if not needed
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
     COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
     STATUS_TYPES = (
         (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),
@@ -4498,7 +4498,7 @@ class CompanyOwnership(RevisionedMixin):
 class VesselOwnershipCompanyOwnership(RevisionedMixin):
     COMPANY_OWNERSHIP_STATUS_APPROVED = 'approved'
     COMPANY_OWNERSHIP_STATUS_DRAFT = 'draft'
-    COMPANY_OWNERSHIP_STATUS_OLD = 'old' #TODO review - remove if not needed
+    COMPANY_OWNERSHIP_STATUS_OLD = 'old'
     COMPANY_OWNERSHIP_STATUS_DECLINED = 'declined'
     STATUS_TYPES = (
         (COMPANY_OWNERSHIP_STATUS_APPROVED, 'Approved'),

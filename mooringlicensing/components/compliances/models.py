@@ -8,7 +8,7 @@ from django.conf import settings
 from mooringlicensing.helpers import is_internal
 from ledger_api_client.ledger_models import Invoice
 from mooringlicensing.components.main.models import (
-    CommunicationsLogEntry,  # Region,
+    CommunicationsLogEntry,
     UserAction,
     Document, RevisionedMixin
 )
@@ -24,7 +24,7 @@ from mooringlicensing.components.compliances.email import (
                         send_due_email_notification,
                         send_internal_due_email_notification
                         )
-# from ledger.payments.invoice.models import Invoice
+
 private_storage = FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
     location=settings.PRIVATE_MEDIA_STORAGE_LOCATION,
     base_url=settings.PRIVATE_MEDIA_BASE_URL,
@@ -33,7 +33,6 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
 import logging
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
-from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_COMPLIANCE
 
 logger = logging.getLogger(__name__)
 

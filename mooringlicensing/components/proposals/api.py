@@ -1859,11 +1859,16 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
         if is_internal(request):
-            serializer = self.get_serializer(data= request.data)
+            serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception = True)
-            if (instance.proposal.has_assessor_mode(request.user)):
-                instance = serializer.save()
-            return Response(serializer.data)
+            try:
+                proposal = Proposal.objects.get(id=request.data["proposal"])
+                if (proposal.has_assessor_mode(request.user)):
+                    serializer.save()
+                return Response(serializer.data)
+            except Exception as e:
+                print(e)
+                raise serializers.ValidationError("Proposal does not exist")
         else:
             raise serializers.ValidationError("User not authorised to create proposal requirement")
 
