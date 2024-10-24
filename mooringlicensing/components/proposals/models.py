@@ -4947,7 +4947,6 @@ class ProposalStandardRequirement(RevisionedMixin):
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
     application_type = models.ForeignKey(ApplicationType, null=True, blank=True, on_delete=models.CASCADE)
-    participant_number_required = models.BooleanField(default=False)
     default = models.BooleanField(default=False)
 
     def __str__(self):

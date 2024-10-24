@@ -71,7 +71,7 @@ class Compliance(RevisionedMixin):
     approval = models.ForeignKey('mooringlicensing.Approval', related_name='compliances', on_delete=models.CASCADE)
     due_date = models.DateField()
     text = models.TextField(blank=True)
-    num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
+
     processing_status = models.CharField(choices=PROCESSING_STATUS_CHOICES,max_length=20)
     customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20)
     assigned_to = models.IntegerField( null=True, blank=True)
@@ -80,7 +80,6 @@ class Compliance(RevisionedMixin):
     submitter = models.IntegerField(blank=True, null=True)
     post_reminder_sent = models.BooleanField(default=False)
     due_reminder_count = models.PositiveSmallIntegerField('Number of times a due reminder has been sent', default=0)
-    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -103,14 +102,6 @@ class Compliance(RevisionedMixin):
         ) if (self.proposal.proposal_applicant and 
             self.proposal.proposal_applicant.email_user_id
         ) else None
-
-    @property
-    def regions(self):
-        return self.proposal.regions_list
-
-    @property
-    def activity(self):
-        return self.proposal.activity
 
     @property
     def title(self):
@@ -144,22 +135,8 @@ class Compliance(RevisionedMixin):
 
     @property
     def amendment_requests(self):
-        qs =ComplianceAmendmentRequest.objects.filter(compliance = self)
+        qs = ComplianceAmendmentRequest.objects.filter(compliance = self)
         return qs
-
-    @property
-    def participant_number_required(self):
-        if self.requirement.standard_requirement and self.requirement.standard_requirement.participant_number_required:
-            return True
-        return False
-
-    @property
-    def fee_paid(self):
-        return True if self.fee_invoice_reference else False
-
-    @property
-    def fee_amount(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
 
     def save(self, *args, **kwargs):
         super(Compliance, self).save(*args,**kwargs)

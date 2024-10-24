@@ -71,19 +71,13 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             data = {
                 'text': request.data.get('detail'),
-                'num_participants': request.data.get('num_participants')
             }
 
             serializer = SaveComplianceSerializer(instance, data=data)
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
 
-            if 'num_participants' in request.data:
-                if request.FILES:
-                    for f in request.FILES:
-                        document = instance.documents.create(name=str(request.FILES[f]),_file = request.FILES[f])
-            else:
-                instance.submit(request)
+            instance.submit(request)
 
             serializer = self.get_serializer(instance)
             return Response(serializer.data)

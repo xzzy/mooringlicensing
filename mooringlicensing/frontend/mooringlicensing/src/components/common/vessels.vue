@@ -605,11 +605,9 @@ export default {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
                     vm.$nextTick(async () => {
-                        console.log("company selected1")
                         if (!e.params.data.tag) {
                             await vm.lookupCompanyOwnership(data);
                         } else {
-                            console.log("company selected2")
                             let text = e.params.data.text;
 
                             let companyOwnership = {
