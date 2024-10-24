@@ -26,7 +26,6 @@ class EmailUserLogEntry(CommunicationsLogEntry):
     def save(self, **kwargs):
         # save the request id if the reference not provided
         if not self.reference:
-            # self.reference = self.emailuser.id
             self.reference = self.email_user_id
 
         super(EmailUserLogEntry, self).save(**kwargs)

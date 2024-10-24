@@ -10,16 +10,16 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Min
 from ledger_api_client.ledger_models import Invoice
-# from ledger.settings_base import TIME_ZONE
 from mooringlicensing.settings import TIME_ZONE
 
 from mooringlicensing import settings
 from mooringlicensing.components.main.models import ApplicationType, VesselSizeCategoryGroup, VesselSizeCategory
-from mooringlicensing.components.proposals.models import ProposalType, AnnualAdmissionApplication, \
-    AuthorisedUserApplication, VesselDetails, WaitingListApplication, Proposal, MooringLicenceApplication
+from mooringlicensing.components.proposals.models import (
+    ProposalType, AnnualAdmissionApplication, 
+    AuthorisedUserApplication, VesselDetails, Proposal
+)
 from smart_selects.db_fields import ChainedForeignKey
 
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
 
@@ -57,27 +57,6 @@ class Payment(models.Model):
             return self.active_invoice.payment_amount
         return amount
 
-    def __check_invoice_payment_status(self):
-        invoices = []
-        payment_amount = Decimal('0.0')
-        invoice_amount = Decimal('0.0')
-        references = self.invoices.all().values('invoice_reference')
-        for r in references:
-            try:
-                invoices.append(Invoice.objects.get(reference=r.get("invoice_reference")))
-            except Invoice.DoesNotExist:
-                pass
-        for i in invoices:
-            if not i.voided:
-                payment_amount += i.payment_amount
-                invoice_amount += i.amount
-
-        if invoice_amount == payment_amount:
-            return 'paid'
-        if payment_amount > invoice_amount:
-            return 'over_paid'
-        return "unpaid"
-
     def __check_payment_status(self):
         amount = Decimal('0.0')
         invoice = Invoice.objects.filter(reference=self.invoice_reference)
@@ -86,7 +65,6 @@ class Payment(models.Model):
             return invoice.payment_status
         else:
             return '---'
-            # raise Exception('No invoice found for the ApplicationFee: {}'.format(self))
 
 
 class DcvAdmissionFee(Payment):
@@ -195,14 +173,12 @@ class StickerActionFee(Payment):
         app_label = 'mooringlicensing'
 
     def save(self, *args, **kwargs):
-        #logger.info(f"Saving StickerActionFee: {self}.")
         if not self.uuid:
             logger.info("StickerActionFee has no uuid")
             self.uuid = uuid.uuid4()
             logger.info(
                 f"StickerActionFee assigned uuid: {self.uuid}",
             )
-        #logger.info(f"Saving StickerActionFee: {self}.")
         super().save(*args, **kwargs)
         logger.info("StickerActionFee Saved.")
 
@@ -450,7 +426,6 @@ class FeeConstructor(models.Model):
 
     @classmethod
     def get_current_and_future_fee_constructors_by_application_type_and_date(cls, application_type, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        # logger = logging.getLogger('mooringlicensing')
         logger = logging.getLogger(__name__)
 
         # Select a fee_constructor object which has been started most recently for the application_type
@@ -478,7 +453,6 @@ class FeeConstructor(models.Model):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_season(cls, application_type, fee_season):
-        # logger = logging.getLogger('mooringlicensing')
         logger = logging.getLogger(__name__)
 
         try:
@@ -526,7 +500,6 @@ class FeeConstructor(models.Model):
 
     @classmethod
     def get_fee_constructor_by_application_type_and_date(cls, application_type=None, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        # logger = logging.getLogger('mooringlicensing')
         logger = logging.getLogger(__name__)
 
         # Select a fee_constructor object which has been started most recently for the application_type
@@ -598,15 +571,7 @@ class FeeConstructor(models.Model):
                                                                                     admission_type))
                     else:
                         for proposal_type in proposal_types:
-                            # if vessel_size_category.null_vessel and \
-                            #         ((self.application_type.code in (WaitingListApplication.code, AnnualAdmissionApplication.code) and proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL) or
-                            #          proposal_type.code in [settings.PROPOSAL_TYPE_NEW, settings.PROPOSAL_TYPE_AMENDMENT,]):
-                            #     # When WLA/AAA and renewal application
-                            #     # When new/amendment application
-                            #     # No fee_items created
-                            #     continue
                             if (
-                                    #(vessel_size_category.null_vessel and proposal_type.code in [settings.PROPOSAL_TYPE_NEW,]) or
                                     (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,]) or
                                     (not fee_period.is_first_period and proposal_type.code in [settings.PROPOSAL_TYPE_RENEWAL,])
                                     # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication <== When renew the ML with null vessel, do we need nul vessel AA fee_item...???
@@ -683,8 +648,6 @@ class FeeItem(models.Model):
         logger.info(f'get_max_allowed_length() is called in the fee_item: {self}')
 
         if self.incremental_amount:
-            # max_length = ceil(vessel_length + 1.00)  # When fee_item is incremental_amount, the amount is incremented per 1.00 meter.
-
             if vessel_length.is_integer():
                 # vessel_size is on the borderline of changing fees
                 if self.vessel_size_category.include_start_size:
@@ -795,20 +758,3 @@ class FeeCalculation(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
-
-
-import reversion
-#reversion.register(DcvAdmissionFee, follow=[])
-#reversion.register(DcvPermitFee, follow=[])
-#reversion.register(StickerActionFee, follow=['sticker_action_details'])
-#reversion.register(FeeItemApplicationFee, follow=['fee_item', 'application_fee', 'vessel_details'])
-#reversion.register(ApplicationFee, follow=['feeitemapplicationfee_set'])
-#reversion.register(ApplicationFee)
-#reversion.register(FeeSeason, follow=['fee_periods', 'fee_constructors', 'dcvadmissionarrival_set', 'dcv_permits', 'sticker_set'])
-#reversion.register(FeePeriod, follow=['feeitem_set'])
-#reversion.register(FeeConstructor, follow=['feeitem_set', 'dcv_admission_arrivals', 'sticker_set'])
-#reversion.register(FeeItemStickerReplacement, follow=[])
-#reversion.register(FeeItem, follow=['dcv_admission_fees', 'dcv_permit_fees', 'feeitemapplicationfee_set', 'application_fees'])
-#reversion.register(FeeItem, follow=['dcv_admission_fees', 'dcv_permit_fees', 'application_fees'])
-#reversion.register(OracleCodeItem, follow=[])
-
