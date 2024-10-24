@@ -320,16 +320,6 @@ class ComplianceLogDocument(Document):
         app_label = 'mooringlicensing'
 
 
-class CompRequest(models.Model):
-    compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
-    subject = models.CharField(max_length=200, blank=True)
-    text = models.TextField(blank=True)
-    officer = models.IntegerField(null=True, blank=True)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-
-
 class ComplianceAmendmentReason(models.Model):
     reason = models.CharField('Reason', max_length=125)
 
@@ -340,11 +330,13 @@ class ComplianceAmendmentReason(models.Model):
         return self.reason
 
 
-class ComplianceAmendmentRequest(CompRequest):
+class ComplianceAmendmentRequest(models.Model):
     STATUS_CHOICES = (('requested', 'Requested'), ('amended', 'Amended'))
 
+    compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
     status = models.CharField('Status', max_length=30, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     reason = models.ForeignKey(ComplianceAmendmentReason, blank=True, null=True, on_delete=models.SET_NULL)
+    text = models.TextField(blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -363,11 +355,10 @@ class ComplianceAmendmentRequest(CompRequest):
 
 
 import reversion
-reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set'])
+reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs'])
 reversion.register(ComplianceDocument, follow=[])
 reversion.register(ComplianceUserAction, follow=[])
 reversion.register(ComplianceLogEntry, follow=['documents'])
 reversion.register(ComplianceLogDocument, follow=[])
-reversion.register(CompRequest, follow=[])
 reversion.register(ComplianceAmendmentReason, follow=['complianceamendmentrequest_set'])
 reversion.register(ComplianceAmendmentRequest, follow=[])
