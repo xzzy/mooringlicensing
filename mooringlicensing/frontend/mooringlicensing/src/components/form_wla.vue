@@ -41,7 +41,6 @@
             <div class="tab-content" id="pills-tabContent">
                 <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                     <Profile 
-                        v-if="applicantType=='SUB'"
                         ref="profile"
                         :isApplication="true"
                         @profile-fetched="populateProfile"
@@ -185,11 +184,6 @@ export default {
         silentElector: function () {
             if (this.proposal) {
                 return this.proposal.silent_elector;
-            }
-        },
-        applicantType: function () {
-            if (this.proposal) {
-                return this.proposal.applicant_type;
             }
         },
         applicationTypeText: function () {

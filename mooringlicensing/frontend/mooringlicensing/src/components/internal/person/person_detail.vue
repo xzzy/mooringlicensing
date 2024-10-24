@@ -35,7 +35,6 @@
                         <Applicant v-if="user"
                             ref="applicant_table"
                             :user="user" 
-                            applicantType="SUB" 
                             id="proposalStartApplicant"
                         />
                     </div>

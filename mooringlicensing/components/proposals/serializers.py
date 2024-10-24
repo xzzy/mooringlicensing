@@ -75,8 +75,6 @@ class CompanyOwnershipSerializer(serializers.ModelSerializer):
                 'vessel',
                 'company',
                 'percentage',
-                'start_date',
-                'end_date',
                 'created',
                 'updated',
                 )
@@ -121,7 +119,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     application_type_text = serializers.SerializerMethodField()
     approval_type_text = serializers.SerializerMethodField()
     application_type_dict = serializers.SerializerMethodField()
-    editable_vessel_details = serializers.SerializerMethodField()
     proposal_type = ProposalTypeSerializer()
     invoices = serializers.SerializerMethodField()
     start_date = serializers.ReadOnlyField()
@@ -151,11 +148,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'approval_type_text',
                 'application_type_dict',
                 'proposal_type',
-                'approval_level',
                 'title',
                 'customer_status',
                 'processing_status',
-                'applicant_type',
                 'applicant',
                 'assigned_officer',
                 'get_history',
@@ -168,7 +163,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'can_user_view',
                 'documents_url',
                 'lodgement_number',
-                'lodgement_sequence',
                 'can_officer_process',
                 'allowed_assessors',
                 'pending_amendment_request',
@@ -187,7 +181,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'dot_name',
                 'percentage',
-                'editable_vessel_details',
                 'individual_owner',
                 'insurance_choice',
                 'preferred_bay_id',
@@ -319,9 +312,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         if obj.previous_application and obj.previous_application.vessel_details:
             vessel_details_id = obj.previous_application.vessel_details.id
         return vessel_details_id
-
-    def get_editable_vessel_details(self, obj):
-        return obj.editable_vessel_details
 
     def get_application_type_code(self, obj):
         return obj.application_type_code
@@ -592,11 +582,9 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'approval_type_text',
             'application_type_dict',
             'proposal_type',
-            'approval_level',
             'title',
             'customer_status',
             'processing_status',
-            'applicant_type',
             'applicant',
             'assigned_officer',
             'get_history',
@@ -609,7 +597,6 @@ class ProposalForEndorserSerializer(BaseProposalSerializer):
             'can_user_view',
             'documents_url',
             'lodgement_number',
-            'lodgement_sequence',
             'can_officer_process',
             'allowed_assessors',
             'pending_amendment_request',
@@ -874,7 +861,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     assessor_mode = serializers.SerializerMethodField()
     approver_mode = serializers.SerializerMethodField()
     current_assessor = serializers.SerializerMethodField()
-    assessor_data = serializers.SerializerMethodField()
     allowed_assessors = serializers.SerializerMethodField()
     application_type = serializers.CharField(source='application_type.name', read_only=True)
     fee_invoice_url = serializers.SerializerMethodField()
@@ -902,14 +888,12 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'migrated',
                 'start_date',
                 'application_type',
-                'approval_level',
                 'approval_id',
                 'title',
                 'customer_status',
                 'processing_status',
                 'applicant',
                 'submitter',
-                'applicant_type',
                 'assigned_officer',
                 'assigned_approver',
                 'get_history',
@@ -924,15 +908,12 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'assessor_mode',
                 'approver_mode',
                 'current_assessor',
-                'assessor_data',
-                'comment_data',
                 'allowed_assessors',
                 'proposed_issuance_approval',
                 'proposed_decline_status',
                 'proposaldeclineddetails',
                 'permit',
                 'lodgement_number',
-                'lodgement_sequence',
                 'can_officer_process',
                 'proposal_type',
                 'fee_invoice_url',
@@ -1198,9 +1179,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'name': self.context['request'].user.get_full_name(),
                 'email': self.context['request'].user.email
             }
-
-    def get_assessor_data(self,obj):
-        return obj.assessor_data
 
     def get_fee_invoice_url(self,obj):
         url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''

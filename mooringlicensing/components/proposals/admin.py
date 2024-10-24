@@ -48,7 +48,7 @@ class VesselDetailsAdmin(admin.ModelAdmin):
 
 @admin.register(models.CompanyOwnership)
 class CompanyOwnershipAdmin(admin.ModelAdmin):
-    list_display = ['id', 'company', 'vessel', 'percentage', 'start_date', 'end_date',]
+    list_display = ['id', 'company', 'vessel', 'percentage',]
 
 
 @admin.register(models.Proposal)

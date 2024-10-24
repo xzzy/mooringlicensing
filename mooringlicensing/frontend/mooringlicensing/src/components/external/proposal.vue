@@ -423,15 +423,6 @@ export default {
     updateSubmitText: function(submitText) {
         this.submitText = submitText;
     },
-    save_applicant_data:function(){
-      if(this.proposal.applicant_type == 'SUB')
-      {
-        // this.proposal_refs().$refs.profile.updatePersonal();
-        // this.proposal_refs().$refs.profile.updateAddress();
-        // this.proposal_refs().$refs.profile.updateContact();
-      }
-    },
-
 
     set_formData: function(e) {
       let vm = this;
@@ -441,7 +432,6 @@ export default {
     save: async function(withConfirm=true, url=this.proposal_form_url) {
         let vm = this;
         vm.savingProposal=true;
-        vm.save_applicant_data();
 
         let payload = this.buildPayload();
 
@@ -485,13 +475,6 @@ export default {
 
     save_wo_confirm: function() {
       this.save(false);
-        /*
-      let vm = this;
-      vm.save_applicant_data();
-      let formData = vm.set_formData()
-
-      vm.$http.post(vm.proposal_form_url,formData);
-      */
     },
     save_and_pay: async function() {
       try {

@@ -1772,8 +1772,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 vessel_serializer = VesselSerializer(vessel)
                 vessel_data = vessel_serializer.data
                 vessel_ownership_data = {}
-                if not instance.editable_vessel_details:
-                    vessel_data["rego_no"] = vessel.rego_no
+                vessel_data["rego_no"] = vessel.rego_no
 
                 vessel_ownership_data = {}
                 if instance.vessel_ownership:

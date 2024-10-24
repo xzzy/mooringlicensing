@@ -51,7 +51,6 @@
                 <div v-if="approval && approval.applicant">
                     <Applicant
                         :user="approval.applicant" 
-                        applicantType="SUB" 
                         id="approvalSubmitterDetails"
                         :readonly="true"
                         customerType="holder"

@@ -4,9 +4,7 @@
             <h3 v-if="proposal.migrated">Application: {{ proposal.lodgement_number }} (Migrated)</h3>
             <h3 v-else>Application: {{ proposal.lodgement_number }}</h3>
             <h4>Application Type: {{ proposal.proposal_type.description }}</h4>
-            <!--div v-if="proposal.application_type!='Apiary'">
-                <h4>Approval Level: {{ proposal.approval_level }}</h4>
-            </div-->
+
             <div class="col-md-3">
                 <CommsLogs
                     :comms_url="comms_url"

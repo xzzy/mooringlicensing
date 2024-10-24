@@ -42,7 +42,6 @@
               <div class="tab-pane fade" id="pills-applicant" role="tabpanel" aria-labelledby="pills-applicant-tab">
                     <Profile
                         :isApplication="true"
-                        v-if="applicantType == 'SUB'"
                         ref="profile"
                         @profile-fetched="populateProfile"
                         :showElectoralRoll="showElectoralRoll"
@@ -219,9 +218,6 @@
                     forEndorser = true
                 }
                 return forEndorser
-            },
-            applicantType: function(){
-                return this.proposal.applicant_type;
             },
             applicationTypeText: function(){
                 let text = '';

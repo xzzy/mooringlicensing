@@ -592,11 +592,6 @@ class Approval(RevisionedMixin):
         all_linked_ids = Proposal.objects.filter(Q(previous_application__in=ids) | Q(id__in=ids)).values_list('lodgement_number', flat=True)
         return all_linked_ids
 
-    #TODO this is not required anymore - should be removed
-    @property
-    def applicant_type(self):
-        return "submitter"
-
     @property
     def title(self):
         return self.current_proposal.title

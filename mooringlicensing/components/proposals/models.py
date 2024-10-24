@@ -192,8 +192,6 @@ class ProposalSignedLicenceAgreementDocument(models.Model):
         app_label = 'mooringlicensing'
 
 class Proposal(DirtyFieldsMixin, RevisionedMixin):
-    APPLICANT_TYPE_PROXY = 'PRX'
-    APPLICANT_TYPE_SUBMITTER = 'SUB'
 
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
@@ -273,12 +271,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     proposal_type = models.ForeignKey(ProposalType, blank=True, null=True, on_delete=models.SET_NULL)
 
-    #TODO remove - does not ever appear to be set
-    assessor_data = JSONField(blank=True, null=True)
-
-    #TODO remove - does not ever appear to be set
-    comment_data = JSONField(blank=True, null=True)
-
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
     customer_status = models.CharField('Customer Status', 
@@ -286,9 +278,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         default=CUSTOMER_STATUS_CHOICES[0][0])
 
     lodgement_number = models.CharField(max_length=9, blank=True, default='')
-
-    #TODO remove - not used
-    lodgement_sequence = models.IntegerField(blank=True, default=0)
 
     lodgement_date = models.DateTimeField(blank=True, null=True)
 
@@ -308,9 +297,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
-
-    #TODO remove - this is not used
-    approval_level = models.CharField('Activity matrix approval level', max_length=255,null=True,blank=True)
 
     #TODO currently not in use, but may be required (remove if not)
     approval_comment = models.TextField(blank=True)
@@ -376,9 +362,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To avoid that, this fee_season field is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
-
-    #TODO remove - this is not required
-    personal_details = models.JSONField(null=True, blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -762,20 +745,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         invoice_references = [item.invoice_reference for item in self.application_fees.filter(system_invoice=False)]
         return Invoice.objects.filter(reference__in=invoice_references)
 
-    #TODO determine if this is used (remove if not)
-    @staticmethod
-    def get_corresponding_amendment_fee_item(accept_null_vessel, fee_constructor, fee_item, target_date, vessel_length):
-        proposal_type_amendment = ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT)
-        if fee_item.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            # This application is 'Amendment' application.  fee_item is already for 'Amendment'
-            fee_item_amendment_calculation = fee_item
-        else:
-            # We want to store the fee_item considered to be paid in order to calculate the amount for the amendment application
-            fee_item_amendment_calculation = fee_constructor.get_fee_item(vessel_length, proposal_type_amendment,
-                                                                          target_date,
-                                                                          accept_null_vessel=accept_null_vessel)
-        return fee_item_amendment_calculation
-
     def get_fee_items_paid(self, fee_season, vessel_details=None):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
 
@@ -969,12 +938,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             end_date = self.fee_season.end_date
         return end_date
 
-    #TODO this is used but essentially does nothing - remove
-    @property
-    def editable_vessel_details(self):
-        editable = True
-        return editable
-
     @property
     def fee_paid(self):
         if (self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
@@ -984,14 +947,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def fee_amount(self):
         return self.invoice.amount if self.fee_paid else None
-
-    #TODO this is not used and does not work - if something like this is needed it would work better elsewhere - remove
-    @property
-    def reversion_ids(self):
-        current_revision_id = Version.objects.get_for_object(self).first().revision_id
-        versions = Version.objects.get_for_object(self).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
-        version_ids = [[i.id,i.revision.date_created] for i in versions]
-        return [dict(cur_version_id=version_ids[0][0], prev_version_id=version_ids[i+1][0], created=version_ids[i][1]) for i in range(len(version_ids)-1)]
 
     @property
     def applicant(self):
@@ -1014,11 +969,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.proposal_applicant:
             return self.proposal_applicant.email_user_id
         return None
-
-    #TODO this is not required anymore - should be removed
-    @property
-    def applicant_type(self):
-        return self.APPLICANT_TYPE_SUBMITTER
 
     @property
     def get_history(self):
@@ -4527,10 +4477,6 @@ class CompanyOwnership(RevisionedMixin):
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
     company = models.ForeignKey('Company', on_delete=models.CASCADE)
     percentage = models.IntegerField(null=True, blank=True)
-    
-    ## TODO: delete start and end dates if no longer required
-    start_date = models.DateTimeField(default=timezone.now)
-    end_date = models.DateTimeField(null=True, blank=True)
 
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True, blank=True)
@@ -4546,23 +4492,7 @@ class CompanyOwnership(RevisionedMixin):
         from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
 
         existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
-        if existing_record:
-            prev_end_date = CompanyOwnership.objects.get(id=self.id).end_date
         super(CompanyOwnership, self).save(*args,**kwargs)
-        ## Reissue associated ML and AUPs if end-dated
-        if existing_record and not prev_end_date and self.end_date:
-            aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership__company_ownership=self)
-            for aup in aup_set:
-                from mooringlicensing.components.approvals.models import Approval
-                if aup.status == Approval.APPROVAL_STATUS_CURRENT:
-                    aup.internal_reissue()
-            ## ML
-            vo_set = self.vesselownership_set.all()
-            for vo in vo_set:
-                proposal_set = vo.proposal_set.all()
-                for proposal in proposal_set:
-                    if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == Approval.APPROVAL_STATUS_CURRENT:
-                        proposal.approval.internal_reissue()
 
 
 class VesselOwnershipCompanyOwnership(RevisionedMixin):
