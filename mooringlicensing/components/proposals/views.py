@@ -13,9 +13,6 @@ from mooringlicensing.components.proposals.models import (
 )
 
 from rest_framework.permissions import IsAuthenticated
-from mooringlicensing.components.proposals.permissions import (
-    InternalProposalPermission,
-)
 
 import logging
 logger = logging.getLogger(__name__)

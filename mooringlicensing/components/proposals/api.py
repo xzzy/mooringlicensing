@@ -127,6 +127,8 @@ from mooringlicensing.components.payments_ml.models import FeeItemStickerReplace
 from rest_framework.permissions import IsAuthenticated
 from mooringlicensing.components.proposals.permissions import (
     InternalProposalPermission,
+    ProposalAssessorPermission,
+    ProposalApproverPermission,
 )
 
 logger = logging.getLogger(__name__)
@@ -1443,7 +1445,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
     
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     def internal_endorse(self, request, *args, **kwargs):
         if (is_internal(request)):
             #get id of slmr
@@ -1471,7 +1473,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     def internal_decline(self, request, *args, **kwargs):
         if (is_internal(request)):
             #get id of slmr
@@ -1499,7 +1501,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalAssessorPermission])
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1510,7 +1512,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
     @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1529,7 +1531,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError('User cannot assign proposal')
 
-    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
     @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1540,7 +1542,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError('User cannot unassign proposal')
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
     @basic_exception_handler
     def switch_status(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1553,7 +1555,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError('User cannot change proposal status')
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def bypass_endorsement(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1571,7 +1573,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             serializers.ValidationError("User not authorised to bypass endorsement")
     
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def request_endorsement(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1635,7 +1637,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         return Response({"id":instance.id})
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def proposed_approval(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1649,7 +1651,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("not authorised to assess proposal")
         
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
         print('final_approval() in ProposalViewSet')
@@ -1662,7 +1664,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("not authorised to approve proposal")
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1676,7 +1678,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("not authorised to decline proposal")
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1824,7 +1826,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
-    permission_classes=[InternalProposalPermission]
+    permission_classes=[ProposalAssessorPermission]
 
     def get_queryset(self):
         queryset = ProposalRequirement.objects.none()
