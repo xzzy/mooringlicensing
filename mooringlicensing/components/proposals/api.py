@@ -127,17 +127,11 @@ from mooringlicensing.components.payments_ml.models import FeeItemStickerReplace
 logger = logging.getLogger(__name__)
 
 class GetDcvOrganisations(views.APIView):
-    print("outside")
     def get(self, request, format=None):
-        print("inside fun")
         search_term = request.GET.get('search_term', '')
-        print("this is search")
-        print(search_term)
         if is_internal(request): #currently only used internally, but may be acceptable for external access
             if search_term:
                 data = DcvOrganisation.objects.filter(name__icontains=search_term)[:10]
-                print("THIS IS THE DATA")
-                print(data)
                 data_transform = [{'id': org.id, 'name': org.name} for org in data]
                 return Response({"results": data_transform})
             return Response()
