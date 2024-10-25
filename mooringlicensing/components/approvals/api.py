@@ -1786,31 +1786,6 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
             else:
                 raise serializers.ValidationError("user not authorised to create mooring licence application")
         
-#TODO move in to a viewset class
-def removeAUPFromMooring(request, mooring_id, approval_id):
-    
-    if is_internal(request):
-        moa = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
-        today=datetime.now(pytz.timezone(TIME_ZONE)).date()
-        # removing the link between Approval and MSL
-        moa.active = False
-        moa.end_date = today         
-        moa.save()
-        # regenerating Authorised User Permit after mooring has been removed
-        moa.approval.generate_doc()
-        # send_aup_revoked email if required
-        mooring = Mooring.objects.get(id=mooring_id)
-        moas = MooringOnApproval.objects.filter(mooring_id=mooring_id, active = True)
-        mls = MooringLicence.objects.filter(mooring=mooring)
-        if moas.count() > 0:
-            for ml in mls:
-                # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
-                ml.generate_au_summary_doc(request.user)
-                #send email to mooring licence owner if with the above attachement if required
-        else:
-            # removing the List of Authorised Users document if there is no more AUPs remaining 
-            mooring.mooring_licence.authorised_user_summary_document = None
-        return HttpResponse({'Successfully Removed'})
 
 #TODO move in to a viewset class        
 def removeMooringFromApproval(request, mooring_name, approval_id):

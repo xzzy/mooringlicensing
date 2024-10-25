@@ -2464,7 +2464,7 @@ class MooringPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
-class MooringViewSet(viewsets.ReadOnlyModelViewSet):
+class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Mooring.objects.none()
     serializer_class = MooringSerializer
     permission_classes=[IsAuthenticated]
@@ -2474,6 +2474,36 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         if is_internal(self.request) or is_customer(self.request):
             queryset = Mooring.objects.filter(active=True)
         return queryset
+
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
+    def removeAUPFromMooring(self, request, *args, **kwargs):
+        if is_internal(request):
+            with transaction.atomic():
+                mooring = self.get_object()
+                approval_id = request.data.get('approval_id')
+                try:
+                    moa = MooringOnApproval.objects.get(mooring=mooring, approval_id=approval_id)
+                except:
+                    raise serializers.ValidationError("Mooring and AUP relationship does not exist")
+                today=datetime.now(pytz.timezone(TIME_ZONE)).date()
+                # removing the link between Approval and MSL
+                moa.active = False
+                moa.end_date = today         
+                moa.save()
+                # regenerating Authorised User Permit after mooring has been removed
+                moa.approval.generate_doc()
+                # send_aup_revoked email if required
+                moas = MooringOnApproval.objects.filter(mooring=mooring, active=True)
+                mls = MooringLicence.objects.filter(mooring=mooring)
+                if moas.count() > 0:
+                    for ml in mls:
+                        # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
+                        ml.generate_au_summary_doc(request.user)
+                        #send email to mooring licence owner if with the above attachement if required
+                else:
+                    # removing the List of Authorised Users document if there is no more AUPs remaining 
+                    mooring.mooring_licence.authorised_user_summary_document = None
+                return Response({"results": "Success"})
 
     @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler

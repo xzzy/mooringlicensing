@@ -181,8 +181,8 @@ from '@/utils/hooks'
             },
             removeAUPFromMooring: async function(mooring_id, approval_id) {
                 swal({
-                title: "Remove Authorized User Permit",
-                text: "Are you sure you want to Remove the Authorized User Permit?",
+                title: "Remove Authorised User Permit",
+                text: "Are you sure you want to Remove the Authorised User Permit?",
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Remove',
@@ -190,7 +190,10 @@ from '@/utils/hooks'
             }).then(()=>{
                 this.$nextTick(async () => {
                     try {
-                        const resp = await this.$http.delete(`/api/remove-AUP-from-mooring/${mooring_id}/${approval_id}`);
+                        let payload = {
+                            "approval_id": approval_id,
+                        }
+                        const resp = await this.$http.post(`/api/mooring/${mooring_id}/removeAUPFromMooring/`, payload);
                         if (resp.status === 200) { 
                             this.approvals = this.approvals.filter(item => item.id !== approval_id);
                             swal("Removed!", "The User Permit has been removed successfully.", "success")
