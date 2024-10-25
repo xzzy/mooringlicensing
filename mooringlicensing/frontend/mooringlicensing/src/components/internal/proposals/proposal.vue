@@ -352,12 +352,6 @@ export default {
                 ((this.proposal.processing_status == constants.WITH_APPROVER || this.isFinalised) && this.showingRequirements)
             return ret_val
         },
-        /*
-        showElectoralRoll: function(){
-            // TODO: implement
-            return true
-        },
-        */
         proposal_form_url: function() {
             return (this.proposal) ? `/api/proposal/${this.proposal.id}/internal_save.json` : '';
         },
@@ -391,7 +385,7 @@ export default {
         isFinalised: function(){
             return this.proposal.processing_status == 'Declined' || this.proposal.processing_status == 'Approved';
         },
-        canAssess: function(){ //TODO consider renaming
+        canAssess: function(){
             return this.hasAssessorMode || this.hasApproverMode;
         },
         hasAssessorMode:function(){
@@ -401,8 +395,6 @@ export default {
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
         },
         canAction: function(){
-
-            //return true  // TODO: implement this.  This is just temporary solution
 
             if (this.proposal.processing_status == 'With Approver'){
                 return this.proposal && 
@@ -430,38 +422,6 @@ export default {
                         this.proposal.assigned_officer == null
                     ) && 
                     this.proposal.assessor_mode.assessor_can_assess? true : false;
-            }
-        },
-        canLimitedAction: function(){
-
-            //return false  // TODO: implement this.  This is just temporary solution
-
-            if (this.proposal.processing_status == 'With Approver'){
-                return
-                    this.proposal
-                    && (
-                        this.proposal.processing_status == 'With Assessor' ||
-                        //this.proposal.processing_status == 'With Referral' ||
-                        this.proposal.processing_status == 'With Assessor (Requirements)'
-                    )
-                    && !this.isFinalised && !this.proposal.can_user_edit
-                    && (
-                        this.proposal.current_assessor.id == this.proposal.assigned_approver ||
-                        this.proposal.assigned_approver == null
-                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
-            }
-            else{
-                return
-                    this.proposal
-                    && (
-                        this.proposal.processing_status == 'With Assessor' ||
-                        //this.proposal.processing_status == 'With Referral' ||
-                        this.proposal.processing_status == 'With Assessor (Requirements)'
-                    ) && !this.isFinalised && !this.proposal.can_user_edit
-                    && (
-                        this.proposal.current_assessor.id == this.proposal.assigned_officer ||
-                        this.proposal.assigned_officer == null
-                    ) && this.proposal.assessor_mode.assessor_can_assess? true : false;
             }
         },
         canSeeSubmission: function(){
@@ -748,29 +708,6 @@ export default {
         // },
         locationUpdated: function(){
             console.log('in locationUpdated()');
-        },
-        //TODO implement or remove
-        checkAssessorData: function(){
-            //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
-
-            //select all fields including hidden fields
-            //console.log("here");
-            var all_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required')
-
-            all_fields.each(function() {
-                var ele=null;
-                //check the fields which has assessor boxes.
-                ele = $("[name="+this.name+"-Assessor]");
-                if(ele.length>0){
-                    var visiblity=$("[name="+this.name+"-Assessor]").is(':visible')
-                    if(!visiblity){
-                        if(ele[0].value!=''){
-                            //console.log(visiblity, ele[0].name, ele[0].value)
-                            ele[0].value=''
-                        }
-                    }
-                }
-            });
         },
         commaToNewline(s){
             return s.replace(/[,;]/g, '\n');

@@ -218,7 +218,7 @@ class GetWlaAllowed(views.APIView):
     def get(self, request, format=None):
     
         applicant_id = request.user.id
-        if is_internal(request): #TODO group auth
+        if is_internal(request):
             applicant_system_id = request.GET.get('applicant_system_id', False)
             if applicant_system_id:
                 try:
@@ -730,9 +730,9 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return queryset
         return DcvAdmission.objects.none()
 
-    #TODO review org_id - could address below issue, otherwise should be removed
+
     @staticmethod
-    def _handle_dcv_vessel(user, dcv_vessel, org_id=None): 
+    def _handle_dcv_vessel(user, dcv_vessel): 
         if not dcv_vessel:
             raise serializers.ValidationError("Please specify vessel Rego No.")
         data = dcv_vessel
@@ -762,7 +762,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        dcv_vessel = self._handle_dcv_vessel(request.user, request.data.get('dcv_vessel'), None)
+        dcv_vessel = self._handle_dcv_vessel(request.user, request.data.get('dcv_vessel'))
         dcv_organisation = None
 
         if request.user.is_authenticated:
@@ -883,9 +883,8 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             return qs
         return DcvAdmission.objects.none()
 
-    #TODO review org_id - could address below issue, otherwise should be removed
     @staticmethod
-    def _handle_dcv_vessel(user, dcv_vessel, org_id=None):
+    def _handle_dcv_vessel(user, dcv_vessel):
         if not dcv_vessel:
             raise serializers.ValidationError("Please specify vessel Rego No.")
         data = dcv_vessel
@@ -937,7 +936,7 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             else:
                 raise forms.ValidationError('Please fill the email address fields')
             
-            dcv_vessel = self._handle_dcv_vessel(applicant, request.data.get('dcv_vessel'), None)
+            dcv_vessel = self._handle_dcv_vessel(applicant, request.data.get('dcv_vessel'))
             dcv_organisation = None
 
             # create DcvOrganisation and link it to DcvVessel
@@ -1074,7 +1073,6 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if not dcv_vessel.exists():
                 raise serializers.ValidationError("Vessel listed under another Owner")
             else:
-                #TODO do we update the organisation? (assume yes, for now)
                 orgs = dcv_vessel.first().dcv_organisations.filter(id=org_id)
                 if not orgs:
                     dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
@@ -1179,7 +1177,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
             if not dcv_vessel.exists():
                 raise serializers.ValidationError("Vessel listed under another Owner")
             else:
-                #TODO do we update the organisation? (assume yes, for now)
                 orgs = dcv_vessel.first().dcv_organisations.filter(id=org_id)
                 if not orgs:
                     dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
@@ -1473,20 +1470,17 @@ class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return DcvVessel.objects.none()
 
     #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
+    # also appears to only be used by an unimplemented template
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def lookup_dcv_vessel(self, request, *args, **kwargs):
         dcv_vessel = self.get_object()
         serializer = DcvVesselSerializer(dcv_vessel)
-
         dcv_vessel_data = serializer.data
-        dcv_vessel_data['annual_admission_permits'] = []  # TODO: retrieve the permits
-        dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
-        dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
-
         return Response(dcv_vessel_data)
 
     #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
+    # also appears to only be used by an unimplemented template
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_admissions(self, request, *args, **kwargs):
@@ -1500,6 +1494,7 @@ class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response(serializer.data)
 
     #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
+    # also appears to only be used by an unimplemented template
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_permits(self, request, *args, **kwargs):

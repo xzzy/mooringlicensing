@@ -15,50 +15,6 @@ from mooringlicensing.components.proposals.models import (
 import logging
 logger = logging.getLogger(__name__)
 
-#TODO replace/remove
-#class ProposalHistoryCompareView(HistoryCompareDetailView):
-#    """
-#    View for reversion_compare
-#    """
-#    model = Proposal
-#    template_name = 'mooringlicensing/reversion_history.html'
-
-#TODO replace/remove
-#class ProposalFilteredHistoryCompareView(HistoryCompareDetailView):
-#    """
-#    View for reversion_compare - with 'status' in the comment field only'
-#    """
-#    model = Proposal
-#    template_name = 'mooringlicensing/reversion_history.html'
-#
-#    def _get_action_list(self,):
-#        """ Get only versions when processing_status changed, and add the most recent (current) version """
-#        current_revision_id = Version.objects.get_for_object(self.get_object()).first().revision_id
-#        action_list = [
-#            {"version": version, "revision": version.revision}
-#            for version in self._order_version_queryset(
-#                Version.objects.get_for_object(self.get_object()).select_related("revision__user").filter(Q(revision__comment__icontains='status') | Q(revision_id=current_revision_id))
-#            )
-#        ]
-#        return action_list
-
-#TODO replace/remove
-#class ApprovalHistoryCompareView(HistoryCompareDetailView):
-#    """
-#    View for reversion_compare
-#    """
-#    model = Approval
-#    template_name = 'mooringlicensing/reversion_history.html'
-
-#TODO replace/remove
-#class ComplianceHistoryCompareView(HistoryCompareDetailView):
-#    """
-#    View for reversion_compare
-#    """
-#    model = Compliance
-#    template_name = 'mooringlicensing/reversion_history.html'
-
-
 class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     template_name = 'mooringlicensing/proposals/mooring_licence_application_documents_upload.html'
 

@@ -1,6 +1,6 @@
 import logging
 from confy import env
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.generic import DetailView
 from django.views.generic.base import TemplateView
@@ -65,7 +65,6 @@ class MooringLicensingRoutingView(TemplateView):
     template_name = 'mooringlicensing/index.html'
 
     def get(self, *args, **kwargs):
-        # if self.request.user.is_authenticated():
         if self.request.user.is_authenticated:
             if is_internal(self.request):
                 return redirect('internal')

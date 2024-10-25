@@ -3282,8 +3282,6 @@ class StickerActionDetail(models.Model):
         app_label = 'mooringlicensing'
         ordering = ['-date_created']
 
-
-#TODO review/remove
 @receiver(pre_delete, sender=Approval)
 def delete_documents(sender, instance, *args, **kwargs):
     if hasattr(instance, 'approval_documents'):
@@ -3292,7 +3290,6 @@ def delete_documents(sender, instance, *args, **kwargs):
                 document.delete()
             except:
                 continue
-
 
 import reversion
 #TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record

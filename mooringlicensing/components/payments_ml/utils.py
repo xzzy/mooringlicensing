@@ -52,8 +52,6 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
     return response
 
 
-
-
 def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, instance, target_datetime, v_rego_no=''):
     from mooringlicensing.components.proposals.models import WaitingListApplication
 
@@ -113,13 +111,13 @@ NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
 NAME_SESSION_DCV_ADMISSION_INVOICE = 'mooringlicensing_dcv_admission_invoice'
 NAME_SESSION_STICKER_ACTION_INVOICE = 'mooringlicensing_sticker_action_invoice'
 
-
+#TODO review - does not appear to be required
 def set_session_sticker_action_invoice(session, application_fee):
     """ Application Fee session ID """
     session[NAME_SESSION_STICKER_ACTION_INVOICE] = application_fee.id
     session.modified = True
 
-
+#TODO review - does not appear to be required
 def get_session_sticker_action_invoice(session):
     """ Application Fee session ID """
     if NAME_SESSION_STICKER_ACTION_INVOICE in session:
@@ -132,7 +130,7 @@ def get_session_sticker_action_invoice(session):
     except StickerActionFee.DoesNotExist:
         raise Exception('StickerActionFee not found for id: {}'.format(application_fee_id))
 
-
+#TODO review - does not appear to be required
 def delete_session_sticker_action_invoice(session):
     """ Application Fee session ID """
     if NAME_SESSION_STICKER_ACTION_INVOICE in session:
@@ -147,7 +145,7 @@ def set_session_application_invoice(session, application_fee):
     session[NAME_SESSION_APPLICATION_INVOICE] = application_fee.id
     session.modified = True
 
-
+#TODO review - does not appear to be required
 def get_session_application_invoice(session):
     print('in get_session_application_invoice')
 

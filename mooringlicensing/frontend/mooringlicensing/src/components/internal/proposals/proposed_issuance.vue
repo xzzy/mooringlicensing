@@ -154,7 +154,7 @@ export default {
             type: String,
             required: true
         },
-        submitter_email: { //TODO remove if not needed...
+        submitter_email: {
             type: String,
             required: true
         },
@@ -831,7 +831,6 @@ export default {
         },
         constructRequestedMooringsTable: function () {
             console.log('in constructRequestedMooringsTable()')
-            //TODO make changes to work with new table, and modify data serializer
             // update checkboxes
             if (this.requestedMoorings && this.approval.requested_mooring_on_approval && this.approval.requested_mooring_on_approval.length > 0) {
                 console.log('construct 1')

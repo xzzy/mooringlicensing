@@ -1289,7 +1289,7 @@ class MooringLicenceReader():
 
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    licensee = EmailUser.objects.get(email=email_l.lower()) #TODO use iexact
+                    licensee = EmailUser.objects.get(email__iexact=email_l.lower())
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
@@ -1300,7 +1300,7 @@ class MooringLicenceReader():
 
                 email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    user = EmailUser.objects.get(email=email_u.lower()) #TODO use iexact
+                    user = EmailUser.objects.get(email__iexact=email_u.lower())
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_u.lower()) + " does not exist") 
                     continue
@@ -1501,7 +1501,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email=email.lower()) #TODO use iexact
+                    user = EmailUser.objects.get(email__iexact=email.lower())
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
                     continue

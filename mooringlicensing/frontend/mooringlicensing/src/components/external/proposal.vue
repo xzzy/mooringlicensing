@@ -126,7 +126,6 @@
                                                 id="submitButton"
                                                 
                                             />
-                                            <!--TODO fix or remove || disableSubmit :title="disabledSubmitText" removed, only work on client-side - if a change is made and the page reloaded it will still block submit-->
                                             <input id="save_and_continue_btn" type="hidden" @click.prevent="save_wo_confirm" class="btn btn-primary" value="Save Without Confirmation"/>
                                         </p>
                                     </div>

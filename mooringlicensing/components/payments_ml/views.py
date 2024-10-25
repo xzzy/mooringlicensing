@@ -69,6 +69,7 @@ class DcvAdmissionFeeView(TemplateView):
 
         try:
             with transaction.atomic():
+                #TODO what does this do?
                 set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
 
                 lines, db_processes = dcv_admission.create_fee_lines()
@@ -386,6 +387,7 @@ class ApplicationFeeView(TemplateView):
 
         try:
             with transaction.atomic():
+                #TODO what does this do?
                 set_session_application_invoice(request.session, application_fee)
 
                 try:
@@ -539,8 +541,6 @@ class DcvPermitFeeSuccessView(TemplateView):
             dcv_permit_fee = DcvPermitFee.objects.get(uuid=uuid)
 
             dcv_permit = dcv_permit_fee.dcv_permit
-
-            #TODO auth
 
             invoice_url = f'/ledger-toolkit-api/invoice-pdf/{dcv_permit_fee.invoice_reference}/'
 

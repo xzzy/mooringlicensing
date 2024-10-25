@@ -9,7 +9,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 confy.read_environment_file(BASE_DIR+"/.env")
 os.environ.setdefault("BASE_DIR", BASE_DIR)
 
-# from ledger.settings_base import *
 from ledger_api_client.settings_base import *
 
 ROOT_URLCONF = 'mooringlicensing.urls'
@@ -59,7 +58,6 @@ INSTALLED_APPS += [
     'mooringlicensing.components.approvals',
     'mooringlicensing.components.compliances',
     'mooringlicensing.components.payments_ml',
-    # 'taggit',
     'rest_framework',
     'rest_framework_datatables',
     'reset_migrations',
@@ -151,11 +149,7 @@ CONSOLE_EMAIL_BACKEND = env('CONSOLE_EMAIL_BACKEND', False)
 if CONSOLE_EMAIL_BACKEND:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-#PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S651')
-## do not read from env
-
 OSCAR_BASKET_COOKIE_OPEN = 'mooringlicensing_basket'
-# PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('S', '0'))
 LEDGER_SYSTEM_ID = env('PAYMENT_INTERFACE_SYSTEM_PROJECT_CODE', 'PAYMENT_INTERFACE_SYSTEM_PROJECT_CODE not configured')
 PAYMENT_SYSTEM_ID = LEDGER_SYSTEM_ID.replace('0', 'S')
 MOORING_BOOKINGS_API_KEY=env('MOORING_BOOKINGS_API_KEY')
@@ -483,17 +477,8 @@ APPROVED_OPERATIONAL_STATUS = ['current', ]
 # Use git commit hash for purging cache in browser for deployment changes
 GIT_COMMIT_HASH = ''
 GIT_COMMIT_DATE = ''
-# not required
-#if  os.path.isdir(BASE_DIR+'/.git/') is True:
-#    GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
-#    GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
-#if len(GIT_COMMIT_HASH) == 0: 
-#    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
-#    if len(GIT_COMMIT_HASH) == 0:
-#       print ("ERROR: No git hash provided")
 LEDGER_TEMPLATE = 'bootstrap5'
-#SESSION_COOKIE_NAME = "pp_sessionid"
-#SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
 # Change to file session backend to improve web application speed
 SESSION_ENGINE = 'django.contrib.sessions.backends.file'
 if EMAIL_INSTANCE == 'DEV' or EMAIL_INSTANCE == 'UAT' or EMAIL_INSTANCE == 'TEST':

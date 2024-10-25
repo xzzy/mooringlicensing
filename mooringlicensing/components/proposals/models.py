@@ -2267,7 +2267,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
-    #TODO: ideally this should be reference by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
+    #TODO: ideally this should be referenced by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
     proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="proposal_applicant")
 
     # Name, etc
@@ -5064,7 +5064,6 @@ class ProposalRequirement(OrderedModel):
     def requirement(self):
         return self.standard_requirement.text if self.standard else self.free_requirement
 
-#TODO review/remove
 @receiver(pre_delete, sender=Proposal)
 def delete_documents(sender, instance, *args, **kwargs):
     for document in instance.documents.all():
@@ -5075,8 +5074,6 @@ import reversion
 #TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
 reversion.register(ProposalDocument)
 reversion.register(ProposalType, follow=['proposal_set',])
-# TODO: fix this to improve performance
-#reversion.register(Proposal, follow=['documents', 'succeeding_proposals', 'comms_logs', 'companyownership_set', 'insurance_certificate_documents', 'hull_identification_number_documents', 'electoral_roll_documents', 'mooring_report_documents', 'written_proof_documents', 'signed_licence_agreement_documents', 'proof_of_identity_documents', 'proposalrequest_set', 'proposaldeclineddetails', 'action_logs', 'requirements', 'application_fees', 'approval_history_records', 'approvals', 'sticker_set', 'compliances'])
 reversion.register(Proposal, follow=['proposal_applicant'])
 reversion.register(ProposalApplicant)
 reversion.register(StickerPrintingContact, follow=[])

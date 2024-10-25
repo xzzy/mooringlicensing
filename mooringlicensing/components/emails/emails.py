@@ -5,7 +5,6 @@ from confy import env
 import six
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, EmailMessage
-# from django.core.urlresolvers import reverse
 from django.template import loader, Template
 from django.utils.encoding import smart_str
 from django.utils.html import strip_tags
@@ -15,7 +14,6 @@ from ledger_api_client.ledger_models import Document
 
 from mooringlicensing.settings import SYSTEM_NAME
 
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
 
@@ -25,10 +23,6 @@ def _render(template, context):
     if isinstance(template, six.string_types):
         template = Template(template)
     return template.render(context)
-
-
-# def host_reverse(name, args=None, kwargs=None):
-#     return "{}{}".format(settings.DEFAULT_HOST, reverse(name, args=args, kwargs=kwargs))
 
 
 class TemplateEmailBase(object):
@@ -111,7 +105,6 @@ class TemplateEmailBase(object):
 def _extract_email_headers(email_message, sender=None):
     print(sender)
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html
         # instead
         text = email_message.body
         subject = email_message.subject
