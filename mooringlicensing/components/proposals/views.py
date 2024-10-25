@@ -12,11 +12,17 @@ from mooringlicensing.components.proposals.models import (
     ProposalSiteLicenseeMooringRequest,
 )
 
+from rest_framework.permissions import IsAuthenticated
+from mooringlicensing.components.proposals.permissions import (
+    InternalProposalPermission,
+)
+
 import logging
 logger = logging.getLogger(__name__)
 
 class MooringLicenceApplicationDocumentsUploadView(TemplateView):
     template_name = 'mooringlicensing/proposals/mooring_licence_application_documents_upload.html'
+    permission_classes=[IsAuthenticated]
 
     def get_object(self):
         return get_object_or_404(MooringLicenceApplication, uuid=self.kwargs['uuid_str'])
@@ -45,6 +51,7 @@ class MooringLicenceApplicationDocumentsUploadView(TemplateView):
 
 
 class AuthorisedUserApplicationEndorseView(TemplateView):
+    permission_classes=[IsAuthenticated]
 
     def get_object(self):
         return get_object_or_404(AuthorisedUserApplication, uuid=self.kwargs['uuid_str'])

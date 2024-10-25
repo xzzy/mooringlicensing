@@ -25,8 +25,17 @@ from mooringlicensing.helpers import is_customer, is_internal
 from mooringlicensing.ledger_api_utils import retrieve_system_user
 logger = logging.getLogger(__name__)
 
+from rest_framework.permissions import IsAuthenticated
+from mooringlicensing.components.proposals.permissions import (
+    InternalProposalPermission,
+)
+from mooringlicensing.components.approvals.permissions import (
+    InternalApprovalPermission,
+)
+
 
 class GetCountries(views.APIView):
+    permission_classes=[IsAuthenticated]
     def get(self, request):
         data = cache.get('country_list')
         if not data:
@@ -39,6 +48,7 @@ class GetCountries(views.APIView):
 
 
 class GetProposalApplicantUser(views.APIView):
+    permission_classes=[IsAuthenticated]
     def get(self, request, proposal_pk, format=None):
         try: 
             proposal = Proposal.objects.get(id=proposal_pk)
@@ -59,6 +69,7 @@ class GetProposalApplicantUser(views.APIView):
 
 
 class GetProfile(views.APIView):
+    permission_classes=[IsAuthenticated]
     def get(self, request):
         if request.user.is_authenticated:
             try:
@@ -75,6 +86,7 @@ class GetProfile(views.APIView):
 
 
 class GetPerson(views.APIView):
+    permission_classes=[InternalProposalPermission|InternalApprovalPermission]
     def get(self, request):
         if is_internal(request): 
             search_term = request.GET.get('search_term', '')
@@ -136,6 +148,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SystemUser.objects.none()
     serializer_class = UserSerializer
     lookup_field = "ledger_id"
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -145,7 +158,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return SystemUser.objects.filter(Q(ledger_id=user.id))
         return SystemUser.objects.none()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission|InternalApprovalPermission])
     def comms_log(self, request, *args, **kwargs):
         try:
             if is_internal(request):
@@ -158,7 +171,7 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             print(e)
             raise serializers.ValidationError("error")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission|InternalApprovalPermission])
     def add_comms_log(self, request, *args, **kwargs):
         if is_internal(request):
             try:                

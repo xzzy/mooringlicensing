@@ -52,7 +52,7 @@ from rest_framework import status, serializers
 from mooringlicensing.helpers import is_internal
 
 logger = logging.getLogger(__name__)
-
+from rest_framework.permissions import IsAuthenticated
 
 class DcvAdmissionFeeView(TemplateView):
 
@@ -65,7 +65,6 @@ class DcvAdmissionFeeView(TemplateView):
         created_by=dcv_admission.applicant, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
 
         #NOTE: DcvAdmission records can be created externally, so no auth-check has been provided here.
-        #should be okay, but may also warrant review to avoid unintended payments
 
         try:
             with transaction.atomic():
@@ -95,6 +94,7 @@ class DcvAdmissionFeeView(TemplateView):
 
 
 class DcvPermitFeeView(TemplateView):
+    permission_classes=[IsAuthenticated]
 
     def get_object(self):
         return get_object_or_404(DcvPermit, id=self.kwargs['dcv_permit_pk'])
@@ -134,6 +134,7 @@ class DcvPermitFeeView(TemplateView):
 
 
 class ConfirmationView(TemplateView):
+    permission_classes=[IsAuthenticated]
     template_name = 'mooringlicensing/payments_ml/success_submit.html'
 
     def get_object(self):
@@ -163,6 +164,8 @@ class ConfirmationView(TemplateView):
 
 
 class ApplicationFeeExistingView(APIView):
+    permission_classes=[IsAuthenticated]
+
     def get_object(self):
         return get_object_or_404(Invoice, reference=self.kwargs['invoice_reference'])
 
@@ -201,6 +204,7 @@ class ApplicationFeeExistingView(APIView):
 
 
 class StickerReplacementFeeView(TemplateView):
+    permission_classes=[IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         data = request.POST.get('data')
@@ -266,6 +270,7 @@ class StickerReplacementFeeView(TemplateView):
 
 
 class StickerReplacementFeeSuccessViewPreload(APIView):
+    permission_classes=[IsAuthenticated]
 
     def get(self, request, uuid, format=None):
         logger.info(f'{StickerReplacementFeeSuccessViewPreload.__name__} get method is called.')
@@ -311,6 +316,7 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
 
 
 class StickerReplacementFeeSuccessView(TemplateView):
+    permission_classes=[IsAuthenticated]
     template_name = 'mooringlicensing/payments_ml/success_sticker_action_fee.html'
     LAST_STICKER_ACTION_FEE_ID = 'mooringlicensing_last_dcv_admission_invoice'
 
@@ -343,6 +349,7 @@ class StickerReplacementFeeSuccessView(TemplateView):
 
 
 class ApplicationFeeView(TemplateView):
+    permission_classes=[IsAuthenticated]
 
     def get_object(self):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
@@ -526,6 +533,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
 
 
 class DcvPermitFeeSuccessView(TemplateView):
+    permission_classes=[IsAuthenticated]
     template_name = 'mooringlicensing/payments_ml/success_dcv_permit_fee.html'
     LAST_DCV_PERMIT_FEE_ID = 'mooringlicensing_last_dcv_permit_invoice'
 
@@ -554,6 +562,8 @@ class DcvPermitFeeSuccessView(TemplateView):
 
 
 class DcvPermitFeeSuccessViewPreload(APIView):
+    permission_classes=[IsAuthenticated]
+
     @staticmethod
     def adjust_db_operations(dcv_permit, db_operations):
         dcv_permit.start_date = datetime.datetime.strptime(db_operations['season_start_date'], '%Y-%m-%d').date()
@@ -628,6 +638,7 @@ class DcvPermitFeeSuccessViewPreload(APIView):
 
 
 class ApplicationFeeAlreadyPaid(TemplateView):
+    permission_classes=[IsAuthenticated]
     template_name = 'mooringlicensing/payments_ml/application_fee_already_paid.html'
 
     def get(self, request, *args, **kwargs):
@@ -648,6 +659,7 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
 
 class ApplicationFeeSuccessViewPreload(APIView):
+    permission_classes=[IsAuthenticated]
     def get(self, request, uuid, format=None):
         logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
 
@@ -788,6 +800,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
 
 class ApplicationFeeSuccessView(TemplateView):
+    permission_classes=[IsAuthenticated]
     template_name = 'mooringlicensing/payments_ml/success_application_fee.html'
     LAST_APPLICATION_FEE_ID = 'mooringlicensing_last_app_invoice'
 
@@ -828,6 +841,7 @@ class ApplicationFeeSuccessView(TemplateView):
 
 
 class DcvAdmissionPDFView(View):
+    permission_classes=[IsAuthenticated]
     def get(self, request, *args, **kwargs):
         try:
             dcv_admission = get_object_or_404(DcvAdmission, id=self.kwargs['id'])
@@ -854,6 +868,7 @@ class DcvAdmissionPDFView(View):
 
 
 class DcvPermitPDFView(View):
+    permission_classes=[IsAuthenticated]
     def get(self, request, *args, **kwargs):
         try:
             dcv_permit = get_object_or_404(DcvPermit, id=self.kwargs['id'])

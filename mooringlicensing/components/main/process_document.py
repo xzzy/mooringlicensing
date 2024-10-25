@@ -38,7 +38,6 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
 
         # HTTP Response varies by action and instance type
         ret = None
-        print(comms_instance, input_name, document_type)
         if comms_instance and action == 'cancel' and deleted:
             ret = deleted
         elif comms_instance:
