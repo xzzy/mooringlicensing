@@ -574,7 +574,6 @@ export default {
             return data;
         },
         initialiseCompanyNameSelect: async function () {
-            console.log('in initialiseCompanyNameSelect()')
             let vm = this;
             // Vessel search
             $(vm.$refs.company_name).select2({
@@ -582,13 +581,13 @@ export default {
                 "theme": "bootstrap",
                 placeholder: "",
                 tags: true,
-                createTag: function (tag) {
-                    return {
-                        id: tag.term,
-                        text: tag.term,
-                        tag: true
-                    };
-                },
+                // createTag: function (tag) {
+                //     return {
+                //         id: tag.term,
+                //         text: tag.term,
+                //         tag: true
+                //     };
+                // },
                 ajax: {
                     url: api_endpoints.company_names,
                     dataType: 'json',
@@ -599,16 +598,22 @@ export default {
                         }
                         return query;
                     },
-                    processResults: function(data, params){  // This function is called after the results are returned.
-                                                             // Mainly used for modifying the items before being displayed.
-                        console.log({data})
+                    processResults: function(data, params) {
+                        const searchOption = {
+                            id: params.term,
+                            text: params.term ,
+                            tag : true
+                        };
                         return {
-                            results: data.results,  // This is the array of items to be displayed
-                        }
-                    }
+                            results: [searchOption,
+                                ...data.results
+                                
+                            ],
+                        };
+                        },
                 },
             }).
-                on("select2:select", function (e) {
+                on("select2:select", async function (e) {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
                     vm.$nextTick(async () => {
