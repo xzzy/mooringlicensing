@@ -51,7 +51,6 @@
                 <div v-if="approval && approval.applicant">
                     <Applicant
                         :user="approval.applicant" 
-                        applicantType="SUB" 
                         id="approvalSubmitterDetails"
                         :readonly="true"
                         customerType="holder"
@@ -491,7 +490,10 @@ export default {
             }).then(()=>{
                 this.$nextTick(async () => {
                     try {
-                        const resp = await this.$http.get(`/api/remove-mooring-from-approval/${mooringName}/${this.approval.id}`);
+                        let payload = {
+                            "mooring_name": mooringName,
+                        }
+                        const resp = await this.$http.post(`/api/approvals/${this.approval.id}/removeMooringFromApproval/`, payload);
                         if (resp.status === 200) {  
                             const rowIndex = this.approval.authorised_user_moorings_detail.findIndex(row => row.mooring_name === mooringName);
                             if (rowIndex !== -1) {

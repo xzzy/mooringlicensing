@@ -1070,7 +1070,7 @@ export default {
                 e.preventDefault();
                 var id = $(this).attr('data-surrender-approval');
                 let approval_type_name = $(this).attr('data-approval-type-name');
-                vm.surrenderApproval(id, approval_type_name);  //TODO: pass approval type name
+                vm.surrenderApproval(id, approval_type_name); 
             });
 
             //External Request New Sticker listener

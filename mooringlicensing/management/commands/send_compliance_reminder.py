@@ -24,19 +24,9 @@ cron_email = logging.getLogger('cron_email')
 
 class Command(BaseCommand):
     help = 'Send notification emails for compliances which has past due dates, and also reminder notification emails for those that are within the daterange prior to due_date (eg. within 14 days of due date)'
-
-    def clean_old_days_settings():
-        try:
-            old_settings = NumberOfDaysType.objects.filter(description__icontains = 'accept the MLA offer')
-            for setting in old_settings:
-                setting.delete()
-        except:
-            print("")
     
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()
-        Command.clean_old_days_settings() #this function is used just to clean the "NumberOfDaysSetting" model as the old entries has been modified. 
-        #TODO: remove this function after the days settings are cleaned in dev 
         errors = []
         updates = []
         logger.info('Running command {}'.format(__name__))

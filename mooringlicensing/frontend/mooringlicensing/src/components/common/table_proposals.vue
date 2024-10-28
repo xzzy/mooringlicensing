@@ -592,15 +592,6 @@ export default {
                 }
             },(error) => {
             })
-
-            // Applicant
-            if (vm.is_internal){
-                // TODO: Get applicants
-                // vm.$http.get(api_endpoints.applicants_dict).then((response) => {
-                //     vm.applicants = response.body
-                // },(error) => {
-                // })
-            }
         },
         addEventListeners: function(){
             let vm = this

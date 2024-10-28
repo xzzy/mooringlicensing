@@ -469,15 +469,15 @@ class MooringLicenceReader():
            last_name=names["last_name"],
            dob=dob,
 
-           residential_line1=user_row.address,
-           residential_locality=user_row.suburb,
-           residential_state=user_row.state,
-           residential_postcode=user_row.postcode,
+           residential_address_line1=user_row.address,
+           residential_address_locality=user_row.suburb,
+           residential_address_state=user_row.state,
+           residential_address_postcode=user_row.postcode,
 
-           postal_line1=user_row.postal_address if not postal_same_as_res else user_row.address,
-           postal_locality=user_row.postal_suburb if not postal_same_as_res else user_row.suburb,
-           postal_state=user_row.postal_state if not postal_same_as_res else user_row.state,
-           postal_postcode=user_row.postal_postcode if not postal_same_as_res else user_row.postcode,
+           postal_address_line1=user_row.postal_address if not postal_same_as_res else user_row.address,
+           postal_address_locality=user_row.postal_suburb if not postal_same_as_res else user_row.suburb,
+           postal_address_state=user_row.postal_state if not postal_same_as_res else user_row.state,
+           postal_address_postcode=user_row.postal_postcode if not postal_same_as_res else user_row.postcode,
 
            phone_number=phone,
            mobile_number=mobile,
@@ -527,15 +527,15 @@ class MooringLicenceReader():
            last_name=names["last_name"],
            dob=dob,
 
-           residential_line1=user_row.address,
-           residential_locality=user_row.suburb,
-           residential_state=user_row.state,
-           residential_postcode=user_row.postcode,
+           residential_address_line1=user_row.address,
+           residential_address_locality=user_row.suburb,
+           residential_address_state=user_row.state,
+           residential_address_postcode=user_row.postcode,
 
-           postal_line1=user_row.address,
-           postal_locality=user_row.suburb,
-           postal_state=user_row.state,
-           postal_postcode=user_row.postcode,
+           postal_address_line1=user_row.address,
+           postal_address_locality=user_row.suburb,
+           postal_address_state=user_row.state,
+           postal_address_postcode=user_row.postcode,
 
            phone_number=phone,
            mobile_number=mobile,
@@ -554,26 +554,26 @@ class MooringLicenceReader():
 
     def create_system_user_address_dict(self, applicant):
         residential_address_dict = {
-            "line1": applicant.residential_line1,
-            "locality": applicant.residential_locality,
-            "state": applicant.residential_state,
-            "postcode": applicant.residential_postcode,
+            "line1": applicant.residential_address_line1,
+            "locality": applicant.residential_address_locality,
+            "state": applicant.residential_address_state,
+            "postcode": applicant.residential_address_postcode,
             "country": 'AU',
             "address_type":"residential_address",
         }
 
         use_for_postal = (
-            applicant.postal_line1==applicant.residential_line1 and
-            applicant.postal_locality==applicant.residential_locality and
-            applicant.postal_state==applicant.residential_state and
-            applicant.postal_postcode==applicant.residential_postcode
+            applicant.postal_address_line1==applicant.residential_address_line1 and
+            applicant.postal_address_locality==applicant.residential_address_locality and
+            applicant.postal_address_state==applicant.residential_address_state and
+            applicant.postal_address_postcode==applicant.residential_address_postcode
         )
             
         postal_address_dict = {
-            "line1": applicant.postal_line1,
-            "locality": applicant.postal_locality,
-            "state": applicant.postal_state,
-            "postcode": applicant.postal_postcode,
+            "line1": applicant.postal_address_line1,
+            "locality": applicant.postal_address_locality,
+            "state": applicant.postal_address_state,
+            "postcode": applicant.postal_address_postcode,
             "country": 'AU',
             "address_type":"postal_address",
         }
@@ -1233,11 +1233,11 @@ class MooringLicenceReader():
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
                         
-                        postal_address_line1=proposal_applicant.postal_line1,
-                        postal_address_locality=proposal_applicant.postal_locality,
-                        postal_address_state=proposal_applicant.postal_state,
-                        postal_address_country=proposal_applicant.postal_country,
-                        postal_address_postcode=proposal_applicant.postal_postcode,
+                        postal_address_line1=proposal_applicant.postal_address_line1,
+                        postal_address_locality=proposal_applicant.postal_address_locality,
+                        postal_address_state=proposal_applicant.postal_address_state,
+                        postal_address_country=proposal_applicant.postal_address_country,
+                        postal_address_postcode=proposal_applicant.postal_address_postcode,
                     )
 
                     approval_history.stickers.add(sticker.id)
@@ -1289,7 +1289,7 @@ class MooringLicenceReader():
 
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    licensee = EmailUser.objects.get(email=email_l.lower()) #TODO use iexact
+                    licensee = EmailUser.objects.get(email__iexact=email_l.lower())
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
@@ -1300,7 +1300,7 @@ class MooringLicenceReader():
 
                 email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    user = EmailUser.objects.get(email=email_u.lower()) #TODO use iexact
+                    user = EmailUser.objects.get(email__iexact=email_u.lower())
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_u.lower()) + " does not exist") 
                     continue
@@ -1451,11 +1451,11 @@ class MooringLicenceReader():
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
                         
-                        postal_address_line1=proposal_applicant.postal_line1,
-                        postal_address_locality=proposal_applicant.postal_locality,
-                        postal_address_state=proposal_applicant.postal_state,
-                        postal_address_country=proposal_applicant.postal_country,
-                        postal_address_postcode=proposal_applicant.postal_postcode,
+                        postal_address_line1=proposal_applicant.postal_address_line1,
+                        postal_address_locality=proposal_applicant.postal_address_locality,
+                        postal_address_state=proposal_applicant.postal_address_state,
+                        postal_address_country=proposal_applicant.postal_address_country,
+                        postal_address_postcode=proposal_applicant.postal_address_postcode,
                     )
 
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
@@ -1501,7 +1501,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email=email.lower()) #TODO use iexact
+                    user = EmailUser.objects.get(email__iexact=email.lower())
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
                     continue
@@ -1951,11 +1951,11 @@ class MooringLicenceReader():
                         mailing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
                         sticker_printing_batch=None,
                         sticker_printing_response=None,
-                        postal_address_line1=proposal_applicant.postal_line1,
-                        postal_address_locality=proposal_applicant.postal_locality,
-                        postal_address_state=proposal_applicant.postal_state,
-                        postal_address_country=proposal_applicant.postal_country,
-                        postal_address_postcode=proposal_applicant.postal_postcode,
+                        postal_address_line1=proposal_applicant.postal_address_line1,
+                        postal_address_locality=proposal_applicant.postal_address_locality,
+                        postal_address_state=proposal_applicant.postal_address_state,
+                        postal_address_country=proposal_applicant.postal_address_country,
+                        postal_address_postcode=proposal_applicant.postal_address_postcode,
                     )
                 else:
                     #create non-exported sticker record
@@ -1963,11 +1963,11 @@ class MooringLicenceReader():
                         approval=approval,
                         proposal_initiated=proposal,
                         vessel_ownership=vessel_ownership,
-                        postal_address_line1=proposal_applicant.postal_line1,
-                        postal_address_locality=proposal_applicant.postal_locality,
-                        postal_address_state=proposal_applicant.postal_state,
-                        postal_address_country=proposal_applicant.postal_country,
-                        postal_address_postcode=proposal_applicant.postal_postcode,
+                        postal_address_line1=proposal_applicant.postal_address_line1,
+                        postal_address_locality=proposal_applicant.postal_address_locality,
+                        postal_address_state=proposal_applicant.postal_address_state,
+                        postal_address_country=proposal_applicant.postal_address_country,
+                        postal_address_postcode=proposal_applicant.postal_address_postcode,
                     )
 
             except Exception as e:

@@ -2,17 +2,18 @@ import logging
 import pytz
 from datetime import datetime
 from mooringlicensing.settings import TIME_ZONE
-from mooringlicensing.components.main.models import GlobalSettings
 
 from django.conf import settings
 from ledger_api_client.ledger_models import Invoice
 from ledger_api_client.managed_models import SystemUser
-from django.db.models import Q, Min, Count
+from django.db.models import Q
 from mooringlicensing.helpers import is_internal
 
 from mooringlicensing.components.main import serializers
-from mooringlicensing.components.payments_ml.serializers import DcvPermitSerializer, FeeConstructorSerializer, \
+from mooringlicensing.components.payments_ml.serializers import (
+    DcvPermitSerializer, FeeConstructorSerializer, 
     DcvAdmissionArrivalSerializer, DcvPermitSimpleSerializer
+)
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalLogEntry,
@@ -24,99 +25,28 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     Sticker,
     MooringLicence,
-    AuthorisedUserPermit, StickerActionDetail, ApprovalHistory, MooringOnApproval,
+    AuthorisedUserPermit, StickerActionDetail, 
+    ApprovalHistory, MooringOnApproval,
 )
 
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
-from mooringlicensing.components.proposals.serializers import InternalProposalSerializer, \
-    MooringSimpleSerializer, \
+from mooringlicensing.components.proposals.serializers import (
+    InternalProposalSerializer, 
+    MooringSimpleSerializer, 
     ProposalApplicantSerializer
+)
+
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
 from mooringlicensing.ledger_api_utils import retrieve_system_user, get_invoice_payment_status
 
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
 
 
-class ApprovalPaymentSerializer(serializers.ModelSerializer):
-    bpay_allowed = serializers.SerializerMethodField(read_only=True)
-    monthly_invoicing_allowed = serializers.SerializerMethodField(read_only=True)
-    other_allowed = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Approval
-        fields = (
-            'lodgement_number',
-            'current_proposal',
-            'expiry_date',
-            'bpay_allowed',
-            'monthly_invoicing_allowed',
-            'other_allowed',
-        )
-        read_only_fields = (
-            'lodgement_number',
-            'current_proposal',
-            'expiry_date',
-            'bpay_allowed',
-            'monthly_invoicing_allowed',
-            'other_allowed',
-        )
-
-    def get_bpay_allowed(self,obj):
-        return obj.bpay_allowed
-
-    def get_monthly_invoicing_allowed(self,obj):
-        return obj.monthly_invoicing_allowed
-
-    def get_other_allowed(self,obj):
-        return settings.OTHER_PAYMENT_ALLOWED
-
-
-class _ApprovalPaymentSerializer(serializers.ModelSerializer):
-    applicant = serializers.SerializerMethodField(read_only=True)
-    applicant_type = serializers.SerializerMethodField(read_only=True)
-    applicant_id = serializers.SerializerMethodField(read_only=True)
-    status = serializers.CharField(source='get_status_display')
-    title = serializers.CharField(source='current_proposal.title')
-    application_type = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Approval
-        fields = (
-            'id',
-            'lodgement_number',
-            'current_proposal',
-            'title',
-            'issue_date',
-            'start_date',
-            'expiry_date',
-            'applicant',
-            'applicant_type',
-            'applicant_id',
-            'status',
-            'cancellation_date',
-            'application_type',
-        )
-
-    def get_application_type(self,obj):
-        if obj.current_proposal.application_type:
-            return obj.current_proposal.application_type.name
-        return None
-
-    def get_applicant(self,obj):
-        return obj.applicant
-
-    def get_applicant_type(self,obj):
-        return obj.applicant_type
-
-    def get_applicant_id(self,obj):
-        return obj.applicant_id
-
-
 class DcvOrganisationSerializer(serializers.ModelSerializer):
+
     def validate(self, data):
         field_errors = {}
         non_field_errors = []
@@ -146,17 +76,6 @@ class DcvOrganisationSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'id',
         )
-
-
-class LookupDcvVesselSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DcvVessel
-        fields = (
-                'id',
-                'rego_no',
-                'vessel_name',
-                )
-
 
 
 class LookupDcvAdmissionSerializer(serializers.ModelSerializer):
@@ -227,17 +146,16 @@ class DcvVesselSerializer(serializers.ModelSerializer):
         )
 
 
-class ApprovalExtendSerializer(serializers.Serializer):
-    extend_details = serializers.CharField()
-
 class ApprovalCancellationSerializer(serializers.Serializer):
     cancellation_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     cancellation_details = serializers.CharField()
+
 
 class ApprovalSuspensionSerializer(serializers.Serializer):
     from_date = serializers.DateField(input_formats=['%d/%m/%Y'])
     to_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     suspension_details = serializers.CharField()
+
 
 class ApprovalSurrenderSerializer(serializers.Serializer):
     surrender_date = serializers.DateField(input_formats=['%d/%m/%Y'])
@@ -456,13 +374,11 @@ class ApprovalSerializer(serializers.ModelSerializer):
                             if approval.current_proposal and approval.current_proposal.vessel_details else ''
                             ),
                         "holder": approval.current_proposal.proposal_applicant.get_full_name(),
-                        #"mobile": approval.current_proposal.proposal_applicant.mobile_number,
                         "mobile": approval.current_proposal.proposal_applicant.mobile_number if approval.current_proposal.proposal_applicant.mobile_number else approval.current_proposal.proposal_applicant.phone_number,
                         "email": approval.current_proposal.proposal_applicant.email,
                         "status": approval.get_status_display(),
                         })
         return authorised_users
-
 
     def get_mooring_licence_vessels_detail(self, obj):
         vessels = []
@@ -749,7 +665,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'current_proposal_number',
             'current_proposal_approved',
             'current_proposal_id',
-            # 'vessel_registration',
             'vessel_name',
             'wla_order',
             'offer_link',
@@ -790,45 +705,33 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_mooring_offered(self, obj):
         mooring = {}
         if type(obj.child_obj) == WaitingListAllocation:
-            try:
-                proposals = obj.child_obj.ria_generated_proposal.all()
-                if proposals:
-                    proposal = proposals[0]
-                    mooring = {
-                        'id': proposal.allocated_mooring.id,
-                        'name': proposal.allocated_mooring.name,
-                    }
-            except Exception as e:
-                pass
+            proposal = obj.child_obj.ria_generated_proposal.first()
+            if proposal and proposal.allocated_mooring:
+                mooring = {
+                    'id': proposal.allocated_mooring.id,
+                    'name': proposal.allocated_mooring.name,
+                }
         return mooring
 
     def get_moorings(self, obj):
         links = []
-        try:
-            request = self.context.get('request')
+        request = self.context.get('request')
+        if obj.child_obj:
             if type(obj.child_obj) == AuthorisedUserPermit:
                 moas = MooringOnApproval.get_current_moas_by_approval(obj)
-                # for moa in obj.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
                 for moa in moas:
-                    try:
+                    if moa.mooring and moa.mooring.mooring_bay:
                         links.append({
                             'id': moa.mooring.id,
                             'bay_name': moa.mooring.mooring_bay.name,
                             'mooring_name': moa.mooring.name,
                         })
-                    except Exception as e:
-                        pass
-            elif type(obj.child_obj) == MooringLicence:
-                try:
-                    links.append({
-                        'id': obj.child_obj.mooring.id,
-                        'bay_name': obj.child_obj.mooring.mooring_bay.name,
-                        'mooring_name': obj.child_obj.mooring.name,
-                    })
-                except Exception as e:
-                    pass
-        except Exception as e:
-            pass
+            elif type(obj.child_obj) == MooringLicence and obj.child_obj.mooring and obj.child_obj.mooring.mooring_bay: 
+                links.append({
+                    'id': obj.child_obj.mooring.id,
+                    'bay_name': obj.child_obj.mooring.mooring_bay.name,
+                    'mooring_name': obj.child_obj.mooring.name,
+                })
 
         return links
 
@@ -924,20 +827,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                     links += '{}\n'.format(vessel_details.vessel.rego_no)
         return links
 
-    # def get_authorised_user_moorings(self, obj):
-    #     links = ''
-    #     request = self.context.get('request')
-    #     if type(obj.child_obj) == AuthorisedUserPermit:
-    #         for mooring in obj.moorings.all():
-    #             if request and request.GET.get('is_internal') and request.GET.get('is_internal') == 'true':
-    #                 links += '<a href="/internal/moorings/{}">{}</a><br/>'.format(
-    #                         mooring.id,
-    #                         str(mooring),
-    #                         )
-    #             else:
-    #                 links += '{}\n'.format(str(mooring))
-    #     return links
-
     def get_ria_generated_proposals(self, obj):
         links = '<br/>'
         if type(obj.child_obj) == WaitingListAllocation:
@@ -988,9 +877,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             for vessel_details in obj.child_obj.vessel_details_list:
                 regos.append(vessel_details.vessel.rego_no)
         else:
-            # regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
-            # if obj.current_proposal.vessel_details:
-            #     regos.append(obj.current_proposal.vessel_details.vessel.rego_no)
             if obj.current_proposal:
                 if obj.current_proposal.vessel_ownership:
                     if obj.current_proposal.vessel_ownership.end_date is None or obj.current_proposal.vessel_ownership.end_date >= today:
@@ -1002,26 +888,6 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
 
         return regos
-
-    # def get_vessel_registration(self, obj):
-    #     vessel_rego = ''
-    #     if (
-    #             obj.current_proposal and
-    #             obj.current_proposal.vessel_details and
-    #             obj.current_proposal.vessel_ownership and
-    #             not obj.current_proposal.vessel_ownership.end_date
-    #             ):
-    #         vessel_rego = obj.current_proposal.vessel_details.vessel.rego_no
-    #     return vessel_rego
-
-    # def get_vessel_regos(self, obj):
-    #     regos = ''
-    #     if type(obj.child_obj) == MooringLicence:
-    #         for vessel_details in obj.child_obj.vessel_details_list:
-    #             regos += '{}\n'.format(vessel_details.vessel.rego_no)
-    #     else:
-    #         regos += '{}\n'.format(obj.current_proposal.vessel_details.vessel.rego_no) if obj.current_proposal.vessel_details else ''
-    #     return regos
 
     def get_vessel_name(self, obj):
         vessel_name = ''
@@ -1071,7 +937,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             }
         except ObjectDoesNotExist:
             # Should not reach here
-            logger.warn('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
+            logger.warning('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
             return {
                 'code': 'child-obj-notfound',
                 'description': 'child-obj-notfound',
@@ -1147,14 +1013,12 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             query &= Q(mooring=mooring)
             query &= Q(approval=obj)
             query &= Q(active=True)
-            # query &= (Q(end_date__gt=target_date) | Q(end_date__isnull=True))
 
             try:
                 moa = MooringOnApproval.objects.get(query)
                 allocated_by = 'LIC' if moa.site_licensee else 'RIA'
             except Exception as e:
                 logger.error(f'{e}')
-            pass
 
         return allocated_by
 
@@ -1172,7 +1036,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             }
         except ObjectDoesNotExist:
             # Should not reach here
-            logger.warn('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
+            logger.warning('{} does not have any associated child object - WLA, AAP, AUP or ML'.format(obj))
             return {
                 'code': 'child-obj-notfound',
                 'description': 'child-obj-notfound',
@@ -1330,9 +1194,7 @@ class StickerSerializer(serializers.ModelSerializer):
     sent_date = serializers.SerializerMethodField()
     sticker_action_details = StickerActionDetailSerializer(many=True)
     fee_constructor = FeeConstructorSerializer()
-    # fee_season = serializers.CharField(source='fee_season.name')
     fee_season = serializers.SerializerMethodField()
-    # vessel_rego_no = serializers.CharField(source='vessel_ownership.vessel.rego_no')
     vessel_rego_no = serializers.SerializerMethodField()
     vessel = serializers.SerializerMethodField()
     moorings = serializers.SerializerMethodField()
@@ -1527,6 +1389,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             'vessel_rego',
             'payment_status',
         )
+
     def get_payment_status(self, obj):
         try:
             dcv_permit_fee = obj.dcv_permit_fees.order_by('-id').first()
@@ -1544,13 +1407,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             else:
                 return 'Unpaid'
         except Exception as e:
-            logger.warning(f'Payment status of the DcvPermit: [{obj}] is unsure...')
-            return 'Unsure...'
-
-        # invoice_references = [item.invoice_reference for item in obj.dcv_permit_fees.all()]
-        # invoices = Invoice.objects.filter(reference__in=invoice_references)
-        # invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
-
+            logger.warning(f'Payment status of the DcvPermit: [{obj}] is unavailable')
+            return 'Unavailable'
 
     def get_stickers(self, obj):
         stickers = []
@@ -1573,7 +1431,12 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
     
     def get_display_update_sticker_address_action(self, obj):
         display = False
-        if obj.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_AWAITING_PRINTING]).count() > 0:
+        if obj.stickers.filter(
+            status__in=[Sticker.STICKER_STATUS_CURRENT, 
+                        Sticker.STICKER_STATUS_READY, 
+                        Sticker.STICKER_STATUS_NOT_READY_YET, 
+                        Sticker.STICKER_STATUS_AWAITING_PRINTING]
+            ).count() > 0:
             display = True
         return display
 
@@ -1593,8 +1456,6 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             return serializer.data
 
     def get_fee_invoice_url(self, obj):
-        # url = '/payments/invoice-pdf/{}'.format(obj.invoice.reference) if obj.fee_paid else None
-        # url = get_invoice_url(obj.invoice.reference) if obj.invoice else ''
         url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
         return url
 

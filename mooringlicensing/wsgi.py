@@ -12,4 +12,3 @@ os.environ.setdefault("BASE_DIR", BASE_DIR)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mooringlicensing.settings")
 application = get_wsgi_application()
-

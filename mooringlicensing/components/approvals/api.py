@@ -1,6 +1,5 @@
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
-from django.http import HttpResponse
 from django.db.models import Q, CharField, Value, Max
 from confy import env
 import datetime
@@ -73,18 +72,21 @@ from mooringlicensing.settings import PROPOSAL_TYPE_NEW, LOV_CACHE_TIMEOUT
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 
+from rest_framework.permissions import IsAuthenticated
+from mooringlicensing.components.approvals.permissions import (
+    InternalApprovalPermission,
+)
 
 class GetDailyAdmissionUrl(views.APIView):
-
+    #this does not require authentication
     def get(self, request, format=None):
-
         daily_admission_url = env('DAILY_ADMISSION_PAGE_URL', '')
         data = {'daily_admission_url': daily_admission_url}
         return Response(data)
 
 
 class GetStickerStatusDict(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
 
         data = []
@@ -95,7 +97,7 @@ class GetStickerStatusDict(views.APIView):
 
 
 class GetFeeSeasonsDict(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
 
         application_type_codes = request.GET.get('application_type_codes', '')
@@ -125,7 +127,7 @@ class GetFeeSeasonsDict(views.APIView):
 
 
 class GetSticker(views.APIView):
-
+    permission_classes=[InternalApprovalPermission]
     def get(self, request, format=None):
 
         if is_internal(request):
@@ -168,7 +170,7 @@ class GetSticker(views.APIView):
 
 
 class GetApprovalTypeDict(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         include_codes = request.GET.get('include_codes', '')
         include_codes = include_codes.split(',')
@@ -183,7 +185,7 @@ class GetApprovalTypeDict(views.APIView):
 
 
 class GetApprovalStatusesDict(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         data = cache.get('approval_statuses_dict')
         if not data:
@@ -196,7 +198,7 @@ class GetCurrentSeason(views.APIView):
     """
     Return list of current seasons
     """
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         cache_title = 'current_seasons'
         fee_seasons = cache.get(cache_title)
@@ -214,11 +216,11 @@ class GetCurrentSeason(views.APIView):
 
 
 class GetWlaAllowed(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
     
         applicant_id = request.user.id
-        if is_internal(request): #TODO group auth
+        if is_internal(request):
             applicant_system_id = request.GET.get('applicant_system_id', False)
             if applicant_system_id:
                 try:
@@ -339,6 +341,7 @@ class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = Approval.objects.none()
     serializer_class = ListApprovalSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         request_user = self.request.user
@@ -384,6 +387,7 @@ class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
 class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Approval.objects.none()
     serializer_class = ApprovalSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -442,7 +446,40 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
                         })
         return Response(existing_licences)
-    
+
+    @detail_route(methods=['POST'], detail=True)
+    @basic_exception_handler
+    def removeMooringFromApproval(self, request, *args, **kwargs):
+        
+        if is_internal(request):
+            approval = self.get_object()
+            mooring_name = request.data.get('mooring_name')
+            mooring = Mooring.objects.filter(name=mooring_name).first()
+            if not mooring:
+                raise serializers.ValidationError("Mooring does not exist")
+            moa = MooringOnApproval.objects.filter(mooring=mooring, approval=approval).first()
+            if not moa:
+                raise serializers.ValidationError("Mooring and AUP relationship does not exist")
+            today=datetime.now(pytz.timezone(TIME_ZONE)).date()
+            moa.active = False
+            moa.end_date = today         
+            moa.save()
+            # regenerating Authorised User Permit after mooring has been removed
+            moa.approval.generate_doc()
+            # send_aup_revoked email if required
+            moas = MooringOnApproval.objects.filter(mooring=mooring, active=True)
+            mls = MooringLicence.objects.filter(mooring=mooring)
+            if moas.count() > 0:
+                for ml in mls:
+                    # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
+                    ml.generate_au_summary_doc(request.user)
+                    #send email to mooring licence owner if with the above attachement if required
+            else:
+                # removing the List of Authorised Users document if there is no more AUPs remaining             
+                mooring.mooring_licence.authorised_user_summary_document = None
+            mooring.save()
+            mooring.mooring_licence.save()
+            return Response({"results": "Success"})
 
     @detail_route(methods=['GET'], detail=True)
     @basic_exception_handler
@@ -467,7 +504,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 continue
         return Response(moorings)
 
-    @detail_route(methods=['POST'], detail=True)
+    @detail_route(methods=['POST'], detail=True, permission_classes=[InternalApprovalPermission]) #TODO need specific group perm?
     @basic_exception_handler
     def swap_moorings(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -594,7 +631,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = StickerSerializer(stickers, many=True)
         return Response({'stickers': serializer.data})
 
-    @detail_route(methods=['GET'], detail=True)
+    @detail_route(methods=['GET'], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def approval_history(self, request, *args, **kwargs):
         if is_internal(request):
@@ -614,7 +651,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 }
         return Response(approval_details)
 
-    @detail_route(methods=['POST'], detail=True)
+    @detail_route(methods=['POST'], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def process_waiting_list_offer_document(self, request, *args, **kwargs):
         if is_internal(request):
@@ -627,7 +664,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("User not authorised to process waiting list offer document")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def approval_cancellation(self, request, *args, **kwargs):
         if is_internal(request):
@@ -639,7 +676,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("User not authorised to cancel approval")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def approval_suspension(self, request, *args, **kwargs):
         if is_internal(request):
@@ -651,7 +688,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("User not authorised to suspend approval")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def approval_reinstate(self, request, *args, **kwargs):
         if is_internal(request):
@@ -661,7 +698,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("User not authorised to reinstate approval")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def approval_surrender(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -670,7 +707,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         instance.approval_surrender(request,serializer.validated_data)
         return Response()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -680,7 +717,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -690,7 +727,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -719,6 +756,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -730,9 +768,9 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return queryset
         return DcvAdmission.objects.none()
 
-    #TODO review org_id - could address below issue, otherwise should be removed
+
     @staticmethod
-    def _handle_dcv_vessel(user, dcv_vessel, org_id=None): 
+    def _handle_dcv_vessel(user, dcv_vessel): 
         if not dcv_vessel:
             raise serializers.ValidationError("Please specify vessel Rego No.")
         data = dcv_vessel
@@ -762,7 +800,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
     def create(self, request, *args, **kwargs):
         data = request.data
-        dcv_vessel = self._handle_dcv_vessel(request.user, request.data.get('dcv_vessel'), None)
+        dcv_vessel = self._handle_dcv_vessel(request.user, request.data.get('dcv_vessel'))
         dcv_organisation = None
 
         if request.user.is_authenticated:
@@ -876,6 +914,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -883,9 +922,8 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             return qs
         return DcvAdmission.objects.none()
 
-    #TODO review org_id - could address below issue, otherwise should be removed
     @staticmethod
-    def _handle_dcv_vessel(user, dcv_vessel, org_id=None):
+    def _handle_dcv_vessel(user, dcv_vessel):
         if not dcv_vessel:
             raise serializers.ValidationError("Please specify vessel Rego No.")
         data = dcv_vessel
@@ -937,7 +975,7 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             else:
                 raise forms.ValidationError('Please fill the email address fields')
             
-            dcv_vessel = self._handle_dcv_vessel(applicant, request.data.get('dcv_vessel'), None)
+            dcv_vessel = self._handle_dcv_vessel(applicant, request.data.get('dcv_vessel'))
             dcv_organisation = None
 
             # create DcvOrganisation and link it to DcvVessel
@@ -1007,6 +1045,7 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
 class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvPermit.objects.all().order_by('id')
     serializer_class = DcvPermitSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -1016,9 +1055,7 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         elif is_customer(self.request):
             queryset = DcvPermit.objects.filter(Q(applicant=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
-
 
     @staticmethod
     def handle_dcv_organisation(data, abn_required=True):
@@ -1075,7 +1112,6 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if not dcv_vessel.exists():
                 raise serializers.ValidationError("Vessel listed under another Owner")
             else:
-                #TODO do we update the organisation? (assume yes, for now)
                 orgs = dcv_vessel.first().dcv_organisations.filter(id=org_id)
                 if not orgs:
                     dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
@@ -1115,6 +1151,7 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvPermit.objects.all().order_by('id')
     serializer_class = DcvPermitSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -1124,7 +1161,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
         elif is_customer(self.request):
             queryset = DcvPermit.objects.filter(Q(applicant=user.id))
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return DcvPermit.objects.none()
 
     @staticmethod
@@ -1181,7 +1217,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
             if not dcv_vessel.exists():
                 raise serializers.ValidationError("Vessel listed under another Owner")
             else:
-                #TODO do we update the organisation? (assume yes, for now)
                 orgs = dcv_vessel.first().dcv_organisations.filter(id=org_id)
                 if not orgs:
                     dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
@@ -1267,7 +1302,7 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
     @basic_exception_handler
     def request_new_stickers(self, request, *args, **kwargs):
         if is_internal(self.request):
-        #internal
+            #internal
             dcv_permit = self.get_object()
             details = request.data['details']
             # sticker_ids = [sticker['id'] for sticker in request.data['stickers']]
@@ -1403,7 +1438,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
             raise serializers.ValidationError("not authorised to create permit as an internal user")
             
 
-
 class DcvPermitFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         search_text = request.GET.get('search[value]', '')
@@ -1447,6 +1481,7 @@ class DcvPermitPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = DcvPermit.objects.none()
     serializer_class = ListDcvPermitSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
         qs = DcvPermit.objects.none()
@@ -1460,6 +1495,7 @@ class DcvPermitPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
 class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvVessel.objects.all().order_by('id')
     serializer_class = DcvVesselSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -1475,20 +1511,17 @@ class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return DcvVessel.objects.none()
 
     #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
+    # also appears to only be used by an unimplemented template
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def lookup_dcv_vessel(self, request, *args, **kwargs):
         dcv_vessel = self.get_object()
         serializer = DcvVesselSerializer(dcv_vessel)
-
         dcv_vessel_data = serializer.data
-        dcv_vessel_data['annual_admission_permits'] = []  # TODO: retrieve the permits
-        dcv_vessel_data['authorised_user_permits'] = []  # TODO: retrieve the permits
-        dcv_vessel_data['mooring_licence'] = []  # TODO: retrieve the licences
-
         return Response(dcv_vessel_data)
 
     #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
+    # also appears to only be used by an unimplemented template
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_admissions(self, request, *args, **kwargs):
@@ -1502,6 +1535,7 @@ class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         return Response(serializer.data)
 
     #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
+    # also appears to only be used by an unimplemented template
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def find_related_permits(self, request, *args, **kwargs):
@@ -1620,6 +1654,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
 class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Sticker.objects.none()
     serializer_class = StickerSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
         qs = Sticker.objects.none()
@@ -1700,6 +1735,7 @@ class StickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = Sticker.objects.none()
     serializer_class = StickerSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
         qs = Sticker.objects.none()
@@ -1713,11 +1749,10 @@ class DcvAdmissionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = DcvAdmission.objects.none()
     serializer_class = ListDcvAdmissionSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
-        request_user = self.request.user
         qs = DcvAdmission.objects.none()
-
         if is_internal(self.request):
             qs = DcvAdmission.objects.all()
 
@@ -1727,6 +1762,7 @@ class DcvAdmissionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
 class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = WaitingListAllocation.objects.all().order_by('id')
     serializer_class = WaitingListAllocationSerializer
+    permission_classes=[InternalApprovalPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -1781,56 +1817,3 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
                 return Response({"proposal_created": new_proposal.lodgement_number})
             else:
                 raise serializers.ValidationError("user not authorised to create mooring licence application")
-        
-
-def removeAUPFromMooring(request, mooring_id, approval_id):
-    
-    if is_internal(request):
-        moa = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
-        today=datetime.now(pytz.timezone(TIME_ZONE)).date()
-        # removing the link between Approval and MSL
-        moa.active = False
-        moa.end_date = today         
-        moa.save()
-        # regenerating Authorised User Permit after mooring has been removed
-        moa.approval.generate_doc()
-        # send_aup_revoked email if required
-        mooring = Mooring.objects.get(id=mooring_id)
-        moas = MooringOnApproval.objects.filter(mooring_id=mooring_id, active = True)
-        mls = MooringLicence.objects.filter(mooring=mooring)
-        if moas.count() > 0:
-            for ml in mls:
-                # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
-                ml.generate_au_summary_doc(request.user)
-                #send email to mooring licence owner if with the above attachement if required
-        else:
-            # removing the List of Authorised Users document if there is no more AUPs remaining 
-            mooring.mooring_licence.authorised_user_summary_document = None
-        return HttpResponse({'Successfully Removed'})
-        
-def removeMooringFromApproval(request, mooring_name, approval_id):
-    
-    if is_internal(request):
-        mooring_id = Mooring.objects.get(name=mooring_name).pk
-        moa = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
-        today=datetime.now(pytz.timezone(TIME_ZONE)).date()
-        moa.active = False
-        moa.end_date = today         
-        moa.save()
-        # regenerating Authorised User Permit after mooring has been removed
-        moa.approval.generate_doc()
-        # send_aup_revoked email if required
-        mooring = Mooring.objects.get(id=mooring_id)
-        moas = MooringOnApproval.objects.filter(mooring_id=mooring_id, active = True)
-        mls = MooringLicence.objects.filter(mooring=mooring)
-        if moas.count() > 0:
-            for ml in mls:
-                # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
-                ml.generate_au_summary_doc(request.user)
-                #send email to mooring licence owner if with the above attachement if required
-        else:
-            # removing the List of Authorised Users document if there is no more AUPs remaining             
-            mooring.mooring_licence.authorised_user_summary_document = None
-        mooring.save()
-        mooring.mooring_licence.save()
-        return HttpResponse({'Successfully Removed'})

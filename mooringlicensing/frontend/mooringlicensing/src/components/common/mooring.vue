@@ -84,14 +84,6 @@ from '@/utils/hooks'
                 // read in currently selected preference from Proposal
                 if (this.proposal.preferred_bay_id) {
                     console.log("preferred bay");
-                    // TODO: ensure component works if only reading in preferred_bay_id
-                    /*
-                    for (let bay of this.mooringBays) {
-                        if (bay.id === this.proposal.preferred_bay_id) {
-                            this.selectedMooring = Object.assign({}, bay);
-                        }
-                    }
-                    */
                     this.selectedMooring = this.proposal.preferred_bay_id;
                 }
                 // now read in previously selected mooring bay

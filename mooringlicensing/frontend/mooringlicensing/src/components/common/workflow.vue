@@ -103,10 +103,7 @@
                                             >Propose Decline</button>
                                         </div>
                                     </div>
-<!--
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Assessor (Requirements)'">
--->
+
                                     <div class="row" v-if="display_action_back_to_application">
                                         <div class="col-sm-12">
                                             <button 
@@ -117,10 +114,6 @@
                                         </div>
                                     </div>
 
-<!--
-                                        <div class="col-sm-12" v-if="requirementsComplete">
-                                        <div class="col-sm-12" v-if="proposal.requirements_completed">
--->
                                     <div class="row" v-if="display_action_propose_grant">
                                         <div class="col-sm-12">
                                             <button 
@@ -130,12 +123,7 @@
                                             >Propose Grant</button>
                                         </div>
                                     </div>
-<!--
-                                </template>
-                                <template v-else-if="proposal.processing_status == 'With Approver'">
-                                    <div class="row" v-if="display_action_back_to_assessor">
-                                        <div class="col-sm-12" v-if="proposal.proposed_decline_status">
--->
+
                                     <div class="row" v-if="display_bypass_endorsement">
                                         <div class="col-sm-12">
                                             <button 
@@ -302,9 +290,6 @@ export default {
             let display = false
             try {
                 if([constants.AU_PROPOSAL, constants.ML_PROPOSAL].includes(this.proposal.application_type_dict.code)){
-                    //if(this.proposal.requirements_completed){
-                    //    display = true
-                    //}
                     if(this.proposal.processing_status === constants.WITH_ASSESSOR_REQUIREMENTS){
                         display = true
                     }

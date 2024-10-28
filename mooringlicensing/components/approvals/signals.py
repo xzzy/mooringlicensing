@@ -5,9 +5,7 @@ from django.db.models import Q
 from mooringlicensing.components.approvals.models import Sticker, ApprovalHistory
 from mooringlicensing.components.proposals.models import Proposal
 
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
-
 
 class StickerListener(object):
 
@@ -103,10 +101,7 @@ class StickerListener(object):
         if latest_approval_history:
             latest_approval_history = latest_approval_history.first()
             # There is an active approval_history for the approval this sticker is for.
-            if sticker_saved in latest_approval_history.stickers.all():
-                # This sticker is already included in the approval history.  Do nothing
-                pass
-            else:
+            if not sticker_saved in latest_approval_history.stickers.all():
                 # Approval history object doesn't include this sticker.  We have to think about if this sticker is to be included or not.
                 if sticker_saved.status in [Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,]:
                     # Remove all the stickers with 'Expired' status from this approval history just in case there is.
@@ -116,11 +111,7 @@ class StickerListener(object):
                     # Add this sticker to the history
                     latest_approval_history.stickers.add(sticker_saved)
                 elif sticker_saved.status in [Sticker.STICKER_STATUS_EXPIRED,]:
-                    if latest_approval_history.stickers.filter(~Q(status=Sticker.STICKER_STATUS_EXPIRED)):
-                        # There is at lease one sticker with the status other than 'Expired'
-                        # We don't want to add Expired sticker to such an approval history
-                        pass
-                    else:
+                    if not latest_approval_history.stickers.filter(~Q(status=Sticker.STICKER_STATUS_EXPIRED)):
                         latest_approval_history.stickers.add(sticker_saved)
         else:
             # Somehow there is no approval history object

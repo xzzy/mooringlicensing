@@ -2,9 +2,7 @@ from __future__ import unicode_literals
 import pytz
 import os
 
-# from ledger.settings_base import TIME_ZONE
 from django.db import models
-# from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.dispatch import receiver
@@ -18,9 +16,8 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
     base_url=settings.PRIVATE_MEDIA_BASE_URL,
 )
 
-# @python_2_unicode_compatible
 class UserAction(models.Model):
-    who = models.IntegerField(null=True, blank=True)  # EmailUserRO
+    who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
 
@@ -62,8 +59,8 @@ class CommunicationsLogEntry(models.Model):
     subject = models.CharField(max_length=200, blank=True, verbose_name="Subject / Description")
     text = models.TextField(blank=True)
 
-    customer = models.IntegerField(null=True)  # EmailUserRO
-    staff = models.IntegerField(null=True, blank=True)  # EmailUserRO
+    customer = models.IntegerField(null=True)
+    staff = models.IntegerField(null=True, blank=True)
 
     created = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 
@@ -71,12 +68,9 @@ class CommunicationsLogEntry(models.Model):
         app_label = 'mooringlicensing'
 
 
-# @python_2_unicode_compatible
 class Document(models.Model):
-    name = models.CharField(max_length=255, blank=True,
-                            verbose_name='name', help_text='')
-    description = models.TextField(blank=True,
-                                   verbose_name='description', help_text='')
+    name = models.CharField(max_length=255, blank=True, verbose_name='name', help_text='')
+    description = models.TextField(blank=True, verbose_name='description', help_text='')
     uploaded_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -85,7 +79,6 @@ class Document(models.Model):
 
     @property
     def path(self):
-        #comment above line to fix the error "The '_file' attribute has no file associated with it." when adding comms log entry.
         if self._file:
             return self._file.path
         else:
@@ -141,7 +134,6 @@ class GlobalSettings(models.Model):
     KEY_ML_AU_LIST_TEMPLATE_FILE = 'ml_au_list_template_file'
     KEY_MINIMUM_VESSEL_LENGTH = 'minimum_vessel_length'
     KEY_MINUMUM_MOORING_VESSEL_LENGTH = 'minimum_mooring_vessel_length'
-    # KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT = 'min_sticker_number_for_dcv_permit'
     KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST = 'external_dashboard_sections_list'
     KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP = 'number_of_moorings_to_return_for_lookup'
     KEY_FEE_AMOUNT_OF_SWAP_MOORINGS = 'fee_amount_of_swap_moorings'
@@ -166,7 +158,6 @@ class GlobalSettings(models.Model):
         (KEY_ML_AU_LIST_TEMPLATE_FILE, 'Mooring Site Licence Authorised User Summary template file'),
         (KEY_MINIMUM_VESSEL_LENGTH, 'Minimum vessel length'),
         (KEY_MINUMUM_MOORING_VESSEL_LENGTH, 'Minimum mooring vessel length'),
-        # (KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT, 'Minimun sticker number for DCV Permit'),
         (KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST, 'External dashboard sections list'),
         (KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP, 'Number of moorings to return for lookup'),
         (KEY_FEE_AMOUNT_OF_SWAP_MOORINGS, 'Fee amount of swap moorings'),
@@ -183,7 +174,6 @@ class GlobalSettings(models.Model):
         KEY_ML_AU_LIST_TEMPLATE_FILE: os.path.join(settings.BASE_DIR, template_folder, 'Attachment Template - ML - AU Summary.docx'),
         KEY_MINIMUM_VESSEL_LENGTH: 3.76,
         KEY_MINUMUM_MOORING_VESSEL_LENGTH: 6.40,
-        # KEY_MINUMUM_STICKER_NUMBER_FOR_DCV_PERMIT: 200000,
         KEY_EXTERNAL_DASHBOARD_SECTIONS_LIST: 'LicencesAndPermitsTable, ApplicationsTable, CompliancesTable, WaitingListTable, AuthorisedUserApplicationsTable',
         KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP: 10,
         KEY_FEE_AMOUNT_OF_SWAP_MOORINGS: 317.00,
@@ -199,7 +189,6 @@ class GlobalSettings(models.Model):
         verbose_name_plural = "Global Settings"
 
 
-# @python_2_unicode_compatible
 class SystemMaintenance(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField()
@@ -218,13 +207,13 @@ class SystemMaintenance(models.Model):
     def __str__(self):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
 
-
+#TODO appears to be unused - check if needed
 class TemporaryDocumentCollection(models.Model):
 
     class Meta:
         app_label = 'mooringlicensing'
 
-
+#TODO appears to be unused - check if needed
 class TemporaryDocument(Document):
     temp_document_collection = models.ForeignKey(
         TemporaryDocumentCollection,
@@ -262,15 +251,11 @@ class RevisionedMixin(models.Model):
     @property
     def created_date(self):
         from reversion.models import Version
-
-        # return revisions.get_for_object(self).last().revision.date_created
         return Version.objects.get_for_object(self).last().revision.date_created
 
     @property
     def modified_date(self):
         from reversion.models import Version
-
-        # return revisions.get_for_object(self).first().revision.date_created
         return Version.objects.get_for_object(self).first().revision.date_created
 
     class Meta:
@@ -445,10 +430,6 @@ class NumberOfDaysSetting(RevisionedMixin):
         return setting
 
 
-# def update_mooring_comms_log_filename(instance, filename):
-#     return '{}/moorings/{}/communications/{}/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.mooring.id, instance.log_entry.id, filename)
-
-
 import reversion
 reversion.register(CommunicationsLogEntry, follow=[])
 reversion.register(ApplicationType, follow=['proposalstandardrequirement_set', 'feeseason_set', 'feeconstructor_set', 'oracle_code_items'])
@@ -460,4 +441,3 @@ reversion.register(VesselSizeCategoryGroup, follow=['vessel_size_categories', 'f
 reversion.register(VesselSizeCategory, follow=['feeitem_set'])
 reversion.register(NumberOfDaysType, follow=['settings'])
 reversion.register(NumberOfDaysSetting, follow=[])
-

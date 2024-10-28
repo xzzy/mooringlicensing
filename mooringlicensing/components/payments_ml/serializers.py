@@ -1,10 +1,10 @@
-import datetime
-
 from rest_framework import serializers
 
-from mooringlicensing.components.approvals.models import DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, \
-    DcvAdmissionArrival, NumberOfPeople, AgeGroup, AdmissionType
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor, FeeItem, FeePeriod
+from mooringlicensing.components.approvals.models import (
+    DcvPermit, DcvVessel, DcvAdmission, 
+    DcvAdmissionArrival, NumberOfPeople, AgeGroup
+)
+from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor
 
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
@@ -44,16 +44,13 @@ class DcvAdmissionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(field_errors)
             if non_field_errors:
                 raise serializers.ValidationError(non_field_errors)
-        else:
-            # Partial udpate, which means the dict data doesn't have all the field
-            pass
 
         return data
 
 
 class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
-    arrival_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
-    departure_date = serializers.DateField(input_formats=(['%d/%m/%Y']))  # allow_null=True, required=False
+    arrival_date = serializers.DateField(input_formats=(['%d/%m/%Y']))
+    departure_date = serializers.DateField(input_formats=(['%d/%m/%Y']))
 
     def validate(self, data):
         field_errors = {}
@@ -70,10 +67,7 @@ class DcvAdmissionArrivalSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(field_errors)
             if non_field_errors:
                 raise serializers.ValidationError(non_field_errors)
-
-        else:
-            pass
-
+            
         return data
 
     class Meta:
@@ -156,18 +150,10 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             dcv_permit_qs = DcvPermit.objects.filter(
                 dcv_vessel_id=data.get('dcv_vessel_id', 0),
                 fee_season_id=data.get('fee_season_id', 0),
-                # dcv_organisation_id=data.get('dcv_organisation_id', 0)  # TODO <== check if works
             )
             if dcv_permit_qs:
-                # dcv_organisation = DcvOrganisation.objects.get(id=data.get('dcv_organisation_id'))
                 dcv_vessel = DcvVessel.objects.get(id=data.get('dcv_vessel_id'))
                 fee_season = FeeSeason.objects.get(id=data.get('fee_season_id'))
-                # non_field_errors.append('{} already is the holder of DCV Permit: {} for the vessel: {} for the year: {}'.format(
-                #     dcv_organisation,
-                #     dcv_permit_qs.first().lodgement_number,
-                #     dcv_vessel,
-                #     fee_season.name,
-                # ))
                 non_field_errors.append(f'DcvPermit for the vessel: {dcv_vessel} for the season: {fee_season.name} has been already issued.')
 
             # Raise errors
@@ -175,9 +161,6 @@ class DcvPermitSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(field_errors)
             if non_field_errors:
                 raise serializers.ValidationError(non_field_errors)
-        else:
-            # Partial udpate, which means the dict data doesn't have all the field
-            pass
 
         return data
 
@@ -206,25 +189,12 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'postal_address_postcode',
             'postal_address_state',
             'postal_address_country',
-            # 'permits',
         )
         read_only_fields = (
             'id',
             'lodgement_number',
             'start_date',
             'end_date',
-            # 'permits',
-        )
-
-
-class FeePeriodSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = FeePeriod
-        fields = (
-            'id',
-            'start_date',
-            'name',
         )
 
 

@@ -1,6 +1,6 @@
 from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.compliances.models import (
-    Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest, ComplianceAmendmentReason
+    Compliance, ComplianceUserAction, ComplianceLogEntry, ComplianceAmendmentRequest
 )
 from mooringlicensing.components.users.serializers import UserSerializer
 from mooringlicensing.components.proposals.serializers import ProposalRequirementSerializer
@@ -47,10 +47,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'lodgement_date',
             'approval_lodgement_number',
-            'num_participants',
-            'participant_number_required',
-            'fee_invoice_reference',
-            'fee_paid',
             'application_type_code',
             'application_type_text',
             'application_type_dict',
@@ -98,7 +94,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
         return obj.get_customer_status_display()
 
 
-
 class InternalComplianceSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source='proposal.title')
     holder = serializers.CharField(source='proposal.applicant')
@@ -135,10 +130,6 @@ class InternalComplianceSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'lodgement_date',
             'approval_lodgement_number',
-            'participant_number_required',
-            'num_participants',
-            'fee_invoice_reference',
-            'fee_paid',
         )
 
     def get_assigned_to(self, obj):
@@ -184,7 +175,6 @@ class SaveComplianceSerializer(serializers.ModelSerializer):
             'id',
             'title',
             'text',
-            'num_participants',
         )
 
 class ComplianceActionSerializer(serializers.ModelSerializer):
@@ -274,10 +264,6 @@ class ListComplianceSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         request = self.context.get('request')
-        #today = timezone.localtime(timezone.now()).date()
-        #if obj.customer_status == Compliance.CUSTOMER_STATUS_DUE and today < obj.due_date:
-        #    return 'Overdue'
-        #else:
         return obj.get_processing_status_display() if request.GET.get('level') == 'internal' else obj.get_customer_status_display()
 
     def get_approval_number(self, obj):
@@ -302,4 +288,3 @@ class ListComplianceSerializer(serializers.ModelSerializer):
                 user_name = get_user_name(system_user)
                 assigned_to = user_name["full_name"]
         return assigned_to
-

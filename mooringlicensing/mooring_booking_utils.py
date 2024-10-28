@@ -1,3 +1,5 @@
+#TODO - review, determine if any of this is needed
+
 from datetime import datetime, timedelta, date
 import logging
 import traceback
@@ -1236,10 +1238,6 @@ def daterange(start_date, end_date):
     for n in range(int ((end_date - start_date).days)):
         yield start_date + timedelta(n)
 
-
-def oracle_integration(date,override):
-    system = '0516'
-    oracle_codes = oracle_parser_on_invoice(date,system,'Mooring Booking',override=override)
 
 def admissions_lines(booking_mooring):
     lines = []

@@ -1,5 +1,4 @@
 from django import forms
-from django.core.exceptions import ValidationError
 from mooringlicensing.components.main.models import SystemMaintenance
 from django.conf import settings
 import pytz
@@ -19,8 +18,7 @@ class SystemMaintenanceAdminForm(forms.ModelForm):
             latest_obj = SystemMaintenance.objects.exclude(id=self.instance.id).latest('start_date')
         except: 
             latest_obj = SystemMaintenance.objects.none()
-        tz_local = pytz.timezone(settings.TIME_ZONE) #start_date.tzinfo
-        tz_utc = pytz.timezone('utc') #latest_obj.start_date.tzinfo
+        tz_local = pytz.timezone(settings.TIME_ZONE)
 
         if latest_obj:
             latest_end_date = latest_obj.end_date.astimezone(tz=tz_local)

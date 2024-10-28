@@ -2,9 +2,10 @@ from django.views.generic import TemplateView
 from django.shortcuts import render, redirect
 
 from mooringlicensing import settings
-
+from rest_framework.permissions import IsAuthenticated
 
 class DcvAdmissionFormView(TemplateView):
+    permission_classes=[IsAuthenticated]
     template_name = 'mooringlicensing/approvals/dcv_admission_form.html'
 
     def get(self, request, *args, **kwargs):
