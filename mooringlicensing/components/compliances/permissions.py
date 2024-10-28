@@ -38,8 +38,8 @@ class ComplianceAssessorPermission(InternalCompliancePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        if obj.proposal and obj.proposal.child_object and obj.proposal.child_object.code:
-            for i in self.APPROVER_AUTH_GROUPS[obj.child_object.code]:
+        if obj.proposal and obj.proposal.child_obj and obj.proposal.child_obj.code:
+            for i in self.ASSESSOR_AUTH_GROUPS[obj.child_obj.code]:
                 if belongs_to(request.user, i):
                     return True
 

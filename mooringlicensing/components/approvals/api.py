@@ -1,6 +1,5 @@
 from django.db.models.functions import Concat
 from django.core.paginator import Paginator, EmptyPage
-from django.http import HttpResponse
 from django.db.models import Q, CharField, Value, Max
 from confy import env
 import datetime

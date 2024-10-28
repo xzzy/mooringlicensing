@@ -38,8 +38,8 @@ class ProposalAssessorPermission(InternalProposalPermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        if obj.child_object and obj.child_object.code:
-            for i in self.APPROVER_AUTH_GROUPS[obj.child_object.code]:
+        if obj.child_obj and obj.child_obj.code:
+            for i in self.ASSESSOR_AUTH_GROUPS[obj.child_obj.code]:
                 if belongs_to(request.user, i):
                     return True
 
@@ -64,8 +64,8 @@ class ProposalApproverPermission(InternalProposalPermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if obj.child_object and obj.child_object.code:
-            for i in self.APPROVER_AUTH_GROUPS[obj.child_object.code]:
+        if obj.child_obj and obj.child_obj.code:
+            for i in self.APPROVER_AUTH_GROUPS[obj.child_obj.code]:
                 if belongs_to(request.user, i):
                     return True
 
