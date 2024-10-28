@@ -270,7 +270,6 @@ class StickerReplacementFeeView(TemplateView):
 
 
 class StickerReplacementFeeSuccessViewPreload(APIView):
-    permission_classes=[IsAuthenticated]
 
     def get(self, request, uuid, format=None):
         logger.info(f'{StickerReplacementFeeSuccessViewPreload.__name__} get method is called.')
@@ -562,7 +561,6 @@ class DcvPermitFeeSuccessView(TemplateView):
 
 
 class DcvPermitFeeSuccessViewPreload(APIView):
-    permission_classes=[IsAuthenticated]
 
     @staticmethod
     def adjust_db_operations(dcv_permit, db_operations):
@@ -659,7 +657,7 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
 
 class ApplicationFeeSuccessViewPreload(APIView):
-    permission_classes=[IsAuthenticated]
+
     def get(self, request, uuid, format=None):
         logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
 
