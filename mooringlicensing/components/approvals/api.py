@@ -447,7 +447,40 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         "new_application_text": "I want to amend or renew my current {} {}".format(lchild.description.lower(), lchild.lodgement_number)
                         })
         return Response(existing_licences)
-    
+
+    @detail_route(methods=['POST'], detail=True)
+    @basic_exception_handler
+    def removeMooringFromApproval(self, request, *args, **kwargs):
+        
+        if is_internal(request):
+            approval = self.get_object()
+            mooring_name = request.data.get('mooring_name')
+            mooring = Mooring.objects.filter(name=mooring_name).first()
+            if not mooring:
+                raise serializers.ValidationError("Mooring does not exist")
+            moa = MooringOnApproval.objects.filter(mooring=mooring, approval=approval).first()
+            if not moa:
+                raise serializers.ValidationError("Mooring and AUP relationship does not exist")
+            today=datetime.now(pytz.timezone(TIME_ZONE)).date()
+            moa.active = False
+            moa.end_date = today         
+            moa.save()
+            # regenerating Authorised User Permit after mooring has been removed
+            moa.approval.generate_doc()
+            # send_aup_revoked email if required
+            moas = MooringOnApproval.objects.filter(mooring=mooring, active=True)
+            mls = MooringLicence.objects.filter(mooring=mooring)
+            if moas.count() > 0:
+                for ml in mls:
+                    # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
+                    ml.generate_au_summary_doc(request.user)
+                    #send email to mooring licence owner if with the above attachement if required
+            else:
+                # removing the List of Authorised Users document if there is no more AUPs remaining             
+                mooring.mooring_licence.authorised_user_summary_document = None
+            mooring.save()
+            mooring.mooring_licence.save()
+            return Response({"results": "Success"})
 
     @detail_route(methods=['GET'], detail=True)
     @basic_exception_handler
@@ -1785,32 +1818,3 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
                 return Response({"proposal_created": new_proposal.lodgement_number})
             else:
                 raise serializers.ValidationError("user not authorised to create mooring licence application")
-        
-
-#TODO move in to a viewset class        
-def removeMooringFromApproval(request, mooring_name, approval_id):
-    
-    if is_internal(request):
-        mooring_id = Mooring.objects.get(name=mooring_name).pk
-        moa = MooringOnApproval.objects.get(mooring_id=mooring_id, approval_id=approval_id)
-        today=datetime.now(pytz.timezone(TIME_ZONE)).date()
-        moa.active = False
-        moa.end_date = today         
-        moa.save()
-        # regenerating Authorised User Permit after mooring has been removed
-        moa.approval.generate_doc()
-        # send_aup_revoked email if required
-        mooring = Mooring.objects.get(id=mooring_id)
-        moas = MooringOnApproval.objects.filter(mooring_id=mooring_id, active = True)
-        mls = MooringLicence.objects.filter(mooring=mooring)
-        if moas.count() > 0:
-            for ml in mls:
-                # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
-                ml.generate_au_summary_doc(request.user)
-                #send email to mooring licence owner if with the above attachement if required
-        else:
-            # removing the List of Authorised Users document if there is no more AUPs remaining             
-            mooring.mooring_licence.authorised_user_summary_document = None
-        mooring.save()
-        mooring.mooring_licence.save()
-        return HttpResponse({'Successfully Removed'})

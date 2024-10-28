@@ -162,7 +162,6 @@ urlpatterns = [
     re_path(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
-    re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
 ] + ledger_patterns 
 
 
