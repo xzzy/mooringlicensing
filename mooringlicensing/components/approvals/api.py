@@ -1522,7 +1522,7 @@ class DcvAdmissionFilterBackend(DatatablesFilterBackend):
         # filter by dcv_organisation
         filter_organisation_id = request.GET.get('filter_dcv_organisation_id')
         if filter_organisation_id and not filter_organisation_id.lower() == 'all':
-            queryset = queryset.filter(dcv_vessel__dcv_organisation__id=filter_organisation_id)
+            queryset = queryset.filter(dcv_organisation__id=filter_organisation_id)
 
         queries = Q()
         # filter by date from

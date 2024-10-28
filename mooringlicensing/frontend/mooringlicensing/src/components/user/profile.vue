@@ -466,10 +466,11 @@ export default {
         getApplicantDisplay: function () {           
             let vm = this; 
             console.log("getApplicantDisplay")
+            let display = null
             if (vm.profile.legal_first_name) {
-                let display = vm.profile.legal_first_name + " " + vm.profile.legal_last_name + " (DOB: "+vm.profile.legal_dob+")";
+                display = vm.profile.legal_first_name + " " + vm.profile.legal_last_name + " (DOB: "+vm.profile.legal_dob+")";
             } else {
-                let display = vm.profile.first_name + " " + vm.profile.last_name + " (DOB: "+vm.profile.legal_dob+")";
+                display = vm.profile.first_name + " " + vm.profile.last_name + " (DOB: "+vm.profile.legal_dob+")";
             }
             var newOption = new Option(display, vm.profile.id, false, true);
             $('#person_lookup').append(newOption);         

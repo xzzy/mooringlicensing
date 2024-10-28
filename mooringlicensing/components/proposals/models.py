@@ -426,13 +426,30 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if link_item.enabled:
                 # Create link to the proposal only when the doc is not deleted.
                 ProposalWrittenProofDocument.objects.create(proposal=proposal, written_proof_document=doc)
-
+        
     def copy_signed_licence_agreement_documents(self, proposal):
         for doc in self.signed_licence_agreement_documents.all():
             link_item = ProposalSignedLicenceAgreementDocument.objects.get(proposal=self, signed_licence_agreement_document=doc)
             if link_item.enabled:
                 # Create link to the proposal only when the doc is not deleted.
                 ProposalSignedLicenceAgreementDocument.objects.create(proposal=proposal, signed_licence_agreement_document=doc)
+    def copy_vessel_registration_documents(self, proposal):
+        doc_list = VesselRegistrationDocument.objects.filter(proposal=self)
+        if doc_list.count() > 0:
+            doc = doc_list.last() #get the latest vesssel registration document
+            doc.pk = None
+            doc.proposal = proposal
+            doc.can_delete = True
+            doc.save()
+
+    def copy_hull_identification_number_document(self, proposal):
+        doc_list = HullIdentificationNumberDocument.objects.filter(proposal=self)
+        if doc_list.count() > 0:
+            doc = doc_list.last() #get the latest vesssel registration document
+            doc.pk = None
+            doc.proposal = proposal
+            doc.can_delete = True
+            doc.save()
 
     def __str__(self):
         return str(self.lodgement_number)
@@ -2077,7 +2094,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.copy_mooring_report_documents(proposal)
                     self.copy_written_proof_documents(proposal)
                     self.copy_signed_licence_agreement_documents(proposal)
-
+                
+                self.copy_vessel_registration_documents(proposal)
+                self.copy_hull_identification_number_document(proposal)
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
                 if req:
@@ -2127,7 +2146,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.copy_mooring_report_documents(proposal)
                     self.copy_written_proof_documents(proposal)
                     self.copy_signed_licence_agreement_documents(proposal)
-
+                
+                self.copy_vessel_registration_documents(proposal)
+                self.copy_hull_identification_number_document(proposal)
                 req=self.requirements.all().exclude(is_deleted=True)
                 from copy import deepcopy
                 if req:
@@ -5038,6 +5059,7 @@ class VesselRegistrationDocument(Document):
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
     hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+    
     # test
     proposal = models.ForeignKey(Proposal, null=True, blank=True, related_name='temp_vessel_registration_documents', on_delete=models.CASCADE)
     original_file_name = models.CharField(max_length=512, null=True, blank=True)
