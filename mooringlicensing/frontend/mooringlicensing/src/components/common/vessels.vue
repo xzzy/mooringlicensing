@@ -574,7 +574,6 @@ export default {
             return data;
         },
         initialiseCompanyNameSelect: async function () {
-            console.log('in initialiseCompanyNameSelect()')
             let vm = this;
             // Vessel search
             $(vm.$refs.company_name).select2({
@@ -582,13 +581,13 @@ export default {
                 "theme": "bootstrap",
                 placeholder: "",
                 tags: true,
-                createTag: function (tag) {
-                    return {
-                        id: tag.term,
-                        text: tag.term,
-                        tag: true
-                    };
-                },
+                // createTag: function (tag) {
+                //     return {
+                //         id: tag.term,
+                //         text: tag.term,
+                //         tag: true
+                //     };
+                // },
                 ajax: {
                     url: api_endpoints.company_names,
                     dataType: 'json',
@@ -599,6 +598,19 @@ export default {
                         }
                         return query;
                     },
+                    processResults: function(data, params) {
+                        const searchOption = {
+                            id: params.term,
+                            text: params.term ,
+                            tag : true
+                        };
+                        return {
+                            results: [searchOption,
+                                ...data.results
+                                
+                            ],
+                        };
+                        },
                 },
             }).
                 on("select2:select", async function (e) {

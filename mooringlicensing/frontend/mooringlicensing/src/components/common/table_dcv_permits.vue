@@ -4,10 +4,15 @@
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Organisation</label>
-                    <select class="form-control" v-model="filterDcvOrganisation">
-                        <option value="All">All</option>
-                        <option v-for="org in dcv_organisations" :value="org.id">{{ org.name }}</option>
-                    </select>
+                    <select
+                            id="organisation_lookup1"  
+                            name="organisation_lookup1"  
+                            ref="organisation_lookup1" 
+                            class="form-control">
+                            <option v-for="org in dcv_organisations" :key="org.id" :value="org.id">
+                                {{ org.name }}
+                            </option>
+                        </select>
                 </div>
             </div>
             <div class="col-md-3">
@@ -333,6 +338,43 @@ export default {
         }
     },
     methods: {
+        initialiseOrganisationLookup: function(){
+            let vm = this;
+            $(vm.$refs.organisation_lookup1).select2({
+                minimumInputLength: 2,
+                theme: "bootstrap",
+                allowClear: true,
+                placeholder: "",
+                ajax: {
+                    url: api_endpoints.dcv_organisations,
+                    dataType: 'json',
+                    data: function(params) {
+                        return {
+                            search_term: params.term,
+                        }
+                    },
+                    processResults: function(data) {
+                        const results = data.results.map(org => ({
+                            id: org.id,   
+                            text: org.name
+                        }));
+                        return {
+                            results: results, 
+                        };
+                    },
+                },
+            })
+            .on("select2:select", function (e) {
+                vm.filterDcvOrganisation = e.params.data.id;
+            })
+            .on("select2:unselect", function (e) {
+                vm.filterDcvOrganisation = null;
+            })
+            .on("select2:open", function (e) {
+                const searchField = $('[aria-controls="select2-organisation_lookup-results"]');
+                searchField[0].focus();
+            });
+        },
         sendDataForCreateNewSticker: function(params){
             let vm = this
             vm.$http.post('/api/internal_dcv_permit/' + params.dcv_permit_id + '/create_new_sticker/', params).then(
@@ -445,13 +487,6 @@ export default {
         },
         fetchFilterLists: function(){
             let vm = this;
-
-            // DcvOrganisation list
-            vm.$http.get(api_endpoints.dcv_organisations).then((response) => {
-                vm.dcv_organisations = response.body
-            },(error) => {
-                console.log(error);
-            })
             // FeeSeason list
             //vm.$http.get(api_endpoints.fee_seasons_dict + '?application_type_codes=dcvp').then((response) => {
             vm.$http.get(api_endpoints.fee_seasons_dict + '?application_type_codes=dcvp').then((response) => {
@@ -488,6 +523,7 @@ export default {
         let vm = this;
         this.$nextTick(() => {
             vm.addEventListeners();
+            vm.initialiseOrganisationLookup()
         });
     }
 }

@@ -136,12 +136,14 @@ logger = logging.getLogger(__name__)
 class GetDcvOrganisations(views.APIView):
     permission_classes = [InternalProposalPermission]
     def get(self, request, format=None):
+        search_term = request.GET.get('search_term', '')
         if is_internal(request): #currently only used internally, but may be acceptable for external access
-            data = DcvOrganisation.objects.all()
-            data_transform = [{'id': org.id, 'name': org.name} for org in data]
-            return Response(data_transform)
-
-
+            if search_term:
+                data = DcvOrganisation.objects.filter(name__icontains=search_term)[:10]
+                data_transform = [{'id': org.id, 'name': org.name} for org in data]
+                return Response({"results": data_transform})
+            return Response()
+        
 class GetDcvVesselRegoNos(views.APIView):
     #this can be accessed without authentication
     def get(self, request, format=None):
@@ -1185,10 +1187,14 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             action = request.data.get('action')
             if action == 'delete':
                 document_id = request.data.get('document_id')
-                document = VesselRegistrationDocument.objects.get(
-                    proposal=instance,
-                    id=document_id,
-                )
+                try:
+                    document = VesselRegistrationDocument.objects.get(
+                            proposal=instance,
+                            id=document_id,
+                            can_delete=True,
+                    )
+                except:
+                    raise serializers.ValidationError("Vessel Registration Document can't be deleted")
                 if document._file and os.path.isfile(document._file.path):
                     os.remove(document._file.path)
                 if document:
@@ -1286,10 +1292,15 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             action = request.data.get('action')
             if action == 'delete':
                 document_id = request.data.get('document_id')
-                document = HullIdentificationNumberDocument.objects.get(
-                    proposal=instance,
-                    id=document_id,
-                )
+                try:
+                    document = HullIdentificationNumberDocument.objects.get(
+                            proposal=instance,
+                            id=document_id,
+                            can_delete=True,
+                    )
+                except:
+                    raise serializers.ValidationError("Hull Identification Number Document can't be deleted")
+                
                 if document._file and os.path.isfile(document._file.path):
                     os.remove(document._file.path)
                 if document:

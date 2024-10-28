@@ -618,7 +618,8 @@ def handle_vessel_registrarion_documents_in_limbo(proposal_id, vessel_ownership)
 
     for doc in documents_in_limbo:
         doc.vessel_ownership = vessel_ownership  # Link to the vessel_ownership
-        doc.proposal = None  # Unlink to the proposal.  This link is used when proposal is draft and vessel_ownership is unknown.
+        doc.can_delete = False
+        # doc.proposal = None  # Unlink to the proposal.  This link is used when proposal is draft and vessel_ownership is unknown.
         doc.save()
 
         logger.info(f'VesselRegistrationFile: {doc} has had a link to the vessel_ownership: {vessel_ownership}')

@@ -404,13 +404,30 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if link_item.enabled:
                 # Create link to the proposal only when the doc is not deleted.
                 ProposalWrittenProofDocument.objects.create(proposal=proposal, written_proof_document=doc)
-
+        
     def copy_signed_licence_agreement_documents(self, proposal):
         for doc in self.signed_licence_agreement_documents.all():
             link_item = ProposalSignedLicenceAgreementDocument.objects.get(proposal=self, signed_licence_agreement_document=doc)
             if link_item.enabled:
                 # Create link to the proposal only when the doc is not deleted.
                 ProposalSignedLicenceAgreementDocument.objects.create(proposal=proposal, signed_licence_agreement_document=doc)
+    def copy_vessel_registration_documents(self, proposal):
+        doc_list = VesselRegistrationDocument.objects.filter(proposal=self)
+        if doc_list.count() > 0:
+            doc = doc_list.last() #get the latest vesssel registration document
+            doc.pk = None
+            doc.proposal = proposal
+            doc.can_delete = True
+            doc.save()
+
+    def copy_hull_identification_number_document(self, proposal):
+        doc_list = HullIdentificationNumberDocument.objects.filter(proposal=self)
+        if doc_list.count() > 0:
+            doc = doc_list.last() #get the latest vesssel registration document
+            doc.pk = None
+            doc.proposal = proposal
+            doc.can_delete = True
+            doc.save()
 
     def __str__(self):
         return str(self.lodgement_number)
