@@ -4419,10 +4419,6 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
 
-    # TODO review how this works and determine if needed
-    # for cron job
-    exported = models.BooleanField(default=False) # must be False after every add/edit
-
     objects = models.Manager()
     filtered_objects = VesselDetailsManager()
 
@@ -4511,10 +4507,6 @@ class VesselOwnership(RevisionedMixin):
     end_date = models.DateField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
-
-    # TODO review how this works and determine if needed
-    # for cron job
-    exported = models.BooleanField(default=False) # must be False after every add/edit
 
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()

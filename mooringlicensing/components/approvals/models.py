@@ -318,10 +318,6 @@ class Approval(RevisionedMixin):
     renewal_count = models.PositiveSmallIntegerField('Number of times an Approval has been renewed', default=0)
     migrated = models.BooleanField(default=False)
 
-    #TODO review this - look in to how exports are supposed to work, remove if not required
-    # for cron job
-    exported = models.BooleanField(default=False) # must be False after every add/edit 
-    
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     vessel_ownerships = models.ManyToManyField(VesselOwnership, through=VesselOwnershipOnApproval)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
