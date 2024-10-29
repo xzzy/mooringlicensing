@@ -874,7 +874,7 @@ def update_proposal_applicant(proposal, request):
         proposal_applicant.email = proposal_applicant_data['email']
         try:
             if proposal_applicant.email:
-                email_user = EmailUserRO.objects.get(email=proposal_applicant.email)
+                email_user = EmailUserRO.objects.get(email__iexact=proposal_applicant.email)
                 proposal_applicant.email_user_id = email_user.id
         except:
             proposal_applicant.email_user_id = None

@@ -921,7 +921,7 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                users = EmailUser.objects.filter(email=email)
+                users = EmailUser.objects.filter(email__iexact=email)
                 if users.count() == 0:
                     print(f'wl - email not found: {email}')
  
@@ -1069,7 +1069,7 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                users = EmailUser.objects.filter(email=email)
+                users = EmailUser.objects.filter(email__iexact=email)
                 if users.count() == 0:
                     print(f'ml - email not found: {email}')
  
@@ -1647,7 +1647,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email=email.lower())
+                    user = EmailUser.objects.get(email__iexact=email.lower())
                     user.first_name = first_name
                     user.last_name = last_name
                     user.save()
@@ -1810,7 +1810,7 @@ class MooringLicenceReader():
                 vessel_length = row['vessel_length']
 
                 try:
-                    user = EmailUser.objects.get(email=email.lower().strip())
+                    user = EmailUser.objects.get(email__iexact=email.lower().strip())
                 except Exception as e:
                     errors.append("User with email " + str(email.lower()) + " does not exist") 
                     continue

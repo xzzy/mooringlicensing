@@ -986,7 +986,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                         checked = item['checked']
 
             site_licensee = ""
-            site_licensee_system_user = su_qs.filter(email=i.site_licensee_email)
+            site_licensee_system_user = su_qs.filter(email__iexact=i.site_licensee_email)
             if site_licensee_system_user.exists():
                 site_licensee = get_user_name(site_licensee_system_user.first())["full_name"]
             endorsement = "Not Actioned"

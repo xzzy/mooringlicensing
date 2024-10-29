@@ -756,7 +756,6 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = DcvAdmission.objects.all().order_by('id')
     serializer_class = DcvAdmissionSerializer
-    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -835,7 +834,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 if email_address and email_address_confirmation:
                     if email_address == email_address_confirmation:
                         if skipper:
-                            this_user = EmailUser.objects.filter(email=email_address)
+                            this_user = EmailUser.objects.filter(email__iexact=email_address)
                             if this_user:
                                 new_user = this_user.first()
                             else:
@@ -962,7 +961,7 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             if email_address and email_address_confirmation:
                 if email_address == email_address_confirmation:
                     if skipper:
-                        this_user = EmailUser.objects.filter(email=email_address)
+                        this_user = EmailUser.objects.filter(email__iexact=email_address)
                         if this_user:
                             new_user = this_user.first()
                         else:

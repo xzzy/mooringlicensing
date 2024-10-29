@@ -512,7 +512,7 @@ def send_endorser_reminder_email(proposal, request=None):
     msgs = []
     for site_licensee_mooring in proposal.site_licensee_mooring_request.filter(enabled=True,endorser_reminder_sent=False):
         try:
-            endorser = EmailUser.objects.get(email=site_licensee_mooring.site_licensee_email)
+            endorser = EmailUser.objects.get(email__iexact=site_licensee_mooring.site_licensee_email)
         except:
             # Should not reach here
             continue
@@ -1432,7 +1432,7 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
     for site_licensee_mooring_request in proposal.site_licensee_mooring_request.filter(enabled=True,declined_by_endorser=False,approved_by_endorser=False):
         #replace with multiple site licensee emails
         try:
-            endorser = EmailUser.objects.get(email=site_licensee_mooring_request.site_licensee_email)
+            endorser = EmailUser.objects.get(email__iexact=site_licensee_mooring_request.site_licensee_email)
         except:
             # Should not reach here
             return
