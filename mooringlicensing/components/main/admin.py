@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 
 from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
-    NumberOfDaysSetting, NumberOfDaysType, TemporaryDocument
+    NumberOfDaysSetting, NumberOfDaysType
 from mooringlicensing.components.payments_ml.models import OracleCodeItem
 from django.utils.html import mark_safe
 
@@ -109,11 +109,6 @@ class VesselSizeCategoryGroupAdmin(admin.ModelAdmin):
         return mark_safe(baka)
 
     get_vessel_size_categories.short_description = 'vessel size category'
-
-
-@admin.register(TemporaryDocument)
-class TemporaryDocumentAdmin(admin.ModelAdmin):
-    pass
 
 
 class OracleCodeItemInline(admin.TabularInline):

@@ -1,9 +1,6 @@
 from rest_framework import serializers
 from mooringlicensing import settings
-from mooringlicensing.components.main.models import (
-        CommunicationsLogEntry,
-        TemporaryDocumentCollection,
-        )
+from mooringlicensing.components.main.models import CommunicationsLogEntry
 from ledger_api_client.ledger_models import EmailUserRO, Invoice
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 

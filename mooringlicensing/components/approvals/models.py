@@ -71,7 +71,6 @@ def update_approval_doc_filename(instance, filename):
 def update_approval_comms_log_filename(instance, filename):
     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
 
-#TODO this is not used or accessed anywhere except when a mooring is offered (upload) - consider removing or using
 class WaitingListOfferDocument(Document):
     @staticmethod
     def relative_path_to_file(approval_id, filename):

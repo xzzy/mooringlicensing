@@ -8,7 +8,6 @@ from django.http import HttpResponse
 from mooringlicensing import settings
 import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
-from mooringlicensing.components.main.models import TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
 from mooringlicensing.components.proposals.models import (
     VesselOwnershipCompanyOwnership,
@@ -630,8 +629,6 @@ def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
     temporary_document_collection_id = request_data.get('proposal', {}).get('temporary_document_collection_id')
     if temporary_document_collection_id:
         temp_doc_collection = None
-        if TemporaryDocumentCollection.objects.filter(id=temporary_document_collection_id):
-            temp_doc_collection = TemporaryDocumentCollection.objects.filter(id=temporary_document_collection_id)[0]
         if temp_doc_collection:
             for doc in temp_doc_collection.documents.all():
                 save_vessel_registration_document_obj(vessel_ownership, doc)
