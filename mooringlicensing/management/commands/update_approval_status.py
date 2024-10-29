@@ -2,13 +2,11 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db.models import Q
 
-from mooringlicensing import settings
 from mooringlicensing.components.approvals.models import (
     Approval,
     ApprovalUserAction, WaitingListAllocation,
 )
 from mooringlicensing.components.proposals.models import ProposalUserAction
-from ledger_api_client.models import EmailUser
 import datetime
 from mooringlicensing.components.approvals.email import (
     send_approval_cancel_email_notification,
@@ -42,7 +40,6 @@ class Command(BaseCommand):
         for approval in approvals:
             try:
                 approval.expire_approval()
-                # a.save()  # Saved in the above function...?
                 logger.info('Updated Approval {} status to {}'.format(approval.id, approval.status))
                 updates.append(approval.lodgement_number)
             except Exception as e:
@@ -178,8 +175,6 @@ class Command(BaseCommand):
                         errors.append(err_msg)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors)>0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)

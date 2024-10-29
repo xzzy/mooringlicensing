@@ -6,7 +6,6 @@ from django.db.models import Q
 
 import logging
 
-from mooringlicensing.components.approvals.email import send_reminder_submission_of_mla_mail
 from mooringlicensing.components.proposals.email import send_invitee_reminder_email
 from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
@@ -25,7 +24,6 @@ class Command(BaseCommand):
 
         self.perform(WaitingListAllocation.code, today, **options)
         self.perform(MooringLicence.code, today, **options)
-        # self.perform(AuthorisedUserPermit.code, today, **options)
 
     def perform(self, approval_type, today, **options):
         errors = []
@@ -65,11 +63,6 @@ class Command(BaseCommand):
         notification_date_final = today + timedelta(days=days_final_reminder-total_expire_period) 
         logger.info('Running command {}'.format(__name__))
 
-        # For debug
-        # params = options.get('params')
-        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        # approval_lodgement_number = params.get('send_vessel_nominate_reminder_lodgement_number', 'no-number')
-
         # Get approvals
         if approval_type == WaitingListAllocation.code:
             queries = Q()
@@ -94,9 +87,6 @@ class Command(BaseCommand):
        
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(
-        #     errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} ({}) completed. {}. IDs updated: {}.</p>'.format(cmd_name, approval_type, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)

@@ -28,7 +28,6 @@ class Command(BaseCommand):
 
         self.perform(WaitingListAllocation.code, today, **options)
         self.perform(MooringLicence.code, today, **options)
-        # self.perform(AuthorisedUserPermit.code, today, **options)
 
     def perform(self, approval_type, today, **options):
         errors = []
@@ -41,9 +40,6 @@ class Command(BaseCommand):
         elif approval_type == MooringLicence.code:
             days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML)
             approval_class = MooringLicence
-        # elif approval_type == AuthorisedUserPermit.code:
-        #     days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_AUP)
-        #     approval_class = AuthorisedUserPermit
         else:
             # Do nothing
             return
@@ -59,11 +55,6 @@ class Command(BaseCommand):
 
         logger.info('Running command {}'.format(__name__))
 
-        # For debug
-        # params = options.get('params')
-        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        # approval_lodgement_number = params.get('send_vessel_nominate_reminder_lodgement_number', 'no-number')
-
         # Get approvals
         if approval_type == WaitingListAllocation.code:
             queries = Q()
@@ -71,8 +62,6 @@ class Command(BaseCommand):
             queries &= Q(current_proposal__vessel_ownership__end_date__isnull=False)
             queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
             queries &= Q(vessel_nomination_reminder_sent=False)
-            # if debug:
-            #     queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
             approvals = approval_class.objects.filter(queries)
         elif approval_type == MooringLicence.code:
             queries = Q()
@@ -85,17 +74,11 @@ class Command(BaseCommand):
                 # Check if there is at least one vessel which meets the ML vessel requirement
                 if not ml_meet_vessel_requirement(approval, boundary_date):
                     approvals.append(approval)
-            # if debug:
-            #     apps = MooringLicence.objects.filter(lodgement_number__iexact=approval_lodgement_number)
-            #     if apps:
-            #         approvals.append(apps[0])
         elif approval_type == AuthorisedUserPermit.code:
             queries = Q()
             queries &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED))
             queries &= Q(current_proposal__vessel_ownership__end_date__lt=boundary_date)
             queries &= Q(vessel_nomination_reminder_sent=False)
-            # if debug:
-            #     queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
             approvals = approval_class.objects.filter(queries)
 
         for a in approvals:
@@ -111,9 +94,6 @@ class Command(BaseCommand):
                 errors.append(err_msg)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(
-        #     errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} ({}) completed. {}. IDs updated: {}.</p>'.format(cmd_name, approval_type, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)

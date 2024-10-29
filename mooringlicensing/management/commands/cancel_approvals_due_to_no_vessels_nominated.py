@@ -29,19 +29,13 @@ class Command(BaseCommand):
 
         # Retrieve the number of days before expiry date of the approvals to email
         if approval_type == WaitingListAllocation.code:
-            # days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA)
             approval_class = WaitingListAllocation
         elif approval_type == MooringLicence.code:
-            # days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML)
             approval_class = MooringLicence
         else:
             # Do nothing
             return
 
-        # days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
-        # if not days_setting:
-        #     # No number of days found
-        #     raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
         # NOTE: When sending the reminder:
         #       sold_date + 6months < today
         #       sold_date < today - 6months
@@ -86,9 +80,6 @@ class Command(BaseCommand):
                 errors.append(err_msg)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(
-        #     errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} ({}) completed. {}. IDs updated: {}.</p>'.format(cmd_name, approval_type, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)
