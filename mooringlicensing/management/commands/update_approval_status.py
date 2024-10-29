@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
         # Expiry
         queries = Q()
-        queries &= (Q(status=Approval.APPROVAL_STATUS_CURRENT) & Q(replaced_by__isnull=True))
+        queries &= (Q(status=Approval.APPROVAL_STATUS_CURRENT))
         queries &= Q(expiry_date__lt=today)
 
         approvals = Approval.objects.filter(queries)

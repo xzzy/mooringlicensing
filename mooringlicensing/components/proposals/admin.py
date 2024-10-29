@@ -48,7 +48,7 @@ class VesselDetailsAdmin(admin.ModelAdmin):
 
 @admin.register(models.CompanyOwnership)
 class CompanyOwnershipAdmin(admin.ModelAdmin):
-    list_display = ['id', 'company', 'vessel', 'percentage', 'start_date', 'end_date',]
+    list_display = ['id', 'company', 'vessel', 'percentage',]
 
 
 @admin.register(models.Proposal)
@@ -78,7 +78,6 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     list_filter = ('application_type', 'obsolete',)
 
     def get_form(self, request, obj=None, **kwargs):
-        self.exclude = ("participant_number_required", "default",)
         form = super(ProposalStandardRequirementAdmin, self).get_form(request, obj, **kwargs)
         return form
 

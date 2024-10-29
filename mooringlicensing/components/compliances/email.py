@@ -2,20 +2,15 @@ import logging
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_str
-# from django.core.urlresolvers import reverse
 from django.urls import reverse
 from django.conf import settings
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-#from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.emails.utils import get_public_url, make_http_https
 from mooringlicensing.components.users.utils import _log_user_email
-
-# from mooringlicensing.components.main.models import EmailUserLogEntry
-# from mooringlicensing.components.main.utils import _log_user_email
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +67,6 @@ class ComplianceInternalDueNotificationEmail(TemplateEmailBase):
 
 def send_amendment_email_notification(amendment_request, request, compliance, is_test=False):
     email = ComplianceAmendmentRequestSendNotificationEmail()
-    #reason = amendment_request.get_reason_display()
     reason = amendment_request.reason.reason
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = ''.join(url.split('-internal'))
@@ -279,7 +273,6 @@ def send_submit_email_notification(request, compliance, is_test=False):
 def _log_compliance_email(email_message, compliance, sender=None):
     from mooringlicensing.components.compliances.models import ComplianceLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject
         fromm = smart_str(sender) if sender else smart_str(email_message.from_email)

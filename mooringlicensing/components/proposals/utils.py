@@ -1,18 +1,15 @@
 import datetime
 import mimetypes
 import os
-import re
 from decimal import Decimal
 
-from django.db import transaction
 from django.http import HttpResponse
 
 from mooringlicensing import settings
 import json
 from mooringlicensing.components.main.utils import get_dot_vessel_information
-from mooringlicensing.components.main.models import GlobalSettings, TemporaryDocumentCollection
+from mooringlicensing.components.main.models import TemporaryDocumentCollection
 from mooringlicensing.components.main.process_document import save_vessel_registration_document_obj
-from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.components.proposals.models import (
     VesselOwnershipCompanyOwnership,
     WaitingListApplication,
@@ -33,318 +30,28 @@ from mooringlicensing.components.proposals.serializers import (
     SaveVesselOwnershipSerializer,
     SaveCompanyOwnershipSerializer,
     SaveDraftProposalVesselSerializer,
-    #SaveProposalSerializer,
     SaveWaitingListApplicationSerializer,
     SaveMooringLicenceApplicationSerializer,
     SaveAuthorisedUserApplicationSerializer,
     SaveAnnualAdmissionApplicationSerializer,
-    VesselDetailsSerializer, CompanyOwnershipSerializer,
+    VesselDetailsSerializer,
 )
 
 from mooringlicensing.components.approvals.models import (
-    ApprovalHistory,
     MooringLicence,
-    AnnualAdmissionPermit,
-    WaitingListAllocation,
-    AuthorisedUserPermit, Approval
+    Approval
 )
 from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
-from mooringlicensing.components.users.serializers import UserSerializer
-from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.ledger_models import EmailUserRO
 from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_SWAP_MOORINGS
-import traceback
 from copy import deepcopy
 from rest_framework import serializers
 
 import logging
 from django.db.models import Q
 
-
-# logger = logging.getLogger('mooringlicensing')
 logger = logging.getLogger(__name__)
-
-
-def create_data_from_form(schema, post_data, file_data, post_data_index=None,special_fields=[],assessor_data=False):
-    data = {}
-    special_fields_list = []
-    assessor_data_list = []
-    comment_data_list = {}
-    special_fields_search = SpecialFieldsSearch(special_fields)
-    if assessor_data:
-        assessor_fields_search = AssessorDataSearch()
-        comment_fields_search = CommentDataSearch()
-    try:
-        for item in schema:
-            data.update(_create_data_from_item(item, post_data, file_data, 0, ''))
-            special_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
-            if assessor_data:
-                assessor_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
-                comment_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
-        special_fields_list = special_fields_search.special_fields
-        if assessor_data:
-            assessor_data_list = assessor_fields_search.assessor_data
-            comment_data_list = comment_fields_search.comment_data
-    except:
-        traceback.print_exc()
-    if assessor_data:
-        return [data],special_fields_list,assessor_data_list,comment_data_list
-
-    return [data],special_fields_list
-
-
-def _extend_item_name(name, suffix, repetition):
-    return '{}{}-{}'.format(name, suffix, repetition)
-
-def _create_data_from_item(item, post_data, file_data, repetition, suffix):
-    item_data = {}
-
-    if 'name' in item:
-        extended_item_name = item['name']
-    else:
-        raise Exception('Missing name in item %s' % item['label'])
-
-    if 'children' not in item:
-        if item['type'] in ['checkbox' 'declaration']:
-            item_data[item['name']] = extended_item_name in post_data
-        elif item['type'] == 'file':
-            if extended_item_name in file_data:
-                item_data[item['name']] = str(file_data.get(extended_item_name))
-                # TODO save the file here
-            elif extended_item_name + '-existing' in post_data and len(post_data[extended_item_name + '-existing']) > 0:
-                item_data[item['name']] = post_data.get(extended_item_name + '-existing')
-            else:
-                item_data[item['name']] = ''
-        else:
-            if extended_item_name in post_data:
-                if item['type'] == 'multi-select':
-                    item_data[item['name']] = post_data.getlist(extended_item_name)
-                else:
-                    item_data[item['name']] = post_data.get(extended_item_name)
-    else:
-        if 'repetition' in item:
-            item_data = generate_item_data(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
-        else:
-            item_data = generate_item_data(extended_item_name, item, item_data, post_data, file_data,1,suffix)
-
-
-    if 'conditions' in item:
-        for condition in item['conditions'].keys():
-            for child in item['conditions'][condition]:
-                item_data.update(_create_data_from_item(child, post_data, file_data, repetition, suffix))
-
-    return item_data
-
-def generate_item_data(item_name,item,item_data,post_data,file_data,repetition,suffix):
-    item_data_list = []
-    for rep in xrange(0, repetition):
-        child_data = {}
-        for child_item in item.get('children'):
-            child_data.update(_create_data_from_item(child_item, post_data, file_data, 0,
-                                                     '{}-{}'.format(suffix, rep)))
-        item_data_list.append(child_data)
-
-        item_data[item['name']] = item_data_list
-    return item_data
-
-class AssessorDataSearch(object):
-
-    def __init__(self,lookup_field='canBeEditedByAssessor'):
-        self.lookup_field = lookup_field
-        self.assessor_data = []
-
-    def extract_assessor_data(self,item,post_data):
-        values = []
-        res = {
-            'name': item,
-            'assessor': '',
-            'referrals':[]
-        }
-        for k in post_data:
-            if re.match(item,k):
-                values.append({k:post_data[k]})
-        if values:
-            for v in values:
-                for k,v in v.items():
-                    parts = k.split('{}-'.format(item))
-                    if len(parts) > 1:
-                        # split parts to see if referall
-                        ref_parts = parts[1].split('Referral-')
-                        if len(ref_parts) > 1:
-                            # Referrals
-                            try:
-                                system_user = SystemUser.objects.get(email=ref_parts[1].lower())
-                                names = get_user_name(system_user)
-                                full_name = names["full_name"]
-                            except:
-                                full_name = "unavailable"
-                            res['referrals'].append({
-                                'value':v,
-                                'email':ref_parts[1],
-                                'full_name': full_name,
-                            })
-                        elif k.split('-')[-1].lower() == 'assessor':
-                            # Assessor
-                            res['assessor'] = v
-
-        return res
-
-    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
-        item_data = {}
-        if 'name' in item:
-            extended_item_name = item['name']
-        else:
-            raise Exception('Missing name in item %s' % item['label'])
-
-        if 'children' not in item:
-            if 'conditions' in item:
-                for condition in item['conditions'].keys():
-                    for child in item['conditions'][condition]:
-                        item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
-
-            if item.get(self.lookup_field):
-                self.assessor_data.append(self.extract_assessor_data(extended_item_name,post_data))
-
-        else:
-            if 'repetition' in item:
-                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
-            else:
-                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
-
-            if 'conditions' in item:
-                for condition in item['conditions'].keys():
-                    for child in item['conditions'][condition]:
-                        item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
-
-        return item_data
-
-    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
-        item_data_list = []
-        for rep in xrange(0, repetition):
-            child_data = {}
-            for child_item in item.get('children'):
-                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
-                                                         '{}-{}'.format(suffix, rep)))
-            item_data_list.append(child_data)
-
-            item_data[item['name']] = item_data_list
-        return item_data
-
-class CommentDataSearch(object):
-
-    def __init__(self,lookup_field='canBeEditedByAssessor'):
-        self.lookup_field = lookup_field
-        self.comment_data = {}
-
-    def extract_comment_data(self,item,post_data):
-        res = {}
-        values = []
-        for k in post_data:
-            if re.match(item,k):
-                values.append({k:post_data[k]})
-        if values:
-            for v in values:
-                for k,v in v.items():
-                    parts = k.split('{}'.format(item))
-                    if len(parts) > 1:
-                        ref_parts = parts[1].split('-comment-field')
-                        if len(ref_parts) > 1:
-                            res = {'{}'.format(item):v}
-        return res
-
-    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
-        item_data = {}
-        if 'name' in item:
-            extended_item_name = item['name']
-        else:
-            raise Exception('Missing name in item %s' % item['label'])
-
-        if 'children' not in item:
-            self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
-
-        else:
-            if 'repetition' in item:
-                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
-            else:
-                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
-
-
-        if 'conditions' in item:
-            for condition in item['conditions'].keys():
-                for child in item['conditions'][condition]:
-                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
-
-        return item_data
-
-    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
-        item_data_list = []
-        for rep in xrange(0, repetition):
-            child_data = {}
-            for child_item in item.get('children'):
-                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
-                                                         '{}-{}'.format(suffix, rep)))
-            item_data_list.append(child_data)
-
-            item_data[item['name']] = item_data_list
-        return item_data
-
-class SpecialFieldsSearch(object):
-
-    def __init__(self,lookable_fields):
-        self.lookable_fields = lookable_fields
-        self.special_fields = {}
-
-    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
-        item_data = {}
-        if 'name' in item:
-            extended_item_name = item['name']
-        else:
-            raise Exception('Missing name in item %s' % item['label'])
-
-        if 'children' not in item:
-            for f in self.lookable_fields:
-                if item['type'] in ['checkbox' 'declaration']:
-                    val = None
-                    val = item.get(f,None)
-                    if val:
-                        item_data[f] = extended_item_name in post_data
-                        self.special_fields.update(item_data)
-                else:
-                    if extended_item_name in post_data:
-                        val = None
-                        val = item.get(f,None)
-                        if val:
-                            if item['type'] == 'multi-select':
-                                item_data[f] = ','.join(post_data.getlist(extended_item_name))
-                            else:
-                                item_data[f] = post_data.get(extended_item_name)
-                            self.special_fields.update(item_data)
-        else:
-            if 'repetition' in item:
-                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
-            else:
-                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
-
-
-        if 'conditions' in item:
-            for condition in item['conditions'].keys():
-                for child in item['conditions'][condition]:
-                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
-
-        return item_data
-
-    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
-        item_data_list = []
-        for rep in xrange(0, repetition):
-            child_data = {}
-            for child_item in item.get('children'):
-                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
-                                                         '{}-{}'.format(suffix, rep)))
-            item_data_list.append(child_data)
-
-            item_data[item['name']] = item_data_list
-        return item_data
 
 def save_proponent_data(instance, request, action, being_auto_approved=False):
 
@@ -364,19 +71,6 @@ def save_proponent_data(instance, request, action, being_auto_approved=False):
             save_proponent_data_aua(instance, request, action)
         elif type(instance.child_obj) == MooringLicenceApplication:
             save_proponent_data_mla(instance, request, action) 
-
-        instance.refresh_from_db()
-        if instance.proposal_applicant and instance.proposal_applicant.email_user_id == request.user.id:
-            # Save request.user details in a JSONField not to overwrite the details of it.
-            try:
-                user = SystemUser.objects.get(ledger_id=request.user)
-                serializer = UserSerializer(user, context={'request':request})
-                if instance:
-                    instance.personal_details = serializer.data
-                    instance.save()
-            except Exception as e:
-                print(e)
-                raise serializers.ValidationError("error")
     else:
         raise serializers.ValidationError("user not authorised to update applicant details")
 
@@ -401,7 +95,6 @@ def save_proponent_data_aaa(instance, request, action):
             context={
                 "action": action,
                 "proposal_id": instance.id
-                #"ignore_insurance_check": request.data.get("ignore_insurance_check")
                 }
     )
     serializer.is_valid(raise_exception=True)
@@ -413,7 +106,6 @@ def save_proponent_data_aaa(instance, request, action):
     instance.child_obj.set_auto_approve(request)
     instance.refresh_from_db()
     if action == 'submit':
-        # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
@@ -455,7 +147,6 @@ def save_proponent_data_wla(instance, request, action):
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
     if action == 'submit':
-        # if instance.invoice and instance.invoice.payment_status in ['paid', 'over_paid']:
         if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
@@ -484,11 +175,9 @@ def save_proponent_data_mla(instance, request, action):
             context={
                 "action": action,
                 "proposal_id": instance.id
-                #"ignore_insurance_check":request.data.get("ignore_insurance_check")
                 }
     )
     serializer.is_valid(raise_exception=True)
-    #instance = serializer.save()
     serializer.save()
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
@@ -574,7 +263,6 @@ def save_proponent_data_aua(instance, request, action):
                 }
     )
     serializer.is_valid(raise_exception=True)
-    #instance = serializer.save()
     serializer.save()
     logger.info(f'Update the Proposal: [{instance}] with the data: [{proposal_data}].')
 
@@ -614,11 +302,7 @@ def save_vessel_data(instance, request, vessel_data):
         vessel_data.update({key: vessel_ownership_data.get(key)})
 
     # overwrite vessel_data.id with correct value
-    #TODO: this should be adjusted to a) not use a client-derived value b) not have its own block with pass, just reverse the condition c) be implemented in submit_vessel_data
-    if type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly'): 
-        # do not write vessel_data to proposal
-        pass
-    else:
+    if not (type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly')): 
         serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -722,7 +406,7 @@ def store_vessel_data(request, vessel_data):
     existing_vessel_details = vessel.latest_vessel_details
     ## we no longer use a read_only flag, so must compare incoming data to existing
     existing_vessel_details_data = VesselDetailsSerializer(existing_vessel_details).data
-    #print(existing_vessel_details_data.keys())
+
     create_vessel_details = False
     for key in existing_vessel_details_data.keys():
         if key in vessel_details_data and existing_vessel_details_data[key] != vessel_details_data[key]:
@@ -785,7 +469,7 @@ def store_vessel_ownership(request, vessel, instance):
         if company_ownership_set.count():
             company_ownership = company_ownership_set.first()
         else:
-            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)  # TODO: percentage should be saved in a vessel_ownership_company_ownership object temporarily until it gets 'approved' status...???
+            serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
             serializer.is_valid(raise_exception=True)
             company_ownership = serializer.save()
             logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
@@ -799,21 +483,6 @@ def store_vessel_ownership(request, vessel, instance):
                     serializer.is_valid(raise_exception=True)
                     company_ownership = serializer.save()
                     logger.info(f'CompanyOwnership: [{company_ownership}] has been updated')
-        # elif company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED):
-        #     company_ownership = company_ownership_set.filter(status=CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED)[0]
-        #     existing_company_ownership_data = CompanyOwnershipSerializer(company_ownership).data
-        #     for key in existing_company_ownership_data.keys():
-        #         if key in company_ownership_data and existing_company_ownership_data[key] != company_ownership_data[key]:
-        #             # At least one field has a different value.
-        #             create_company_ownership = True
-        # else:
-        #     create_company_ownership = True
-
-        # if create_company_ownership:
-        #     serializer = SaveCompanyOwnershipSerializer(data=company_ownership_data)
-        #     serializer.is_valid(raise_exception=True)
-        #     company_ownership = serializer.save()
-        #     logger.info(f'New CompanyOwnership: [{company_ownership}] has been created')
 
 
     ## add to vessel_ownership_data
@@ -827,9 +496,6 @@ def store_vessel_ownership(request, vessel, instance):
             company_ownership.save()
 
             logger.info(f'BlockingProposal: [{instance.lodgement_number}] has been set to the CompanyOwnership: [{company_ownership}]')
-    else:
-        # vessel_ownership_data['company_ownership'] = None
-        pass
     vessel_ownership_data['vessel'] = vessel.id
 
     if instance and instance.proposal_applicant:
@@ -865,7 +531,6 @@ def store_vessel_ownership(request, vessel, instance):
             vo_created = True
     elif instance.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_SWAP_MOORINGS,]:
         # Retrieve a vessel_ownership from the previous proposal
-        # vessel_ownership = instance.previous_application.vessel_ownership  # !!! This is not always true when ML !!!
         vessel_ownership = instance.vessel_ownership if instance.vessel_ownership != None else instance.get_latest_vessel_ownership_by_vessel(vessel)
 
         vessel_ownership_to_be_created = False
@@ -898,7 +563,6 @@ def store_vessel_ownership(request, vessel, instance):
             vessel_ownership = VesselOwnership.objects.create(
                 owner=owner,  # Owner is actually the accessing user (request.user) as above.
                 vessel=vessel,
-                # company_ownership=company_ownership
             )
             if company_ownership:
                 vessel_ownership.company_ownerships.add(company_ownership)
@@ -935,11 +599,9 @@ def store_vessel_ownership(request, vessel, instance):
     vessel_ownership = serializer.save()
     logger.info(f'VesselOwnership: [{vessel_ownership}] has been updated with the data: [{vessel_ownership_data}].')
 
-    #####
     if company_ownership:
         vessel_ownership.company_ownerships.add(company_ownership)
         logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
-    #####
 
     # check and set blocking_owner
     if instance:
@@ -948,10 +610,6 @@ def store_vessel_ownership(request, vessel, instance):
     # save temp doc if exists
     handle_vessel_registrarion_documents_in_limbo(instance.id, vessel_ownership)
 
-    # Vessel docs
-    # if vessel_ownership.company_ownership and not vessel_ownership.vessel_registration_documents.all():
-    # if vessel_ownership.company_ownerships.count() and not vessel_ownership.vessel_registration_documents.all():
-    #     raise serializers.ValidationError({"Vessel Registration Papers": "Please attach"})
     return vessel_ownership
 
 def handle_vessel_registrarion_documents_in_limbo(proposal_id, vessel_ownership):
@@ -989,29 +647,22 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     min_percent_fail = False
     vessel_ownership_percentage = 0
     ## First ensure applicable % >= 25
-    # if hasattr(vessel_ownership.company_ownership, 'id'):
     if vessel_ownership.company_ownerships.count():
-        # company_ownership = vessel_ownership.company_ownerships.get(vessel=vessel_ownership.vessel)  # TODO: may return more than 2 company_ownerships
         company_ownership = vessel_ownership.company_ownerships.filter(
             vessel=vessel_ownership.vessel, 
-            # status__in=[CompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, CompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
             vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
         ).order_by('created').last()
-        # company_ownership_id = vessel_ownership.company_ownership.id
         if company_ownership:
             company_ownership_id = company_ownership.id
-            # if not vessel_ownership.company_ownership.percentage:
     if company_ownership_id:
         if not company_ownership.percentage:
             raise serializers.ValidationError({
                 "Ownership Percentage": "You must specify a percentage"
                 })
         else:
-            # if vessel_ownership.company_ownership.percentage < 25:
             if company_ownership.percentage < 25:
                 min_percent_fail = True
             else:
-                # vessel_ownership_percentage = vessel_ownership.company_ownership.percentage
                 vessel_ownership_percentage = company_ownership.percentage    
     elif not vessel_ownership.percentage:
         raise serializers.ValidationError({
@@ -1039,7 +690,6 @@ def ownership_percentage_validation(vessel_ownership, proposal):
         if vo in previous_vessel_ownerships:
             # We don't want to count the percentage in the previous vessel ownerships
             continue
-        # if hasattr(vo.company_ownership, 'id'):
         if vo.company_ownerships.count():
             company_ownership = vo.get_latest_company_ownership()
             if company_ownership:
@@ -1114,7 +764,7 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
         fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
     else:
         if proposal.does_accept_null_vessel:
-            # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it
+            # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it (investigate if this has been done or not)
             fee_amount_adjusted = 0
         else:
             msg = 'The application fee admin data might have not been set up correctly.  Please contact the Rottnest Island Authority.'
@@ -1165,22 +815,22 @@ def change_proposal_applicant(proposal_applicant, system_user):
     proposal_applicant.dob = system_user.legal_dob
 
     # Residential address
-    proposal_applicant.residential_line1 = None
-    proposal_applicant.residential_line2 = None
-    proposal_applicant.residential_line3 = None
-    proposal_applicant.residential_locality = None
-    proposal_applicant.residential_state = None
-    proposal_applicant.residential_country = None
-    proposal_applicant.residential_postcode = None
+    proposal_applicant.residential_address_line1 = None
+    proposal_applicant.residential_address_line2 = None
+    proposal_applicant.residential_address_line3 = None
+    proposal_applicant.residential_address_locality = None
+    proposal_applicant.residential_address_state = None
+    proposal_applicant.residential_address_country = None
+    proposal_applicant.residential_address_postcode = None
 
     # Postal address
-    proposal_applicant.postal_line1 = None
-    proposal_applicant.postal_line2 = None
-    proposal_applicant.postal_line3 = None
-    proposal_applicant.postal_locality = None
-    proposal_applicant.postal_state = None
-    proposal_applicant.postal_country = None
-    proposal_applicant.postal_postcode = None
+    proposal_applicant.postal_address_line1 = None
+    proposal_applicant.postal_address_line2 = None
+    proposal_applicant.postal_address_line3 = None
+    proposal_applicant.postal_address_locality = None
+    proposal_applicant.postal_address_state = None
+    proposal_applicant.postal_address_country = None
+    proposal_applicant.postal_address_postcode = None
     
     proposal_applicant.save()
 
@@ -1204,29 +854,27 @@ def update_proposal_applicant(proposal, request):
         proposal_applicant.dob = correct_date
  
         if 'residential_address' in proposal_applicant_data:
-            proposal_applicant.residential_line1 = proposal_applicant_data['residential_address']['line1']
-            proposal_applicant.residential_line2 = proposal_applicant_data['residential_address']['line2']
-            proposal_applicant.residential_line3 = proposal_applicant_data['residential_address']['line3']
-            proposal_applicant.residential_locality = proposal_applicant_data['residential_address']['locality']
-            proposal_applicant.residential_state = proposal_applicant_data['residential_address']['state']
-            proposal_applicant.residential_country = proposal_applicant_data['residential_address']['country']
-            proposal_applicant.residential_postcode = proposal_applicant_data['residential_address']['postcode']
-
-        #proposal_applicant.postal_same_as_residential = proposal_applicant_data['postal_same_as_residential']
+            proposal_applicant.residential_address_line1 = proposal_applicant_data['residential_address']['line1']
+            proposal_applicant.residential_address_line2 = proposal_applicant_data['residential_address']['line2']
+            proposal_applicant.residential_address_line3 = proposal_applicant_data['residential_address']['line3']
+            proposal_applicant.residential_address_locality = proposal_applicant_data['residential_address']['locality']
+            proposal_applicant.residential_address_state = proposal_applicant_data['residential_address']['state']
+            proposal_applicant.residential_address_country = proposal_applicant_data['residential_address']['country']
+            proposal_applicant.residential_address_postcode = proposal_applicant_data['residential_address']['postcode']
 
         if 'postal_address' in proposal_applicant_data:
-            proposal_applicant.postal_line1 = proposal_applicant_data['postal_address']['line1']
-            proposal_applicant.postal_line2 = proposal_applicant_data['postal_address']['line2']
-            proposal_applicant.postal_line3 = proposal_applicant_data['postal_address']['line3']
-            proposal_applicant.postal_locality = proposal_applicant_data['postal_address']['locality']
-            proposal_applicant.postal_state = proposal_applicant_data['postal_address']['state']
-            proposal_applicant.postal_country = proposal_applicant_data['postal_address']['country']
-            proposal_applicant.postal_postcode = proposal_applicant_data['postal_address']['postcode']
+            proposal_applicant.postal_address_line1 = proposal_applicant_data['postal_address']['line1']
+            proposal_applicant.postal_address_line2 = proposal_applicant_data['postal_address']['line2']
+            proposal_applicant.postal_address_line3 = proposal_applicant_data['postal_address']['line3']
+            proposal_applicant.postal_address_locality = proposal_applicant_data['postal_address']['locality']
+            proposal_applicant.postal_address_state = proposal_applicant_data['postal_address']['state']
+            proposal_applicant.postal_address_country = proposal_applicant_data['postal_address']['country']
+            proposal_applicant.postal_address_postcode = proposal_applicant_data['postal_address']['postcode']
 
         proposal_applicant.email = proposal_applicant_data['email']
         try:
             if proposal_applicant.email:
-                email_user = EmailUserRO.objects.get(email=proposal_applicant.email)
+                email_user = EmailUserRO.objects.get(email__iexact=proposal_applicant.email)
                 proposal_applicant.email_user_id = email_user.id
         except:
             proposal_applicant.email_user_id = None

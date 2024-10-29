@@ -197,7 +197,7 @@
                                     </div>
                                 </div>
                                 
-                                <div v-if="!is_internal" class="form-group"> <!--TODO allow for internal submissions-->
+                                <div v-if="!is_internal" class="form-group">
                                     <label>DCV Permit</label>
                                     <div>
                                         <div v-for="(application_type, index) in dcvpChoices">

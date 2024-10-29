@@ -170,13 +170,10 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
     except:
         sender_user = None
 
-
-    #approver_group = ProposalApproverGroup.objects.all().first()
     to_address = approval.applicant_obj.email
     all_ccs = []
-    #bcc = approver_group.members_email
-    # TODO: fix bcc with correct security group
-    bcc = []
+    bcc = approval.current_proposal.approver_recipients
+
     msg = email.send(to_address, context=context, attachments=[], cc=all_ccs, bcc=bcc,)
     if msg:
         _log_approval_email(msg, approval, sender=sender_user)
@@ -225,7 +222,6 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
 def _log_approval_email(email_message, approval, sender=None, attachments=[]):
     from mooringlicensing.components.approvals.models import ApprovalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject
         fromm = smart_str(sender) if sender else smart_str(email_message.from_email)
@@ -277,7 +273,6 @@ def _log_approval_email(email_message, approval, sender=None, attachments=[]):
 def log_mla_created_proposal_email(email_message, proposal, sender=None):
     from mooringlicensing.components.proposals.models import ProposalLogEntry, ProposalLogDocument
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject
         fromm = smart_str(sender) if sender else smart_str(email_message.from_email)
@@ -351,10 +346,6 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     attachments = []
 
     # attach invoice
-    # contents = create_invoice_pdf_bytes('invoice.pdf', invoice,)
-    # attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
-    # url = get_invoice_url(invoice.reference, request)
-    # invoice_pdf = requests.get(url=url)
     api_key = settings.LEDGER_API_KEY
     url = settings.LEDGER_API_URL+'/ledgergw/invoice-pdf/'+api_key+'/' + invoice.reference
     invoice_pdf = requests.get(url=url)
@@ -374,8 +365,6 @@ def send_dcv_permit_mail(dcv_permit, invoice, request):
     bcc = []
 
     # Update bcc if
-    # dcv_group = Group.objects.get(name=settings.GROUP_DCV_PERMIT_ADMIN)
-    # users = dcv_group.user_set.all()
     dcv_group = ledger_api_client.managed_models.SystemGroup.objects.get(name="Mooring Licensing - DCV Permit Admin")
     ids = dcv_group.get_system_group_member_ids()
     users = EmailUserRO.objects.filter(id__in=ids)
@@ -455,8 +444,6 @@ def send_approval_cancel_email_notification(approval):
     # email to licence/permit holder when licence/permit is cancelled
     email = TemplateEmailBase(
         subject='Cancelled: {} {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number),
-        # html_template='mooringlicensing/emails/approval_cancel_notification.html',
-        # txt_template='mooringlicensing/emails/approval_cancel_notification.txt',
         html_template='mooringlicensing/emails_2/email_28.html',
         txt_template='mooringlicensing/emails_2/email_28.txt',
     )
@@ -487,8 +474,6 @@ def send_approval_suspend_email_notification(approval, request=None):
     # email to licence/permit holder when licence/permit is suspended
     email = TemplateEmailBase(
         subject='Suspended: {} {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number),
-        # html_template='mooringlicensing/emails/approval_suspend_notification.html',
-        # txt_template='mooringlicensing/emails/approval_suspend_notification.txt',
         html_template='mooringlicensing/emails_2/email_29.html',
         txt_template='mooringlicensing/emails_2/email_29.txt',
     )
@@ -601,8 +586,6 @@ def send_approval_reinstate_email_notification(approval, request):
     # email to licence/permit holder when licence/permit is reinstated or when suspension ends
     email = TemplateEmailBase(
         subject='Re-instated: {} {} - Rottnest Island Authority'.format(approval.description, approval.lodgement_number),
-        # html_template='mooringlicensing/emails/approval_reinstate_notification.html',
-        # txt_template='mooringlicensing/emails/approval_reinstate_notification.txt',
         html_template='mooringlicensing/emails_2/email_31.html',
         txt_template='mooringlicensing/emails_2/email_31.txt',
     )
@@ -612,7 +595,7 @@ def send_approval_reinstate_email_notification(approval, request):
         'public_url': get_public_url(request),
         'approval': approval,
         'recipient': approval.applicant_obj,
-        'details': '',  # TODO
+        'details': '',  # TODO add details
     }
     all_ccs = []
     msg = email.send(proposal.applicant_obj.email, cc=all_ccs, context=context)
@@ -801,19 +784,11 @@ def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoi
 
     # Attach invoice
     attachments = []
-    # invoice_bytes = create_invoice_pdf_bytes('invoice.pdf', invoice, )
-    # attachment = ('invoice#{}.pdf'.format(invoice.reference), invoice_bytes, 'application/pdf')
-    # attachments.append(attachment)
 
     url = f'{settings.LEDGER_API_URL}/ledgergw/invoice-pdf/{settings.LEDGER_API_KEY}/{invoice_reference}'
     invoice_pdf = requests.get(url=url)
     if invoice_pdf.status_code == 200:
         attachment = ('invoice#{}.pdf'.format(invoice_reference), invoice_pdf.content, 'application/pdf')
-
-    # url = get_invoice_url(invoice.reference, request)
-    # invoice_pdf = requests.get(url=url)
-    # if invoice_pdf.status_code == 200:
-    #     attachment = (f'invoice#{invoice.reference}', invoice_pdf.content, 'application/pdf')
         attachments.append(attachment)
 
     context = {

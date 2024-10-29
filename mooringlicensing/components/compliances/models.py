@@ -6,9 +6,8 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.conf import settings
 from mooringlicensing.helpers import is_internal
-from ledger_api_client.ledger_models import Invoice
 from mooringlicensing.components.main.models import (
-    CommunicationsLogEntry,  # Region,
+    CommunicationsLogEntry,
     UserAction,
     Document, RevisionedMixin
 )
@@ -24,7 +23,7 @@ from mooringlicensing.components.compliances.email import (
                         send_due_email_notification,
                         send_internal_due_email_notification
                         )
-# from ledger.payments.invoice.models import Invoice
+
 private_storage = FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
     location=settings.PRIVATE_MEDIA_STORAGE_LOCATION,
     base_url=settings.PRIVATE_MEDIA_BASE_URL,
@@ -33,7 +32,6 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
 import logging
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
-from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_COMPLIANCE
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +70,7 @@ class Compliance(RevisionedMixin):
     approval = models.ForeignKey('mooringlicensing.Approval', related_name='compliances', on_delete=models.CASCADE)
     due_date = models.DateField()
     text = models.TextField(blank=True)
-    num_participants = models.SmallIntegerField('Number of participants', blank=True, null=True)
+
     processing_status = models.CharField(choices=PROCESSING_STATUS_CHOICES,max_length=20)
     customer_status = models.CharField(choices=CUSTOMER_STATUS_CHOICES,max_length=20)
     assigned_to = models.IntegerField( null=True, blank=True)
@@ -81,7 +79,6 @@ class Compliance(RevisionedMixin):
     submitter = models.IntegerField(blank=True, null=True)
     post_reminder_sent = models.BooleanField(default=False)
     due_reminder_count = models.PositiveSmallIntegerField('Number of times a due reminder has been sent', default=0)
-    fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -104,14 +101,6 @@ class Compliance(RevisionedMixin):
         ) if (self.proposal.proposal_applicant and 
             self.proposal.proposal_applicant.email_user_id
         ) else None
-
-    @property
-    def regions(self):
-        return self.proposal.regions_list
-
-    @property
-    def activity(self):
-        return self.proposal.activity
 
     @property
     def title(self):
@@ -145,22 +134,8 @@ class Compliance(RevisionedMixin):
 
     @property
     def amendment_requests(self):
-        qs =ComplianceAmendmentRequest.objects.filter(compliance = self)
+        qs = ComplianceAmendmentRequest.objects.filter(compliance = self)
         return qs
-
-    @property
-    def participant_number_required(self):
-        if self.requirement.standard_requirement and self.requirement.standard_requirement.participant_number_required:
-            return True
-        return False
-
-    @property
-    def fee_paid(self):
-        return True if self.fee_invoice_reference else False
-
-    @property
-    def fee_amount(self):
-        return Invoice.objects.get(reference=self.fee_invoice_reference).amount if self.fee_paid else None
 
     def save(self, *args, **kwargs):
         super(Compliance, self).save(*args,**kwargs)
@@ -203,7 +178,6 @@ class Compliance(RevisionedMixin):
                 raise
 
     def delete_document(self, request, document):
-        #TODO use System Groups
         if (
             is_internal(request) or 
             (
@@ -224,24 +198,21 @@ class Compliance(RevisionedMixin):
 
     def assign_to(self, user, request):
         with transaction.atomic():
-            #TODO use System Groups and also check assignee
-            if is_internal(request):
+            if is_internal(request) and user in self.allowed_assessors and request.user in self.allowed_assessors:
                 self.assigned_to = user.id
                 self.save()
                 self.log_user_action(ComplianceUserAction.ACTION_ASSIGN_TO.format(user.get_full_name()),request)
 
     def unassign(self,request):
         with transaction.atomic():
-            #TODO use System Groups
-            if is_internal(request):
+            if is_internal(request) and request.user in self.allowed_assessors:
                 self.assigned_to = None
                 self.save()
                 self.log_user_action(ComplianceUserAction.ACTION_UNASSIGN,request)
 
     def accept(self, request):
         with transaction.atomic():
-            #TODO use System Groups
-            if self.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and is_internal(request):
+            if self.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and is_internal(request) and request.user in self.allowed_assessors:
                 self.processing_status = Compliance.PROCESSING_STATUS_APPROVED
                 self.customer_status = Compliance.CUSTOMER_STATUS_APPROVED
                 self.save()
@@ -348,16 +319,6 @@ class ComplianceLogDocument(Document):
         app_label = 'mooringlicensing'
 
 
-class CompRequest(models.Model):
-    compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
-    subject = models.CharField(max_length=200, blank=True)
-    text = models.TextField(blank=True)
-    officer = models.IntegerField(null=True, blank=True)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-
-
 class ComplianceAmendmentReason(models.Model):
     reason = models.CharField('Reason', max_length=125)
 
@@ -368,11 +329,13 @@ class ComplianceAmendmentReason(models.Model):
         return self.reason
 
 
-class ComplianceAmendmentRequest(CompRequest):
+class ComplianceAmendmentRequest(models.Model):
     STATUS_CHOICES = (('requested', 'Requested'), ('amended', 'Amended'))
 
+    compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
     status = models.CharField('Status', max_length=30, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
     reason = models.ForeignKey(ComplianceAmendmentReason, blank=True, null=True, on_delete=models.SET_NULL)
+    text = models.TextField(blank=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -387,17 +350,14 @@ class ComplianceAmendmentRequest(CompRequest):
                 compliance.save()
             # Create a log entry for the proposal
             compliance.log_user_action(ComplianceUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
-            applicant_field=getattr(compliance.proposal, compliance.proposal.applicant_field)
-            # applicant_field.log_user_action(ComplianceUserAction.ACTION_ID_REQUEST_AMENDMENTS,request)
             send_amendment_email_notification(self,request, compliance)
 
 
 import reversion
-reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs', 'comprequest_set'])
+reversion.register(Compliance, follow=['documents', 'action_logs', 'comms_logs'])
 reversion.register(ComplianceDocument, follow=[])
 reversion.register(ComplianceUserAction, follow=[])
 reversion.register(ComplianceLogEntry, follow=['documents'])
 reversion.register(ComplianceLogDocument, follow=[])
-reversion.register(CompRequest, follow=[])
 reversion.register(ComplianceAmendmentReason, follow=['complianceamendmentrequest_set'])
 reversion.register(ComplianceAmendmentRequest, follow=[])

@@ -83,7 +83,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSerializer,
     VesselFullSerializer,
     VesselFullOwnershipSerializer,
-    ListMooringSerializer, SearchKeywordSerializer, SearchReferenceSerializer,
+    ListMooringSerializer,
     AmendmentRequestDisplaySerializer
 )
 from mooringlicensing.components.approvals.models import (
@@ -124,9 +124,17 @@ from mooringlicensing.settings import (
 )
 from mooringlicensing.components.payments_ml.models import FeeItemStickerReplacement
 
+from rest_framework.permissions import IsAuthenticated
+from mooringlicensing.components.proposals.permissions import (
+    InternalProposalPermission,
+    ProposalAssessorPermission,
+    ProposalApproverPermission,
+)
+
 logger = logging.getLogger(__name__)
 
 class GetDcvOrganisations(views.APIView):
+    permission_classes = [InternalProposalPermission]
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
         if is_internal(request): #currently only used internally, but may be acceptable for external access
@@ -137,7 +145,7 @@ class GetDcvOrganisations(views.APIView):
             return Response()
         
 class GetDcvVesselRegoNos(views.APIView):
-
+    #this can be accessed without authentication
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         if search_term:
@@ -148,7 +156,7 @@ class GetDcvVesselRegoNos(views.APIView):
 
 
 class GetVessel(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
         page_number = request.GET.get('page_number', 1)
@@ -219,7 +227,7 @@ class GetVessel(views.APIView):
 
 
 class GetMooring(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
         page_number = request.GET.get('page_number', 1)
@@ -250,7 +258,7 @@ class GetMooring(views.APIView):
 
 
 class GetMooringBySiteLicensee(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         search_term = request.GET.get('search_term', '')
         site_licensee_email = request.GET.get('site_licensee_email', '')
@@ -288,7 +296,7 @@ class GetMooringBySiteLicensee(views.APIView):
 
 
 class GetMooringPerBay(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         
         mooring_bay_id = request.GET.get('mooring_bay_id')
@@ -351,7 +359,7 @@ class GetMooringPerBay(views.APIView):
                         Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
                     )
                     data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
-            # data_transform = [{'id': mooring['id'], 'text': mooring['name']} for mooring in data]
+
             data_transform = []
             for mooring in data:
                 if 'mooring_licence' in mooring and mooring['mooring_licence']:
@@ -364,13 +372,13 @@ class GetMooringPerBay(views.APIView):
 
 
 class GetVesselRegoNos(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         allow_add_new_vessel = request.GET.get('allow_add_new_vessel', 'true')
         allow_add_new_vessel = True if allow_add_new_vessel.lower() == 'true' else False
         proposal_id = request.GET.get('proposal_id', 0)
-        proposal = Proposal.objects.get(id=proposal_id)
+        proposal = Proposal.objects.filter(id=proposal_id).first()
 
         if not search_term or not proposal:
             return Response()
@@ -409,7 +417,7 @@ class GetVesselRegoNos(views.APIView):
 
 
 class GetCompanyNames(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         if search_term:
@@ -421,7 +429,7 @@ class GetCompanyNames(views.APIView):
 
 
 class GetApplicationTypeDescriptions(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         data = cache.get('application_type_descriptions')
         if not data:
@@ -431,7 +439,7 @@ class GetApplicationTypeDescriptions(views.APIView):
 
 
 class GetStickerReplacementFeeItem(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         
         current_datetime = datetime.now(pytz.timezone(TIME_ZONE))
@@ -441,13 +449,13 @@ class GetStickerReplacementFeeItem(views.APIView):
 
 
 class GetPaymentSystemId(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         return Response({'payment_system_id': PAYMENT_SYSTEM_ID})
 
 
 class GetApplicationTypeDict(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
@@ -459,7 +467,7 @@ class GetApplicationTypeDict(views.APIView):
 
 
 class GetApplicationCategoryDict(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         apply_page = request.GET.get('apply_page', 'false')
         apply_page = True if apply_page.lower() in ['true', 'yes', 'y', ] else False
@@ -471,7 +479,7 @@ class GetApplicationCategoryDict(views.APIView):
 
 
 class GetApplicationStatusesDict(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         data = {}
         if not cache.get('application_internal_statuses_dict') or not cache.get('application_external_statuses_dict'):
@@ -485,7 +493,7 @@ class GetApplicationStatusesDict(views.APIView):
 
 
 class GetVesselTypesDict(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         data = cache.get('vessel_type_dict')
         if not data:
@@ -495,7 +503,7 @@ class GetVesselTypesDict(views.APIView):
 
 
 class GetInsuranceChoicesDict(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         data = cache.get('insurance_choice_dict')
         if not data:
@@ -505,7 +513,7 @@ class GetInsuranceChoicesDict(views.APIView):
 
 
 class GetMooringStatusesDict(views.APIView):
-
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         return Response(['Unlicensed', 'Licensed', 'Licence application'])
     
@@ -605,6 +613,7 @@ class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = ProposalSiteLicenseeMooringRequest.objects.none()
     serializer_class = ListProposalSiteLicenseeMooringRequestSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         request_user = self.request.user
@@ -624,6 +633,7 @@ class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         request_user = self.request.user
@@ -647,6 +657,7 @@ class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
 class AnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
     queryset = AnnualAdmissionApplication.objects.none()
     serializer_class = ProposalSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -687,6 +698,7 @@ class AnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
 class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
     queryset = AnnualAdmissionApplication.objects.none()
     serializer_class = ProposalSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -732,6 +744,7 @@ class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
 class AuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
     queryset = AuthorisedUserApplication.objects.none()
     serializer_class = ProposalSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -739,8 +752,7 @@ class AuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
             qs = AuthorisedUserApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = AuthorisedUserApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
-            Q(proposal_applicant__email_user_id=user.id))
+            queryset = AuthorisedUserApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return AuthorisedUserApplication.objects.none()
@@ -772,6 +784,7 @@ class AuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
 class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
     queryset = AuthorisedUserApplication.objects.none()
     serializer_class = ProposalSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -814,6 +827,7 @@ class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
 class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
     queryset = MooringLicenceApplication.objects.none()
     serializer_class = ProposalSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -821,16 +835,15 @@ class MooringLicenceApplicationViewSet(viewsets.GenericViewSet):
             qs = MooringLicenceApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = MooringLicenceApplication.objects.filter(Q(proxy_applicant_id=user.id) | 
-            Q(proposal_applicant__email_user_id=user.id))
+            queryset = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return MooringLicenceApplication.objects.none()
 
 
 class WaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
     serializer_class = ProposalSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -838,9 +851,7 @@ class WaitingListApplicationViewSet(viewsets.GenericViewSet):
             qs = WaitingListApplication.objects.all()
             return qs
         elif is_customer(self.request):
-            queryset = WaitingListApplication.objects.filter(
-                Q(proxy_applicant=user.id) | 
-                Q(proposal_applicant__email_user_id=user.id))
+            queryset = WaitingListApplication.objects.filter(proposal_applicant__email_user_id=user.id)
             return queryset
         return WaitingListApplication.objects.none()
 
@@ -878,6 +889,7 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
     queryset = WaitingListApplication.objects.none()
     serializer_class = ProposalSerializer
     lookup_field = 'id'
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -927,6 +939,7 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
 
 class ProposalByUuidViewSet(viewsets.GenericViewSet):
     queryset = Proposal.objects.none()
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         uuid = self.kwargs.get('pk')
@@ -1048,6 +1061,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
     lookup_field = 'id'
+    permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
         if not self.kwargs.get('id').isnumeric():
@@ -1105,7 +1119,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['PUT'], detail=True)
+    @detail_route(methods=['PUT'], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def reinstate_wl_allocation(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1116,10 +1130,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response({'lodgement_number': wlallocation.lodgement_number})
         else:
             msg = f'This application: [{instance}] does not meet the conditions to put the original WLAllocation to the waiting list queue.'
-            logger.warn(msg)
             raise serializers.ValidationError(msg)
 
-    @detail_route(methods=['POST'], detail=True)
+    @detail_route(methods=['POST'], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def change_applicant(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1372,7 +1385,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         return Response({'filedata': returned_file_data})
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1382,7 +1395,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1392,7 +1405,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1435,7 +1448,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = AmendmentRequestDisplaySerializer(qs,many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def internal_proposal(self, request, *args, **kwargs):
         if (is_internal(request)):
             instance = self.get_object()
@@ -1443,7 +1456,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
     
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     def internal_endorse(self, request, *args, **kwargs):
         if (is_internal(request)):
             #get id of slmr
@@ -1471,7 +1484,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     def internal_decline(self, request, *args, **kwargs):
         if (is_internal(request)):
             #get id of slmr
@@ -1499,7 +1512,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalAssessorPermission])
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1510,7 +1523,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
     @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1529,7 +1542,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError('User cannot assign proposal')
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
     @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1540,7 +1553,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError('User cannot unassign proposal')
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
     @basic_exception_handler
     def switch_status(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1553,7 +1566,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError('User cannot change proposal status')
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def bypass_endorsement(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1571,7 +1584,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             serializers.ValidationError("User not authorised to bypass endorsement")
     
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def request_endorsement(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1592,7 +1605,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             serializers.ValidationError("User not authorised to request endorsement")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def reissue_approval(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1635,7 +1648,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         return Response({"id":instance.id})
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def proposed_approval(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1649,7 +1662,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("not authorised to assess proposal")
         
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
         print('final_approval() in ProposalViewSet')
@@ -1662,7 +1675,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("not authorised to approve proposal")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     @basic_exception_handler
     def proposed_decline(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1676,7 +1689,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("not authorised to decline proposal")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     @basic_exception_handler
     def final_decline(self, request, *args, **kwargs):
         if is_internal(request):
@@ -1701,7 +1714,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             serializer = self.serializer_class(instance, context={'request':request})
             return Response(serializer.data)
         
-    @detail_route(methods=['post'], detail=True)
+    @detail_route(methods=['post'], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def internal_save(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -1786,8 +1799,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 vessel_serializer = VesselSerializer(vessel)
                 vessel_data = vessel_serializer.data
                 vessel_ownership_data = {}
-                if not instance.editable_vessel_details:
-                    vessel_data["rego_no"] = vessel.rego_no
+                vessel_data["rego_no"] = vessel.rego_no
 
                 vessel_ownership_data = {}
                 if instance.vessel_ownership:
@@ -1825,6 +1837,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
+    permission_classes=[ProposalAssessorPermission]
 
     def get_queryset(self):
         queryset = ProposalRequirement.objects.none()
@@ -1874,11 +1887,16 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
         if is_internal(request):
-            serializer = self.get_serializer(data= request.data)
+            serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception = True)
-            if (instance.proposal.has_assessor_mode(request.user)):
-                instance = serializer.save()
-            return Response(serializer.data)
+            try:
+                proposal = Proposal.objects.get(id=request.data["proposal"])
+                if (proposal.has_assessor_mode(request.user)):
+                    serializer.save()
+                return Response(serializer.data)
+            except Exception as e:
+                print(e)
+                raise serializers.ValidationError("Proposal does not exist")
         else:
             raise serializers.ValidationError("User not authorised to create proposal requirement")
 
@@ -1886,6 +1904,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ProposalStandardRequirement.objects.all()
     serializer_class = ProposalStandardRequirementSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         qs = ProposalStandardRequirement.objects.none()
@@ -1911,6 +1930,7 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
 class AmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = AmendmentRequest.objects.all()
     serializer_class = AmendmentRequestSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         queryset = AmendmentRequest.objects.none()
@@ -1952,6 +1972,7 @@ class AmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin
 
 
 class AmendmentRequestReasonChoicesView(views.APIView):
+    permission_classes=[InternalProposalPermission]
 
     def get(self,request, format=None):
         if is_internal(request):
@@ -1968,6 +1989,7 @@ class AmendmentRequestReasonChoicesView(views.APIView):
 class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = VesselOwnership.objects.all().order_by('id')
     serializer_class = VesselOwnershipSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -2106,17 +2128,11 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
 class CompanyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Company.objects.all().order_by('id')
     serializer_class = CompanySerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
-            qs = Company.objects.all().order_by('id')
-            return qs
-        elif is_customer(self.request):
-            companyownerships = CompanyOwnership.objects.filter(Q(vessel_ownerships__in=VesselOwnership.objects.filter(Q(owner__in=Owner.objects.filter(Q(emailuser=user.id))))))
-            queryset = Company.objects.filter(Q(companyownership__in=companyownerships))
-            return queryset
-        return Company.objects.none()
+        qs = Company.objects.all().order_by('id')
+        return qs
 
     @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
@@ -2144,6 +2160,7 @@ class CompanyViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class CompanyOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = CompanyOwnership.objects.all().order_by('id')
     serializer_class = CompanyOwnershipSerializer
+    permission_classes=[IsAuthenticated]
     
     def get_queryset(self):
         user = self.request.user
@@ -2159,8 +2176,9 @@ class CompanyOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin
 class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = Vessel.objects.all().order_by('id')
     serializer_class = VesselSerializer
+    permission_classes=[IsAuthenticated]
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2177,7 +2195,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
             return Response(data)
         raise serializers.ValidationError("not authorised to view related bookings")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2226,7 +2244,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
             serializer = VesselFullOwnershipSerializer(vessel.filtered_vesselownership_set.filter(owner__emailuser=request.user.id).order_by("owner","-updated").distinct("owner"), many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2236,7 +2254,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2274,7 +2292,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
                 return Response()
         return Response()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def full_details(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2306,7 +2324,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
-    @list_route(methods=['GET',], detail=False)
+    @list_route(methods=['GET',], detail=False, permission_classes=[InternalProposalPermission])
     def list_internal(self, request, *args, **kwargs):
         if is_internal(request):
             search_text = request.GET.get('search[value]', '')
@@ -2378,6 +2396,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
 class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MooringBay.objects.none()
     serializer_class = MooringBaySerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         queryset = MooringBay.objects.none()
@@ -2447,6 +2466,7 @@ class MooringPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = Mooring.objects.none()
     serializer_class = ListMooringSerializer
+    permission_classes=[InternalProposalPermission]
 
     def get_queryset(self):
         qs = Mooring.objects.none()
@@ -2455,9 +2475,10 @@ class MooringPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
-class MooringViewSet(viewsets.ReadOnlyModelViewSet):
+class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Mooring.objects.none()
     serializer_class = MooringSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         queryset = Mooring.objects.none()
@@ -2465,7 +2486,37 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = Mooring.objects.filter(active=True)
         return queryset
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission|ProposalApproverPermission])
+    def removeAUPFromMooring(self, request, *args, **kwargs):
+        if is_internal(request):
+            with transaction.atomic():
+                mooring = self.get_object()
+                approval_id = request.data.get('approval_id')
+                try:
+                    moa = MooringOnApproval.objects.get(mooring=mooring, approval_id=approval_id)
+                except:
+                    raise serializers.ValidationError("Mooring and AUP relationship does not exist")
+                today=datetime.now(pytz.timezone(TIME_ZONE)).date()
+                # removing the link between Approval and MSL
+                moa.active = False
+                moa.end_date = today         
+                moa.save()
+                # regenerating Authorised User Permit after mooring has been removed
+                moa.approval.generate_doc()
+                # send_aup_revoked email if required
+                moas = MooringOnApproval.objects.filter(mooring=mooring, active=True)
+                mls = MooringLicence.objects.filter(mooring=mooring)
+                if moas.count() > 0:
+                    for ml in mls:
+                        # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
+                        ml.generate_au_summary_doc(request.user)
+                        #send email to mooring licence owner if with the above attachement if required
+                else:
+                    # removing the List of Authorised Users document if there is no more AUPs remaining 
+                    mooring.mooring_licence.authorised_user_summary_document = None
+                return Response({"results": "Success"})
+
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def find_related_bookings(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2481,7 +2532,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(data)
         raise serializers.ValidationError("not authorised to view related bookings")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def find_related_approvals(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2499,7 +2550,6 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
 
         if len(approval_list) > 0:
             for approval in reversed(range(len(approval_list))):
-                print(approval_list[approval].lodgement_number)
                 if approval_list[approval].lodgement_number.startswith('AUP'):
                     approval_id = approval_list[approval].pk
                     try:
@@ -2511,7 +2561,7 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = LookupApprovalSerializer(list(set(approval_list)), many=True, context={'mooring': mooring})
         return Response(serializer.data)
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
         if is_internal(request):
@@ -2520,8 +2570,18 @@ class MooringViewSet(viewsets.ReadOnlyModelViewSet):
             serializer = MooringLogEntrySerializer(qs,many=True)
             return Response(serializer.data)
         return Response()
+    
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
+    @basic_exception_handler
+    def action_log(self, request, *args, **kwargs):
+        if is_internal(request):
+            instance = self.get_object()
+            qs = instance.action_logs.all()
+            serializer = ProposalUserActionSerializer(qs,many=True)
+            return Response(serializer.data)
+        return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         if is_internal(request):

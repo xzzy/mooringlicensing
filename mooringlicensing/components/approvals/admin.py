@@ -23,7 +23,6 @@ class ApprovalAdmin(admin.ModelAdmin):
         'start_date',
         'expiry_date',
         'current_proposal',
-        'replaced_by',
         'applicant',
     ]
     search_fields = ['lodgement_number',]

@@ -12,9 +12,10 @@ from mooringlicensing.components.payments_ml.serializers import FeeConstructorSe
 
 logger = logging.getLogger(__name__)
 
+from rest_framework.permissions import IsAuthenticated
 
 class GetSeasonsForDcvPermitDict(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         # Return current and future seasons for the DCV permit
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_PERMIT['code'])
@@ -24,7 +25,7 @@ class GetSeasonsForDcvPermitDict(views.APIView):
 
 
 class GetFeeConfigurations(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         # Return current and future seasons for the DCV admission
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])

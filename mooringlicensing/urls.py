@@ -17,7 +17,6 @@ from mooringlicensing.components.payments_ml.views import (
     DcvAdmissionFeeSuccessViewPreload, 
     StickerReplacementFeeSuccessViewPreload
 )
-from mooringlicensing.components.proposals import views as proposal_views
 from mooringlicensing.components.payments_ml import api as payments_api
 from mooringlicensing.components.proposals import api as proposal_api
 from mooringlicensing.components.approvals import api as approval_api
@@ -75,10 +74,8 @@ router.register(r'dcv_permit', approval_api.DcvPermitViewSet, 'dcv_permit')
 router.register(r'internal_dcv_permit', approval_api.InternalDcvPermitViewSet, 'internal_dcv_permit')
 router.register(r'dcv_admission', approval_api.DcvAdmissionViewSet, 'dcv_admission')
 router.register(r'internal_dcv_admission', approval_api.InternalDcvAdmissionViewSet, 'internal_dcv_admission')
-# router.register(r'dcv_admission_external', mooringlicensing.components.approvals.api.DcvAdmissionViewSet, 'dcv_admission')
 router.register(r'company', proposal_api.CompanyViewSet, 'company')
 router.register(r'companyownership', proposal_api.CompanyOwnershipViewSet, 'companyownership')
-#router.register(r'temporary_document', main_api.TemporaryDocumentCollectionViewSet, 'temporary_document')
 
 api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
@@ -121,17 +118,14 @@ api_patterns = [
 
 # URL Patterns
 urlpatterns = [
-    # re_path(r'^ledger/admin/', admin.site.urls, name='ledger_admin'),
     path(r"admin/", admin.site.urls),
     re_path(r'^chaining/', include('smart_selects.urls')),
     re_path(r'', include(api_patterns)),
-    # re_path(r'^$', views.MooringLicensingRoutingView.as_view(), name='ds_home'),
     re_path(r'^$', views.MooringLicensingRoutingView.as_view(), name='home'),
     re_path(r'^contact/', views.MooringLicensingContactView.as_view(), name='ds_contact'),
     re_path(r'^further_info/', views.MooringLicensingFurtherInformationView.as_view(), name='ds_further_info'),
     re_path(r'^internal/', views.InternalView.as_view(), name='internal'),
     re_path(r'^external/', views.ExternalView.as_view(), name='external'),
-    #re_path(r'^firsttime/$', views.first_time, name='first_time'),
     re_path(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     re_path(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
     re_path(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
@@ -141,10 +135,8 @@ urlpatterns = [
     re_path(r'^application_fee/(?P<proposal_pk>\d+)/$', ApplicationFeeView.as_view(), name='application_fee'),
     re_path(r'^application_fee_existing/(?P<invoice_reference>\d+)/$', ApplicationFeeExistingView.as_view(), name='application_fee_existing'),
     re_path(r'^application_fee_already_paid/(?P<proposal_pk>\d+)/$', ApplicationFeeAlreadyPaid.as_view(), name='application_fee_already_paid'),
-    # re_path(r'^application_fee_already_paid/$', ApplicationFeeAlreadyPaid.as_view(), name='application_fee_already_paid'),
     re_path(r'^confirmation/(?P<proposal_pk>\d+)/$', ConfirmationView.as_view(), name='confirmation'),
     re_path(r'^success/fee/(?P<uuid>.+)/$', ApplicationFeeSuccessView.as_view(), name='fee_success'),
-    # re_path(r'^success2/fee/$', ApplicationFeeSuccessViewPreload.as_view(), name='fee_success_preload'),
     re_path(r"ledger-api-success-callback/(?P<uuid>.+)/", ApplicationFeeSuccessViewPreload.as_view(), name="ledger-api-success-callback",),
     re_path(r'^dcv_permit_fee/(?P<dcv_permit_pk>\d+)/$', DcvPermitFeeView.as_view(), name='dcv_permit_fee'),
     re_path(r'^dcv_permit_success/(?P<uuid>.+)/$', DcvPermitFeeSuccessView.as_view(), name='dcv_permit_fee_success'),
@@ -169,28 +161,13 @@ urlpatterns = [
     re_path(r'^external/compliance/(?P<compliance_pk>\d+)/$', views.ExternalComplianceView.as_view(), name='external-compliance-detail'),
     re_path(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
 
-    # reversion history-compare
-    #TODO this no longer works after ledger segregation - remove or replace
-    #re_path(r'^history/proposal/(?P<pk>\d+)/$', proposal_views.ProposalHistoryCompareView.as_view(), name='proposal_history'),
-    #re_path(r'^history/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
-    #re_path(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
-    #re_path(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
-
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
-    re_path(r'^api/remove-AUP-from-mooring/(?P<mooring_id>\d+)/(?P<approval_id>\d+)$',approval_api.removeAUPFromMooring, name='remove_AUP_from_mooring'),
-    re_path(r'^api/remove-mooring-from-approval/(?P<mooring_name>[\w-]+)/(?P<approval_id>\d+)/$',approval_api.removeMooringFromApproval, name='remove_mooring_from_approval'),
-] + ledger_patterns #+ media_serv_patterns
+] + ledger_patterns 
 
 
 
 if settings.DEBUG:  # Serve media locally in development.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-if settings.SHOW_DEBUG_TOOLBAR:
-    import debug_toolbar
-    urlpatterns = [
-        re_path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
 
 if not are_migrations_running():
     DefaultDataManager()
@@ -198,4 +175,3 @@ if not are_migrations_running():
 admin.site.site_header = "RIA Mooring Licensing System Administration"
 admin.site.site_title = "RIA Mooring Licensing Site"
 admin.site.index_title = "RIA Mooring Licensing"
-

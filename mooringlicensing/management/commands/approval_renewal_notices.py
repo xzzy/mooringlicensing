@@ -58,7 +58,6 @@ class Command(BaseCommand):
         else:
             queries &= Q(expiry_date__lte=expiry_notification_date)
             queries &= Q(renewal_sent=False)
-            queries &= Q(replaced_by__isnull=True)
             queries &= Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
         approvals = approval_class.objects.filter(queries)

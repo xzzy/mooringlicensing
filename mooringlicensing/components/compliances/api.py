@@ -31,11 +31,18 @@ from mooringlicensing.components.proposals.models import ProposalApplicant
 from mooringlicensing.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
+from rest_framework.permissions import IsAuthenticated
+from mooringlicensing.components.compliances.permissions import (
+    InternalCompliancePermission,
+    ComplianceAssessorPermission
+)
+
 logger = logging.getLogger(__name__)
 
 class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     serializer_class = ComplianceSerializer
     queryset = Compliance.objects.none()
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         if is_internal(self.request):
@@ -47,7 +54,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return queryset
         return Compliance.objects.none()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalCompliancePermission])
     def internal_compliance(self, request, *args, **kwargs):
         if is_internal(request):
             instance = self.get_object()
@@ -71,24 +78,18 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             data = {
                 'text': request.data.get('detail'),
-                'num_participants': request.data.get('num_participants')
             }
 
             serializer = SaveComplianceSerializer(instance, data=data)
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
 
-            if 'num_participants' in request.data:
-                if request.FILES:
-                    for f in request.FILES:
-                        document = instance.documents.create(name=str(request.FILES[f]),_file = request.FILES[f])
-            else:
-                instance.submit(request)
+            instance.submit(request)
 
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ComplianceAssessorPermission])
     @basic_exception_handler
     def assign_request_user(self, request, *args, **kwargs):
         if is_internal(request):
@@ -116,7 +117,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("User not authorised to delete document")
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[ComplianceAssessorPermission])
     @basic_exception_handler
     def assign_to(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -134,7 +135,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to assign compliance")
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ComplianceAssessorPermission])
     @basic_exception_handler
     def unassign(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -144,7 +145,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to unassign compliance")
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ComplianceAssessorPermission])
     @basic_exception_handler
     def accept(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -154,14 +155,15 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to accept compliance")
     
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[ComplianceAssessorPermission])
     def discard(self, request, *args, **kwargs):
         if (is_internal(request)):
             instance = self.get_object()
-            instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
-            instance.save()
-            serializer = InternalComplianceSerializer(instance, context={'request': request})
-            return Response(serializer.data)
+            if instance.processing_status == Compliance.PROCESSING_STATUS_WITH_ASSESSOR and request.user in instance.allowed_assessors:
+                instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
+                instance.save()
+                serializer = InternalComplianceSerializer(instance, context={'request': request})
+                return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to discard compliance")
     
     @detail_route(methods=['GET',], detail=True)
@@ -173,7 +175,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = CompAmendmentRequestDisplaySerializer(qs,many=True)
         return Response(serializer.data)
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalCompliancePermission])
     @basic_exception_handler
     def action_log(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -183,7 +185,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['GET',], detail=True)
+    @detail_route(methods=['GET',], detail=True, permission_classes=[InternalCompliancePermission])
     @basic_exception_handler
     def comms_log(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -193,7 +195,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response(serializer.data)
         return Response()
 
-    @detail_route(methods=['POST',], detail=True)
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalCompliancePermission])
     @basic_exception_handler
     def add_comms_log(self, request, *args, **kwargs):
         if (is_internal(request)):
@@ -222,6 +224,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class ComplianceAmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ComplianceAmendmentRequest.objects.all()
     serializer_class = ComplianceAmendmentRequestSerializer
+    permission_classes=[ComplianceAssessorPermission]
 
     def get_queryset(self):
         queryset = ComplianceAmendmentRequest.objects.none()
@@ -243,6 +246,7 @@ class ComplianceAmendmentRequestViewSet(viewsets.GenericViewSet, mixins.Retrieve
 
 
 class ComplianceAmendmentReasonChoicesView(views.APIView):
+    permission_classes=[InternalCompliancePermission]
 
     def get(self,request, format=None):
         if is_internal(request):
@@ -256,7 +260,7 @@ class ComplianceAmendmentReasonChoicesView(views.APIView):
 
 
 class GetComplianceStatusesDict(views.APIView):
-
+    permission_classes=[IsAuthenticated]
     def get(self, request, format=None):
         data = {}
         if not cache.get('compliance_internal_statuses_dict') or not cache.get('compliance_external_statuses_dict'):
@@ -311,6 +315,7 @@ class CompliancePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     queryset = Compliance.objects.none()
     serializer_class = ListComplianceSerializer
+    permission_classes=[IsAuthenticated]
 
     def get_queryset(self):
         request_user = self.request.user

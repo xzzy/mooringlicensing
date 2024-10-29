@@ -135,31 +135,31 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Street</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_line1">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_address_line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_locality">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_address_locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >State</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_state">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_address_state">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Postcode</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_postcode">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_address_postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_country">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.residential_address_country">
                             </div>
                           </div> 
                         </div>
@@ -174,31 +174,31 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Street</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_line1">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_address_line1">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_locality">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_address_locality">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >State</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_state">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_address_state">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Postcode</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_postcode">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_address_postcode">
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-6">
-                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_country">
+                                <input readonly type="text" class="form-control" v-model="proposal.proposal_applicant.postal_address_country">
                             </div>
                           </div> 
                         </div>
@@ -509,11 +509,11 @@ export default {
                 if (this.proposal.proposal_applicant !== null) {
                     this.profile.residential_address_list.forEach(addr => {
                         if (
-                            addr.line1 === this.proposal.proposal_applicant.residential_line1 &&
-                            addr.locality === this.proposal.proposal_applicant.residential_locality &&
-                            addr.state === this.proposal.proposal_applicant.residential_state &&
-                            addr.country === this.proposal.proposal_applicant.residential_country &&
-                            addr.postcode === this.proposal.proposal_applicant.residential_postcode
+                            addr.line1 === this.proposal.proposal_applicant.residential_address_line1 &&
+                            addr.locality === this.proposal.proposal_applicant.residential_address_locality &&
+                            addr.state === this.proposal.proposal_applicant.residential_address_state &&
+                            addr.country === this.proposal.proposal_applicant.residential_address_country &&
+                            addr.postcode === this.proposal.proposal_applicant.residential_address_postcode
                         ) {
                             this.residential_address = Object.assign(addr)
                         }
@@ -530,11 +530,11 @@ export default {
                 if (this.proposal.proposal_applicant !== null) {
                     this.profile.postal_address_list.forEach(addr => {
                         if (
-                            addr.line1 === this.proposal.proposal_applicant.postal_line1 &&
-                            addr.locality === this.proposal.proposal_applicant.postal_locality &&
-                            addr.state === this.proposal.proposal_applicant.postal_state &&
-                            addr.country === this.proposal.proposal_applicant.postal_country &&
-                            addr.postcode === this.proposal.proposal_applicant.postal_postcode
+                            addr.line1 === this.proposal.proposal_applicant.postal_address_line1 &&
+                            addr.locality === this.proposal.proposal_applicant.postal_address_locality &&
+                            addr.state === this.proposal.proposal_applicant.postal_address_state &&
+                            addr.country === this.proposal.proposal_applicant.postal_address_country &&
+                            addr.postcode === this.proposal.proposal_applicant.postal_address_postcode
                         ) {
                             this.postal_address = Object.assign(addr)
                         }

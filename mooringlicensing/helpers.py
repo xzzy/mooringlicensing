@@ -94,20 +94,20 @@ def is_applicant_address_set(instance):
 
     #residential address
     if (
-        not applicant.residential_line1 or 
-        not applicant.residential_locality or 
-        not applicant.residential_state or 
-        not applicant.residential_country or 
-        not applicant.residential_postcode
+        not applicant.residential_address_line1 or 
+        not applicant.residential_address_locality or 
+        not applicant.residential_address_state or 
+        not applicant.residential_address_country or 
+        not applicant.residential_address_postcode
         ):
         raise serializers.ValidationError('Residential Address details not provided')
 
     #postal same as residential OR postal address
     if (
-        not applicant.postal_line1 or 
-        not applicant.postal_locality or 
-        not applicant.postal_state or 
-        not applicant.postal_country or 
-        not applicant.postal_postcode       
+        not applicant.postal_address_line1 or 
+        not applicant.postal_address_locality or 
+        not applicant.postal_address_state or 
+        not applicant.postal_address_country or 
+        not applicant.postal_address_postcode       
         ):
         raise serializers.ValidationError('Postal Address details not provided')
