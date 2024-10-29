@@ -8,8 +8,7 @@ from ledger_api_client.utils import create_basket_session, create_checkout_sessi
 from ledger_api_client.settings_base import *
 from mooringlicensing import settings
 from mooringlicensing.components.payments_ml.models import (
-    ApplicationFee, DcvPermitFee, 
-    DcvAdmissionFee, StickerActionFee
+    ApplicationFee
 )
 
 logger = logging.getLogger(__name__)
@@ -113,40 +112,3 @@ def make_serializable(line_items):
                 # Convert Decimal to str
                 line[key] = float(line[key])
     return line_items
-
-#TODO review - does not appear to be required
-def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
-
-    basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
-    return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse(return_url_ns)
-    checkout_params = {
-        'system': settings.PAYMENT_SYSTEM_ID,
-        'fallback_url': request.build_absolute_uri('/'),
-        'return_url': request.build_absolute_uri(reverse(return_url_ns)),
-        'return_preload_url': return_preload_url,
-        'force_redirect': True,
-        'invoice_text': invoice.text,
-    }
-
-    if request.user.is_anonymous():
-        # We need to determine the basket owner and set it to the checkout_params to proceed the payment
-        application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
-        if application_fee:
-            application_fee = application_fee[0]
-            checkout_params['basket_owner'] = application_fee.proposal.applicant_id
-
-    create_checkout_session(request, checkout_params)
-
-    # use HttpResponse instead of HttpResponseRedirect - HttpResonseRedirect does not pass cookies which is important for ledger to get the correct basket
-    response = HttpResponse(
-        "<script> window.location='" + reverse('checkout:index') + "';</script> <a href='" + reverse(
-            'checkout:index') + "'> Redirecting please wait: " + reverse('checkout:index') + "</a>")
-
-    # inject the current basket into the redirect response cookies
-    # or else, anonymous users will be directionless
-    response.set_cookie(
-        settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
-        max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
-        secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
-    )
-    return response
