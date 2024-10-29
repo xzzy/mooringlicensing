@@ -69,7 +69,7 @@ class DcvAdmissionFeeView(TemplateView):
         try:
             with transaction.atomic():
                 #TODO what does this do?
-                set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
+                #set_session_dcv_admission_invoice(request.session, dcv_admission_fee)
 
                 lines, db_processes = dcv_admission.create_fee_lines()
 
@@ -394,7 +394,7 @@ class ApplicationFeeView(TemplateView):
         try:
             with transaction.atomic():
                 #TODO what does this do?
-                set_session_application_invoice(request.session, application_fee)
+                #set_session_application_invoice(request.session, application_fee)
 
                 try:
                     lines, db_processes_after_success = proposal.child_obj.create_fee_lines()  # Accessed by WL and AA
