@@ -140,7 +140,7 @@ import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 
 var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
@@ -184,7 +184,7 @@ export default {
                 contact_number: '',
                 arrivals: [
                     {
-                        uuid: uuid(),
+                        uuid: uuidv4(),
                         arrival_date: null,
                         private_visit: false,
                         adults: {
