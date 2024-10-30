@@ -1,4 +1,3 @@
-
 {% if is_mooringlicensing_admin_user or request.user.is_superuser or is_payment_officer %}
 <li><a  class="dropdown-item" href="{{ LEDGER_UI_URL }}/reports?system_id={{ LEDGER_SYSTEM_ID }} ">Financial Reports</a></li>
 <li><a  class="dropdown-item" href="{{ LEDGER_UI_URL }}/ledger/payments/oracle/failed-transactions?system_id={{ LEDGER_SYSTEM_ID }}">Failed Refunds {% if ledger_totals.total_failed > 0 %}<span class="badge bg-danger">{{ ledger_totals.total_failed }}</span>{% endif %}</li>

@@ -4,15 +4,11 @@ import decimal
 import pytz
 from django.http import HttpResponse
 from django.urls import reverse
-from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst, use_existing_basket_from_invoice
+from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst
 from ledger_api_client.settings_base import *
 from mooringlicensing import settings
-from mooringlicensing.components.payments_ml.models import (
-    ApplicationFee
-)
 
 logger = logging.getLogger(__name__)
-
 
 def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):
     basket_params = {
