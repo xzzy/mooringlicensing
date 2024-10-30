@@ -5,29 +5,6 @@
             <div class="container-fluid">
                 <alert :show.sync="showError" type="danger"><strong>{{ errorString }}</strong></alert>
                 <div class="row form-group">
-                    <!-- <table class="table table-striped table-bordered">
-                        <thead>
-                            <tr>
-                                <th scope="col"></th>
-                                <th scope="col">Number</th>
-                                <th scope="col">vessel</th>
-                                <th scope="col">mooring</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="sticker in stickers" :key="sticker.id">
-                                <td><input type="checkbox" v-model="sticker.checked" /></td>
-                                <td>{{ sticker.number }}</td>
-                                <td>{{ sticker.vessel.rego_no }}</td>
-                                <td>
-                                    <span v-for="mooring in sticker.moorings">
-                                        {{ mooring.name }} ({{ mooring.mooring_bay_name }})
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table> -->
-
                     <datatable
                         ref="swap_moorings_datatable"
                         :id="datatable_id"
@@ -35,12 +12,6 @@
                         :dtHeaders="datatable_headers"
                     />
                 </div>
-                <!-- <div class="row form-group">
-                    <label class="col-sm-2 control-label" for="reason">Reason</label>
-                    <div class="col-sm-9">
-                        <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
-                    </div>
-                </div> -->
             </div>
             <div slot="footer">
                 <div class="row">
@@ -189,47 +160,15 @@ export default {
           return helpers.getCookie('csrftoken')
         },
         datatable_options: function() {
-            console.log('datatable_options!!!')
             let vm = this;
-            let selectedColumns = [];
-            if (vm.is_internal) {
-                selectedColumns = [
+            let selectedColumns = [
                     vm.columnId,
                     vm.columnSelect,
                     vm.columnLodgementNumber,
-                    // vm.columnApprovalType,
-                    // vm.columnStickerNumber,
-                    // vm.columnStickerMailedDate,
-                    // vm.columnHolder,
-                    // vm.columnStatus,
                     vm.columnMooring,
-                    // vm.columnIssueDate,
-                    // vm.columnStartDate,
-                    // vm.columnExpiryDate,
-                    // vm.columnApprovalLetter,
-                    // vm.columnStickerReplacement,
                     vm.columnVesselRegos,
-                    // vm.columnGracePeriod,
-                    // vm.columnAction,
-                ]
-            }
+            ]
             let buttons = []
-            // if (vm.is_internal){
-            //     buttons = [
-            //         {
-            //             extend: 'excel',
-            //             exportOptions: {
-            //                 //columns: ':visible'
-            //             }
-            //         },
-            //         {
-            //             extend: 'csv',
-            //             exportOptions: {
-            //                 //columns: ':visible'
-            //             }
-            //         },
-            //     ]
-            // }
 
             return {
                 autoWidth: false,
@@ -239,7 +178,6 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                //searching: false,
                 searching: true,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '/list2/?format=datatables&target_email_user_id=' + vm.target_email_user_id + '&for_swap_moorings_modal=True',
@@ -248,19 +186,10 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        // d.filter_approval_type = 'ml'
-                        // d.show_expired_surrendered = vm.show_expired_surrendered;
-                        //d.external_waiting_list = vm.externalWaitingList;
-                        //d.filter_status = vm.filterStatus;
                         d.filter_approval_type2 = 'ml'
-                        //d.filter_mooring_bay_id = vm.filterMooringBay;
-                        //d.filter_holder_id = vm.filterHolder;
-                        // d.max_vessel_length = vm.maxVesselLength;
-                        // d.max_vessel_draft = vm.maxVesselDraft;
                         d.csrfmiddlewaretoken = vm.csrf_token
                     }
                 },
-                //dom: 'frt', //'lBfrtip',
                 dom: 'lBfrtip',
                 buttons: buttons,
                 columns: selectedColumns,
@@ -284,32 +213,15 @@ export default {
             }
         },
         datatable_headers: function() {
-            if (this.is_internal) {
-                return [
-                    'Id',
-                    'Select',
-                    'Number',
-                    // 'Type',
-                    // 'Sticker Number/s',
-                    // 'Sticker mailed date',
-                    // 'Holder',
-                    // 'Status',
-                    'Mooring',
-                    // 'Issue Date',
-                    // 'Start Date',
-                    // 'Expiry Date',
-                    // 'Approval letter',
-                    // 'Sticker replacement',
-                    'Vessel Rego',
-                    // 'Grace period end date',
-                ]
-            }
+            return [
+                'Id',
+                'Select',
+                'Number',
+                'Mooring',
+                'Vessel Rego',
+            ]
         },
         okButtonEnabled: function(){
-            // if (this.selectedApprovalId){
-            //     return true
-            // }
-            // return false
             let enabled = false
             if (this.approval_id && this.selectedApprovalId && this.approval_id != this.selectedApprovalId){
                 enabled = true
@@ -345,10 +257,7 @@ export default {
                 confirmButtonColor:'#dc3545'
             }).then(()=>{
                 vm.$emit("sendData", {
-                    //"details": vm.details,
                     "approval_id": vm.approval_id,
-                    //"stickers": vm.stickers,
-                    //"waive_the_fee": vm.waive_the_fee,
                     "target_approval_id": vm.selectedApprovalId,
                 })
             })
@@ -364,8 +273,6 @@ export default {
             this.errors = false
             this.processing = false
             this.approval_id = null
-            //$('.has-error').removeClass('has-error');
-            //this.validation_form.resetForm();
         },
         addEventListeners: function () {
             let vm = this;
@@ -378,7 +285,6 @@ export default {
         },
     },
     created:function () {
-        // this.fetchData()
         this.$nextTick(() => {
             this.addEventListeners();
         });
