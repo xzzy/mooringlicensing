@@ -288,18 +288,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     processing_status = models.CharField('Processing Status', 
         max_length=40, choices=PROCESSING_STATUS_CHOICES,
         default=PROCESSING_STATUS_CHOICES[0][0])
-    
-    #TODO used by on_hold - which is not implemented (remove if on_hold removed)
-    prev_processing_status = models.CharField(max_length=40, blank=True, null=True)
 
     approval = models.ForeignKey('mooringlicensing.Approval',null=True,blank=True, on_delete=models.SET_NULL)
     previous_application = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name="succeeding_proposals")
 
     proposed_decline_status = models.BooleanField(default=False)
     title = models.CharField(max_length=255,null=True,blank=True)
-
-    #TODO currently not in use, but may be required (remove if not)
-    approval_comment = models.TextField(blank=True)
 
     #If the proposal is created as part of migration of approvals
     migrated = models.BooleanField(default=False)
@@ -1386,39 +1380,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             except:
                 raise
 
-    #TODO not in use and has outdated code - remove or check if required
-    def on_hold(self,request):
-        with transaction.atomic():
-            try:
-                if not self.can_assess(request.user):
-                    raise exceptions.ProposalNotAuthorized()
-                if not (self.processing_status == 'with_assessor' or self.processing_status == 'with_referral'):
-                    raise ValidationError('You cannot put on hold if it is not with assessor or with referral')
-
-                self.prev_processing_status = self.processing_status
-                self.processing_status = self.PROCESSING_STATUS_ONHOLD
-                self.save()
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_PUT_ONHOLD.format(self.id),request)
-            except:
-                raise
-
-    #TODO not in use and has outdated code - remove or check if required
-    def on_hold_remove(self,request):
-        with transaction.atomic():
-            try:
-                if not self.can_assess(request.user):
-                    raise exceptions.ProposalNotAuthorized()
-                if self.processing_status != 'on_hold':
-                    raise ValidationError('You cannot remove on hold if it is not currently on hold')
-
-                self.processing_status = self.prev_processing_status
-                self.prev_processing_status = self.PROCESSING_STATUS_ONHOLD
-                self.save()
-                # Log proposal action
-                self.log_user_action(ProposalUserAction.ACTION_REMOVE_ONHOLD.format(self.id),request)
-            except:
-                raise
 
     def proposed_approval(self, request, details):
         from mooringlicensing.components.approvals.models import MooringOnApproval
@@ -4458,10 +4419,6 @@ class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
 
-    # TODO review how this works and determine if needed
-    # for cron job
-    exported = models.BooleanField(default=False) # must be False after every add/edit
-
     objects = models.Manager()
     filtered_objects = VesselDetailsManager()
 
@@ -4550,10 +4507,6 @@ class VesselOwnership(RevisionedMixin):
     end_date = models.DateField(null=True, blank=True)
     created = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
-
-    # TODO review how this works and determine if needed
-    # for cron job
-    exported = models.BooleanField(default=False) # must be False after every add/edit
 
     objects = models.Manager()
     filtered_objects = VesselOwnershipManager()

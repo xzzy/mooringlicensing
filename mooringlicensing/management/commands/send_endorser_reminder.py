@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
 
@@ -37,23 +36,14 @@ class Command(BaseCommand):
 
         logger.info('Running command {}'.format(__name__))
 
-        # For debug
-        # params = options.get('params')
-        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        # proposal_id = int(params.get('send_endorser_reminder_id', 0))
-
         # Construct queries
         queries = Q()
         queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT)
         queries &= Q(lodgement_date__lt=boundary_date)
-        #queries &= Q(endorser_reminder_sent=False)
-        # if debug:
-        #     queries = queries | Q(id=proposal_id)
 
         for a in AuthorisedUserApplication.objects.filter(queries):
             try:
                 send_endorser_reminder_email(a)
-                #a.endorser_reminder_sent = True
                 a.save()
                 logger.info('Reminder to endorser sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
@@ -63,8 +53,6 @@ class Command(BaseCommand):
                 errors.append(err_msg)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)

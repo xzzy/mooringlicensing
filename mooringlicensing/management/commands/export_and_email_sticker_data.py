@@ -20,13 +20,6 @@ class Command(BaseCommand):
         success_filenames, error_filenames = email_stickers_document()
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        error_count = len(errors) + len(error_filenames)
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(error_count) if error_count else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)
-
-        # ml1 = Approval.objects.get(lodgement_number='MOL000417')
-        # ml2 = Approval.objects.get(lodgement_number='MOL000445')
-        # ml1.child_obj.swap_moorings(ml2.child_obj)

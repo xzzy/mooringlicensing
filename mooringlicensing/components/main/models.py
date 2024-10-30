@@ -207,24 +207,6 @@ class SystemMaintenance(models.Model):
     def __str__(self):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description, self.start_date, self.end_date)
 
-#TODO appears to be unused - check if needed
-class TemporaryDocumentCollection(models.Model):
-
-    class Meta:
-        app_label = 'mooringlicensing'
-
-#TODO appears to be unused - check if needed
-class TemporaryDocument(Document):
-    temp_document_collection = models.ForeignKey(
-        TemporaryDocumentCollection,
-        related_name='documents',
-        on_delete=models.CASCADE,
-    )
-    _file = models.FileField(storage=private_storage,max_length=255)
-
-    class Meta:
-        app_label = 'mooringlicensing'
-
 
 def update_electoral_roll_doc_filename(instance, filename):
     return '{}/emailusers/{}/documents/{}'.format(settings.MEDIA_APP_DIR, instance.emailuser.id,filename)
@@ -435,8 +417,6 @@ reversion.register(CommunicationsLogEntry, follow=[])
 reversion.register(ApplicationType, follow=['proposalstandardrequirement_set', 'feeseason_set', 'feeconstructor_set', 'oracle_code_items'])
 reversion.register(GlobalSettings, follow=[])
 reversion.register(SystemMaintenance, follow=[])
-reversion.register(TemporaryDocumentCollection, follow=['documents'])
-reversion.register(TemporaryDocument, follow=[])
 reversion.register(VesselSizeCategoryGroup, follow=['vessel_size_categories', 'fee_constructors'])
 reversion.register(VesselSizeCategory, follow=['feeitem_set'])
 reversion.register(NumberOfDaysType, follow=['settings'])

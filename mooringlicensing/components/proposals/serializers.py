@@ -1451,7 +1451,6 @@ class VesselDetailsSerializer(serializers.ModelSerializer):
                 'berth_mooring',
                 'created',
                 'updated',
-                'exported',
                 'read_only',
                 'vessel_type_display',
                 )

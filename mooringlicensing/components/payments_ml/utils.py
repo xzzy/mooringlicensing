@@ -4,16 +4,11 @@ import decimal
 import pytz
 from django.http import HttpResponse
 from django.urls import reverse
-from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst, use_existing_basket_from_invoice
+from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst
 from ledger_api_client.settings_base import *
 from mooringlicensing import settings
-from mooringlicensing.components.payments_ml.models import (
-    ApplicationFee, DcvPermitFee, 
-    DcvAdmissionFee, StickerActionFee
-)
 
 logger = logging.getLogger(__name__)
-
 
 def checkout(request, email_user, lines, return_url, return_preload_url, booking_reference, invoice_text=None, vouchers=[], proxy=False,):
     basket_params = {
@@ -106,118 +101,6 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
     }
 
 
-NAME_SESSION_APPLICATION_INVOICE = 'mooringlicensing_app_invoice'
-NAME_SESSION_DCV_PERMIT_INVOICE = 'mooringlicensing_dcv_permit_invoice'
-NAME_SESSION_DCV_ADMISSION_INVOICE = 'mooringlicensing_dcv_admission_invoice'
-NAME_SESSION_STICKER_ACTION_INVOICE = 'mooringlicensing_sticker_action_invoice'
-
-#TODO review - does not appear to be required
-def set_session_sticker_action_invoice(session, application_fee):
-    """ Application Fee session ID """
-    session[NAME_SESSION_STICKER_ACTION_INVOICE] = application_fee.id
-    session.modified = True
-
-#TODO review - does not appear to be required
-def get_session_sticker_action_invoice(session):
-    """ Application Fee session ID """
-    if NAME_SESSION_STICKER_ACTION_INVOICE in session:
-        application_fee_id = session[NAME_SESSION_STICKER_ACTION_INVOICE]
-    else:
-        raise Exception('Application not in Session')
-
-    try:
-        return StickerActionFee.objects.get(id=application_fee_id)
-    except StickerActionFee.DoesNotExist:
-        raise Exception('StickerActionFee not found for id: {}'.format(application_fee_id))
-
-#TODO review - does not appear to be required
-def delete_session_sticker_action_invoice(session):
-    """ Application Fee session ID """
-    if NAME_SESSION_STICKER_ACTION_INVOICE in session:
-        del session[NAME_SESSION_STICKER_ACTION_INVOICE]
-        session.modified = True
-
-
-def set_session_application_invoice(session, application_fee):
-    print('in set_session_application_invoice')
-
-    """ Application Fee session ID """
-    session[NAME_SESSION_APPLICATION_INVOICE] = application_fee.id
-    session.modified = True
-
-#TODO review - does not appear to be required
-def get_session_application_invoice(session):
-    print('in get_session_application_invoice')
-
-    """ Application Fee session ID """
-    if NAME_SESSION_APPLICATION_INVOICE in session:
-        application_fee_id = session[NAME_SESSION_APPLICATION_INVOICE]
-    else:
-        # Reach here when the ApplicationFeeSuccessView is accessed 2nd time.  Which is correct.
-        raise Exception('Application not in Session')
-
-    try:
-        return ApplicationFee.objects.get(id=application_fee_id)
-    except ApplicationFee.DoesNotExist:
-        raise
-
-
-#TODO review - does not appear to be required
-def delete_session_application_invoice(session):
-    print('in delete_session_application_invoice')
-
-    """ Application Fee session ID """
-    if NAME_SESSION_APPLICATION_INVOICE in session:
-        del session[NAME_SESSION_APPLICATION_INVOICE]
-        session.modified = True
-
-#TODO review - does not appear to be required
-def set_session_dcv_permit_invoice(session, dcv_permit_fee):
-    session[NAME_SESSION_DCV_PERMIT_INVOICE] = dcv_permit_fee.id
-    session.modified = True
-
-#TODO review - does not appear to be required
-def get_session_dcv_permit_invoice(session):
-    if NAME_SESSION_DCV_PERMIT_INVOICE in session:
-        dcv_permit_fee_id = session[NAME_SESSION_DCV_PERMIT_INVOICE]
-    else:
-        raise Exception('DcvPermit not in Session')
-
-    try:
-        return DcvPermitFee.objects.get(id=dcv_permit_fee_id)
-    except DcvPermitFee.DoesNotExist:
-        raise Exception('DcvPermit not found for application {}'.format(dcv_permit_fee_id))
-
-#TODO review - does not appear to be required
-def delete_session_dcv_permit_invoice(session):
-    if NAME_SESSION_DCV_PERMIT_INVOICE in session:
-        del session[NAME_SESSION_DCV_PERMIT_INVOICE]
-        session.modified = True
-
-
-def set_session_dcv_admission_invoice(session, dcv_admission_fee):
-    session[NAME_SESSION_DCV_ADMISSION_INVOICE] = dcv_admission_fee.id
-    session.modified = True
-
-#TODO review - does not appear to be required
-def get_session_dcv_admission_invoice(session):
-    if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
-        dcv_admission_fee_id = session[NAME_SESSION_DCV_ADMISSION_INVOICE]
-    else:
-        raise Exception('DcvAdmission not in Session')
-
-    try:
-        return DcvAdmissionFee.objects.get(id=dcv_admission_fee_id)
-    except DcvAdmissionFee.DoesNotExist:
-        raise Exception('DcvAdmission not found for application {}'.format(dcv_admission_fee_id))
-
-#TODO review - does not appear to be required
-def delete_session_dcv_admission_invoice(session):
-    if NAME_SESSION_DCV_ADMISSION_INVOICE in session:
-        del session[NAME_SESSION_DCV_ADMISSION_INVOICE]
-        session.modified = True
-
-
 def make_serializable(line_items):
     for line in line_items:
         for key in line:
@@ -225,40 +108,3 @@ def make_serializable(line_items):
                 # Convert Decimal to str
                 line[key] = float(line[key])
     return line_items
-
-#TODO review - does not appear to be required
-def checkout_existing_invoice(request, invoice, return_url_ns='public_booking_success'):
-
-    basket, basket_hash = use_existing_basket_from_invoice(invoice.reference)
-    return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse(return_url_ns)
-    checkout_params = {
-        'system': settings.PAYMENT_SYSTEM_ID,
-        'fallback_url': request.build_absolute_uri('/'),
-        'return_url': request.build_absolute_uri(reverse(return_url_ns)),
-        'return_preload_url': return_preload_url,
-        'force_redirect': True,
-        'invoice_text': invoice.text,
-    }
-
-    if request.user.is_anonymous():
-        # We need to determine the basket owner and set it to the checkout_params to proceed the payment
-        application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference)
-        if application_fee:
-            application_fee = application_fee[0]
-            checkout_params['basket_owner'] = application_fee.proposal.applicant_id
-
-    create_checkout_session(request, checkout_params)
-
-    # use HttpResponse instead of HttpResponseRedirect - HttpResonseRedirect does not pass cookies which is important for ledger to get the correct basket
-    response = HttpResponse(
-        "<script> window.location='" + reverse('checkout:index') + "';</script> <a href='" + reverse(
-            'checkout:index') + "'> Redirecting please wait: " + reverse('checkout:index') + "</a>")
-
-    # inject the current basket into the redirect response cookies
-    # or else, anonymous users will be directionless
-    response.set_cookie(
-        settings.OSCAR_BASKET_COOKIE_OPEN, basket_hash,
-        max_age=settings.OSCAR_BASKET_COOKIE_LIFETIME,
-        secure=settings.OSCAR_BASKET_COOKIE_SECURE, httponly=True
-    )
-    return response

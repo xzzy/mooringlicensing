@@ -2,7 +2,6 @@ from datetime import timedelta
 from django.utils import timezone
 
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
 
@@ -46,21 +45,10 @@ class Command(BaseCommand):
         queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS)
         queries &= Q(lodgement_date__lt=boundary_date)
 
-        # For debug
-        # params = options.get('params')
-        # debug = True if params.get('debug', 'f').lower() in ['true', 't', 'yes', 'y'] else False
-        # approval_lodgement_number = params.get('expire_mooring_licence_application_due_to_no_documents_lodgement_number', 'no-lodgement-number')
-        # if debug:
-        #     queries = queries | Q(lodgement_number__iexact=approval_lodgement_number)
-
         for a in MooringLicenceApplication.objects.filter(queries):
             try:
                 a.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 a.save()
-                # update WLA internal_status and queue date
-                # a.waiting_list_allocation.internal_status = 'waiting'
-                # a.waiting_list_allocation.wla_queue_date = today
-                # a.waiting_list_allocation.save()
                 # reset Waiting List order
                 a.waiting_list_allocation.set_wla_order()
                 due_date = a.lodgement_date + timedelta(days=days_setting.number_of_days)
@@ -74,8 +62,6 @@ class Command(BaseCommand):
                 errors.append(err_msg)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(len(errors)) if len(errors) > 0 else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)

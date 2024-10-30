@@ -65,7 +65,6 @@ class Command(BaseCommand):
                 # 2. Save the attached files into the database
                 ##########
                 typ, data = imapclient.fetch(num, '(RFC822)')
-                # typ, data = imapclient.fetch(num, '(BODY[HEADER.FIELDS (MESSAGE-ID)])')
                 raw_email = data[0][1]
 
                 # converts byte literal to string removing b''
@@ -121,7 +120,6 @@ class Command(BaseCommand):
                         logger.exception('Exception has been raised when importing .xlsx file')
                         continue
 
-                # imapclient.store(num, "+FLAGS", "\\Deleted")
                 imapclient.copy(num, "Archive")
                 imapclient.store(num, "+FLAGS", "\\Deleted")
             except:
@@ -145,10 +143,6 @@ class Command(BaseCommand):
         send_sticker_import_batch_email(process_summary)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
-        # error_count = len(errors) + len(error_filenames)
-        # error_count = len(errors)
-        # err_str = '<strong style="color: red;">Errors: {}</strong>'.format(error_count) if error_count else '<strong style="color: green;">Errors: 0</strong>'
-        # msg = '<p>{} completed. {}. IDs updated: {}.</p>'.format(cmd_name, err_str, updates)
         msg = construct_email_message(cmd_name, errors, updates)
         logger.info(msg)
         cron_email.info(msg)
@@ -255,10 +249,6 @@ def process_sticker_printing_response(process_summary):
                     if sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
                         # sticker should not be in READY status though.
                         sticker.status = Sticker.STICKER_STATUS_CURRENT
-                        #if sticker.sticker_to_replace:  # new sticker has the old sticker here if it's created for renewal
-                        #    # When this sticker is created for renewal, set 'expiry' status to the old sticker.
-                        #    sticker.sticker_to_replace.status = Sticker.STICKER_STATUS_EXPIRED
-                        #    sticker.sticker_to_replace.save()
                     sticker.save()
                     process_summary['stickers'].append(sticker)
 
@@ -284,9 +274,6 @@ def process_sticker_printing_response(process_summary):
 
             response.processed = True  # Update response obj not to process again
             response.save()
-        else:
-            # No fild is saved in the _file field
-            pass
 
     return updates, errors
 

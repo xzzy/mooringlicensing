@@ -1,7 +1,5 @@
 import datetime
 from django.utils import timezone
-
-from confy import env
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 
@@ -11,7 +9,6 @@ from mooringlicensing.management.commands.utils import construct_email_message
 
 logger = logging.getLogger('cron_tasks')
 cron_email = logging.getLogger('cron_email')
-
 
 class Command(BaseCommand):
     help = 'Remove Unpaid DCV admission applications which has been created before 24 hours'

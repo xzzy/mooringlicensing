@@ -71,7 +71,6 @@ def update_approval_doc_filename(instance, filename):
 def update_approval_comms_log_filename(instance, filename):
     return '{}/proposals/{}/approvals/communications/{}'.format(settings.MEDIA_APP_DIR, instance.log_entry.approval.current_proposal.id,filename)
 
-#TODO this is not used or accessed anywhere except when a mooring is offered (upload) - consider removing or using
 class WaitingListOfferDocument(Document):
     @staticmethod
     def relative_path_to_file(approval_id, filename):
@@ -319,10 +318,6 @@ class Approval(RevisionedMixin):
     renewal_count = models.PositiveSmallIntegerField('Number of times an Approval has been renewed', default=0)
     migrated = models.BooleanField(default=False)
 
-    #TODO review this - look in to how exports are supposed to work, remove if not required
-    # for cron job
-    exported = models.BooleanField(default=False) # must be False after every add/edit 
-    
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     vessel_ownerships = models.ManyToManyField(VesselOwnership, through=VesselOwnershipOnApproval)
     wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
