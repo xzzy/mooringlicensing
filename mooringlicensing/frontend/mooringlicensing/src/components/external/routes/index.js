@@ -91,11 +91,6 @@ export default
             component: DcvAdmission,
             name:'dcv_admission'
             },
-            {
-            path: 'dcv_admission_form',
-            component: DcvAdmissionForm,
-            name:'dcv-admission-form'
-            }
             ]
             },
         {

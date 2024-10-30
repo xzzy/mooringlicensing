@@ -90,7 +90,7 @@ import {
 }
 from '@/utils/hooks'
 import FormSection from "@/components/forms/section_toggle.vue"
-import uuid from 'uuid'
+import { v4 as uuidv4 } from 'uuid';
 import { constants } from '@/utils/hooks'
 
 export default {
@@ -198,15 +198,6 @@ export default {
             }
             return display
         },
-        /*
-        approvalStartDate: function() {
-            let returnDate = null;
-            if (this.proposal && this.proposal.approval) {
-                returnDate = moment(this.proposal.approval.start_date, 'YYYY-MM-DD').format('DD/MM/YYYY');
-            }
-            return returnDate;
-        },
-        */
         approvalExpiryDate: function() {
             let returnDate = null;
             if (this.proposal && this.proposal.end_date) {
@@ -244,7 +235,7 @@ export default {
         },
         updateComponentSiteSelectionKey: function(){
             console.log('in updateComponentSiteSelectionKey')
-            this.component_site_selection_key = uuid()
+            this.component_site_selection_key = uuidv4()
         },
     },
     mounted: function(){
