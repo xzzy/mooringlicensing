@@ -88,7 +88,6 @@
                     :uuid="arrival.uuid"
                     :arrival="arrival"
                     @delete_arrival="delete_arrival"
-                    :key="arrival.uuid"
                     :dcv_vessel="dcv_admission.dcv_vessel"
                     :fee_configurations="fee_configurations"
                     :column_approved_events_shown=false
@@ -586,7 +585,7 @@ export default {
         add_another_date_clicked: function() {
             this.dcv_admission.arrivals.push(
                 {
-                    uuid: uuid(),
+                    uuid: uuidv4(),
                     arrival_date: null,
                     private_visit: false,
                     adults: {
