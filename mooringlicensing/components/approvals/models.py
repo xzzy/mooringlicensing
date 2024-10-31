@@ -925,7 +925,7 @@ class Approval(RevisionedMixin):
                     'details': details.get('surrender_details'),
                 }
 
-                if not (self.applicant_obj == request.user or not request.user in self.allowed_assessors):
+                if not (self.applicant_obj == request.user or request.user in self.allowed_assessors):
                     raise ValidationError("User not authorised to surrender approval")
                 
                 today = timezone.now().date()
