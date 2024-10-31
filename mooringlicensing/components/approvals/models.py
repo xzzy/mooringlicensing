@@ -924,6 +924,10 @@ class Approval(RevisionedMixin):
                     'surrender_date' : details.get('surrender_date').strftime('%d/%m/%Y'),
                     'details': details.get('surrender_details'),
                 }
+
+                if not (self.applicant_obj == request.user or not request.user in self.allowed_assessors):
+                    raise ValidationError("User not authorised to surrender approval")
+                
                 today = timezone.now().date()
                 surrender_date = datetime.datetime.strptime(self.surrender_details['surrender_date'],'%d/%m/%Y')
                 surrender_date = surrender_date.date()
