@@ -70,20 +70,12 @@ RUN chmod 755 /startup.sh && \
     touch /app/rand_hash
     
 RUN chmod 755 /pre_startup.sh 
-# Health checks for kubernetes 
-RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin/health_check.sh -O /bin/health_check.sh
-RUN chmod 755 /bin/health_check.sh
 
-# scheduler
-RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin-python/scheduler/scheduler.py -O /bin/scheduler.py
-RUN chmod 755 /bin/scheduler.py
+# Default Scripts
+RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin/default_script_installer.sh -O /tmp/default_script_installer.sh
+RUN chmod 755 /tmp/default_script_installer.sh
+RUN /tmp/default_script_installer.sh
 
-# Add azcopy to container
-RUN mkdir /tmp/azcopy/
-RUN wget https://aka.ms/downloadazcopy-v10-linux -O /tmp/azcopy/azcopy.tar.gz
-RUN cd /tmp/azcopy/ ; tar -xzvf azcopy.tar.gz
-RUN cp /tmp/azcopy/azcopy_linux_amd64_10.26.0/azcopy /bin/azcopy
-RUN chmod 755 /bin/azcopy
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
 WORKDIR /app
