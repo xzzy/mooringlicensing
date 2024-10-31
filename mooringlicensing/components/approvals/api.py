@@ -698,7 +698,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         else:
             raise serializers.ValidationError("User not authorised to reinstate approval")
 
-    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
+    @detail_route(methods=['POST',], detail=True)
     @basic_exception_handler
     def approval_surrender(self, request, *args, **kwargs):
         instance = self.get_object()
