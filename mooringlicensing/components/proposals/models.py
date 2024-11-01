@@ -2447,12 +2447,17 @@ class WaitingListApplication(Proposal):
             self.proposal_applicant.email_user_id == request.user.id)
             ):
 
-            if (not self.vessel_on_proposal() or
-                self.mooring_preference_changed() or
-                self.has_higher_vessel_category() or
-                not self.vessel_moorings_compatible() or
-                not self.keeping_current_vessel() or
-                self.vessel_ownership_changed()
+            if not self.vessel_on_proposal() and not self.mooring_preference_changed(): 
+                self.auto_approve = True
+                self.save()
+            elif (self.mooring_preference_changed() or (
+                    self.vessel_on_proposal() and (
+                        self.has_higher_vessel_category() or
+                        not self.vessel_moorings_compatible() or
+                        not self.keeping_current_vessel() or
+                        self.vessel_ownership_changed()
+                    )
+                )
                 ):
                 self.auto_approve = False        
                 self.save()
