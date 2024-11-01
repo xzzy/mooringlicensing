@@ -24,6 +24,12 @@ from django.core.files.base import ContentFile
 
 from mooringlicensing.components.users.utils import _log_user_email
 
+from django.core.files.storage import FileSystemStorage
+private_storage = FileSystemStorage(
+    location=settings.PRIVATE_MEDIA_STORAGE_LOCATION,
+    base_url=settings.PRIVATE_MEDIA_BASE_URL,
+)
+
 logger = logging.getLogger(__name__)
 SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
