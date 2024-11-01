@@ -1323,12 +1323,19 @@ class AnnualAdmissionPermit(Approval):
         # Check if a new sticker needs to be created
         create_new_sticker = True
         if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
-                next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
-                current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
-                if current_colour == next_colour:
+            #NOTE: business requirement are such that even a major length/ownership change does not warrant a new sticker (TODO: confirm this, remove commented code if True)
+            #if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:                
+                #next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
+                #current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
+                #if current_colour == next_colour:
                     # This is the only case where there is no new sticker to be created
+                    #create_new_sticker = False
+            #TODO confirm below
+            if proposal.vessel_ownership != proposal.previous_application.vessel_ownership:
+                if proposal.vessel_ownership.vessel == proposal.previous_application.vessel_ownership.vessel:
                     create_new_sticker = False
+            else:
+                create_new_sticker = False
 
         if create_new_sticker:
             new_sticker_status = Sticker.STICKER_STATUS_READY  # default status is 'ready'

@@ -773,9 +773,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                         proposal.save()
                         logger.info(f'Processing status: [{Proposal.PROCESSING_STATUS_WITH_ASSESSOR}] has been set to the proposal: [{proposal}]')
-                        if proposal.application_type.code == AnnualAdmissionApplication.code and proposal.auto_approve:
-                            current_datetime = datetime.datetime.now()
-                            proposal.update_or_create_approval(current_datetime, request)   
 
                 else:
                     msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, get_invoice_payment_status(invoice.id))

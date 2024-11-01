@@ -63,9 +63,7 @@ class Command(BaseCommand):
         approvals = approval_class.objects.filter(queries)
         for a in approvals:
             try:
-                if approval_class == DcvPermit:
-                    pass
-                else:
+                if not approval_class == DcvPermit:
                     v_details = a.current_proposal.latest_vessel_details
                     v_ownership = a.current_proposal.vessel_ownership
                     if (not v_details or v_ownership.end_date) and a.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
