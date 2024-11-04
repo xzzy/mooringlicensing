@@ -322,9 +322,8 @@ export default {
                     {
                         data: 'id',
                         mRender: function (data, type, full) {
-                            
-                            if (full.weight_draft_limit > 0) {
-                                return full.weight_draft_limit;
+                            if (full.vessel_weight_limit > 0) {
+                                return full.vessel_weight_limit;
                             } else {
                                 return "N/A"
                             }
