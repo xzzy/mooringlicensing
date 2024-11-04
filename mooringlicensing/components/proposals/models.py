@@ -1427,8 +1427,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 if mooring_id:
                     try:
-                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        mooring = Mooring.objects.get(id=mooring_id)
+                        ria_mooring_name = mooring.name
                     except:
+                        mooring = None
                         if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
                             raise serializers.ValidationError("Mooring id provided is invalid")
                 #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
@@ -1448,13 +1450,21 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                         
                 check_mooring_ids = id_list + requested_id_list
-                check_mooring_ids.append(mooring_id)
                 check_vessel = self.vessel_ownership.vessel
                 check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
+
+                vessel_details = check_vessel.latest_vessel_details
+
+                if mooring_id:
+                    if (vessel_details.vessel_length > mooring.vessel_size_limit or
+                        vessel_details.vessel_draft > mooring.vessel_draft_limit or
+                        (vessel_details.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
+                        raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
+
                 for i in check_moorings:
                     if not i.mooring:
                         raise serializers.ValidationError("Mooring does not exist")
-                    vessel_details = check_vessel.latest_vessel_details
+                    
                     if (vessel_details.vessel_length > i.mooring.vessel_size_limit or
                         vessel_details.vessel_draft > i.mooring.vessel_draft_limit or
                         (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):

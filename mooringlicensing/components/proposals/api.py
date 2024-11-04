@@ -326,11 +326,11 @@ class GetMooringPerBay(views.APIView):
                             Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
                             Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
                         )
-                        data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                        data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
                     else:
                         data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
                 else:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
             else:
                 # aup
                 if mooring_bay_id:
@@ -349,7 +349,7 @@ class GetMooringPerBay(views.APIView):
                             Q(active=True) &
                             Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
                         )
-                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
                     else:
                         data = []
                 else:
@@ -358,15 +358,23 @@ class GetMooringPerBay(views.APIView):
                         Q(active=True) &
                         Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
                     )
-                    data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                    data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
 
             data_transform = []
             for mooring in data:
                 if 'mooring_licence' in mooring and mooring['mooring_licence']:
-                    data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (licensed)'})
+                    data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (licensed)'
+                    , "vessel_size_limit":mooring['vessel_size_limit']
+                    , "vessel_draft_limit":mooring['vessel_draft_limit']
+                    , "vessel_weight_limit":mooring['vessel_weight_limit']
+                    })
                 else:
                     # Should not reach here.  An unlicensed mooring would never be allocated to an AU permit.
-                    data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (unlicensed)'})
+                    data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (unlicensed)'
+                    , "vessel_size_limit":mooring['vessel_size_limit']
+                    , "vessel_draft_limit":mooring['vessel_draft_limit']
+                    , "vessel_weight_limit":mooring['vessel_weight_limit']
+                    })
             return Response({"results": data_transform})
         return Response()
 
