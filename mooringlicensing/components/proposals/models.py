@@ -3370,13 +3370,13 @@ class AuthorisedUserApplication(Proposal):
                 self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
         else:
             # There are no stickers to be returned - before and after the sticker for this application has been printed
-            if stickers_to_be_printed: #this only evaluates as True for pre-existing stickers, in which case set the current sticker to True
-                # There are no stickers to be printed
-                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
-            else:
+            if stickers_not_exported:
                 #if we are here, it is an entirely new application and we need a sticker
                 self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+            else:
+                #otherwise with no stickers to be returned, the application should be approved - this can only occur on an auto-approved amend/renew
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
 
         self.save()
