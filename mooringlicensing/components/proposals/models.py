@@ -1404,12 +1404,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #sanitise mooring on approval - count only entry per id and only the latest among each id
                 for i in mooring_on_approval:
+                    print(i)
                     if "id" in i and "checked" in i and not i["id"] in id_list:
                         temp.append(i)
                         checked_list.append(i["checked"])
                         id_list.append(i["id"])
-                
                 mooring_on_approval = temp
+
+                temp = id_list
+                id_list = []
+                for i in range(len(temp)):
+                    if checked_list[i]:
+                        id_list.append(temp[i])
 
                 requested_mooring_on_approval = details.get('requested_mooring_on_approval')
                 requested_mooring_on_approval.reverse()
@@ -1424,6 +1430,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         requested_id_list.append(i["id"])
 
                 requested_mooring_on_approval = temp
+
+                temp = requested_id_list
+                requested_id_list = []
+                for i in range(len(temp)):
+                    if requested_checked_list[i]:
+                        requested_id_list.append(temp[i])
 
                 if mooring_id:
                     try:
@@ -1469,6 +1481,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         vessel_details.vessel_draft > i.mooring.vessel_draft_limit or
                         (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
+                    
+                if not mooring_id and not check_mooring_ids:
+                    raise serializers.ValidationError("No mooring provided")
 
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'), 
