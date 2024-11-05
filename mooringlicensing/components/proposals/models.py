@@ -1482,7 +1482,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
                     
-                if not mooring_id and not check_mooring_ids:
+                if not mooring_id and not check_mooring_ids and self.application_type.code == "aua":
                     raise serializers.ValidationError("No mooring provided")
 
                 self.proposed_issuance_approval = {
