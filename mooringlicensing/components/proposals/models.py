@@ -3360,6 +3360,7 @@ class AuthorisedUserApplication(Proposal):
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+
         self.refresh_from_db()
         #####
         # Set proposal status after manage _stickers
@@ -3386,7 +3387,7 @@ class AuthorisedUserApplication(Proposal):
         else:
             # There are no stickers to be returned - before and after the sticker for this application has been printed
             if stickers_not_exported:
-                #if we are here, it is an entirely new application and we need a sticker
+                #if we are here, it is an entirely new application and we need a sticker (or a renewal where the vessel has been changed)
                 self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
             else:
