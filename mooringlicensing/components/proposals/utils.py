@@ -105,15 +105,12 @@ def save_proponent_data_aaa(instance, request, action):
     instance.child_obj.set_auto_approve(request)
     instance.refresh_from_db()
     if action == 'submit':
-        if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid']:
+        if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid'] and not instance.auto_approve:
             # Save + Submit + Paid ==> We have to update the status
             # Probably this is the case that assessor put back this application to external and then external submit this.
             logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
             instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            instance.save()
-            if instance.auto_approve:
-                current_datetime = datetime.datetime.now()
-                instance.update_or_create_approval(current_datetime, request)       
+            instance.save()     
 
 
 def save_proponent_data_wla(instance, request, action):

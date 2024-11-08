@@ -1327,12 +1327,19 @@ class AnnualAdmissionPermit(Approval):
         # Check if a new sticker needs to be created
         create_new_sticker = True
         if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
-                next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
-                current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
-                if current_colour == next_colour:
+            #NOTE: business requirement are such that even a major length/ownership change does not warrant a new sticker (TODO: confirm this, remove commented code if True)
+            #if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:                
+                #next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
+                #current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
+                #if current_colour == next_colour:
                     # This is the only case where there is no new sticker to be created
+                    #create_new_sticker = False
+            #TODO confirm below
+            if proposal.vessel_ownership != proposal.previous_application.vessel_ownership:
+                if proposal.vessel_ownership.vessel == proposal.previous_application.vessel_ownership.vessel:
                     create_new_sticker = False
+            else:
+                create_new_sticker = False
 
         if create_new_sticker:
             new_sticker_status = Sticker.STICKER_STATUS_READY  # default status is 'ready'
@@ -1598,11 +1605,19 @@ class AuthorisedUserPermit(Approval):
         for sticker in stickers_return:
             stickers_to_be_returned.append(sticker)
 
+        #all stickers to be returned will instead be replaced and expired if the proposal is a renewal
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            _stickers_to_be_replaced_for_renewal = list(set(_stickers_to_be_replaced_for_renewal + stickers_to_be_returned))
+
         # Finally, assign mooring(s) to new sticker(s)
         self._assign_to_new_stickers(moas_to_be_reallocated, proposal, stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
 
         # Update statuses of stickers to be returned
         self._update_status_of_sticker_to_be_removed(stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
+        #stickers are never to be returned for renewals
+
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            return list(set(moas_to_be_reallocated)), []
 
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
@@ -1703,7 +1718,7 @@ class AuthorisedUserPermit(Approval):
         if len(stickers_to_be_returned):
             new_status = Sticker.STICKER_STATUS_READY
             for a_sticker in stickers_to_be_returned:
-                if proposal and proposal.vessel_ownership:
+                if proposal and proposal.vessel_ownership and not a_sticker in stickers_to_be_replaced_for_renewal:
                     # Current proposal has a vessel
                     if a_sticker.vessel_ownership.vessel.rego_no != proposal.vessel_ownership.vessel.rego_no:
                         new_status = Sticker.STICKER_STATUS_NOT_READY_YET  # This sticker gets 'ready' status once the sticker with 'to be returned' status is returned.

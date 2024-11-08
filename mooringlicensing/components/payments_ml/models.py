@@ -647,7 +647,7 @@ class FeeItem(models.Model):
     def get_max_allowed_length(self, vessel_length):
         logger.info(f'get_max_allowed_length() is called in the fee_item: {self}')
 
-        if self.incremental_amount:
+        if vessel_length:
             if vessel_length.is_integer():
                 # vessel_size is on the borderline of changing fees
                 if self.vessel_size_category.include_start_size:

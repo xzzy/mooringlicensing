@@ -1404,12 +1404,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #sanitise mooring on approval - count only entry per id and only the latest among each id
                 for i in mooring_on_approval:
+                    print(i)
                     if "id" in i and "checked" in i and not i["id"] in id_list:
                         temp.append(i)
                         checked_list.append(i["checked"])
                         id_list.append(i["id"])
-                
                 mooring_on_approval = temp
+
+                temp = id_list
+                id_list = []
+                for i in range(len(temp)):
+                    if checked_list[i]:
+                        id_list.append(temp[i])
 
                 requested_mooring_on_approval = details.get('requested_mooring_on_approval')
                 requested_mooring_on_approval.reverse()
@@ -1425,10 +1431,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 requested_mooring_on_approval = temp
 
+                temp = requested_id_list
+                requested_id_list = []
+                for i in range(len(temp)):
+                    if requested_checked_list[i]:
+                        requested_id_list.append(temp[i])
+
                 if mooring_id:
                     try:
-                        ria_mooring_name = Mooring.objects.get(id=mooring_id).name
+                        mooring = Mooring.objects.get(id=mooring_id)
+                        ria_mooring_name = mooring.name
                     except:
+                        mooring = None
                         if self.application_type.code == "aua" and self.mooring_authorisation_preference != "site_licensee":
                             raise serializers.ValidationError("Mooring id provided is invalid")
                 #check mooring_on_approval and requested_mooring_on_approval - if both are empty at this stage for an aua return error 
@@ -1448,17 +1462,28 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                         
                 check_mooring_ids = id_list + requested_id_list
-                check_mooring_ids.append(mooring_id)
                 check_vessel = self.vessel_ownership.vessel
                 check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
+
+                vessel_details = check_vessel.latest_vessel_details
+
+                if mooring_id:
+                    if (vessel_details.vessel_length > mooring.vessel_size_limit or
+                        vessel_details.vessel_draft > mooring.vessel_draft_limit or
+                        (vessel_details.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
+                        raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
+
                 for i in check_moorings:
                     if not i.mooring:
                         raise serializers.ValidationError("Mooring does not exist")
-                    vessel_details = check_vessel.latest_vessel_details
+                    
                     if (vessel_details.vessel_length > i.mooring.vessel_size_limit or
                         vessel_details.vessel_draft > i.mooring.vessel_draft_limit or
                         (vessel_details.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
+                    
+                if not mooring_id and not check_mooring_ids and self.application_type.code == "aua":
+                    raise serializers.ValidationError("No mooring provided")
 
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'), 
@@ -2447,8 +2472,12 @@ class WaitingListApplication(Proposal):
             self.proposal_applicant.email_user_id == request.user.id)
             ):
 
-            if (not self.vessel_on_proposal() or
-                self.mooring_preference_changed() or
+            if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.vessel_details: 
+                self.auto_approve = True
+                self.save()
+            elif (
+                (not self.vessel_on_proposal() and self.vessel_details and self.vessel_details.vessel) or 
+                self.mooring_preference_changed() or 
                 self.has_higher_vessel_category() or
                 not self.vessel_moorings_compatible() or
                 not self.keeping_current_vessel() or
@@ -3331,6 +3360,7 @@ class AuthorisedUserApplication(Proposal):
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+
         self.refresh_from_db()
         #####
         # Set proposal status after manage _stickers
@@ -3356,13 +3386,13 @@ class AuthorisedUserApplication(Proposal):
                 self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
         else:
             # There are no stickers to be returned - before and after the sticker for this application has been printed
-            if stickers_to_be_printed: #this only evaluates as True for pre-existing stickers, in which case set the current sticker to True
-                # There are no stickers to be printed
-                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            if stickers_not_exported:
+                #if we are here, it is an entirely new application and we need a sticker (or a renewal where the vessel has been changed)
+                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
             else:
-                #if we are here, it is an entirely new application and we need a sticker
-                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                #otherwise with no stickers to be returned, the application should be approved - this can only occur on an auto-approved amend/renew
+                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
 
         self.save()

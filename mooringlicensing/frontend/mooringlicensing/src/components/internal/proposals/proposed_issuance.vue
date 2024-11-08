@@ -39,6 +39,37 @@
                                 </div>
                             </div>
                             
+                            <div class="form-group" v-if="vessel_size_limit">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left">Mooring Vessel Length Limit</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input class="form-control" disabled :value="vessel_size_limit"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="vessel_draft_limit">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left">Mooring Vessel Draft Limit</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input class="form-control" disabled :value="vessel_draft_limit"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" v-if="vessel_weight_limit">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left">Mooring Vessel Weight Limit</label>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <input class="form-control" disabled :value="vessel_weight_limit"/>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="form-group" v-if="displayMooringSiteIdField">
                                 <div class="row">
                                     <div class="col-sm-3">
@@ -179,6 +210,9 @@ export default {
                 mooring_id: null,
                 mooring_bay_id: null,
             },
+            vessel_weight_limit: null,
+            vessel_size_limit: null,
+            vessel_draft_limit: null,
             state: 'proposed_approval',
             issuingApproval: false,
             validation_form: null,
@@ -322,9 +356,8 @@ export default {
                     {
                         data: 'id',
                         mRender: function (data, type, full) {
-                            
-                            if (full.weight_draft_limit > 0) {
-                                return full.weight_draft_limit;
+                            if (full.vessel_weight_limit > 0) {
+                                return full.vessel_weight_limit;
                             } else {
                                 return "N/A"
                             }
@@ -796,11 +829,6 @@ export default {
                 }
             });
         },
-        /*
-        eventListeners:function () {
-             let vm = this;
-        },
-        */
         constructMooringsTable: function () {
             console.log('in constructMooringsTable()')
             // update checkboxes
@@ -995,11 +1023,15 @@ export default {
                     var selected = $(e.currentTarget);
                     let data = e.params.data.id;
                     vm.approval.mooring_id = data;
+                    vm.vessel_size_limit = e.params.data.vessel_size_limit;
+                    vm.vessel_weight_limit = e.params.data.vessel_weight_limit;
+                    vm.vessel_draft_limit = e.params.data.vessel_draft_limit;
                 }).
                 on("select2:unselect", function (e) {
                     console.log('in select2:unselect')
                     var selected = $(e.currentTarget);
                     vm.approval.mooring_id = null;
+                    vm.vessel_size_limit = null;
                 }).
                 on("select2:open", function (e) {
                     console.log('in select2:open')
@@ -1041,14 +1073,6 @@ export default {
         vm.form = document.forms.approvalForm;
         vm.addFormValidations();
         this.$nextTick(() => {
-            //vm.eventListeners();
-            /*
-            // AUP reissue
-            if (!this.proposal.reissued) {
-                this.approval = Object.assign({}, this.proposal.proposed_issuance_approval);
-            }
-            */
-            //this.approval.mooring_bay_id = null;
             this.initialiseMooringLookup();
             this.addEventListeners();
             if (this.authorisedUserApplication) {
