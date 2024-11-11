@@ -540,6 +540,7 @@ def store_vessel_ownership(request, vessel, instance):
         if (vessel_ownership and 
             vessel_ownership.vessel and 
             vessel_ownership.vessel.rego_no and 
+            not vessel_ownership.end_date and
             vessel.rego_no):
             keep_existing_vessel = vessel_ownership.vessel.rego_no == vessel.rego_no
 
