@@ -567,6 +567,9 @@ def store_vessel_ownership(request, vessel, instance):
                 vessel_ownership.company_ownerships.add(company_ownership)
                 logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
             vo_created = True
+            if vo_created:
+                vessel_ownership_data["start_date"] = datetime.datetime.now()
+                vessel_ownership_data["end_date"] = None
 
         q_for_approvals_check &= ~Q(id=instance.approval.id)  # We want to exclude the approval we are currently processing for
     else:
