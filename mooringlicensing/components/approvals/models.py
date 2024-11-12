@@ -539,9 +539,17 @@ class Approval(RevisionedMixin):
         if not vessel_ownership:
             return None, False
 
-        # do not add if this vessel_ownership already exists for the approval 
+        #We need to check if an MLA has received multiple vessel ownerships with the same rego_no
+        #Most applications can only have one vessel per approval, meaning only the last VO matters on an approval
+        #MLA approvals count all vessels however - which is not accounted prior to adding a vessel ownership
         vessel_ownership_on_approval = None
         created = None
+
+        #if the approval is a MLA, check for VOs with the same rego_no (but not the same VO) - remove the old VOs if any before creating the new one
+        if self.code == 'ml' and vessel_ownership.vessel:
+            self.vesselownershiponapproval_set.exclude(vessel_ownership=vessel_ownership).filter(vessel_ownership__vessel__rego_no=vessel_ownership.vessel.rego_no).delete()
+
+        # do not add if this vessel_ownership already exists for the approval     
         if not self.vesselownershiponapproval_set.filter(vessel_ownership=vessel_ownership):
             vessel_ownership_on_approval, created = VesselOwnershipOnApproval.objects.update_or_create(
                     vessel_ownership=vessel_ownership,
