@@ -547,7 +547,16 @@ class Approval(RevisionedMixin):
 
         #if the approval is a MLA, check for VOs with the same rego_no (but not the same VO) - remove the old VOs if any before creating the new one
         if self.code == 'ml' and vessel_ownership.vessel:
-            self.vesselownershiponapproval_set.exclude(vessel_ownership=vessel_ownership).filter(vessel_ownership__vessel__rego_no=vessel_ownership.vessel.rego_no).delete()
+            #find the sticker with the previous VO and replace that VO with the new VO
+            old_voas = self.vesselownershiponapproval_set.exclude(vessel_ownership=vessel_ownership).filter(vessel_ownership__vessel__rego_no=vessel_ownership.vessel.rego_no)#.delete()
+            #stickers
+            for voa in old_voas:
+                #change sticker vo
+                vo = voa.vessel_ownership
+                Sticker.objects.filter(approval=self, vessel_ownership=vo).update(vessel_ownership=vessel_ownership)
+                #delete voa
+                voa.delete()
+        
 
         # do not add if this vessel_ownership already exists for the approval     
         if not self.vesselownershiponapproval_set.filter(vessel_ownership=vessel_ownership):
