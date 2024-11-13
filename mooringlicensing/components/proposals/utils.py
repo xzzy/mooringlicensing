@@ -506,6 +506,7 @@ def store_vessel_ownership(request, vessel, instance):
         raise serializers.ValidationError("proposal has no applicant to be set as vessel owner")
 
     # Create/Retrieve vessel_ownership
+    # ensure previously sold vessel_ownerships are NOT re-used
     vo_created = False
     q_for_approvals_check = Q()  # We want to check if there is a current approval which links to the vessel_ownership retrieved below
     if instance.proposal_type.code in [PROPOSAL_TYPE_NEW,]:
@@ -513,6 +514,7 @@ def store_vessel_ownership(request, vessel, instance):
             owner=owner,  # Owner is actually the accessing user (request.user) as above.
             vessel=vessel,
             company_ownerships=company_ownership,
+            end_date=None
         )
         if vessel_ownerships.count():
             vessel_ownership = vessel_ownerships.first()
@@ -538,6 +540,7 @@ def store_vessel_ownership(request, vessel, instance):
         if (vessel_ownership and 
             vessel_ownership.vessel and 
             vessel_ownership.vessel.rego_no and 
+            not vessel_ownership.end_date and
             vessel.rego_no):
             keep_existing_vessel = vessel_ownership.vessel.rego_no == vessel.rego_no
 
@@ -564,6 +567,9 @@ def store_vessel_ownership(request, vessel, instance):
                 vessel_ownership.company_ownerships.add(company_ownership)
                 logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
             vo_created = True
+            if vo_created:
+                vessel_ownership_data["start_date"] = datetime.datetime.now()
+                vessel_ownership_data["end_date"] = None
 
         q_for_approvals_check &= ~Q(id=instance.approval.id)  # We want to exclude the approval we are currently processing for
     else:

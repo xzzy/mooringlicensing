@@ -497,6 +497,7 @@ LEDGER_UI_ACCOUNTS_MANAGEMENT = [
     {'mobile_number' : {'options' : {'view': True, 'edit': True}}},
     {'dob' : {'options' : {'view': True, 'edit': True}}},
     {'postal_same_as_residential' : {'options' : {'view': True, 'edit': True}}},
+    {'address_details' : {'options' : {'billing_address': {'show': False}}}},
 ]
 FILE_UPLOAD_PERMISSIONS = None
 MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
@@ -514,4 +515,4 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 CSRF_TRUSTED_ORIGINS_STRING = decouple.config("CSRF_TRUSTED_ORIGINS", default='[]')
 CSRF_TRUSTED_ORIGINS = json.loads(str(CSRF_TRUSTED_ORIGINS_STRING))
 
-LEDGER_UI_SYSTEM_ACCOUNTS_MANAGEMENT['address_details']['options']['billing_address']['show'] = False
+#LEDGER_UI_SYSTEM_ACCOUNTS_MANAGEMENT['address_details']['options']['billing_address']['show'] = False

@@ -363,7 +363,7 @@ class FeeConstructor(models.Model):
         else:
             vessel_size_category = self.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=vessel_length, null_vessel=False).order_by('start_size').last()
             if not vessel_size_category:
-                raise ValueError("No category for provided vessel size")
+                raise ValueError("Provided vessel dimensions do not fit any existing vessel size categories.")
             if float(vessel_size_category.start_size) == vessel_length and not vessel_size_category.include_start_size:
                 vessel_size_category = vessel_size_category.get_one_smaller_category()
         fee_item = self.get_fee_item_for_adjustment(vessel_size_category, fee_period, proposal_type=proposal_type, age_group=age_group, admission_type=admission_type)
