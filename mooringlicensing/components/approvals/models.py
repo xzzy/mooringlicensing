@@ -2315,10 +2315,6 @@ class MooringLicence(Approval):
                         existing_sticker = existing_sticker.first()
                         stickers_to_be_replaced.append(existing_sticker)
 
-                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                    if stickers_not_exported:
-                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
-
                     # Sticker not found --> Create it
                     new_sticker = Sticker.objects.create(
                         approval=self,

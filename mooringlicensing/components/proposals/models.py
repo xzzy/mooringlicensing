@@ -3551,6 +3551,8 @@ class MooringLicenceApplication(Proposal):
         """ Create the ledger lines - line item for application fee sent to payment system """
         logger.info(f'Creating fee lines for the MooringLicenceApplication: [{self}]...')
 
+        #TODO lines for no longer applicable vessels being added - fix (may be a development anomaly, unable to re-create so far)
+
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
 
