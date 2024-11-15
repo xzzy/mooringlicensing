@@ -4406,9 +4406,21 @@ class Vessel(RevisionedMixin):
 
     @property
     def filtered_vesselownership_set(self):
-        return self.vesselownership_set.filter(
-                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True)
-                )
+        #exclude any vessel ownerships created before the latest end_date
+        end_date_qs = self.vesselownership_set.exclude(end_date=None).order_by('end_date')
+        if end_date_qs.exists():
+            end_date = end_date_qs.last().end_date
+            end_id = end_date_qs.last().id #because the end_date and created_date lack granularity, we have to use the id as well
+            #NOTE: as of now id order corresponds with created_date - if that changes this check will also need to be updated
+            return self.vesselownership_set.filter(
+                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True),
+                created__gte=end_date,
+                id__gt=end_id,
+            )
+        else:
+            return self.vesselownership_set.filter(
+                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True),
+            )
 
     @property
     def filtered_vesseldetails_set(self):
