@@ -1708,8 +1708,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                     if total_amount == 0:
 
-                        #TODO investigate why this is breaking - something happens to the proposal when paid for that does not happen here?
-
                         # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
                         # Ledger skips the payment step, which calling the function below
                         approval, created = self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request=request)
@@ -3551,8 +3549,6 @@ class MooringLicenceApplication(Proposal):
         """ Create the ledger lines - line item for application fee sent to payment system """
         logger.info(f'Creating fee lines for the MooringLicenceApplication: [{self}]...')
 
-        #TODO lines for no longer applicable vessels being added - fix (may be a development anomaly, unable to re-create so far)
-
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
 
@@ -3565,7 +3561,7 @@ class MooringLicenceApplication(Proposal):
             total_amount = float(GlobalSettings.objects.get(key=GlobalSettings.KEY_FEE_AMOUNT_OF_SWAP_MOORINGS).value)
             incur_gst = True if GlobalSettings.objects.get(key=GlobalSettings.KEY_SWAP_MOORINGS_INCLUDES_GST).value.lower() in ['true', 't', 'yes', 'y'] else False
             if settings.ROUND_FEE_ITEMS:
-                # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+                # In debug environment, we want to avoid decimal number which may cause some kind of error.
                 total_amount = round(float(total_amount))
                 total_amount_excl_tax = round(float(calculate_excl_gst(total_amount))) if incur_gst else round(float(total_amount))
             else:
