@@ -3240,10 +3240,10 @@ class AuthorisedUserApplication(Proposal):
                 send_endorsement_of_authorised_user_application_email(request, self)
                 send_confirmation_email_upon_submit(request, self, False)
             else:
-                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-                self.save()
-                send_confirmation_email_upon_submit(request, self, False)
                 if not self.auto_approve:
+                    self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    self.save()
+                    send_confirmation_email_upon_submit(request, self, False)
                     send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
@@ -3755,9 +3755,10 @@ class MooringLicenceApplication(Proposal):
 
         if self.proposal_type in (ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,])):
             # Renewal
-            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            send_confirmation_email_upon_submit(request, self, False)
-            send_notification_email_upon_submit_to_assessor(request, self)
+            if not self.auto_approve:
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                send_confirmation_email_upon_submit(request, self, False)
+                send_notification_email_upon_submit_to_assessor(request, self)
         else:
             # New
             if self.amendment_requests.count():
