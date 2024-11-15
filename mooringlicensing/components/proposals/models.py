@@ -2209,26 +2209,61 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #however, no such check is required to determine if the vessel is being kept or not - 
         # we just need to check if the proposal's vessel registration is the same or not
 
-        previous_rego_no = None
-        if (self.previous_application and 
-            self.previous_application and 
-            self.previous_application.vessel_details and
-            self.previous_application.vessel_details.vessel and
-            self.previous_application.vessel_ownership and
-            not self.previous_application.vessel_ownership.end_date): #end_date means sold
-            previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
+        if self.code == 'mla':
+            from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval            
+            #account for multiple vessel ownerships
+            previous_ownerships = None
+            approval = None
+            if self.previous_application:
+                approval = self.previous_application.approval
+                previous_ownerships = VesselOwnershipOnApproval.objects.filter(approval=approval).order_by('vessel_ownership__vessel','vessel_ownership__created','vessel_ownership__id').distinct('vessel_ownership__vessel')
+                if previous_ownerships.exists():
+                    previous_ownerships = previous_ownerships.filter(end_date=None)
+                if self.vessel_details and self.vessel_details.vessel and self.vessel_details.vessel.rego_no and previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_details.vessel.rego_no).exists():
+                    return True
+        else:
+            previous_rego_no = None
+            if (self.previous_application and 
+                self.previous_application and 
+                self.previous_application.vessel_details and
+                self.previous_application.vessel_details.vessel and
+                self.previous_application.vessel_ownership and
+                not self.previous_application.vessel_ownership.end_date): #end_date means sold
+                previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
 
-        if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
+            if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
                 previous_rego_no == self.vessel_details.vessel.rego_no):
                 return True
         
         return False
     
     def vessel_ownership_changed(self):
+
         previous_ownership = None
-        if self.previous_application:
-            previous_ownership = self.previous_application.vessel_ownership
-        
+
+        if self.code == 'mla':
+            from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval
+            #account for multiple vessel ownerships
+            previous_ownerships = None
+            approval = None
+            if self.previous_application:
+                approval = self.previous_application.approval
+                previous_ownerships = VesselOwnershipOnApproval.objects.filter(approval=approval).order_by('vessel_ownership__vessel','vessel_ownership__created','vessel_ownership__id').distinct('vessel_ownership__vessel')
+                if previous_ownerships.exists():
+                    previous_ownerships = previous_ownerships.filter(end_date=None)
+
+            if previous_ownerships and self.vessel_ownership and self.vessel_ownership.vessel:
+                #check if vo rego_no in previous_ownerships, if not return True
+                if previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_ownership.vessel.rego_no).exists:
+                    #otherwise set previous_owernship to the vo with the corresponding rego_no
+                    previous_ownership = previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_ownership.vessel.rego_no).last().vessel_ownership
+                else:
+                    return True
+
+        else: 
+            if self.previous_application:
+                previous_ownership = self.previous_application.vessel_ownership
+            
         if previous_ownership and self.vessel_ownership:
             previous_company_ownership = previous_ownership.get_latest_company_ownership()
             company_ownership = self.vessel_ownership.get_latest_company_ownership()
@@ -3719,7 +3754,7 @@ class MooringLicenceApplication(Proposal):
         return True
 
     def set_auto_approve(self,request):
-        #check AUP auto approval conditions
+        #check MLA auto approval conditions
         if (self.is_assessor(request.user) or 
             self.is_approver(request.user) or
             (self.proposal_applicant and 
