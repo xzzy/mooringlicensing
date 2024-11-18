@@ -940,8 +940,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def end_date(self):
+        #TODO either fix this or fix expiry date being set to this when renewing without vessel...
         end_date = None
         application_fee = self.get_main_application_fee()
+        print(application_fee)
+        print(self.fee_season)
         if application_fee:
             end_date = application_fee.fee_constructor.end_date
         elif self.fee_season:
@@ -1461,13 +1464,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             raise serializers.ValidationError("No mooring provided")
 
                         
+                vessel_details = None
                 check_mooring_ids = id_list + requested_id_list
-                check_vessel = self.vessel_ownership.vessel
-                check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
+                if self.vessel_ownership:
+                    check_vessel = self.vessel_ownership.vessel
+                    vessel_details = check_vessel.latest_vessel_details
+                
+                check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)          
 
-                vessel_details = check_vessel.latest_vessel_details
-
-                if mooring_id:
+                if mooring_id and vessel_details:
                     if (vessel_details.vessel_length > mooring.vessel_size_limit or
                         vessel_details.vessel_draft > mooring.vessel_draft_limit or
                         (vessel_details.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
@@ -1707,8 +1712,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     total_amount = sum(line_item['price_incl_tax'] for line_item in line_items)
 
                     if total_amount == 0:
-
-                        #TODO investigate why this is breaking - something happens to the proposal when paid for that does not happen here?
 
                         # Call a function where mooringonapprovals and stickers are handled, because when total_amount == 0,
                         # Ledger skips the payment step, which calling the function below
@@ -2211,26 +2214,61 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #however, no such check is required to determine if the vessel is being kept or not - 
         # we just need to check if the proposal's vessel registration is the same or not
 
-        previous_rego_no = None
-        if (self.previous_application and 
-            self.previous_application and 
-            self.previous_application.vessel_details and
-            self.previous_application.vessel_details.vessel and
-            self.previous_application.vessel_ownership and
-            not self.previous_application.vessel_ownership.end_date): #end_date means sold
-            previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
+        if self.code == 'mla':
+            from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval            
+            #account for multiple vessel ownerships
+            previous_ownerships = None
+            approval = None
+            if self.previous_application:
+                approval = self.previous_application.approval
+                previous_ownerships = VesselOwnershipOnApproval.objects.filter(approval=approval).order_by('vessel_ownership__vessel','vessel_ownership__created','vessel_ownership__id').distinct('vessel_ownership__vessel')
+                if previous_ownerships.exists():
+                    previous_ownerships = previous_ownerships.filter(end_date=None)
+                if self.vessel_details and self.vessel_details.vessel and self.vessel_details.vessel.rego_no and previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_details.vessel.rego_no).exists():
+                    return True
+        else:
+            previous_rego_no = None
+            if (self.previous_application and 
+                self.previous_application and 
+                self.previous_application.vessel_details and
+                self.previous_application.vessel_details.vessel and
+                self.previous_application.vessel_ownership and
+                not self.previous_application.vessel_ownership.end_date): #end_date means sold
+                previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
 
-        if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
+            if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
                 previous_rego_no == self.vessel_details.vessel.rego_no):
                 return True
         
         return False
     
     def vessel_ownership_changed(self):
+
         previous_ownership = None
-        if self.previous_application:
-            previous_ownership = self.previous_application.vessel_ownership
-        
+
+        if self.code == 'mla':
+            from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval
+            #account for multiple vessel ownerships
+            previous_ownerships = None
+            approval = None
+            if self.previous_application:
+                approval = self.previous_application.approval
+                previous_ownerships = VesselOwnershipOnApproval.objects.filter(approval=approval).order_by('vessel_ownership__vessel','vessel_ownership__created','vessel_ownership__id').distinct('vessel_ownership__vessel')
+                if previous_ownerships.exists():
+                    previous_ownerships = previous_ownerships.filter(end_date=None)
+
+            if previous_ownerships and self.vessel_ownership and self.vessel_ownership.vessel:
+                #check if vo rego_no in previous_ownerships, if not return True
+                if previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_ownership.vessel.rego_no).exists:
+                    #otherwise set previous_owernship to the vo with the corresponding rego_no
+                    previous_ownership = previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_ownership.vessel.rego_no).last().vessel_ownership
+                else:
+                    return True
+
+        else: 
+            if self.previous_application:
+                previous_ownership = self.previous_application.vessel_ownership
+            
         if previous_ownership and self.vessel_ownership:
             previous_company_ownership = previous_ownership.get_latest_company_ownership()
             company_ownership = self.vessel_ownership.get_latest_company_ownership()
@@ -3240,10 +3278,10 @@ class AuthorisedUserApplication(Proposal):
                 send_endorsement_of_authorised_user_application_email(request, self)
                 send_confirmation_email_upon_submit(request, self, False)
             else:
-                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-                self.save()
-                send_confirmation_email_upon_submit(request, self, False)
                 if not self.auto_approve:
+                    self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                    self.save()
+                    send_confirmation_email_upon_submit(request, self, False)
                     send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
@@ -3563,7 +3601,7 @@ class MooringLicenceApplication(Proposal):
             total_amount = float(GlobalSettings.objects.get(key=GlobalSettings.KEY_FEE_AMOUNT_OF_SWAP_MOORINGS).value)
             incur_gst = True if GlobalSettings.objects.get(key=GlobalSettings.KEY_SWAP_MOORINGS_INCLUDES_GST).value.lower() in ['true', 't', 'yes', 'y'] else False
             if settings.ROUND_FEE_ITEMS:
-                # In debug environment, we want to avoid decimal number which may cuase some kind of error.
+                # In debug environment, we want to avoid decimal number which may cause some kind of error.
                 total_amount = round(float(total_amount))
                 total_amount_excl_tax = round(float(calculate_excl_gst(total_amount))) if incur_gst else round(float(total_amount))
             else:
@@ -3589,6 +3627,7 @@ class MooringLicenceApplication(Proposal):
 
         vessel_detais_list_to_be_processed = [self.vessel_details,]
         vessel_details_largest = self.vessel_details  # As a default value
+        
         if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # Only when 'Renewal' application, we are interested in the existing vessels
             vessel_list = self.approval.child_obj.vessel_list_for_payment
@@ -3657,6 +3696,9 @@ class MooringLicenceApplication(Proposal):
 
         logger.info(f'line_items calculated: {line_items}')
 
+        self.fee_season = fee_constructor_for_ml.fee_season
+        self.save()
+
         return line_items, fee_items_to_store
 
     def get_document_upload_url(self, request):
@@ -3721,7 +3763,7 @@ class MooringLicenceApplication(Proposal):
         return True
 
     def set_auto_approve(self,request):
-        #check AUP auto approval conditions
+        #check MLA auto approval conditions
         if (self.is_assessor(request.user) or 
             self.is_approver(request.user) or
             (self.proposal_applicant and 
@@ -3753,9 +3795,10 @@ class MooringLicenceApplication(Proposal):
 
         if self.proposal_type in (ProposalType.objects.filter(code__in=[PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,])):
             # Renewal
-            self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            send_confirmation_email_upon_submit(request, self, False)
-            send_notification_email_upon_submit_to_assessor(request, self)
+            if not self.auto_approve:
+                self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                send_confirmation_email_upon_submit(request, self, False)
+                send_notification_email_upon_submit_to_assessor(request, self)
         else:
             # New
             if self.amendment_requests.count():
@@ -4403,9 +4446,21 @@ class Vessel(RevisionedMixin):
 
     @property
     def filtered_vesselownership_set(self):
-        return self.vesselownership_set.filter(
-                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True)
-                )
+        #exclude any vessel ownerships created before the latest end_date
+        end_date_qs = self.vesselownership_set.exclude(end_date=None).order_by('end_date')
+        if end_date_qs.exists():
+            end_date = end_date_qs.last().end_date
+            end_id = end_date_qs.last().id #because the end_date and created_date lack granularity, we have to use the id as well
+            #NOTE: as of now id order corresponds with created_date - if that changes this check will also need to be updated
+            return self.vesselownership_set.filter(
+                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True),
+                created__gte=end_date,
+                id__gt=end_id,
+            )
+        else:
+            return self.vesselownership_set.filter(
+                id__in=VesselOwnership.filtered_objects.values_list('id', flat=True),
+            )
 
     @property
     def filtered_vesseldetails_set(self):

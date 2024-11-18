@@ -763,8 +763,8 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
                 if not self.instance.electoral_roll_documents.all():
                     custom_errors["Silent Elector"] = "You must provide evidence of this"
 
-            # When company ownership, vessel registration document is compalsory
-            if not self.instance.vessel_ownership.individual_owner:
+            # When company ownership, vessel registration document is compulsory
+            if self.instance.vessel_ownership and not self.instance.vessel_ownership.individual_owner:
                 if not self.instance.vessel_ownership.vessel_registration_documents.count():
                     custom_errors["Copy of registration papers"] = "You must provide evidence of this"
 

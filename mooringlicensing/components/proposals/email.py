@@ -627,7 +627,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
             send_mla_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned)
         elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             payment_required = False
-            if proposal.application_fees.count():
+            if proposal.application_fees.count() and proposal.get_main_application_fee():
                 application_fee = proposal.get_main_application_fee()
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
                 if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):

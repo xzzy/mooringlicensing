@@ -2315,10 +2315,6 @@ class MooringLicence(Approval):
                         existing_sticker = existing_sticker.first()
                         stickers_to_be_replaced.append(existing_sticker)
 
-                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                    if stickers_not_exported:
-                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
-
                     # Sticker not found --> Create it
                     new_sticker = Sticker.objects.create(
                         approval=self,
@@ -2395,14 +2391,35 @@ class MooringLicence(Approval):
     @property
     def vessel_list_for_payment(self):
         vessels = []
+        proposals = []
+        check_vessels = []
+        
+        #not all vessel ownerships are valid - if a vessel ownership was created before the latest end_date (with the same vessel) it does not count
         for proposal in self.proposal_set.all():
             if (
                     proposal.final_status and
                     proposal.vessel_details and
-                    not proposal.vessel_ownership.end_date  # vessel has not been sold by this owner
+                    not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
+                    proposal.vessel_details.vessel
             ):
-                if proposal.vessel_details.vessel not in vessels:
-                    vessels.append(proposal.vessel_details.vessel)
+                proposals.append(proposal)
+                check_vessels.append(proposal.vessel_ownership.vessel)
+                
+        vessel_ownerships = VesselOwnership.objects.filter(vessel__in=check_vessels)
+
+        for proposal in proposals: 
+            
+            #check if the vessel_ownership created and id are both gt(e) than the latest end date with the same rego no
+            latest_end_dates = vessel_ownerships.filter(vessel__rego_no=proposal.vessel_ownership.vessel.rego_no).exclude(end_date=None).order_by('end_date')
+
+            if latest_end_dates.exists():
+                latest_end_date = latest_end_dates.last()
+                if proposal.vessel_ownership.created.date() <= latest_end_date.end_date and proposal.vessel_ownership.id < latest_end_date.id:
+                    continue
+
+            if proposal.vessel_details.vessel not in vessels:
+                vessels.append(proposal.vessel_details.vessel)
+
         return vessels
 
     # This function may not be used
