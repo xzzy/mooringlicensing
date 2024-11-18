@@ -940,6 +940,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def end_date(self):
+        #TODO either fix this or fix expiry date being set to this when renewing without vessel...
         end_date = None
         application_fee = self.get_main_application_fee()
         if application_fee:
@@ -1461,13 +1462,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             raise serializers.ValidationError("No mooring provided")
 
                         
+                vessel_details = None
                 check_mooring_ids = id_list + requested_id_list
-                check_vessel = self.vessel_ownership.vessel
-                check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)
+                if self.vessel_ownership:
+                    check_vessel = self.vessel_ownership.vessel
+                    vessel_details = check_vessel.latest_vessel_details
+                
+                check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)          
 
-                vessel_details = check_vessel.latest_vessel_details
-
-                if mooring_id:
+                if mooring_id and vessel_details:
                     if (vessel_details.vessel_length > mooring.vessel_size_limit or
                         vessel_details.vessel_draft > mooring.vessel_draft_limit or
                         (vessel_details.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
