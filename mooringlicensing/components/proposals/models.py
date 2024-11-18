@@ -943,6 +943,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #TODO either fix this or fix expiry date being set to this when renewing without vessel...
         end_date = None
         application_fee = self.get_main_application_fee()
+        print(application_fee)
+        print(self.fee_season)
         if application_fee:
             end_date = application_fee.fee_constructor.end_date
         elif self.fee_season:
@@ -3693,6 +3695,9 @@ class MooringLicenceApplication(Proposal):
             line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
 
         logger.info(f'line_items calculated: {line_items}')
+
+        self.fee_season = fee_constructor_for_ml.fee_season
+        self.save()
 
         return line_items, fee_items_to_store
 
