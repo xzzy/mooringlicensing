@@ -299,7 +299,6 @@ class GetMooringPerBay(views.APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         
-        mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
         wla_id = request.GET.get('wla_id')
@@ -309,56 +308,52 @@ class GetMooringPerBay(views.APIView):
 
         if search_term:
             if available_moorings:
-                if mooring_bay_id:
-                    # WLA offer
-                    if wla_id:
-                        try:
-                            wla = WaitingListAllocation.objects.get(id=int(wla_id))
-                        except:
-                            logger.error("wla_id {} is not an integer".format(wla_id))
-                            raise serializers.ValidationError("wla_id is not an integer")
-                        vessel_details_id = wla.current_proposal.vessel_details.id
-                        ## restrict search results to suitable vessels
-                        vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-                        mooring_filter = Q(
-                            Q(name__icontains=search_term) &
-                            Q(mooring_bay__id=mooring_bay_id) &
-                            Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
-                            Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
-                        )
-                        data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
-                    else:
-                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
-                else:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
-            else:
-                # aup
-                if mooring_bay_id:
-                    aup_mooring_ids = []
-                    if aup_id:
-                        aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.filter(active=True)]
-                    if vessel_details_id:
-                        ## restrict search results to suitable vessels
-                        vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-                        mooring_filter = Q(
-                            Q(name__icontains=search_term) &
-                            Q(mooring_bay__id=mooring_bay_id) &
-                            Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
-                            Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
-                            ~Q(id__in=aup_mooring_ids) &
-                            Q(active=True) &
-                            Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
-                        )
-                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
-                    else:
-                        data = []
-                else:
+                # WLA offer
+                if wla_id:
+                    try:
+                        wla = WaitingListAllocation.objects.get(id=int(wla_id))
+                    except:
+                        logger.error("wla_id {} is not an integer".format(wla_id))
+                        raise serializers.ValidationError("wla_id is not an integer")
+                    vessel_details_id = wla.current_proposal.vessel_details.id
+                    ## restrict search results to suitable vessels
+                    vessel_details = VesselDetails.objects.get(id=vessel_details_id)
                     mooring_filter = Q(
                         Q(name__icontains=search_term) &
+                        Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
+                        Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
+                    )
+                    data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+                else:
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+
+                #data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+            else:
+                # aup
+                aup_mooring_ids = []
+                if aup_id:
+                    aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.filter(active=True)]
+                if vessel_details_id:
+                    ## restrict search results to suitable vessels
+                    vessel_details = VesselDetails.objects.get(id=vessel_details_id)
+                    mooring_filter = Q(
+                        Q(name__icontains=search_term) &
+                        Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
+                        Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
+                        ~Q(id__in=aup_mooring_ids) &
                         Q(active=True) &
                         Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
                     )
-                    data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+                    data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+                else:
+                    data = []
+
+                #mooring_filter = Q(
+                #    Q(name__icontains=search_term) &
+                #    Q(active=True) &
+                #    Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
+                #)
+                #data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
 
             data_transform = []
             for mooring in data:
