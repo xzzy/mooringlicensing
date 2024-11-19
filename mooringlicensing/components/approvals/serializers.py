@@ -726,7 +726,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                             'bay_name': moa.mooring.mooring_bay.name,
                             'mooring_name': moa.mooring.name,
                         })
-            elif type(obj.child_obj) == MooringLicence and obj.child_obj.mooring and obj.child_obj.mooring.mooring_bay: 
+            elif type(obj.child_obj) == MooringLicence and hasattr(obj.child_obj,'mooring') and obj.child_obj.mooring.mooring_bay: 
                 links.append({
                     'id': obj.child_obj.mooring.id,
                     'bay_name': obj.child_obj.mooring.mooring_bay.name,
