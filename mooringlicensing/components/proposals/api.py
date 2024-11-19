@@ -538,8 +538,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         except Exception as e:
             logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
 
-        setattr(view, '_datatables_total_count', total_count)
-
         search_text = request.GET.get('search[value]')
         if search_text:
             #the search conducted by the superclass only accomodates the ProposalApplicant users
@@ -600,10 +598,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_by_endorsement:
             filter_query &= (Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email,site_licensee_mooring_request__enabled=True))
 
-        # don't show discarded applications
-        if not level == 'internal':
-            filter_query &= ~Q(customer_status='discarded')
-
         queryset = queryset.filter(filter_query)
 
         fields = self.get_fields(request)
@@ -614,6 +608,8 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         else:
             queryset = queryset.order_by('-id')
         
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
         return queryset
 
 
@@ -657,7 +653,7 @@ class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
                         Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id))
+            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id)).exclude(customer_status='discarded')
             return qs
         return Proposal.objects.none()
 
