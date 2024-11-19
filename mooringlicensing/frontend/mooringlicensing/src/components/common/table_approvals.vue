@@ -268,8 +268,8 @@ export default {
                     'Id',
                     'Number',
                     'Type',
-                    'Sticker number/s',
-                    'Sticker mailed date',
+                    'Sticker Number/s',
+                    'Sticker Mailed Date',
                     'Status',
                     'Issue Date',
                     'Start Date',
@@ -277,9 +277,8 @@ export default {
                     'Vessel Rego',
                     'Mooring',
                     'Action',
-                    'Grace period end date',
-                    'Approval letter',
-                    //'Sticker replacement',
+                    'Grace Period End Date',
+                    'Approval Letter',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -644,27 +643,6 @@ export default {
                         name: 'stickers__number',
                     }
         },
-        /*columnStickerReplacement: function(){
-            return {
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let ret_str = ''
-                            for (let sticker of full.stickers_historical){
-                                if (sticker.invoices.length){
-                                    for (let invoice of sticker.invoices){
-                                        // ret_str += invoice.invoice_url
-                                        ret_str += "<div><a href='" + invoice.invoice_url +"' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #" + invoice.reference + "</a></div>"
-                                    }
-                                }
-                            }
-                            return ret_str
-                        },
-
-            }
-        },*/
         columnStickerMailedDate: function() {
             return {
                         data: "id",
@@ -727,7 +705,7 @@ export default {
         columnVesselRegos: function() {
             return {
                 data: "id",
-                orderable: true,
+                orderable: false,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
