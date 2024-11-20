@@ -598,8 +598,20 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         
-        #TODO special handling for ordering by applicant, assigned_to
+        #special handling for ordering by applicant
         special_ordering = False
+        APPLICANT = 'applicant'
+        REVERSE_APPLICANT = '-applicant'
+        if APPLICANT in ordering:
+            special_ordering = True
+            ordering.remove(APPLICANT)
+            queryset = queryset.annotate(applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
+            queryset = queryset.order_by(APPLICANT+"_full_name")
+        if REVERSE_APPLICANT in ordering:
+            special_ordering = True
+            ordering.remove(REVERSE_APPLICANT)
+            queryset = queryset.annotate(applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_APPLICANT+"_full_name")
 
         if len(ordering):
             queryset = queryset.order_by(*ordering)

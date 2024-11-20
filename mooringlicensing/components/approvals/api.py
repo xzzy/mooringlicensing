@@ -280,9 +280,21 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
 
-        #TODO special handling for ordering by holder
+        #special handling for ordering by holder
         special_ordering = False
-        
+        HOLDER = 'holder'
+        REVERSE_HOLDER = '-holder'
+        if HOLDER in ordering:
+            special_ordering = True
+            ordering.remove(HOLDER)
+            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(HOLDER)
+        if REVERSE_HOLDER in ordering:
+            special_ordering = True
+            ordering.remove(REVERSE_HOLDER)
+            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_HOLDER)
+
         if len(ordering):
             queryset = queryset.order_by(*ordering)
         elif not special_ordering:
@@ -1634,10 +1646,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
 
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-
-        #TODO special handling for ordering by holder
-        special_ordering = False
-        print(ordering)
+        queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
 

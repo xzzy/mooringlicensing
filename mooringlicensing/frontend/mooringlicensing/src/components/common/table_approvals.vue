@@ -541,13 +541,13 @@ export default {
         columnHolder: function() {
             return {
                         data: "id",
-                        orderable: false,
+                        orderable: true,
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             return full.holder;
                         },
-                        name: 'current_proposal__proposalapplicant__first_name, current_proposal__proposalapplicant__last_name, current_proposal__proposalapplicant__email'
+                        name: 'holder'
                     }
         },
         columnPreferredMooringBay: function() {

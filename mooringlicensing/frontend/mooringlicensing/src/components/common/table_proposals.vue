@@ -308,7 +308,7 @@ export default {
         column_applicant: function(){
             return {
                 data: "id",
-                orderable: false,
+                orderable: true,
                 searchable: false, //special functionality for searching this field required
                 visible: true,
                 'render': function(row, type, full){
@@ -321,7 +321,7 @@ export default {
                     }
                     return ''
                 },
-                name: 'proposal_applicant__first_name, proposal_applicant__last_name, proposal_applicant__email'
+                name: 'applicant'
             }
         },
         column_assigned_to: function(){
