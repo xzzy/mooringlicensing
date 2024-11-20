@@ -1601,8 +1601,6 @@ class SaveVesselOwnershipSerializer(serializers.ModelSerializer):
                 'owner',
                 'vessel',
                 'percentage',
-                'start_date',
-                'end_date',
                 'dot_name',
                 'company_ownerships',
                 )
