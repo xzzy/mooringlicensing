@@ -695,7 +695,7 @@ export default {
             return {
                 data: "id",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     let ret = ''

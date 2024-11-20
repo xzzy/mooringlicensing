@@ -80,9 +80,9 @@ class Command(BaseCommand):
                 a.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a),)
                 logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a))
                 updates.append(a.lodgement_number)
-            except Exception as e:
+            except:# Exception as e:
                 err_msg = 'Error sending renewal notice for Approval {}'.format(a.lodgement_number)
-                logger.error('{}\n{}'.format(err_msg, str(e)))
+                logger.error(err_msg)
                 errors.append(err_msg)
 
     def handle(self, *args, **options):
