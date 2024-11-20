@@ -279,10 +279,13 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         queryset = queryset.filter(filter_query)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
+
+        #TODO special handling for ordering by holder
+        special_ordering = False
+        
         if len(ordering):
             queryset = queryset.order_by(*ordering)
-        else:
+        elif not special_ordering:
             queryset = queryset.order_by('-id')
 
         try:
@@ -1631,7 +1634,10 @@ class StickerFilterBackend(DatatablesFilterBackend):
 
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
+
+        #TODO special handling for ordering by holder
+        special_ordering = False
+        print(ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
 

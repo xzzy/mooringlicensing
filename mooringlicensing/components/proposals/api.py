@@ -597,10 +597,13 @@ class ProposalFilterBackend(DatatablesFilterBackend):
 
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
+        
+        #TODO special handling for ordering by applicant, assigned_to
+        special_ordering = False
+
         if len(ordering):
             queryset = queryset.order_by(*ordering)
-        else:
+        elif not special_ordering:
             queryset = queryset.order_by('-id')
         
         total_count = queryset.count()

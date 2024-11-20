@@ -280,7 +280,19 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
+
+        #special handling for ordering by holder
+        HOLDER = 'approval_holder'
+        REVERSE_HOLDER = '-approval_holder'
+        if HOLDER in ordering:
+            ordering.remove(HOLDER)
+            queryset = queryset.annotate(approval_holder=Concat('approval__current_proposal__proposal_applicant__first_name',Value(" "),'approval__current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(HOLDER)
+        if REVERSE_HOLDER in ordering:
+            ordering.remove(REVERSE_HOLDER)
+            queryset = queryset.annotate(approval_holder=Concat('approval__current_proposal__proposal_applicant__first_name',Value(" "),'approval__current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_HOLDER)
+
         if len(ordering):
             queryset = queryset.order_by(*ordering)
 

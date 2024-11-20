@@ -10,26 +10,15 @@
         </div>
         <div v-else class="row">
             <div v-if="!wlaDash">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="">Type:</label>
-                            <select class="form-control" v-model="filterApprovalType">
-                                <option value="All">All</option>
-                                <option v-for="type in approvalTypes" :value="type.code">{{ type.description }}</option>
-                            </select>
-                        </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="">Type:</label>
+                        <select class="form-control" v-model="filterApprovalType">
+                            <option value="All">All</option>
+                            <option v-for="type in approvalTypes" :value="type.code">{{ type.description }}</option>
+                        </select>
                     </div>
-                <!--div v-if="is_internal">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="">Holder:</label>
-                            <select class="form-control" v-model="filterHolder">
-                                <option value="All">All</option>
-                                <option v-for="h in holderList" :value="h.id">{{ h.full_name }}</option>
-                            </select>
-                        </div>
-                    </div>
-                </div-->
+                </div>
             </div>
             <div v-else>
                 <div class="col-md-3">

@@ -19,15 +19,6 @@
                     </select>
                 </div>
             </div>
-            <!--<div class="col-md-3" v-if="is_internal">
-                <div class="form-group">
-                    <label for="">Applicant</label>
-                    <select class="form-control" v-model="filterApplicant">
-                        <option value="All">All</option>
-                        <option v-for="applicant in applicants" :value="applicant.id">{{ applicant.first_name }} {{ applicant.last_name }}</option>
-                    </select>
-                </div>
-            </div>-->
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
