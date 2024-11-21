@@ -4,7 +4,6 @@ from django.db.models import Q, CharField, Value, Max
 from confy import env
 import datetime
 import pytz
-from django.db.models import Q
 from django.db import transaction
 from django.conf import settings
 from rest_framework import viewsets, serializers, views, mixins
@@ -44,7 +43,7 @@ from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
-    MooringOnApproval
+    MooringOnApproval, VesselOwnershipOnApproval
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
@@ -317,7 +316,13 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
 
-                q_set = queryset.filter(Q(current_proposal__id__in=proposal_applicant_proposals)|Q(current_proposal__submitter__in=system_user_ids))
+                #Search by vessel registration
+                q_set = queryset.filter(
+                    Q(current_proposal__id__in=proposal_applicant_proposals)|
+                    Q(current_proposal__submitter__in=system_user_ids)|
+                    Q(id__in=VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel__rego_no__icontains=search_text).values_list('approval__id', flat=True))|
+                    Q(current_proposal__vessel_details__vessel__rego_no__icontains=search_text)
+                )
 
                 queryset = super_queryset.union(q_set)
         except Exception as e:
