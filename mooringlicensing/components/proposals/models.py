@@ -4405,7 +4405,8 @@ class Vessel(RevisionedMixin):
         approval_filter &= ~Q(status__in=[
                     Approval.APPROVAL_STATUS_CANCELLED,
                     Approval.APPROVAL_STATUS_EXPIRED,
-                    Approval.APPROVAL_STATUS_SURRENDERED])
+                    Approval.APPROVAL_STATUS_SURRENDERED,
+                    Approval.APPROVAL_STATUS_FULFILLED])
         
         blocking_approvals = []
         blocking_aup = []

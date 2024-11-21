@@ -19,15 +19,6 @@
                     </select>
                 </div>
             </div>
-            <!--<div class="col-md-3" v-if="is_internal">
-                <div class="form-group">
-                    <label for="">Applicant</label>
-                    <select class="form-control" v-model="filterApplicant">
-                        <option value="All">All</option>
-                        <option v-for="applicant in applicants" :value="applicant.id">{{ applicant.first_name }} {{ applicant.last_name }}</option>
-                    </select>
-                </div>
-            </div>-->
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
@@ -194,7 +185,7 @@ export default {
             return {
                 // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
-                orderable: true,
+                orderable: false,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
@@ -317,7 +308,7 @@ export default {
         column_applicant: function(){
             return {
                 data: "id",
-                orderable: false,
+                orderable: true,
                 searchable: false, //special functionality for searching this field required
                 visible: true,
                 'render': function(row, type, full){
@@ -330,7 +321,7 @@ export default {
                     }
                     return ''
                 },
-                name: 'proposal_applicant__first_name, proposal_applicant__last_name, proposal_applicant__email'
+                name: 'applicant'
             }
         },
         column_assigned_to: function(){

@@ -290,7 +290,7 @@ class Approval(RevisionedMixin):
     )
     APPROVED_STATUSES = [
         APPROVAL_STATUS_CURRENT,
-        APPROVAL_STATUS_SURRENDERED,
+        APPROVAL_STATUS_SUSPENDED,
     ]
     lodgement_number = models.CharField(max_length=9, blank=True, unique=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])

@@ -4,7 +4,6 @@ from django.db.models import Q, CharField, Value, Max
 from confy import env
 import datetime
 import pytz
-from django.db.models import Q
 from django.db import transaction
 from django.conf import settings
 from rest_framework import viewsets, serializers, views, mixins
@@ -44,7 +43,7 @@ from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
-    MooringOnApproval
+    MooringOnApproval, VesselOwnershipOnApproval
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
@@ -233,9 +232,12 @@ class GetWlaAllowed(views.APIView):
 
 
 class ApprovalFilterBackend(DatatablesFilterBackend):
+
     def filter_queryset(self, request, queryset, view):
-        total_count = queryset.count()
+
         filter_query = Q()
+
+        #client set form filters
         # status filter
         filter_status = request.data.get('filter_status')
         if filter_status and not filter_status.lower() == 'all':
@@ -262,51 +264,19 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         if max_vessel_draft:
             filter_query &= Q(current_proposal__vessel_details__vessel_draft__lte=float(max_vessel_draft))
 
-        ml_list = MooringLicence.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
-        aup_list = AuthorisedUserPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
-        aap_list = AnnualAdmissionPermit.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
-        wla_list = WaitingListAllocation.objects.all().exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED)
-
-        # Filter by approval types (wla, aap, aup, ml)
-        filter_approval_type = request.data.get('filter_approval_type')
-        if filter_approval_type and not filter_approval_type.lower() == 'all':
-            filter_approval_type_list = filter_approval_type.split(',')
-            if 'wla' in filter_approval_type_list:
-                filter_query &= Q(id__in=wla_list)
-            else:
-                filter_query &= Q(
-                    Q(annualadmissionpermit__in=aap_list) |
-                    Q(authoriseduserpermit__in=aup_list) |
-                    Q(mooringlicence__in=ml_list)
-                )
-
-        # Show/Hide expired and/or surrendered
-        show_expired_surrendered = request.data.get('show_expired_surrendered', 'true')
-        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
-        external_waiting_list = request.data.get('external_waiting_list', 'false')
-        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
-        if external_waiting_list and not show_expired_surrendered:
-            filter_query &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
-
         filter_approval_type2 = request.data.get('filter_approval_type2')
         if filter_approval_type2 and not filter_approval_type2.lower() == 'all':
             if filter_approval_type2 == 'ml':
-                filter_query &= Q(id__in=ml_list)
+                filter_query &= ~Q(mooringlicence=None)
             elif filter_approval_type2 == 'aup':
-                filter_query &= Q(id__in=aup_list)
+                filter_query &= ~Q(authoriseduserpermit=None)
             elif filter_approval_type2 == 'aap':
-                filter_query &= Q(id__in=aap_list)
+                filter_query &= ~Q(annualadmissionpermit=None)
             elif filter_approval_type2 == 'wla':
-                filter_query &= Q(id__in=wla_list)
+                filter_query &= ~Q(waitinglistallocation=None)
 
         queryset = queryset.filter(filter_query)
-        fields = self.get_fields(request)
-        ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
-        if len(ordering):
-            queryset = queryset.order_by(*ordering)
-        else:
-            queryset = queryset.order_by('-id')
+        
 
         try:
             super_queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
@@ -325,13 +295,43 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
 
-                q_set = queryset.filter(Q(current_proposal__id__in=proposal_applicant_proposals)|Q(current_proposal__submitter__in=system_user_ids))
+                #Search by vessel registration
+                q_set = queryset.filter(
+                    Q(current_proposal__id__in=proposal_applicant_proposals)|
+                    Q(current_proposal__submitter__in=system_user_ids)|
+                    Q(id__in=VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel__rego_no__icontains=search_text).values_list('approval__id', flat=True))|
+                    Q(current_proposal__vessel_details__vessel__rego_no__icontains=search_text)
+                )
 
                 queryset = super_queryset.union(q_set)
         except Exception as e:
             logger.error(e)
-        setattr(view, '_datatables_total_count', total_count)
-        print(queryset.count())
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+
+        #special handling for ordering by holder
+        special_ordering = False
+        HOLDER = 'holder'
+        REVERSE_HOLDER = '-holder'
+        if HOLDER in ordering:
+            special_ordering = True
+            ordering.remove(HOLDER)
+            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(HOLDER)
+        if REVERSE_HOLDER in ordering:
+            special_ordering = True
+            ordering.remove(REVERSE_HOLDER)
+            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_HOLDER)
+
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+        elif not special_ordering:
+            queryset = queryset.order_by('-id')
+
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
         return queryset
 
 
@@ -373,7 +373,37 @@ class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     #POST list route for handling certain filters 
     @list_route(methods=['POST',], detail=False)
     def list2(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
+
+        queryset = self.get_queryset()
+
+        #Default filters - i.e. not specified by client-side filters
+        filter_query = Q()
+        # Show/Hide expired and/or surrendered
+        show_expired_surrendered = request.data.get('show_expired_surrendered', 'true')
+        show_expired_surrendered = True if show_expired_surrendered.lower() in ['true', 'yes', 't', 'y',] else False
+        external_waiting_list = request.data.get('external_waiting_list', 'false')
+        external_waiting_list = True if external_waiting_list.lower() in ['true', 'yes', 't', 'y',] else False
+        if external_waiting_list and not show_expired_surrendered:
+            filter_query &= Q(status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.INTERNAL_STATUS_OFFERED))
+        
+        # Filter by approval types (wla, aap, aup, ml)
+        filter_approval_type = request.data.get('filter_approval_type')
+        if filter_approval_type and not filter_approval_type.lower() == 'all':
+            filter_approval_type_list = filter_approval_type.split(',')
+            if 'wla' in filter_approval_type_list:
+                filter_query &= ~Q(waitinglistallocation=None)
+            else:
+                filter_query &= Q(
+                    ~Q(authoriseduserpermit=None) |
+                    ~Q(mooringlicence=None) |
+                    ~Q(annualadmissionpermit=None)
+                )
+        queryset = queryset.exclude(current_proposal__processing_status=Proposal.PROCESSING_STATUS_DECLINED).filter(filter_query)
+        total_count = queryset.count()
+        #set total count attr here
+        setattr(self, '_datatables_total_count', total_count)
+        queryset = self.filter_queryset(queryset)
+        setattr(self, '_datatables_total_count', total_count)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -1621,12 +1651,6 @@ class StickerFilterBackend(DatatablesFilterBackend):
         if filter_sticker_status_id and not filter_sticker_status_id.lower() == 'all':
             queryset = queryset.filter(status=filter_sticker_status_id)
 
-        fields = self.get_fields(request)
-        ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
-        if len(ordering):
-            queryset = queryset.order_by(*ordering)
-
         #re-arranged filter so that: 
         #1) if the records in ledger and local are different they do not cancel each other out
         #2) other filters DO override the custom search
@@ -1645,6 +1669,13 @@ class StickerFilterBackend(DatatablesFilterBackend):
                 queryset = super_queryset.union(q_set)
         except Exception as e:
             print(e)
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+            
         setattr(view, '_datatables_total_count', total_count)
         
         return queryset

@@ -10,26 +10,15 @@
         </div>
         <div v-else class="row">
             <div v-if="!wlaDash">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="">Type:</label>
-                            <select class="form-control" v-model="filterApprovalType">
-                                <option value="All">All</option>
-                                <option v-for="type in approvalTypes" :value="type.code">{{ type.description }}</option>
-                            </select>
-                        </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="">Type:</label>
+                        <select class="form-control" v-model="filterApprovalType">
+                            <option value="All">All</option>
+                            <option v-for="type in approvalTypes" :value="type.code">{{ type.description }}</option>
+                        </select>
                     </div>
-                <!--div v-if="is_internal">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label for="">Holder:</label>
-                            <select class="form-control" v-model="filterHolder">
-                                <option value="All">All</option>
-                                <option v-for="h in holderList" :value="h.id">{{ h.full_name }}</option>
-                            </select>
-                        </div>
-                    </div>
-                </div-->
+                </div>
             </div>
             <div v-else>
                 <div class="col-md-3">
@@ -268,8 +257,8 @@ export default {
                     'Id',
                     'Number',
                     'Type',
-                    'Sticker number/s',
-                    'Sticker mailed date',
+                    'Sticker Number/s',
+                    'Sticker Mailed Date',
                     'Status',
                     'Issue Date',
                     'Start Date',
@@ -277,9 +266,8 @@ export default {
                     'Vessel Rego',
                     'Mooring',
                     'Action',
-                    'Grace period end date',
-                    'Approval letter',
-                    //'Sticker replacement',
+                    'Grace Period End Date',
+                    'Approval Letter',
                 ]
             } else if (this.is_internal && this.wlaDash) {
                 return [
@@ -553,13 +541,13 @@ export default {
         columnHolder: function() {
             return {
                         data: "id",
-                        orderable: false,
+                        orderable: true,
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             return full.holder;
                         },
-                        name: 'current_proposal__proposalapplicant__first_name, current_proposal__proposalapplicant__last_name, current_proposal__proposalapplicant__email'
+                        name: 'holder'
                     }
         },
         columnPreferredMooringBay: function() {
@@ -644,27 +632,6 @@ export default {
                         name: 'stickers__number',
                     }
         },
-        /*columnStickerReplacement: function(){
-            return {
-                        data: "id",
-                        orderable: false,
-                        searchable: false,
-                        visible: true,
-                        'render': function(row, type, full){
-                            let ret_str = ''
-                            for (let sticker of full.stickers_historical){
-                                if (sticker.invoices.length){
-                                    for (let invoice of sticker.invoices){
-                                        // ret_str += invoice.invoice_url
-                                        ret_str += "<div><a href='" + invoice.invoice_url +"' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #" + invoice.reference + "</a></div>"
-                                    }
-                                }
-                            }
-                            return ret_str
-                        },
-
-            }
-        },*/
         columnStickerMailedDate: function() {
             return {
                         data: "id",
@@ -727,8 +694,8 @@ export default {
         columnVesselRegos: function() {
             return {
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     let ret = ''

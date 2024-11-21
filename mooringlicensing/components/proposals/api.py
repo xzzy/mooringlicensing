@@ -299,7 +299,6 @@ class GetMooringPerBay(views.APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request, format=None):
         
-        mooring_bay_id = request.GET.get('mooring_bay_id')
         available_moorings = request.GET.get('available_moorings')
         vessel_details_id = request.GET.get('vessel_details_id')
         wla_id = request.GET.get('wla_id')
@@ -309,56 +308,52 @@ class GetMooringPerBay(views.APIView):
 
         if search_term:
             if available_moorings:
-                if mooring_bay_id:
-                    # WLA offer
-                    if wla_id:
-                        try:
-                            wla = WaitingListAllocation.objects.get(id=int(wla_id))
-                        except:
-                            logger.error("wla_id {} is not an integer".format(wla_id))
-                            raise serializers.ValidationError("wla_id is not an integer")
-                        vessel_details_id = wla.current_proposal.vessel_details.id
-                        ## restrict search results to suitable vessels
-                        vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-                        mooring_filter = Q(
-                            Q(name__icontains=search_term) &
-                            Q(mooring_bay__id=mooring_bay_id) &
-                            Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
-                            Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
-                        )
-                        data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
-                    else:
-                        data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
-                else:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
-            else:
-                # aup
-                if mooring_bay_id:
-                    aup_mooring_ids = []
-                    if aup_id:
-                        aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.filter(active=True)]
-                    if vessel_details_id:
-                        ## restrict search results to suitable vessels
-                        vessel_details = VesselDetails.objects.get(id=vessel_details_id)
-                        mooring_filter = Q(
-                            Q(name__icontains=search_term) &
-                            Q(mooring_bay__id=mooring_bay_id) &
-                            Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
-                            Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
-                            ~Q(id__in=aup_mooring_ids) &
-                            Q(active=True) &
-                            Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
-                        )
-                        data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
-                    else:
-                        data = []
-                else:
+                # WLA offer
+                if wla_id:
+                    try:
+                        wla = WaitingListAllocation.objects.get(id=int(wla_id))
+                    except:
+                        logger.error("wla_id {} is not an integer".format(wla_id))
+                        raise serializers.ValidationError("wla_id is not an integer")
+                    vessel_details_id = wla.current_proposal.vessel_details.id
+                    ## restrict search results to suitable vessels
+                    vessel_details = VesselDetails.objects.get(id=vessel_details_id)
                     mooring_filter = Q(
                         Q(name__icontains=search_term) &
+                        Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
+                        Q(vessel_draft_limit__gte=vessel_details.vessel_draft)
+                    )
+                    data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+                else:
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+
+                #data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+            else:
+                # aup
+                aup_mooring_ids = []
+                if aup_id:
+                    aup_mooring_ids = [moa.mooring.id for moa in AuthorisedUserPermit.objects.get(id=aup_id).mooringonapproval_set.filter(active=True)]
+                if vessel_details_id:
+                    ## restrict search results to suitable vessels
+                    vessel_details = VesselDetails.objects.get(id=vessel_details_id)
+                    mooring_filter = Q(
+                        Q(name__icontains=search_term) &
+                        Q(vessel_size_limit__gte=vessel_details.vessel_applicable_length) &
+                        Q(vessel_draft_limit__gte=vessel_details.vessel_draft) &
+                        ~Q(id__in=aup_mooring_ids) &
                         Q(active=True) &
                         Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
                     )
-                    data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+                    data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
+                else:
+                    data = []
+
+                #mooring_filter = Q(
+                #    Q(name__icontains=search_term) &
+                #    Q(active=True) &
+                #    Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
+                #)
+                #data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
 
             data_transform = []
             for mooring in data:
@@ -538,8 +533,6 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         except Exception as e:
             logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
 
-        setattr(view, '_datatables_total_count', total_count)
-
         search_text = request.GET.get('search[value]')
         if search_text:
             #the search conducted by the superclass only accomodates the ProposalApplicant users
@@ -600,20 +593,33 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         if filter_by_endorsement:
             filter_query &= (Q(site_licensee_mooring_request__site_licensee_email__iexact=request.user.email,site_licensee_mooring_request__enabled=True))
 
-        # don't show discarded applications
-        if not level == 'internal':
-            filter_query &= ~Q(customer_status='discarded')
-
         queryset = queryset.filter(filter_query)
 
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
+        
+        #special handling for ordering by applicant
+        special_ordering = False
+        APPLICANT = 'applicant'
+        REVERSE_APPLICANT = '-applicant'
+        if APPLICANT in ordering:
+            special_ordering = True
+            ordering.remove(APPLICANT)
+            queryset = queryset.annotate(applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
+            queryset = queryset.order_by(APPLICANT+"_full_name")
+        if REVERSE_APPLICANT in ordering:
+            special_ordering = True
+            ordering.remove(REVERSE_APPLICANT)
+            queryset = queryset.annotate(applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_APPLICANT+"_full_name")
+
         if len(ordering):
             queryset = queryset.order_by(*ordering)
-        else:
+        elif not special_ordering:
             queryset = queryset.order_by('-id')
         
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
         return queryset
 
 
@@ -657,7 +663,7 @@ class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
                         Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
             return all
         elif is_customer(self.request):
-            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id))
+            qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id)).exclude(customer_status='discarded')
             return qs
         return Proposal.objects.none()
 

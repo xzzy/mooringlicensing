@@ -567,9 +567,6 @@ def store_vessel_ownership(request, vessel, instance):
                 vessel_ownership.company_ownerships.add(company_ownership)
                 logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
             vo_created = True
-            if vo_created:
-                vessel_ownership_data["start_date"] = datetime.datetime.now()
-                vessel_ownership_data["end_date"] = None
 
         q_for_approvals_check &= ~Q(id=instance.approval.id)  # We want to exclude the approval we are currently processing for
     else:
@@ -610,11 +607,11 @@ def store_vessel_ownership(request, vessel, instance):
         vessel.check_blocking_ownership(vessel_ownership, instance)
 
     # save temp doc if exists
-    handle_vessel_registrarion_documents_in_limbo(instance.id, vessel_ownership)
+    handle_vessel_registration_documents_in_limbo(instance.id, vessel_ownership)
 
     return vessel_ownership
 
-def handle_vessel_registrarion_documents_in_limbo(proposal_id, vessel_ownership):
+def handle_vessel_registration_documents_in_limbo(proposal_id, vessel_ownership):
     # VesselRegistrationDocument object with proposal is the documents stored for the draft proposal
     documents_in_limbo = VesselRegistrationDocument.objects.filter(proposal_id=proposal_id)
 
