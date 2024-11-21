@@ -203,8 +203,8 @@ export default {
             return {
                 // 7. Action
                 data: "id",
-                orderable: true,
-                searchable: true,
+                orderable: false,
+                searchable: false,
                 visible: true,
                 'render': function (row, type, full) {
                     return `<a href='/internal/moorings/${full.id}'>View</a><br/>`;

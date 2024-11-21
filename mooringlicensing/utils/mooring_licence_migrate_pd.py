@@ -8,6 +8,7 @@ from decimal import Decimal
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
 from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCalculation, FeeItemApplicationFee, FeeItem, FeeSeason
+from django.db.models import Q
 
 from mooringlicensing.components.users.utils import (
     create_system_user, get_or_create_system_user, 
@@ -2027,7 +2028,7 @@ class MooringLicenceReader():
         if isinstance(approvals_migrated[0], DcvPermit):
             approvals = approvals_migrated.filter(migrated=True)
         else:
-            approvals = approvals_migrated.filter(migrated=True, current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+            approvals = approvals_migrated.filter(migrated=True).filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
 
         for idx, a in enumerate(approvals):
             try:
