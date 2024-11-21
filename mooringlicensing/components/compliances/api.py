@@ -277,25 +277,7 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         filter_compliance_status = request.GET.get('filter_compliance_status')
         if filter_compliance_status and not filter_compliance_status.lower() == 'all':
             queryset = queryset.filter(processing_status=filter_compliance_status)
-
-        fields = self.get_fields(request)
-        ordering = self.get_ordering(request, view, fields)
-
-        #special handling for ordering by holder
-        HOLDER = 'approval_holder'
-        REVERSE_HOLDER = '-approval_holder'
-        if HOLDER in ordering:
-            ordering.remove(HOLDER)
-            queryset = queryset.annotate(approval_holder=Concat('approval__current_proposal__proposal_applicant__first_name',Value(" "),'approval__current_proposal__proposal_applicant__last_name'))
-            queryset = queryset.order_by(HOLDER)
-        if REVERSE_HOLDER in ordering:
-            ordering.remove(REVERSE_HOLDER)
-            queryset = queryset.annotate(approval_holder=Concat('approval__current_proposal__proposal_applicant__first_name',Value(" "),'approval__current_proposal__proposal_applicant__last_name'))
-            queryset = queryset.order_by(REVERSE_HOLDER)
-
-        if len(ordering):
-            queryset = queryset.order_by(*ordering)
-
+        
         try:
             super_queryset = super(ComplianceFilterBackend, self).filter_queryset(request, queryset, view)
 
@@ -318,6 +300,25 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
             return queryset
         except Exception as e:
             logger.error(f'ComplianceFilterBackend raises an error: [{e}].  Query may not work correctly.')
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+
+        #special handling for ordering by holder
+        HOLDER = 'approval_holder'
+        REVERSE_HOLDER = '-approval_holder'
+        if HOLDER in ordering:
+            ordering.remove(HOLDER)
+            queryset = queryset.annotate(approval_holder=Concat('approval__current_proposal__proposal_applicant__first_name',Value(" "),'approval__current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(HOLDER)
+        if REVERSE_HOLDER in ordering:
+            ordering.remove(REVERSE_HOLDER)
+            queryset = queryset.annotate(approval_holder=Concat('approval__current_proposal__proposal_applicant__first_name',Value(" "),'approval__current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_HOLDER)
+
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
         total_count = queryset.count()
         setattr(view, '_datatables_filtered_count', total_count)
         return queryset

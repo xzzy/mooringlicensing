@@ -276,28 +276,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 filter_query &= ~Q(waitinglistallocation=None)
 
         queryset = queryset.filter(filter_query)
-        fields = self.get_fields(request)
-        ordering = self.get_ordering(request, view, fields)
-
-        #special handling for ordering by holder
-        special_ordering = False
-        HOLDER = 'holder'
-        REVERSE_HOLDER = '-holder'
-        if HOLDER in ordering:
-            special_ordering = True
-            ordering.remove(HOLDER)
-            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
-            queryset = queryset.order_by(HOLDER)
-        if REVERSE_HOLDER in ordering:
-            special_ordering = True
-            ordering.remove(REVERSE_HOLDER)
-            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
-            queryset = queryset.order_by(REVERSE_HOLDER)
-
-        if len(ordering):
-            queryset = queryset.order_by(*ordering)
-        elif not special_ordering:
-            queryset = queryset.order_by('-id')
+        
 
         try:
             super_queryset = super(ApprovalFilterBackend, self).filter_queryset(request, queryset, view)
@@ -327,6 +306,29 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 queryset = super_queryset.union(q_set)
         except Exception as e:
             logger.error(e)
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+
+        #special handling for ordering by holder
+        special_ordering = False
+        HOLDER = 'holder'
+        REVERSE_HOLDER = '-holder'
+        if HOLDER in ordering:
+            special_ordering = True
+            ordering.remove(HOLDER)
+            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(HOLDER)
+        if REVERSE_HOLDER in ordering:
+            special_ordering = True
+            ordering.remove(REVERSE_HOLDER)
+            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_HOLDER)
+
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+        elif not special_ordering:
+            queryset = queryset.order_by('-id')
 
         total_count = queryset.count()
         setattr(view, '_datatables_filtered_count', total_count)
@@ -1649,12 +1651,6 @@ class StickerFilterBackend(DatatablesFilterBackend):
         if filter_sticker_status_id and not filter_sticker_status_id.lower() == 'all':
             queryset = queryset.filter(status=filter_sticker_status_id)
 
-        fields = self.get_fields(request)
-        ordering = self.get_ordering(request, view, fields)
-        queryset = queryset.order_by(*ordering)
-        if len(ordering):
-            queryset = queryset.order_by(*ordering)
-
         #re-arranged filter so that: 
         #1) if the records in ledger and local are different they do not cancel each other out
         #2) other filters DO override the custom search
@@ -1673,6 +1669,13 @@ class StickerFilterBackend(DatatablesFilterBackend):
                 queryset = super_queryset.union(q_set)
         except Exception as e:
             print(e)
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+        queryset = queryset.order_by(*ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+            
         setattr(view, '_datatables_total_count', total_count)
         
         return queryset
