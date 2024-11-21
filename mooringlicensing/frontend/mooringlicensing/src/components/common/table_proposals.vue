@@ -185,7 +185,7 @@ export default {
             return {
                 // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
-                orderable: true,
+                orderable: false,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){

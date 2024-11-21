@@ -274,6 +274,7 @@ class GetComplianceStatusesDict(views.APIView):
 
 class ComplianceFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
+
         filter_compliance_status = request.GET.get('filter_compliance_status')
         if filter_compliance_status and not filter_compliance_status.lower() == 'all':
             queryset = queryset.filter(processing_status=filter_compliance_status)
@@ -293,11 +294,11 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
                 q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__current_proposal__submitter__in=system_user_ids))
+                q_set.annotate(lodgement_number="lodgement_number")
                 queryset = super_queryset.union(q_set)
 
             total_count = queryset.count()
             setattr(view, '_datatables_filtered_count', total_count)
-            return queryset
         except Exception as e:
             logger.error(f'ComplianceFilterBackend raises an error: [{e}].  Query may not work correctly.')
 
@@ -318,7 +319,7 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
         if len(ordering):
             queryset = queryset.order_by(*ordering)
-
+        
         total_count = queryset.count()
         setattr(view, '_datatables_filtered_count', total_count)
         return queryset
