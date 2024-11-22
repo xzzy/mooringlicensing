@@ -285,7 +285,7 @@ class MooringLicenceReader():
 
     """
 
-    def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='mooringlicensing/utils/csv/clean/'):
+    def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='/data/data/projects/mooringlicensing/tmp/clean/'):
         self.df_user=pd.read_csv(path+fname_user, delimiter='|', dtype=str, low_memory=False)
         self.df_ml=pd.read_csv(path+fname_ml, delimiter='|', dtype=str)
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='|', dtype=str)
@@ -648,7 +648,16 @@ class MooringLicenceReader():
                         #get or create system user
                         if not dob:
                             dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
-                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                        try:
+                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                        except Exception as e:
+                            print(e)
+                            if str(e) != "Ledger Email User not Active":
+                                logger.error(f'User creation failed: {email}')
+                                self.user_errors.append(user_row.email)
+                                self.user_error_details.append(row.name + " - " + user_row.email + " : Ledger Response: " + str(resp) + " " + str(e))
+                            continue
+
                         if created:
                             self.system_user_created.append(email)
                         else:
@@ -656,7 +665,7 @@ class MooringLicenceReader():
                 else:
                     logger.error(f'User creation failed: {email}')
                     self.user_errors.append(user_row.email)
-                    self.user_error_details.append(row.name + " - " + user_row.email+" : Ledger Response: " + str(resp))
+                    self.user_error_details.append(row.name + " - " + user_row.email + " : Ledger Response: " + str(resp))
 
                 self.pers_ids.append((user_id, row.name))
 
@@ -719,7 +728,15 @@ class MooringLicenceReader():
                         #get or create system user
                         if not dob:
                             dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
-                        system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                        try:
+                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                        except Exception as e:
+                            print(e)
+                            if str(e) != "Ledger Email User not Active":
+                                logger.error(f'User creation failed: {email}')
+                                self.user_errors.append(user_row.email)
+                                self.user_error_details.append(str(row.name) + " - " + user_row.email+" : Ledger Response: " + str(resp) + " " + str(e))
+                            continue
                         if created:
                             self.system_user_created.append(email)
                         else:
@@ -922,7 +939,7 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                users = EmailUser.objects.filter(email__iexact=email)
+                users = EmailUser.objects.filter(email__iexact=email, is_active=True)
                 if users.count() == 0:
                     print(f'wl - email not found: {email}')
  
@@ -1070,7 +1087,7 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                users = EmailUser.objects.filter(email__iexact=email)
+                users = EmailUser.objects.filter(email__iexact=email, is_active=True)
                 if users.count() == 0:
                     print(f'ml - email not found: {email}')
  
@@ -1290,7 +1307,7 @@ class MooringLicenceReader():
 
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    licensee = EmailUser.objects.get(email__iexact=email_l.lower())
+                    licensee = EmailUser.objects.filter(email__iexact=email_l.lower(), is_active=True).first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
@@ -1301,7 +1318,7 @@ class MooringLicenceReader():
 
                 email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
-                    user = EmailUser.objects.get(email__iexact=email_u.lower())
+                    user = EmailUser.objects.get(email__iexact=email_u.lower(), is_active=True).first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email_u.lower()) + " does not exist") 
                     continue
@@ -1502,7 +1519,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email__iexact=email.lower())
+                    user = EmailUser.objects.get(email__iexact=email.lower(), is_active=True).first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
                     continue
@@ -1648,7 +1665,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.get(email__iexact=email.lower())
+                    user = EmailUser.objects.get(email__iexact=email.lower(), is_active=True).first()
                     user.first_name = first_name
                     user.last_name = last_name
                     user.save()
@@ -1811,7 +1828,7 @@ class MooringLicenceReader():
                 vessel_length = row['vessel_length']
 
                 try:
-                    user = EmailUser.objects.get(email__iexact=email.lower().strip())
+                    user = EmailUser.objects.get(email__iexact=email.lower().strip(), is_active=True).first()
                 except Exception as e:
                     errors.append("User with email " + str(email.lower()) + " does not exist") 
                     continue

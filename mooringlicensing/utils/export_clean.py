@@ -12,7 +12,7 @@ def clean(srcpath='/data/data/projects/mooringlicensing/tmp/ml_export', outpath=
 
     or
 
-    clean(srcpath='/var/www/ml_seg/mooringlicensing/utils/csv/clean_06Feb2024', outpath='/data/data/projects/mooringlicensing/tmp/clean')
+    clean(srcpath='/data/data/projects/mooringlicensing/tmp/ml_export', outpath='/data/data/projects/mooringlicensing/tmp/clean')
     '''
     logger.info(f'srcpath: {srcpath}')
     logger.info(f'outpath: {outpath}')
