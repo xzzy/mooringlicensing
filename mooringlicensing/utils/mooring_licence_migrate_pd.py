@@ -356,7 +356,7 @@ class MooringLicenceReader():
         df_ml.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
-        df_ml = df_ml[(df_ml['cancelled']=='N') & (df_ml['first_name_l'].isna()==False)]
+        df_ml = df_ml[((df_ml['cancelled']=='N') | (df_ml['cancelled']=='')) & (df_ml['first_name_l'].isna()==False)]
 
         return df_ml
 
@@ -379,7 +379,7 @@ class MooringLicenceReader():
         df_authuser.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
-        df_authuser = df_authuser[(df_authuser['cancelled']=='N')]
+        df_authuser = df_authuser[((df_authuser['cancelled']=='N') | (df_authuser['cancelled']==''))]
 
         return df_authuser
 
