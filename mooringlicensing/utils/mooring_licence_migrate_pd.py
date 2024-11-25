@@ -316,7 +316,6 @@ class MooringLicenceReader():
         self.vessels_existing = []
         self.vessels_errors = []
         self.pct_interest_errors = []
-        self.pct_interest_errors = []
         self.no_ves_rows = []
 
         # create_vessels
@@ -814,15 +813,14 @@ class MooringLicenceReader():
         for user_id, pers_no in tqdm(self.pers_ids):
             try:
                 ves_rows = self.df_ves[self.df_ves['Person No']==pers_no]
-                if len(ves_rows) > 1:
-                    ves_rows = ves_rows[(ves_rows['Au Sticker No Nominated Ves']!='')]
-                    self.no_ves_rows.append((pers_no, len(ves_rows)))
+                #if len(ves_rows) > 1:
+                #    ves_rows = ves_rows[(ves_rows['Au Sticker No Nominated Ves']!='')] #this is removing vessels - why is it needed?
+                #    self.no_ves_rows.append((pers_no, len(ves_rows)))
 
                 for idx, row in ves_rows.iterrows():
                     ves_row = row.to_frame()
 
                     ves_list = ves_fields(row)
-
                     try:
                         owner = Owner.objects.get(emailuser=user_id)
                     except ObjectDoesNotExist:
@@ -854,6 +852,7 @@ class MooringLicenceReader():
                         vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
                         if not vessel_ownership:
                             pct_interest = int(round(float(try_except(pct_interest)),0))
+                            
                             if pct_interest < 25:
                                 self.pct_interest_errors.append((pers_no, rego_no, pct_interest))
                                 pct_interest = 100
