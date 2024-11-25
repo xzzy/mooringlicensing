@@ -1301,14 +1301,14 @@ class MooringLicenceReader():
                 if mooring_qs.exists():
                     mooring = mooring_qs.first()
                 else:
-                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Mooring with No. " + str(row['mooring_no']) + " does not exist") 
+                    errors.append("Rego No " + str(rego_no) + ": Mooring with No. " + str(row['mooring_no']) + " does not exist") 
                     continue
 
                 email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
                     licensee = EmailUser.objects.filter(email__iexact=email_l.lower(), is_active=True).first()
                 except Exception as e:
-                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
+                    errors.append("Rego No " + str(rego_no) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
 
                 if not row['first_name_u']:
@@ -1487,7 +1487,8 @@ class MooringLicenceReader():
 
             except Exception as e:
                 print(e)
-                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                if user:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
