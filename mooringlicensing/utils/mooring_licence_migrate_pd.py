@@ -814,8 +814,12 @@ class MooringLicenceReader():
             try:
                 ves_rows = self.df_ves[self.df_ves['Person No']==pers_no]
                 if len(ves_rows) > 1:
-                    ves_rows = ves_rows[(ves_rows['Au Sticker No Nominated Ves']!='')] #this checks if the vessel has an AU sticker
-                    self.no_ves_rows.append((pers_no, len(ves_rows)))
+                    temp_ves_rows = ves_rows[(ves_rows['Au Sticker No Nominated Ves']!='')] #this checks if the vessel has an AU sticker
+                    self.no_ves_rows.append((pers_no, len(temp_ves_rows)))
+                    if len(temp_ves_rows) == 0:
+                        ves_rows = ves_rows[0:]
+                    else:
+                        ves_rows = temp_ves_rows
 
                 for idx, row in ves_rows.iterrows():
                     ves_row = row.to_frame()
