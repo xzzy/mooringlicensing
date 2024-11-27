@@ -89,7 +89,8 @@ from mooringlicensing.components.proposals.serializers import (
 from mooringlicensing.components.approvals.models import (
     Approval, DcvVessel, WaitingListAllocation, Sticker, 
     DcvOrganisation, AnnualAdmissionPermit, AuthorisedUserPermit,
-    MooringLicence, VesselOwnershipOnApproval, MooringOnApproval
+    MooringLicence, VesselOwnershipOnApproval, MooringOnApproval, 
+    DcvPermit, DcvAdmission, DcvAdmissionArrival
 )
 from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeConstructor
@@ -149,7 +150,16 @@ class GetDcvVesselRegoNos(views.APIView):
     def get(self, request, format=None):
         search_term = request.GET.get('term', '')
         if search_term:
-            data = DcvVessel.objects.filter(rego_no__icontains=search_term).values('id', 'rego_no', 'dcv_permits')[:10]
+            current_date = datetime.now()
+            dcv_admission_ids = DcvAdmissionArrival.objects.filter(
+                dcv_admission__status=DcvAdmission.DCV_ADMISSION_STATUS_PAID
+            ).filter(
+                departure_date__gte=current_date
+            ).values_list('dcv_admission__id', flat=True)
+            data = DcvVessel.objects.filter(
+                Q(dcv_permits__in=DcvPermit.objects.exclude(end_date=None).filter(end_date__gte=current_date)) |
+                Q(dcv_admissions__in=DcvAdmission.objects.filter(id__in=dcv_admission_ids))
+            ).filter(rego_no__icontains=search_term).values('id', 'rego_no', 'dcv_permits')[:10]
             data_transform = [{'id': rego['id'], 'text': rego['rego_no'], 'dcv_permits': rego['dcv_permits']} for rego in data]
             return Response({"results": data_transform})
         return Response()

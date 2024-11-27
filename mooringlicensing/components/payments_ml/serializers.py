@@ -147,7 +147,8 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             if not data['fee_season_id']:
                 field_errors['Season'] = ['Please select a season.',]
 
-            dcv_permit_qs = DcvPermit.objects.filter(
+            #exclude cancelled permits from this list
+            dcv_permit_qs = DcvPermit.objects.exclude(status=DcvPermit.DCV_PERMIT_STATUS_CANCELLED).filter(
                 dcv_vessel_id=data.get('dcv_vessel_id', 0),
                 fee_season_id=data.get('fee_season_id', 0),
             )

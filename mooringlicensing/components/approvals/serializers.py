@@ -1421,6 +1421,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
                 else:
                     return 'Over Paid'
             else:
+                if obj.migrated:
+                    return 'Migrated'
                 return 'Unpaid'
         except Exception as e:
             logger.warning(f'Payment status of the DcvPermit: [{obj}] is unavailable')

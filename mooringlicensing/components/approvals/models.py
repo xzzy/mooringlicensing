@@ -2797,9 +2797,11 @@ class DcvPermit(RevisionedMixin):
 
     DCV_PERMIT_STATUS_CURRENT = 'current'
     DCV_PERMIT_STATUS_EXPIRED = 'expired'
+    DCV_PERMIT_STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = (
         (DCV_PERMIT_STATUS_CURRENT, 'Current'),
         (DCV_PERMIT_STATUS_EXPIRED, 'Expired'),
+        (DCV_PERMIT_STATUS_CANCELLED, 'Cancelled'),
     )
     LODGEMENT_NUMBER_PREFIX = 'DCVP'
 
