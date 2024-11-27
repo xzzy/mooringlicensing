@@ -355,7 +355,7 @@ class MooringLicenceReader():
         df_ml.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
-        df_ml = df_ml[((df_ml['cancelled']=='N') | (df_ml['cancelled']=='') | (df_ml['cancelled'].isna())) & (df_ml['first_name_l'].isna()==False)]
+        df_ml = df_ml[((df_ml['cancelled']!='Y')) & (df_ml['first_name_l'].isna()==False)]
 
         return df_ml
 
@@ -377,8 +377,8 @@ class MooringLicenceReader():
         df_authuser.fillna('', inplace=True)
         df_authuser.replace({np.nan: ''}, inplace=True)
 
-        # filter cancelled and rows with no name
-        df_authuser = df_authuser[((df_authuser['cancelled']=='N') | (df_authuser['cancelled']=='') | (df_authuser['cancelled'].isna()))]
+        # filter cancelled
+        df_authuser = df_authuser[(df_authuser['cancelled']!='Y')]
 
         return df_authuser
 
@@ -610,12 +610,14 @@ class MooringLicenceReader():
                     continue
 
                 if len(user_row)>1:
-                    user_row = user_row[user_row['paid_up']=='Y']
-                    if user_row.empty:
-                        continue
-                    if len(user_row)>1:
+                    temp_user_row = user_row[user_row['paid_up']=='Y']
+                    if temp_user_row.empty:
+                        user_row = user_row[:1]
+                    elif len(temp_user_row)>1:
                         # if still greater than 1, take first
                         user_row = user_row[:1]
+                    else:
+                        user_row = temp_user_row
 
                 user_row = user_row.squeeze() # convert to Pandas Series
 
