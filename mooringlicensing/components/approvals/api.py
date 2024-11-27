@@ -1814,6 +1814,18 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
 
                 current_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
 
+                #get all waiting list allocation proposals, check their status
+                #if any are a status other than approved, declined, discarded, or expired - block 
+                related_wla = Proposal.objects.filter(approval_id=waiting_list_allocation.id).exclude(
+                    Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED)|
+                    Q(processing_status=Proposal.PROCESSING_STATUS_DECLINED)|
+                    Q(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)|
+                    Q(processing_status=Proposal.PROCESSING_STATUS_EXPIRED)
+                )
+
+                if related_wla.exists():
+                    raise serializers.ValidationError("an offer cannot be made while the waiting list allocation has an ongoing amendment/renewal application")
+
                 new_proposal = None
                 if allocated_mooring:
                     new_proposal = MooringLicenceApplication.objects.create(

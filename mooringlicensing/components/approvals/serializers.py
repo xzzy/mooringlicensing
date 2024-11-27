@@ -35,7 +35,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSimpleSerializer, 
     ProposalApplicantSerializer
 )
-
+from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
@@ -452,11 +452,19 @@ class ApprovalSerializer(serializers.ModelSerializer):
     def get_offer_link(self, obj):
         link = ''
         if (
-                type(obj.child_obj) == WaitingListAllocation and 
-                obj.status == Approval.APPROVAL_STATUS_CURRENT and
-                obj.current_proposal.preferred_bay and
-                obj.internal_status == Approval.INTERNAL_STATUS_WAITING
-                ):
+            type(obj.child_obj) == WaitingListAllocation and 
+            obj.status == Approval.APPROVAL_STATUS_CURRENT and
+            obj.current_proposal.preferred_bay and
+            obj.internal_status == Approval.INTERNAL_STATUS_WAITING
+            ):
+            related_wla = Proposal.objects.filter(approval=obj).exclude(
+                Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED)|
+                Q(processing_status=Proposal.PROCESSING_STATUS_DECLINED)|
+                Q(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)|
+                Q(processing_status=Proposal.PROCESSING_STATUS_EXPIRED)
+            )
+            if related_wla.exists():
+                return ''
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
@@ -841,11 +849,19 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     def get_offer_link(self, obj):
         link = ''
         if (
-                type(obj.child_obj) == WaitingListAllocation and 
-                obj.status == Approval.APPROVAL_STATUS_CURRENT and
-                obj.current_proposal.preferred_bay and
-                obj.internal_status == Approval.INTERNAL_STATUS_WAITING
-                ):
+            type(obj.child_obj) == WaitingListAllocation and 
+            obj.status == Approval.APPROVAL_STATUS_CURRENT and
+            obj.current_proposal.preferred_bay and
+            obj.internal_status == Approval.INTERNAL_STATUS_WAITING
+            ):
+            related_wla = Proposal.objects.filter(approval=obj).exclude(
+                Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED)|
+                Q(processing_status=Proposal.PROCESSING_STATUS_DECLINED)|
+                Q(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)|
+                Q(processing_status=Proposal.PROCESSING_STATUS_EXPIRED)
+            )
+            if related_wla.exists():
+                return ''
             link = '<a href="{}" class="offer-link" data-offer="{}" data-mooring-bay={}>Offer</a><br/>'.format(
                     obj.id,
                     obj.id,
