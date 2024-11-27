@@ -1310,18 +1310,28 @@ class MooringLicenceReader():
                     errors.append("Rego No " + str(rego_no) + ": Mooring with No. " + str(row['mooring_no']) + " does not exist") 
                     continue
 
-                email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
+                try:
+                    email_l = self.df_user[(self.df_user['pers_no']==row['pers_no_l']) & (self.df_user['email']!='')].iloc[0]['email'].strip()
+                except:
+                    errors.append("Rego No " + str(rego_no) + ": User with Person No. " + str(row.pers_no_l) + " does not exist") 
+                    continue
+                
                 try:
                     licensee = EmailUser.objects.filter(email__iexact=email_l.lower(), is_active=True).first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
 
-                if not row['first_name_u']:
+                if not (row['first_name_u']):
                     # This record represents Mooring Licence Holder - No need for an Auth User Permit
                     continue
+                
+                try:
+                    email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
+                except:
+                    errors.append("Rego No " + str(rego_no) + ": User with Person No. " + str(row.pers_no_u) + " does not exist") 
+                    continue
 
-                email_u = self.df_user[(self.df_user['pers_no']==row.pers_no_u) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 try:
                     user = EmailUser.objects.filter(email__iexact=email_u.lower(), is_active=True).first()
                 except Exception as e:
