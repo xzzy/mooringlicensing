@@ -2813,6 +2813,8 @@ class DcvPermit(RevisionedMixin):
 
     migrated = models.BooleanField(default=False)
 
+    date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+
     # Following fields are null unless payment success
     lodgement_number = models.CharField(max_length=10, blank=True,)  # lodgement_number is assigned only when payment success, which means if this is None, the permit has not been issued.
     lodgement_datetime = models.DateTimeField(blank=True, null=True)  # This is the datetime assigned on the success of payment
