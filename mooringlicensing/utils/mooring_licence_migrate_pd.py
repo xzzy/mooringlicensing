@@ -286,7 +286,7 @@ class MooringLicenceReader():
     """
 
     def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='/data/data/projects/mooringlicensing/tmp/clean/'):
-        self.df_user=pd.read_csv(path+fname_user, delimiter='-!-', dtype=str, low_memory=False)
+        self.df_user=pd.read_csv(path+fname_user, delimiter='-!-', dtype=str)
         self.df_ml=pd.read_csv(path+fname_ml, delimiter='-!-', dtype=str)
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='-!-', dtype=str)
         self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='-!-', dtype=str)
