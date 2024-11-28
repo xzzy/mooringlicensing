@@ -34,7 +34,7 @@ class Command(BaseCommand):
                 errors.append(err_msg)
 
         queryset=Q()
-        queryset = DcvPermit.objects.filter(Q(lodgement_datetime=None) & Q(date_created__lt = removal_date))
+        queryset = DcvPermit.objects.filter(Q(lodgement_datetime=None) & Q(date_created__lt = removal_date) & Q(migrated=False))
         for permit in queryset:
             try:
                 permit.status = DcvPermit.DCV_PERMIT_STATUS_CANCELLED

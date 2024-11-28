@@ -21,7 +21,7 @@ class Command(BaseCommand):
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
         queryset=Q()
 
-        queryset = DcvPermit.objects.filter(Q(end_date__lt = today))
+        queryset = DcvPermit.objects.filter(Q(status=DcvPermit.DCV_PERMIT_STATUS_CURRENT) & Q(end_date__lt = today))
         for permit in queryset:
             try:
                 permit.status = DcvPermit.DCV_PERMIT_STATUS_EXPIRED
