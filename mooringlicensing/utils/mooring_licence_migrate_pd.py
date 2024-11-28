@@ -286,11 +286,11 @@ class MooringLicenceReader():
     """
 
     def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='/data/data/projects/mooringlicensing/tmp/clean/'):
-        self.df_user=pd.read_csv(path+fname_user, delimiter='|', dtype=str, low_memory=False)
-        self.df_ml=pd.read_csv(path+fname_ml, delimiter='|', dtype=str)
-        self.df_ves=pd.read_csv(path+fname_ves, delimiter='|', dtype=str)
-        self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='|', dtype=str)
-        self.df_wl=pd.read_csv(path+fname_wl, delimiter='|', dtype=str)
+        self.df_user=pd.read_csv(path+fname_user, delimiter='-!-', dtype=str, low_memory=False)
+        self.df_ml=pd.read_csv(path+fname_ml, delimiter='-!-', dtype=str)
+        self.df_ves=pd.read_csv(path+fname_ves, delimiter='-!-', dtype=str)
+        self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='-!-', dtype=str)
+        self.df_wl=pd.read_csv(path+fname_wl, delimiter='-!-', dtype=str)
         self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
 
         self.df_user=self._read_users()
@@ -1744,6 +1744,7 @@ class MooringLicenceReader():
                         postal_address_postcode = user_row.postal_postcode if user_row.postal_address else user_row.postcode,
                         postal_address_state = user_row.postal_state if user_row.postal_address else user_row.state,
                         postal_address_country = 'AU',
+                        status=DcvPermit.DCV_PERMIT_STATUS_CURRENT,
                     )
 
                     if sticker_no:

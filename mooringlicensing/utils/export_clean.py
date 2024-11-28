@@ -34,24 +34,24 @@ def clean(srcpath='/data/data/projects/mooringlicensing/tmp/ml_export', outpath=
         out_filename = filename.split('/')[-1]
         with open(outpath + os.sep + out_filename, 'w', newline='') as outf:
             logger.info(f'Processing file: [{filename}]...')
-            wr = csv.writer(outf, quoting=csv.QUOTE_NONE, escapechar='\\') #, delimiter ='|', quotechar = '"')
+            wr = csv.writer(outf, quoting=csv.QUOTE_NONE, escapechar='\\')
             line_number = 0
             header_line = ""
             for line in lines:
                 if line_number == 0:
-                    col_count = line.count('|')
-                    header_line = re.sub(r'^"*|"*$', '', line)
+                    col_count = line.count('-!-')
+                    header_line = line.strip('"')
                 line_number += 1  # This is used when an error raised to specify which line raises the error.
                 try:
-                    if '|' not in line:
+                    if '-!-' not in line:
                         # No delimiter in a line, which means no cells in the line.  Skip the process
                         continue
 
-                    temp = re.sub(r'^"*|"*$', '', line)  # Remove double quotes at the beginning and end of a string, regardless of their quantity.
+                    temp = line.strip('"')  # Remove double quotes at the beginning and end of a string, regardless of their quantity.
 
-                    line_col_count = temp.count('|')
+                    line_col_count = temp.count('-!-')
                     if line_col_count > col_count:
-                        print("\n___Line",line_number,"has the wrong number of | -", line_col_count, "when it should be",col_count,"___")
+                        print("\n___Line",line_number,"has the wrong number of -!- -", line_col_count, "when it should be",col_count,"___")
                         print("\n",header_line,"\n")
                         print(temp, "\n")
                         print("__________________________________________________\n")
