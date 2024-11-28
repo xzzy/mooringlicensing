@@ -356,6 +356,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To avoid that, this fee_season field is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
+    payment_due_date = models.DateField(blank=True, null=True) #date when payment is due for future invoices
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1758,7 +1759,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
 
                             basket_hash_split = basket_hash.split("|")
-                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url)
+
+                            invoice_name = self.proposal_applicant.get_full_name()
+                            today = timezone.localtime(timezone.now()).date()
+                            days_type = NumberOfDaysType.objects.get(code=settings.CODE_DAYS_BEFORE_DUE_PAYMENT)
+                            days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+                            self.payment_due_date = today + datetime.timedelta(days=days_setting.number_of_days)
+
+                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, str(self.payment_due_date))
 
                             application_fee.invoice_reference = pcfi['data']['invoice']
                             application_fee.save()

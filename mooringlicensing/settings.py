@@ -293,6 +293,7 @@ INTERNAL_GROUPS = [
 ]
 
 # For NumberOfDaysSettings
+CODE_DAYS_BEFORE_DUE_PAYMENT = 'PaymentDueDate'
 CODE_DAYS_BEFORE_DUE_COMPLIANCE = 'ComplianceDueDate'
 CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML = 'MLVesselNominateNotification'
 CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA = 'WLAVesselNominateNotification'
@@ -311,6 +312,12 @@ CODE_DAYS_FOR_SECOND_REMINDER = 'SecondReminderNotification'
 CODE_DAYS_FOR_FINAL_REMINDER = 'FinalReminderNotification'
 
 TYPES_OF_CONFIGURABLE_NUMBER_OF_DAYS = [
+    {
+        'code': CODE_DAYS_BEFORE_DUE_PAYMENT,
+        'name': 'Payment due date',
+        'description': 'Number of days before due date of post-approval payments',
+        'default': 14
+    },
     {
         'code': CODE_DAYS_BEFORE_DUE_COMPLIANCE,
         'name': 'Compliance due date',
