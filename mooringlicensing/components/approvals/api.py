@@ -1507,8 +1507,10 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
         target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
         if search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_CURRENT:
             status = DcvPermit.DCV_PERMIT_STATUS_CURRENT
+            queryset = queryset.filter(status=status)
         elif search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_EXPIRED:
             status = DcvPermit.DCV_PERMIT_STATUS_EXPIRED
+            queryset = queryset.filter(status=status)
         
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)

@@ -62,7 +62,8 @@ class DcvAdmissionFeeView(TemplateView):
     def post(self, request, *args, **kwargs):
         dcv_admission = self.get_object()
 
-        #TODO raise error if cancelled
+        if dcv_admission.status == DcvAdmission.DCV_ADMISSION_STATUS_CANCELLED:
+            raise serializers.ValidationError("DCV Admission cancelled") 
 
         dcv_admission_fee = DcvAdmissionFee.objects.create(dcv_admission=dcv_admission, 
         created_by=dcv_admission.applicant, payment_type=DcvAdmissionFee.PAYMENT_TYPE_TEMPORARY)
@@ -103,7 +104,8 @@ class DcvPermitFeeView(TemplateView):
     def post(self, request, *args, **kwargs):
         dcv_permit = self.get_object()
 
-        #TODO raise error if cancelled
+        if dcv_permit.status == DcvPermit.DCV_PERMIT_STATUS_CANCELLED:
+            raise serializers.ValidationError("DCV Permit cancelled") 
 
         created_by = None if request.user.is_anonymous else request.user.id
         dcv_permit_fee = DcvPermitFee.objects.create(dcv_permit=dcv_permit, created_by=created_by, payment_type=DcvPermitFee.PAYMENT_TYPE_TEMPORARY)
@@ -606,6 +608,8 @@ class DcvPermitFeeSuccessViewPreload(APIView):
 
             # Update the application_fee object
             dcv_permit = dcv_permit_fee.dcv_permit
+            dcv_permit.status = DcvPermit.DCV_PERMIT_STATUS_CURRENT
+            dcv_permit.save()
             dcv_permit_fee.invoice_reference = invoice_reference
             dcv_permit_fee.save()
             dcv_permit_fee.fee_items.add(fee_item)

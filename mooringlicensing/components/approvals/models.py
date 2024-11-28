@@ -2810,6 +2810,7 @@ class DcvPermit(RevisionedMixin):
     fee_season = models.ForeignKey('FeeSeason', null=True, blank=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_vessel = models.ForeignKey(DcvVessel, blank=True, null=True, related_name='dcv_permits', on_delete=models.SET_NULL)
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, on_delete=models.SET_NULL)
+    status = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
 
     migrated = models.BooleanField(default=False)
 
@@ -2954,16 +2955,6 @@ class DcvPermit(RevisionedMixin):
         ids = map(int, [i.split(cls.LODGEMENT_NUMBER_PREFIX)[1] for i in cls.objects.all().values_list('lodgement_number', flat=True) if i])
         ids = list(ids)
         return max(ids) + 1 if len(ids) else 1
-
-    @property
-    def status(self, target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()):
-        if self.start_date:
-            if self.start_date <= target_date <= self.end_date:
-                return self.STATUS_CHOICES[0]
-            else:
-                return self.STATUS_CHOICES[1]
-        else:
-            return None
 
     def save(self, **kwargs):
         logger.info(f"Saving DcvPermit: {self}...")

@@ -190,6 +190,7 @@ class DcvPermitSerializer(serializers.ModelSerializer):
             'postal_address_postcode',
             'postal_address_state',
             'postal_address_country',
+            'status',
         )
         read_only_fields = (
             'id',

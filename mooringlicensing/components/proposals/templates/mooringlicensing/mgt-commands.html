@@ -93,6 +93,9 @@
                 </div>
                 {% endif %}
             </div>
+            <div class="row">
+                <button type="submit" name="script" value="expire_dcv_permits_out_of_season" {% if expire_dcv_permits_out_of_season == 'true' %}style="color:green" {% endif %} title="Expire Out of Season DCV Permits">Run Script 'expire_dcv_permits_out_of_season'</button>
+            </div>
 
             <div class="row">
                 <button type="submit" name="script" value="cancel_approvals_due_to_no_vessels_nominated" {% if cancel_approvals_due_to_no_vessels_nominated == 'true' %}style="color:green" {% endif %} title="Expire Approvals and Send Notifications">Run Script 'cancel_approvals_due_to_no_vessels_nominated'</button>
