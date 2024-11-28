@@ -41,7 +41,7 @@ from mooringlicensing.components.proposals.models import (
 )
 from mooringlicensing.components.approvals.models import (
     Approval,
-    DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, AdmissionType, AgeGroup,
+    DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, DcvAdmissionArrival, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
     MooringOnApproval, VesselOwnershipOnApproval
 )
@@ -806,16 +806,23 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
 
-        #TODO review - what if a vessel registration is no longer under that owner or their account
-        #also - do unpaid admissions/permits count?
+        current_date = datetime.now()
+        dcv_admission_ids = DcvAdmissionArrival.objects.filter(
+            departure_date__gte=current_date
+        ).values_list('dcv_admission__id', flat=True)
+
         dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        dcv_vessel_usage = dcv_vessel.filter(
+            Q(dcv_permits__in=DcvPermit.objects.exclude(status=DcvPermit.DCV_PERMIT_STATUS_CANCELLED).filter(end_date__gte=current_date)) |
+            Q(dcv_admissions__in=DcvAdmission.objects.exclude(status=DcvAdmission.DCV_ADMISSION_STATUS_CANCELLED).filter(id__in=dcv_admission_ids))
+        )
         if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-        else:
+        elif dcv_vessel_usage.exists():
             dcv_vessel = dcv_vessel.filter(
                 Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
                 Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
@@ -824,6 +831,8 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 raise serializers.ValidationError("Vessel listed under another Owner")
             else:
                 return dcv_vessel.first()
+        else:
+            dcv_vessel = dcv_vessel.first()
 
         return dcv_vessel
 
@@ -847,7 +856,6 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 orgs = dcv_vessel.dcv_organisations.filter(id=dcv_organisation.id)
                 if not orgs:
                     dcv_vessel.dcv_organisations.add(dcv_organisation)
-                    # dcv_vessel.save()
 
         else:
             # Anonymous user
@@ -864,7 +872,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 if email_address and email_address_confirmation:
                     if email_address == email_address_confirmation:
                         if skipper:
-                            this_user = EmailUser.objects.filter(email__iexact=email_address)
+                            this_user = EmailUser.objects.filter(email__iexact=email_address, is_active=True)
                             if this_user:
                                 new_user = this_user.first()
                             else:
@@ -885,8 +893,6 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 orgs = dcv_vessel.dcv_organisations.filter(id=dcv_organisation.id)
                 if not orgs:
                     dcv_vessel.dcv_organisations.add(dcv_organisation)
-                # dcv_vessel.dcv_organisation = dcv_organisation
-                # dcv_vessel.save()
         try:
             submitter_id = submitter.id
         except:
@@ -959,16 +965,23 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
 
-        #TODO review - what if a vessel registration is no longer under that owner or their account
-        #also - do unpaid admissions/permits count?
+        current_date = datetime.now()
+        dcv_admission_ids = DcvAdmissionArrival.objects.filter(
+            departure_date__gte=current_date
+        ).values_list('dcv_admission__id', flat=True)
+
         dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        dcv_vessel_usage = dcv_vessel.filter(
+            Q(dcv_permits__in=DcvPermit.objects.exclude(status=DcvPermit.DCV_PERMIT_STATUS_CANCELLED).filter(end_date__gte=current_date)) |
+            Q(dcv_admissions__in=DcvAdmission.objects.exclude(status=DcvAdmission.DCV_ADMISSION_STATUS_CANCELLED).filter(id__in=dcv_admission_ids))
+        )
         if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-        else:
+        elif dcv_vessel_usage.exists():
             dcv_vessel = dcv_vessel.filter(
                 Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
                 Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
@@ -977,6 +990,8 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
                 raise serializers.ValidationError("Vessel listed under another Owner")
             else:
                 return dcv_vessel.first()
+        else:
+            dcv_vessel = dcv_vessel.first()
             
         return dcv_vessel
 
@@ -991,7 +1006,7 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             if email_address and email_address_confirmation:
                 if email_address == email_address_confirmation:
                     if skipper:
-                        this_user = EmailUser.objects.filter(email__iexact=email_address)
+                        this_user = EmailUser.objects.filter(email__iexact=email_address, is_active=True)
                         if this_user:
                             new_user = this_user.first()
                         else:
@@ -1124,16 +1139,24 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
 
-        #TODO review - what if a vessel registration is no longer under that owner or their account
-        #also - do unpaid admissions/permits count?
+        current_date = datetime.now()
+        dcv_admission_ids = DcvAdmissionArrival.objects.filter(
+            departure_date__gte=current_date
+        ).values_list('dcv_admission__id', flat=True)
+        
         dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        
+        dcv_vessel_usage = dcv_vessel.filter(
+            Q(dcv_permits__in=DcvPermit.objects.exclude(status=DcvPermit.DCV_PERMIT_STATUS_CANCELLED).filter(end_date__gte=current_date)) |
+            Q(dcv_admissions__in=DcvAdmission.objects.exclude(status=DcvAdmission.DCV_ADMISSION_STATUS_CANCELLED).filter(id__in=dcv_admission_ids))
+        )
         if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-        else:
+        elif dcv_vessel_usage.exists():
             dcv_vessel = dcv_vessel.filter(
                 Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
                 Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
@@ -1145,6 +1168,8 @@ class DcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 if not orgs:
                     dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
                 return dcv_vessel.first()
+        else:
+            dcv_vessel = dcv_vessel.first()
 
         orgs = dcv_vessel.dcv_organisations.filter(id=org_id)
         if not orgs:
@@ -1229,16 +1254,25 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
         rego_no_requested = data.get('rego_no', '')
         vessel_name_requested = data.get('vessel_name', '')
 
-        #TODO review - what if a vessel registration is no longer under that owner or their account
-        #also - do unpaid admissions/permits count?
+        current_date = datetime.now()
+        dcv_admission_ids = DcvAdmissionArrival.objects.filter(
+            dcv_admission__status=DcvAdmission.DCV_ADMISSION_STATUS_PAID
+        ).filter(
+            departure_date__gte=current_date
+        ).values_list('dcv_admission__id', flat=True)
         dcv_vessel = DcvVessel.objects.filter(rego_no=rego_no_requested)
+        
+        dcv_vessel_usage = dcv_vessel.filter(
+            Q(dcv_permits__in=DcvPermit.objects.exclude(end_date=None).filter(end_date__gte=current_date)) |
+            Q(dcv_admissions__in=DcvAdmission.objects.filter(id__in=dcv_admission_ids))
+        )
         if not dcv_vessel.exists():
             data['rego_no'] = rego_no_requested
             data['vessel_name'] = vessel_name_requested
             serializer = DcvVesselSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             dcv_vessel = serializer.save()
-        else:
+        elif dcv_vessel_usage.exists():
             dcv_vessel = dcv_vessel.filter(
                 Q(dcv_permits__in=DcvPermit.objects.filter(Q(applicant=user.id))) |
                 Q(dcv_admissions__in=DcvAdmission.objects.filter(Q(applicant=user.id)))
@@ -1250,6 +1284,8 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
                 if not orgs:
                     dcv_vessel.first().dcv_organisations.add(DcvOrganisation.objects.get(id=org_id))
                 return dcv_vessel.first()
+        else:
+            dcv_vessel = dcv_vessel.first()
 
         orgs = dcv_vessel.dcv_organisations.filter(id=org_id)
         if not orgs:
@@ -1486,8 +1522,10 @@ class DcvPermitFilterBackend(DatatablesFilterBackend):
         target_date=datetime.now(pytz.timezone(TIME_ZONE)).date()
         if search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_CURRENT:
             status = DcvPermit.DCV_PERMIT_STATUS_CURRENT
+            queryset = queryset.filter(status=status)
         elif search_text.strip().lower() in DcvPermit.DCV_PERMIT_STATUS_EXPIRED:
             status = DcvPermit.DCV_PERMIT_STATUS_EXPIRED
+            queryset = queryset.filter(status=status)
         
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
@@ -1539,8 +1577,6 @@ class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return queryset
         return DcvVessel.objects.none()
 
-    #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
-    # also appears to only be used by an unimplemented template
     @detail_route(methods=['GET',], detail=True)
     @basic_exception_handler
     def lookup_dcv_vessel(self, request, *args, **kwargs):
@@ -1603,9 +1639,6 @@ class DcvAdmissionFilterBackend(DatatablesFilterBackend):
         queries &= ~Q(status=DcvAdmission.DCV_ADMISSION_STATUS_CANCELLED)
         queryset = queryset.filter(queries)
 
-        # getter = request.query_params.get
-        # fields = self.get_fields(getter)
-        # ordering = self.get_ordering(getter, fields)
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
         queryset = queryset.order_by(*ordering)
@@ -1813,6 +1846,18 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
                 allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
 
                 current_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
+
+                #get all waiting list allocation proposals, check their status
+                #if any are a status other than approved, declined, discarded, or expired - block 
+                related_wla = Proposal.objects.filter(approval_id=waiting_list_allocation.id).exclude(
+                    Q(processing_status=Proposal.PROCESSING_STATUS_APPROVED)|
+                    Q(processing_status=Proposal.PROCESSING_STATUS_DECLINED)|
+                    Q(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)|
+                    Q(processing_status=Proposal.PROCESSING_STATUS_EXPIRED)
+                )
+
+                if related_wla.exists():
+                    raise serializers.ValidationError("an offer cannot be made while the waiting list allocation has an ongoing amendment/renewal application")
 
                 new_proposal = None
                 if allocated_mooring:

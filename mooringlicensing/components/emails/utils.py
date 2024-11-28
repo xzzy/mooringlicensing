@@ -4,7 +4,7 @@ from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 
 def get_user_as_email_user(sender):
     try:
-        sender_user = EmailUser.objects.get(email__icontains=sender)
+        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
     except:
         sender_user = None
     return sender_user

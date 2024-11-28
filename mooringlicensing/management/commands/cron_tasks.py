@@ -40,7 +40,8 @@ class Command(BaseCommand):
         subprocess.call('python manage_ml.py export_and_email_sticker_data', shell=True)
         subprocess.call('python manage_ml.py import_sticker_data', shell=True)
         subprocess.call('python manage_ml.py send_mooring_licence_application_submit_due_reminder', shell=True)
-        subprocess.call('python manage_ml.py remove_unpaid_dcv_admissions', shell=True)
+        subprocess.call('python manage_ml.py remove_unpaid_dcv_submissions', shell=True)
+        subprocess.call('python manage_ml.py expire_dcv_permits_out_of_season', shell=True)
         subprocess.call('python manage_ml.py check_proposal_endorsements', shell=True)
 
         logger.info('===== Completed command: {} ====='.format(__name__))

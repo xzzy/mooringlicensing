@@ -83,15 +83,18 @@
                 {% endif %}
             </div>
             <div class="row">
-                <button type="submit" name="script" value="remove_unpaid_dcv_admissions" {% if remove_unpaid_dcv_admissions == 'true' %}style="color:green" {% endif %} title="Remove Unpaid DCV Admissions">Run Script 'remove_unpaid_dcv_admissions'</button>
+                <button type="submit" name="script" value="remove_unpaid_dcv_submissions" {% if remove_unpaid_dcv_submissions == 'true' %}style="color:green" {% endif %} title="Remove Unpaid DCV Admissions">Run Script 'remove_unpaid_dcv_submissions'</button>
                 {% if debug %}
                 <div class="debug-box">
                     <div><span>Enter the lodgement number and click the button above</span></div>
                     <div>
-                        Approval lodgement number to send reminder: <input type="text" name="remove_unpaid_dcv_admissions_lodgement_number" />
+                        Approval lodgement number to send reminder: <input type="text" name="remove_unpaid_dcv_submissions_lodgement_number" />
                     </div>
                 </div>
                 {% endif %}
+            </div>
+            <div class="row">
+                <button type="submit" name="script" value="expire_dcv_permits_out_of_season" {% if expire_dcv_permits_out_of_season == 'true' %}style="color:green" {% endif %} title="Expire Out of Season DCV Permits">Run Script 'expire_dcv_permits_out_of_season'</button>
             </div>
 
             <div class="row">

@@ -5,6 +5,8 @@ from django.utils.encoding import smart_str
 
 from mooringlicensing.components.users.models import EmailUserLogEntry, private_storage
 from ledger_api_client.managed_models import SystemUser, SystemUserAddress
+from ledger_api_client.ledger_models import EmailUserRO
+
 
 def create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None):
     return SystemUser.objects.create(
@@ -45,16 +47,27 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, 
             system_user.save()
         return system_user, False 
     else:
-        system_user = SystemUser.objects.create(
-            ledger_id_id=email_user_id,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            legal_dob=dob,
-            phone_number=phone,
-            mobile_number=mobile,
-        )
-        return system_user, True
+        if EmailUserRO.objects.filter(id=email_user_id, is_active=True).exists():
+            try:
+                system_user = SystemUser.objects.create(
+                    ledger_id_id=email_user_id,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    legal_dob=dob,
+                    phone_number=phone,
+                    mobile_number=mobile,
+                )
+                return system_user, True
+            except:
+                #update the existing record with the correct ledger id
+                existing = SystemUser.objects.get(email=email)
+                existing.change_by_user_id = existing.id
+                existing.ledger_id_id = email_user_id
+                existing.save()
+                return existing, False 
+        else:
+            raise Exception("Ledger Email User not Active")
 
 def get_user_name(user):
     """
