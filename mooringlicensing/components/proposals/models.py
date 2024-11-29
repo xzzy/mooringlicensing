@@ -1771,7 +1771,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             self.payment_due_date = today + datetime.timedelta(days=days_setting.number_of_days)
                             self.save()
 
-                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, str(self.payment_due_date))
+                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, self.payment_due_date.strftime("%d/%m/%Y"))
 
                             application_fee.invoice_reference = pcfi['data']['invoice']
                             application_fee.save()
@@ -1794,7 +1794,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                   
                             if not self.payment_required():
                                 self.approval.generate_doc()
-                            #TODO include payment due date?
+                            
                             send_application_approved_or_declined_email(self, 'approved', request)
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.lodgement_number), request)
 
