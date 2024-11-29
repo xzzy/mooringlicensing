@@ -1769,6 +1769,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             days_type = NumberOfDaysType.objects.get(code=settings.CODE_DAYS_BEFORE_DUE_PAYMENT)
                             days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
                             self.payment_due_date = today + datetime.timedelta(days=days_setting.number_of_days)
+                            self.save()
 
                             pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, str(self.payment_due_date))
 
@@ -1790,9 +1791,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                     amount_to_be_paid=amount_to_be_paid,
                                 )
                                 logger.info(f'FeeItemApplicationFee: [{fiaf}] has been created.')
-
+                  
                             if not self.payment_required():
                                 self.approval.generate_doc()
+                            #TODO include payment due date?
                             send_application_approved_or_declined_email(self, 'approved', request)
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.lodgement_number), request)
 
