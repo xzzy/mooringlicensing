@@ -7,7 +7,7 @@ from django.db.models import Q
 
 import logging
 
-#from mooringlicensing.components.proposals.email import send_payment_reminder_email
+from mooringlicensing.components.proposals.email import send_payment_reminder_email
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.management.commands.utils import construct_email_message
@@ -44,7 +44,7 @@ class Command(BaseCommand):
             try:
                 p.payment_reminder_sent = True
                 p.save()
-                #send_payment_reminder_email(p)
+                send_payment_reminder_email(p)
                 logger.info('Payment reminder sent for Proposal {}'.format(p.lodgement_number))
                 updates.append(p.lodgement_number)
             except Exception as e:

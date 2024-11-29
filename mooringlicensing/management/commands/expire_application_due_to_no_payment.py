@@ -7,7 +7,7 @@ from django.db.models import Q
 
 import logging
 
-#from mooringlicensing.components.proposals.email import send_expire_application_email, send_expire_notification_to_assessor
+from mooringlicensing.components.proposals.email import send_expire_application_email, send_expire_notification_to_assessor
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.management.commands.utils import construct_email_message
@@ -44,8 +44,8 @@ class Command(BaseCommand):
                 p.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 p.save()
 
-                #send_expire_application_email(p, Proposal.REASON_FOR_EXPIRY_NOT_PAID,  payment_due_date)
-                #send_expire_notification_to_assessor(p, Proposal.REASON_FOR_EXPIRY_NOT_PAID, payment_due_date)
+                send_expire_application_email(p, Proposal.REASON_FOR_EXPIRY_NOT_PAID,  p.payment_due_date)
+                send_expire_notification_to_assessor(p, Proposal.REASON_FOR_EXPIRY_NOT_PAID, p.payment_due_date)
                 logger.info('Expired notification sent for Proposal {}'.format(p.lodgement_number))
                 updates.append(p.lodgement_number)
             except Exception as e:
