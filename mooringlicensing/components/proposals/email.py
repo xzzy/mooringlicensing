@@ -408,7 +408,7 @@ def send_expire_application_email(proposal, due_date,):
 
     # Configure recipients, contents, etc
     context = {
-        'public_url': get_public_url(),
+        'url': url,
         'proposal': proposal,
         'recipient': proposal.applicant_obj,
         'dashboard_url': make_http_https(dashboard_url),
