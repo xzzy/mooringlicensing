@@ -356,6 +356,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To avoid that, this fee_season field is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
+    payment_reminder_sent = models.BooleanField(default=False)
     payment_due_date = models.DateField(blank=True, null=True) #date when payment is due for future invoices
 
     class Meta:

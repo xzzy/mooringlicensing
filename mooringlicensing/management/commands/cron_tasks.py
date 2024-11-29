@@ -43,6 +43,8 @@ class Command(BaseCommand):
         subprocess.call('python manage_ml.py remove_unpaid_dcv_submissions', shell=True)
         subprocess.call('python manage_ml.py expire_dcv_permits_out_of_season', shell=True)
         subprocess.call('python manage_ml.py check_proposal_endorsements', shell=True)
+        subprocess.call('python manage_ml.py expire_application_due_to_no_payment', shell=True)
+        subprocess.call('python manage_ml.py send_application_payment_due_reminder', shell=True)
 
         logger.info('===== Completed command: {} ====='.format(__name__))
         cron_email.info('</div>')
