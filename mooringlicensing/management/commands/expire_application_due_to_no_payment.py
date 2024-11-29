@@ -30,22 +30,21 @@ class Command(BaseCommand):
         if not days_setting:
             # No number of days found
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
-        boundary_date = today - timedelta(days=days_setting.number_of_days)
 
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
         queries = Q()
-        queries &= Q(processing_status__in=(Proposal.PROCESSING_STATUS_AWAITING_PAYMENT))
-        queries &= Q(payment_due_date__lt=boundary_date)
+        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_PAYMENT)
+        queries &= Q(payment_due_date__lt=today)
 
         for p in Proposal.objects.filter(queries):
             try:
                 p.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 p.save()
 
-                send_expire_application_email(p, Proposal.REASON_FOR_EXPIRY_NOT_PAID,  p.payment_due_date)
-                send_expire_notification_to_assessor(p, Proposal.REASON_FOR_EXPIRY_NOT_PAID, p.payment_due_date)
+                send_expire_application_email(p, p.payment_due_date)
+                send_expire_notification_to_assessor(p, p.payment_due_date)
                 logger.info('Expired notification sent for Proposal {}'.format(p.lodgement_number))
                 updates.append(p.lodgement_number)
             except Exception as e:

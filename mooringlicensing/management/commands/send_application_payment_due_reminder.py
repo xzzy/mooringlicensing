@@ -30,13 +30,13 @@ class Command(BaseCommand):
         if not days_setting:
             # No number of days found
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type.name, today))
-        boundary_date = today - timedelta(days=days_setting.number_of_days)
+        boundary_date = today + timedelta(days=days_setting.number_of_days)
 
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
         queries = Q()
-        queries &= Q(processing_status__in=(Proposal.PROCESSING_STATUS_AWAITING_PAYMENT))
+        queries &= Q(processing_status=Proposal.PROCESSING_STATUS_AWAITING_PAYMENT)
         queries &= Q(payment_due_date__lt=boundary_date)
         queries &= Q(payment_reminder_sent=False)
 

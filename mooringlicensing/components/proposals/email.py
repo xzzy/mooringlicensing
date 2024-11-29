@@ -393,7 +393,7 @@ def send_invitee_reminder_email(approval, due_date, request=None):
         _log_approval_email(msg, approval, sender=sender_user)
         _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
 
-def send_expire_application_email(proposal, reason, due_date,):
+def send_expire_application_email(proposal, due_date,):
 
     html_template = 'mooringlicensing/emails_2/application_expire_notification.html'
     txt_template = 'mooringlicensing/emails_2/application_expire_notification.txt'
@@ -424,7 +424,7 @@ def send_expire_application_email(proposal, reason, due_date,):
         log_proposal_email(msg, proposal, sender)
     return msg
 
-def send_expire_notification_to_assessor(proposal, reason, due_date):
+def send_expire_notification_to_assessor(proposal, due_date):
     email = TemplateEmailBase(
         subject='Expired application - not paid on time',
         html_template='mooringlicensing/emails_2/assessor_expiry_notification.html',
