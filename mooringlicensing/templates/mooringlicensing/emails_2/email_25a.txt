@@ -12,6 +12,7 @@ to the Rottnest Island Authority and the new sticker for your vessel will be mai
 {% endif %}
 Entry to the Reserve and access to the Shared Mooring System (including use of your own mooring site) is NOT approved until your current sticker is clearly displayed on the port side of your vessel. Penalties apply.
 Please click here {{ payment_url }} to pay the fees for your mooring site licence.
+Payment is due by {{proposal.payment_due_date}}.
 {% if details %}Details: {{ details }}{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}

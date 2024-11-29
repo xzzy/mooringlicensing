@@ -1,0 +1,6 @@
+{% extends 'mooringlicensing/emails/base_email.txt' %}
+
+{% block content %}
+    Please be aware that your {{ proposal.child_obj.description }}: {{ proposal.lodgement_number }} expired on {{ proposal.payment_due_date }} due to payment not being made
+    To apply for a new {{ proposal.child_obj.description }} please access {{ url }}
+{%  endblock %}

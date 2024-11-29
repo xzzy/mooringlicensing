@@ -1,0 +1,9 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+Dear {{ applicant.first_name }} {{ applicant.last_name}},
+
+Payment for application {{ proposal.lodgement_number }} is due by {{ due_date }}.
+Please access {{ url }} to login and check the Applications dashboard.
+{% include "mooringlicensing/emails/signature-rottnest.html" %}
+{% endblock %}

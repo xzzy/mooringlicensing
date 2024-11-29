@@ -356,6 +356,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                                                         # To avoid that, this fee_season field is used in order to store those data.
     auto_approve = models.BooleanField(default=False)
     null_vessel_on_create = models.BooleanField(default=True)
+    payment_reminder_sent = models.BooleanField(default=False)
+    payment_due_date = models.DateField(blank=True, null=True) #date when payment is due for future invoices
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1053,6 +1055,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS,
             Proposal.PROCESSING_STATUS_PRINTING_STICKER,
             Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ]
         return False if self.processing_status in officer_view_state else True
 
@@ -1113,7 +1116,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
             Proposal.PROCESSING_STATUS_DECLINED, 
             Proposal.PROCESSING_STATUS_DRAFT,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ]
         if self.processing_status in status_without_approver:
             return False
@@ -1135,7 +1139,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_APPROVED, 
             Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
             Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ]
         if self.processing_status in status_without_assessor:
             return False
@@ -1758,7 +1763,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
 
                             basket_hash_split = basket_hash.split("|")
-                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url)
+
+                            invoice_name = self.proposal_applicant.get_full_name()
+                            today = timezone.localtime(timezone.now()).date()
+                            days_type = NumberOfDaysType.objects.get(code=settings.CODE_DAYS_BEFORE_DUE_PAYMENT)
+                            days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
+                            self.payment_due_date = today + datetime.timedelta(days=days_setting.number_of_days)
+                            self.save()
+
+                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, self.payment_due_date.strftime("%d/%m/%Y"))
 
                             application_fee.invoice_reference = pcfi['data']['invoice']
                             application_fee.save()
@@ -1778,9 +1791,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                     amount_to_be_paid=amount_to_be_paid,
                                 )
                                 logger.info(f'FeeItemApplicationFee: [{fiaf}] has been created.')
-
+                  
                             if not self.payment_required():
                                 self.approval.generate_doc()
+                            
                             send_application_approved_or_declined_email(self, 'approved', request)
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.lodgement_number), request)
 
@@ -2614,6 +2628,7 @@ class WaitingListApplication(Proposal):
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_DISCARDED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ])
         return proposals
 
@@ -2788,6 +2803,7 @@ class AnnualAdmissionApplication(Proposal):
                 Proposal.PROCESSING_STATUS_APPROVED, 
                 Proposal.PROCESSING_STATUS_DECLINED, 
                 Proposal.PROCESSING_STATUS_DISCARDED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
             ]:
                 if type(proposal) == MooringLicenceApplication:
                     proposals_mla.append(proposal)
@@ -3008,6 +3024,7 @@ class AuthorisedUserApplication(Proposal):
                 Proposal.PROCESSING_STATUS_APPROVED,
                 Proposal.PROCESSING_STATUS_DECLINED,
                 Proposal.PROCESSING_STATUS_DISCARDED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
             ]:
                 if type(proposal) == AuthorisedUserApplication:
                     proposals_aua.append(proposal)
@@ -3510,6 +3527,7 @@ class MooringLicenceApplication(Proposal):
                 Proposal.PROCESSING_STATUS_APPROVED,
                 Proposal.PROCESSING_STATUS_DECLINED,
                 Proposal.PROCESSING_STATUS_DISCARDED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
             ]:
                 if type(proposal) == MooringLicenceApplication:
                     proposals_mla.append(proposal)
@@ -3582,7 +3600,9 @@ class MooringLicenceApplication(Proposal):
         proposals = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=email_user_id).exclude(processing_status__in=[
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_DISCARDED,])
+            Proposal.PROCESSING_STATUS_DISCARDED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
+        ])
         return proposals
 
     def create_fee_lines(self):
@@ -4054,7 +4074,12 @@ class AvailableMooringManager(models.Manager):
                 # now check whether there are any blocking proposals
                 blocking_proposal = False
                 for proposal in mooring.ria_generated_proposal.all():
-                    if proposal.processing_status not in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]:
+                    if proposal.processing_status not in [
+                        Proposal.PROCESSING_STATUS_APPROVED, 
+                        Proposal.PROCESSING_STATUS_DECLINED, 
+                        Proposal.PROCESSING_STATUS_DISCARDED, 
+                        Proposal.PROCESSING_STATUS_EXPIRED,
+                    ]:
                         blocking_proposal = True
                 if not blocking_proposal:
                     available_ids.append(mooring.id)

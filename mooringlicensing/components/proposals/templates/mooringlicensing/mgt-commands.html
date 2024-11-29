@@ -41,14 +41,6 @@
 
             <div class="row">
                 <button type="submit" name="script" value="update_approval_status" {% if update_approval_status == 'true' %}style="color:green" {% endif %} title="Update Approval Status">Run Script 'update_approval_status'</button>
-<!--                {% if debug %}-->
-<!--                    <div class="debug-box">-->
-<!--                        <div><span>Enter the approval ID and click the button above</span></div>-->
-<!--                        <div>-->
-<!--                            Approval ID to update: <input type="text" name="update_approval_status_id" />-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                {% endif %}-->
             </div>
 
             <div class="row">
@@ -57,6 +49,14 @@
 
             <div class="row">
                 <button type="submit" name="script" value="send_compliance_reminder" {% if send_compliance_reminder == 'true' %}style="color:green" {% endif %} title="Send Compliance Reminder">Run Script 'send_compliance_reminder'</button>
+            </div>
+
+            <div class="row">
+                <button type="submit" name="script" value="expire_application_due_to_no_payment" {% if expire_application_due_to_no_payment == 'true' %}style="color:green" {% endif %} title="Expire Applications due to no payment">Run Script 'expire_application_due_to_no_payment'</button>
+            </div>
+
+            <div class="row">
+                <button type="submit" name="script" value="send_application_payment_due_reminder" {% if send_application_payment_due_reminder == 'true' %}style="color:green" {% endif %} title="Send Application Payment Due Reminder">Run Script 'send_application_payment_due_reminder'</button>
             </div>
 
             <div class="row">
