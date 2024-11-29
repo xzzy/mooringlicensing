@@ -1055,6 +1055,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS,
             Proposal.PROCESSING_STATUS_PRINTING_STICKER,
             Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ]
         return False if self.processing_status in officer_view_state else True
 
@@ -1115,7 +1116,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
             Proposal.PROCESSING_STATUS_DECLINED, 
             Proposal.PROCESSING_STATUS_DRAFT,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ]
         if self.processing_status in status_without_approver:
             return False
@@ -1137,7 +1139,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             Proposal.PROCESSING_STATUS_APPROVED, 
             Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
             Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ]
         if self.processing_status in status_without_assessor:
             return False
@@ -2623,6 +2626,7 @@ class WaitingListApplication(Proposal):
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
             Proposal.PROCESSING_STATUS_DISCARDED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
         ])
         return proposals
 
@@ -2797,6 +2801,7 @@ class AnnualAdmissionApplication(Proposal):
                 Proposal.PROCESSING_STATUS_APPROVED, 
                 Proposal.PROCESSING_STATUS_DECLINED, 
                 Proposal.PROCESSING_STATUS_DISCARDED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
             ]:
                 if type(proposal) == MooringLicenceApplication:
                     proposals_mla.append(proposal)
@@ -3017,6 +3022,7 @@ class AuthorisedUserApplication(Proposal):
                 Proposal.PROCESSING_STATUS_APPROVED,
                 Proposal.PROCESSING_STATUS_DECLINED,
                 Proposal.PROCESSING_STATUS_DISCARDED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
             ]:
                 if type(proposal) == AuthorisedUserApplication:
                     proposals_aua.append(proposal)
@@ -3519,6 +3525,7 @@ class MooringLicenceApplication(Proposal):
                 Proposal.PROCESSING_STATUS_APPROVED,
                 Proposal.PROCESSING_STATUS_DECLINED,
                 Proposal.PROCESSING_STATUS_DISCARDED,
+                Proposal.PROCESSING_STATUS_EXPIRED,
             ]:
                 if type(proposal) == MooringLicenceApplication:
                     proposals_mla.append(proposal)
@@ -3591,7 +3598,9 @@ class MooringLicenceApplication(Proposal):
         proposals = MooringLicenceApplication.objects.filter(proposal_applicant__email_user_id=email_user_id).exclude(processing_status__in=[
             Proposal.PROCESSING_STATUS_APPROVED,
             Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_DISCARDED,])
+            Proposal.PROCESSING_STATUS_DISCARDED,
+            Proposal.PROCESSING_STATUS_EXPIRED,
+        ])
         return proposals
 
     def create_fee_lines(self):
@@ -4063,7 +4072,12 @@ class AvailableMooringManager(models.Manager):
                 # now check whether there are any blocking proposals
                 blocking_proposal = False
                 for proposal in mooring.ria_generated_proposal.all():
-                    if proposal.processing_status not in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED,]:
+                    if proposal.processing_status not in [
+                        Proposal.PROCESSING_STATUS_APPROVED, 
+                        Proposal.PROCESSING_STATUS_DECLINED, 
+                        Proposal.PROCESSING_STATUS_DISCARDED, 
+                        Proposal.PROCESSING_STATUS_EXPIRED,
+                    ]:
                         blocking_proposal = True
                 if not blocking_proposal:
                     available_ids.append(mooring.id)
