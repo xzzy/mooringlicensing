@@ -15,9 +15,8 @@ from django.db import connection, transaction
 
 from mooringlicensing.components.approvals.models import (
     Sticker, AnnualAdmissionPermit, AuthorisedUserPermit,
-    MooringLicence, Approval, WaitingListAllocation
+    MooringLicence, Approval, WaitingListAllocation, ApprovalHistory
 )
-from mooringlicensing.components.approvals.serializers import ListApprovalSerializer
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
@@ -29,8 +28,6 @@ from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
-
-from mooringlicensing.components.users.serializers import ProposalApplicantSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -301,8 +298,15 @@ def sticker_export():
                     logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
                     updates.append(sticker.number)
 
-                    #TODO review and implement (or remove)
-                    #new_approval_history_entry.stickers.add(sticker)
+                    new_approval_history_entry = ApprovalHistory.objects.create(
+                        vessel_ownership=sticker.approval.current_proposal.vessel_ownership,
+                        approval=sticker.approval,
+                        proposal=sticker.approval.current_proposal,
+                        start_date=sticker.approval.issue_date,
+                        approval_letter=sticker.approval.licence_document,
+                    )
+                    new_approval_history_entry.stickers.add(sticker)
+                    new_approval_history_entry.save()
 
                 except Exception as e:
                     err_msg = 'Error adding sticker: {} details to spreadsheet.'.format(sticker.number)
@@ -379,7 +383,6 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-#TODO review - do we still need DoT information?
 def get_dot_vessel_information(request,json_string):
     DOT_URL=settings.DOT_URL
     paramGET=json_string.replace("\n", "")
