@@ -1344,14 +1344,6 @@ class AnnualAdmissionPermit(Approval):
         # Check if a new sticker needs to be created
         create_new_sticker = True
         if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            #NOTE: business requirement are such that even a major length/ownership change does not warrant a new sticker (TODO: confirm this, remove commented code if True)
-            #if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:                
-                #next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
-                #current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)
-                #if current_colour == next_colour:
-                    # This is the only case where there is no new sticker to be created
-                    #create_new_sticker = False
-            #TODO confirm below
             if proposal.vessel_ownership != proposal.previous_application.vessel_ownership:
                 if proposal.vessel_ownership.vessel == proposal.previous_application.vessel_ownership.vessel:
                     create_new_sticker = False
@@ -3335,9 +3327,6 @@ def delete_documents(sender, instance, *args, **kwargs):
                 continue
 
 import reversion
-#TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
-#for example - AgeGroup is a reference field and does need history
-#another example - ApprovalLogEntry records never change and only need to be tracked via Approval (if at all)
 reversion.register(WaitingListOfferDocument, follow=[])
 reversion.register(RenewalDocument, follow=['renewal_document'])
 reversion.register(AuthorisedUserSummaryDocument, follow=['approvals'])

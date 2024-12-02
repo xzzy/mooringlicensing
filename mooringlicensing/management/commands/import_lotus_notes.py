@@ -1,4 +1,3 @@
-#TODO is this required?
 from django.core.management.base import BaseCommand
 import logging
 from mooringlicensing.utils.export_clean import clean

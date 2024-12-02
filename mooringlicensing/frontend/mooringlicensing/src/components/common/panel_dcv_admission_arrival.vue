@@ -206,7 +206,7 @@ export default {
         },
         has_aap_aup_ml: function() {
 
-            // TODO: calc
+            // TODO: calc - determining if this is still required
 
             return false
         },

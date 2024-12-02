@@ -942,7 +942,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def end_date(self):
-        #TODO either fix this or fix expiry date being set to this when renewing without vessel...
         end_date = None
         application_fee = self.get_main_application_fee()
         print(application_fee)
@@ -2322,7 +2321,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
-    #TODO: ideally this should be referenced by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
     proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="proposal_applicant")
 
     # Name, etc
@@ -4151,11 +4149,6 @@ class Mooring(RevisionedMixin):
         verbose_name_plural = "Moorings"
         app_label = 'mooringlicensing'
 
-    #TODO does not appear to be in use but may be needed? review
-    @property
-    def specification_display(self):
-        return self.get_mooring_bookings_mooring_specification_display()
-
     def log_user_action(self, action, request):
         return MooringUserAction.log_action(self, action, request.user.id)
 
@@ -4651,12 +4644,6 @@ class VesselOwnership(RevisionedMixin):
         else:
             return self.percentage
 
-    #TODO does not appear to be used but may still be needed - review
-    @property
-    def company_ownership_latest(self):
-        if self.company_ownerships.count():
-            return self.company_ownerships.order_by('created').last()
-
     @property
     def individual_owner(self):
         if self.get_latest_company_ownership():
@@ -5151,8 +5138,6 @@ def delete_documents(sender, instance, *args, **kwargs):
         document.delete()
 
 import reversion
-
-#TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
 reversion.register(ProposalDocument)
 reversion.register(ProposalType, follow=['proposal_set',])
 reversion.register(Proposal, follow=['proposal_applicant'])

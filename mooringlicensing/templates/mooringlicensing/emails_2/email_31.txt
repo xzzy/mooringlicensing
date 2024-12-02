@@ -3,7 +3,6 @@
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
 Your {{ approval.description }} {{ approval.lodgement_number }} has been reinstated.
-{% if details %}Details: {{ details }}{% endif %}
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}
 

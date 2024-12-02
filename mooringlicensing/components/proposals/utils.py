@@ -761,7 +761,6 @@ def get_fee_amount_adjusted(proposal, fee_item_being_applied, vessel_length):
         fee_amount_adjusted = 0 if fee_amount_adjusted <= 0 else fee_amount_adjusted
     else:
         if proposal.does_accept_null_vessel:
-            # TODO: We don't charge for this application but when new replacement vessel details are provided,calculate fee and charge it (investigate if this has been done or not)
             fee_amount_adjusted = 0
         else:
             msg = 'The application fee admin data might have not been set up correctly.  Please contact the Rottnest Island Authority.'

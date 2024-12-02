@@ -9,7 +9,6 @@ import WaitingListDash from '@/components/internal/waiting_list/dashboard.vue'
 import MooringsDash from '@/components/internal/moorings/dashboard.vue'
 import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
 import VesselDetail from '@/components/internal/vessels/vessel_detail.vue'
-import DcvVesselDetail from '@/components/internal/vessels/dcv_vessel_detail.vue'
 import Search from '@/components/internal/search/dashboard.vue'
 import PersonDetail from '@/components/internal/person/person_detail.vue'
 import Compliance from '../compliances/access.vue'
@@ -112,24 +111,6 @@ export default
                 },
             ]
         },
-        {
-            path: 'dcv_vessel',
-            //component: MooringsDash,
-            component: {
-                render(c)
-                {
-                    return c('router-view')
-                }
-            },
-            children: [
-                {
-                    path: ':dcv_vessel_id',
-                    component: DcvVesselDetail,
-                    name:"internal-dcv-vessel-detail"
-                },
-            ]
-        },
-
         {
             path: 'sticker',
             component: StickersDash,

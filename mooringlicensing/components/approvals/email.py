@@ -601,7 +601,6 @@ def send_approval_reinstate_email_notification(approval, request):
         'public_url': get_public_url(request),
         'approval': approval,
         'recipient': approval.applicant_obj,
-        'details': '',  # TODO add details
     }
     all_ccs = []
     msg = email.send(proposal.applicant_obj.email, cc=all_ccs, context=context)
@@ -880,7 +879,3 @@ def send_aup_revoked_due_to_relinquishment_email(request, authorised_user_permit
         sender = request.user if request else settings.DEFAULT_FROM_EMAIL
         _log_approval_email(msg, approval, sender=sender, attachments=attachments)
         _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender)
-
-# 39
-# email to account holder with authentication link to complete login process
-# TODO: can we overwrite this template served by the ledger?

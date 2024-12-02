@@ -148,8 +148,3 @@ def create_approval_doc_bytes(approval):
     os.remove(new_doc_file)
     os.remove(new_pdf_file)
     return file_contents
-
-
-# TODO: renewal specific data
-def create_renewal_doc_bytes(approval):
-    return create_approval_doc_bytes(approval)
