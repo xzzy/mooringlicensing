@@ -113,24 +113,6 @@ export default
             ]
         },
         {
-            path: 'dcv_vessel',
-            //component: MooringsDash,
-            component: {
-                render(c)
-                {
-                    return c('router-view')
-                }
-            },
-            children: [
-                {
-                    path: ':dcv_vessel_id',
-                    component: DcvVesselDetail,
-                    name:"internal-dcv-vessel-detail"
-                },
-            ]
-        },
-
-        {
             path: 'sticker',
             component: StickersDash,
             name: "internal-stickers-dash"

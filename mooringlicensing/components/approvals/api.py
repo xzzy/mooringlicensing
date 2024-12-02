@@ -534,7 +534,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 continue
         return Response(moorings)
 
-    @detail_route(methods=['POST'], detail=True, permission_classes=[InternalApprovalPermission]) #TODO need specific group perm?
+    @detail_route(methods=['POST'], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
     def swap_moorings(self, request, *args, **kwargs):
         with transaction.atomic():
@@ -1584,34 +1584,6 @@ class DcvVesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = DcvVesselSerializer(dcv_vessel)
         dcv_vessel_data = serializer.data
         return Response(dcv_vessel_data)
-
-    #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
-    # also appears to only be used by an unimplemented template
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def find_related_admissions(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        selected_date_str = request.data.get("selected_date")
-        selected_date = None
-        if selected_date_str:
-            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        admissions = DcvAdmission.objects.filter(dcv_vessel=vessel)
-        serializer = LookupDcvAdmissionSerializer(admissions, many=True)
-        return Response(serializer.data)
-
-    #TODO review - should be fine as is provided that DCV vessels do not move between users (which they currently cannot)
-    # also appears to only be used by an unimplemented template
-    @detail_route(methods=['POST',], detail=True)
-    @basic_exception_handler
-    def find_related_permits(self, request, *args, **kwargs):
-        vessel = self.get_object()
-        selected_date_str = request.data.get("selected_date")
-        selected_date = None
-        if selected_date_str:
-            selected_date = datetime.strptime(selected_date_str, '%d/%m/%Y').date()
-        admissions = DcvPermit.objects.filter(dcv_vessel=vessel)
-        serializer = LookupDcvPermitSerializer(admissions, many=True)
-        return Response(serializer.data)
 
 
 class DcvAdmissionFilterBackend(DatatablesFilterBackend):
