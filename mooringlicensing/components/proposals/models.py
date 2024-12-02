@@ -2321,7 +2321,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
 class ProposalApplicant(RevisionedMixin):
     email_user_id = models.IntegerField(null=True, blank=True)
-    #TODO: ideally this should be referenced by the proposal, not the other way around (no reason for a proposal to have multiple proposal applicants)
     proposal = models.OneToOneField(Proposal, null=True, blank=True, on_delete=models.SET_NULL, related_name="proposal_applicant")
 
     # Name, etc
@@ -4150,11 +4149,6 @@ class Mooring(RevisionedMixin):
         verbose_name_plural = "Moorings"
         app_label = 'mooringlicensing'
 
-    #TODO does not appear to be in use but may be needed? review
-    @property
-    def specification_display(self):
-        return self.get_mooring_bookings_mooring_specification_display()
-
     def log_user_action(self, action, request):
         return MooringUserAction.log_action(self, action, request.user.id)
 
@@ -4649,12 +4643,6 @@ class VesselOwnership(RevisionedMixin):
             return co.percentage
         else:
             return self.percentage
-
-    #TODO does not appear to be used but may still be needed - review
-    @property
-    def company_ownership_latest(self):
-        if self.company_ownerships.count():
-            return self.company_ownerships.order_by('created').last()
 
     @property
     def individual_owner(self):
