@@ -5150,8 +5150,6 @@ def delete_documents(sender, instance, *args, **kwargs):
         document.delete()
 
 import reversion
-
-#TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
 reversion.register(ProposalDocument)
 reversion.register(ProposalType, follow=['proposal_set',])
 reversion.register(Proposal, follow=['proposal_applicant'])
