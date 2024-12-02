@@ -3327,9 +3327,6 @@ def delete_documents(sender, instance, *args, **kwargs):
                 continue
 
 import reversion
-#TODO review all reversion registrations and applied revision mixins - some records do not require history or should only be recorded via a main record
-#for example - AgeGroup is a reference field and does need history
-#another example - ApprovalLogEntry records never change and only need to be tracked via Approval (if at all)
 reversion.register(WaitingListOfferDocument, follow=[])
 reversion.register(RenewalDocument, follow=['renewal_document'])
 reversion.register(AuthorisedUserSummaryDocument, follow=['approvals'])

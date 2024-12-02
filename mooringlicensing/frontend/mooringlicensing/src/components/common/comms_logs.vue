@@ -170,8 +170,6 @@ export default {
                             return result;
                         },
                         'createdCell': function (cell) {
-                            //TODO why this is not working?
-                            // the call to popover is done in the 'draw' event
                             $(cell).popover();
                         }
                     },
@@ -204,8 +202,6 @@ export default {
                             return result;
                         },
                         'createdCell': function (cell) {
-                            //TODO why this is not working?
-                            // the call to popover is done in the 'draw' event
                             $(cell).popover();
                         }
                     },
@@ -242,8 +238,6 @@ export default {
                             return result;
                         },
                         'createdCell': function (cell) {
-                            //TODO why this is not working?
-                            // the call to popover is done in the 'draw' event
                             $(cell).popover();
                         }
                     },
@@ -275,8 +269,6 @@ export default {
                             return result;
                         },
                         'createdCell': function (cell) {
-                            //TODO why this is not working?
-                            // the call to popover is done in the 'draw' event
                             $(cell).popover();
                         }
                     },
