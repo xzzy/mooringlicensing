@@ -179,8 +179,6 @@ def send_approver_approve_decline_email_notification(request, proposal):
         log_proposal_email(msg, proposal, sender)
     return msg
 
-# TODO: #4
-
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     # 5

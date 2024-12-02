@@ -942,7 +942,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def end_date(self):
-        #TODO either fix this or fix expiry date being set to this when renewing without vessel...
         end_date = None
         application_fee = self.get_main_application_fee()
         print(application_fee)
