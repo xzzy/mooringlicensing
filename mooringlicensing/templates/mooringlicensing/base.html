@@ -20,15 +20,14 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
-
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
             {% bootstrap_css %}
                 <link type="text/css" href="{% static 'mooringlicensing/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
-	    <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{RAND_HASH}}">
+	            <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{RAND_HASH}}">
+                <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/chunk-vendors.css' %}?v={{RAND_HASH}}">
             {% endif %}
             {% block extra_css %}
             {% endblock %}

@@ -12,6 +12,10 @@ module.exports = defineConfig({
     filenameHashing: false,
     chainWebpack: (config) => {
         config.resolve.alias.set(
+            '@',
+            path.resolve(__dirname, 'src')
+        );
+        config.resolve.alias.set(
             '@vue-utils',
             path.resolve(__dirname, 'src/utils/vue')
         );
@@ -23,6 +27,10 @@ module.exports = defineConfig({
             '@static-root',
             path.resolve(__dirname, '../../../staticfiles_ml/')
         );
+        config.resolve.alias.set(
+            'datetimepicker',
+            path.resolve(__dirname, 'eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js')
+        )
     },
     configureWebpack: {
         devtool: 'source-map',
@@ -34,9 +42,12 @@ module.exports = defineConfig({
         plugins: [
             new webpack.ProvidePlugin({
                 $: 'jquery',
+                jQuery: 'jquery',
                 moment: 'moment',
                 swal: 'sweetalert2',
                 _: 'lodash',
+                "select2": "../node_modules/select2/dist/js/select2.full.min.js",
+                datetimepicker:"../node_modules/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"
             }),
             new MomentLocalesPlugin(),
             new webpack.ProvidePlugin({
