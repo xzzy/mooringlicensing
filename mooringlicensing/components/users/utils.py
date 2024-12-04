@@ -39,8 +39,8 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, 
         if update:    
             system_user.change_by_user_id = system_user.id        
             system_user.email = email
-            system_user.first_name = first_name
-            system_user.last_name = last_name
+            system_user.legal_first_name = first_name
+            system_user.legal_last_name = last_name
             system_user.legal_dob = dob
             system_user.phone_number = phone
             system_user.mobile_number = mobile
@@ -52,8 +52,8 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, 
                 system_user = SystemUser.objects.create(
                     ledger_id_id=email_user_id,
                     email=email,
-                    first_name=first_name,
-                    last_name=last_name,
+                    legal_first_name=first_name,
+                    legal_last_name=last_name,
                     legal_dob=dob,
                     phone_number=phone,
                     mobile_number=mobile,
