@@ -12,8 +12,8 @@ def create_system_user(email_user_id, email, first_name, last_name, dob, phone=N
     return SystemUser.objects.create(
         ledger_id_id=email_user_id,
         email=email,
-        first_name=first_name,
-        last_name=last_name,
+        legal_first_name=first_name,
+        legal_last_name=last_name,
         legal_dob=dob,
         phone_number=phone,
         mobile_number=mobile,
