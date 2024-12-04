@@ -21,7 +21,7 @@ module.exports = defineConfig({
         );
         config.resolve.alias.set(
             '@static-root',
-            path.resolve(__dirname, '../../../staticfiles_ll/')
+            path.resolve(__dirname, '../../../staticfiles_ml/')
         );
     },
     configureWebpack: {
@@ -61,7 +61,6 @@ module.exports = defineConfig({
         },
         module: {
             rules: [
-                /* config.module.rule('images') */
                 {
                     test: /\.(png|jpe?g|gif|webp|avif)(\?.*)?$/,
                     type: 'asset/resource',
@@ -69,7 +68,6 @@ module.exports = defineConfig({
                         filename: 'img/[name][ext]',
                     },
                 },
-                /* config.module.rule('fonts') */
                 {
                     test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/i,
                     type: 'asset/resource',

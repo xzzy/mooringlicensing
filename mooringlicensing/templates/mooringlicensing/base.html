@@ -198,13 +198,8 @@
         {% block modals %}
         {% endblock %}
         {% if not dev %}
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/manifest.js' %}?v={{RAND_HASH}}"></script>
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/vendor.js' %}?v={{RAND_HASH}}"></script>
-            {% if app_build_url %}
-                <script type="text/javascript" src="{{ app_build_url }}"></script>
-            {% else %}
-    <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{RAND_HASH}}"></script>
-            {% endif %}
+            <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/chunk-vendors.js' %}?v={{RAND_HASH}}"></script>
+            <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{RAND_HASH}}"></script>
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}

@@ -67,8 +67,8 @@ coverage.xml
 
 # Django stuff:
 *.log
-staticfiles/
-staticfiles*
+staticfiles_ml/
+staticfiles_ml*
 
 # vim
 *.swp
