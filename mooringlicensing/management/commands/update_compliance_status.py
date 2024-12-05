@@ -19,7 +19,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         today = timezone.localtime(timezone.now()).date()
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE)
+        days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_BEFORE_DUE_COMPLIANCE).first()
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         compare_date = today + datetime.timedelta(days=days_setting.number_of_days)
 

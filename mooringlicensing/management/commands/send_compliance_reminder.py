@@ -30,17 +30,17 @@ class Command(BaseCommand):
         errors = []
         updates = []
         logger.info('Running command {}'.format(__name__))
-        days_type_first_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_FIRST_REMINDER)
+        days_type_first_reminder = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_FIRST_REMINDER).first()
         days_setting_first_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_first_reminder, today)
         if not days_setting_first_reminder:
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_first_reminder.name, today))
         
-        days_type_second_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SECOND_REMINDER)
+        days_type_second_reminder = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_SECOND_REMINDER).first()
         days_setting_second_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_second_reminder, today)
         if not days_setting_second_reminder:
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_second_reminder.name, today))
 
-        days_type_final_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_FINAL_REMINDER)
+        days_type_final_reminder = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_FINAL_REMINDER).first()
         days_setting_final_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_final_reminder, today)
         if not days_setting_final_reminder:
             raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_final_reminder.name, today))
