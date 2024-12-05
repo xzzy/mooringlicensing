@@ -32,22 +32,22 @@ class Command(BaseCommand):
         #Retrieve the date for which reminder email need to be sent
         if approval_type == WaitingListAllocation.code:
             approval_class = WaitingListAllocation
-            days_type_first_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_FIRST_REMINDER)
+            days_type_first_reminder = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_FIRST_REMINDER).first()
             days_setting_first_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_first_reminder, today)
             if not days_setting_first_reminder:
                 raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_first_reminder.name, today))
             
-            days_type_second_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SECOND_REMINDER)
+            days_type_second_reminder = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_SECOND_REMINDER).first()
             days_setting_second_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_second_reminder, today)
             if not days_setting_second_reminder:
                 raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_second_reminder.name, today))
 
-            days_type_final_reminder = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_FINAL_REMINDER)
+            days_type_final_reminder = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_FINAL_REMINDER).first()
             days_setting_final_reminder = NumberOfDaysSetting.get_setting_by_date(days_type_final_reminder, today)
             if not days_setting_final_reminder:
                 raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_final_reminder.name, today))
 
-            days_type_total_period = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
+            days_type_total_period = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA).first()
             days_setting_total_period = NumberOfDaysSetting.get_setting_by_date(days_type_total_period, today)
             if not days_setting_total_period:
                 raise ImproperlyConfigured("NumberOfDays: {} is not defined for the date: {}".format(days_type_total_period.name, today))
