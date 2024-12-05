@@ -224,9 +224,9 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
     url = MOORING_LICENSING_EXTERNAL_URL + reverse('external-proposal-detail', kwargs={'proposal_pk': mooring_licence_application.id})
 
     today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
-    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
+    days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_IN_PERIOD_MLA).first()
     days_setting_application_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
-    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
+    days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA).first()
     days_setting_documents_period = NumberOfDaysSetting.get_setting_by_date(days_type, today)
     details = request.data.get('message_details', '')
 
@@ -271,7 +271,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     )
 
     today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
-    days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA)
+    days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_SUBMIT_DOCUMENTS_MLA).first()
     days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
 
     url = request.build_absolute_uri(reverse('external-proposal-detail', kwargs={'proposal_pk': proposal.id}))

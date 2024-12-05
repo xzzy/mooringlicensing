@@ -1765,7 +1765,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                             invoice_name = self.proposal_applicant.get_full_name()
                             today = timezone.localtime(timezone.now()).date()
-                            days_type = NumberOfDaysType.objects.get(code=settings.CODE_DAYS_BEFORE_DUE_PAYMENT)
+                            days_type = NumberOfDaysType.objects.filter(code=settings.CODE_DAYS_BEFORE_DUE_PAYMENT).first()
                             days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
                             self.payment_due_date = today + datetime.timedelta(days=days_setting.number_of_days)
                             self.save()
@@ -3198,7 +3198,7 @@ class AuthorisedUserApplication(Proposal):
         return line_items, fee_items_to_store
 
     def get_due_date_for_endorsement_by_target_date(self, target_date=timezone.localtime(timezone.now()).date()):
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_FOR_ENDORSER_AUA)
+        days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_FOR_ENDORSER_AUA).first()
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, target_date)
         if not days_setting:
             # No number of days found

@@ -27,7 +27,7 @@ class Command(BaseCommand):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
-        days_type = NumberOfDaysType.objects.get(code=CODE_DAYS_IN_PERIOD_MLA)
+        days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_IN_PERIOD_MLA).first()
         days_setting = NumberOfDaysSetting.get_setting_by_date(days_type, today)
         if not days_setting:
             # No number of days found
