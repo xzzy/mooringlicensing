@@ -18,7 +18,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         path = options['path']
         if not path:
-            path = env('MIGRATION_DATA_PATH', '/data/data/projects/mooringlicensing/tmp/clean')
+            path = env('MIGRATION_DATA_PATH', '/data/data/projects/mooringlicensing/tmp/clean/')
         t_start = time.time()
 
         mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt','annual_admissions_booking_report.csv', path=path)

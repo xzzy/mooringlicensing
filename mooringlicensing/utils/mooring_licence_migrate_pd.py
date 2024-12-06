@@ -327,14 +327,14 @@ class MooringLicenceReader():
         self.ml_no_ves_rows = []
 
         #summary_file
-        self.summary_file = "migration_summary_" + str(start_datetime).replace(" ", "_").replace(".", ":") + ".txt"
+        self.summary_file = path + "migration_summary_" + str(start_datetime).replace(" ", "_").replace(".", ":") + ".txt"
         end_time = time.time()
 
         #create summary file, add init time
         f = open(self.summary_file, "w")
         f.write("Mooring Licensing Migration Summary\n")
-        f.write("Initialisation started at:", start_datetime)
-        f.write("Time taken for initialistation: {}s".format(end_time-start_time))
+        f.write("\nInitialisation started at: {}".format(start_datetime))
+        f.write("\nTime taken for initialisation: {}s".format(end_time-start_time))
         f.close()
 
     def __get_phone_number(self, row):
@@ -618,24 +618,24 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate Users Summary\n")
-        f.write("Migrate Users started at:", start_time,"\n")
+        f.write("\n\nMigrate Users Summary\n")
+        f.write("Migrate Users started at: {}\n".format(start_time))
 
-        f.write(f'users created:  {len(self.user_created)}')
-        f.write(f'users existing: {len(self.user_existing)}')
-        f.write(f'users errors:   {len(self.user_errors)}')
-        f.write(f'system users created:  {len(self.system_user_created)}')
-        f.write(f'system users existing: {len(self.system_user_existing)}')
-        f.write(f'no_email errors:   {len(self.no_email)}')
-        f.write(f'users errors:   {self.user_errors}')
-        f.write(f'no_email errors:   {self.no_email}')
+        f.write(f'\nusers created:  {len(self.user_created)}')
+        f.write(f'\nusers existing: {len(self.user_existing)}')
+        f.write(f'\nusers errors:   {len(self.user_errors)}')
+        f.write(f'\nsystem users created:  {len(self.system_user_created)}')
+        f.write(f'\nsystem users existing: {len(self.system_user_existing)}')
+        f.write(f'\nno_email errors:   {len(self.no_email)}')
+        f.write(f'\nusers errors:   {self.user_errors}')
+        f.write(f'\nno_email errors:   {self.no_email}')
 
         if self.user_error_details:
             f.write('\nusers error details\n')
             for i in self.user_error_details:
-                f.write(i)
+                f.write("\n"+i)
 
-        f.write("\nTime taken for migrating users: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating users: {}s".format(end_time-start_time))
         f.close()
 
     def _create_users_df(self, df):
@@ -814,14 +814,14 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate Vessels Summary\n")
-        f.write("Migrate Vessels started at:", start_time,"\n")
+        f.write("\n\nMigrate Vessels Summary\n")
+        f.write("Migrate Vessels started at: {}\n".format(start_time))
 
-        f.write(f'vessels created:  {len(self.vessels_created)}')
-        f.write(f'vessels errors:   {self.vessels_errors}')
-        f.write(f'vessels errors:   {len(self.vessels_errors)}')
+        f.write(f'\nvessels created:  {len(self.vessels_created)}')
+        f.write(f'\nvessels errors:   {self.vessels_errors}')
+        f.write(f'\nvessels errors:   {len(self.vessels_errors)}')
 
-        f.write("\nTime taken for migrating vessels: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating vessels: {}s".format(end_time-start_time))
         f.close()
 
     def _create_vessels(self):
@@ -1338,23 +1338,23 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate Mooring Licenses Summary\n")
-        f.write("Migrate Mooring Licenses started at:", start_time,"\n")
+        f.write("\n\nMigrate Mooring Licenses Summary\n")
+        f.write("Migrate Mooring Licenses started at: {}\n".format(start_time))
 
-        f.write(f'ml_user_not_found:  {self.ml_user_not_found}')
-        f.write(f'Duplicate Pers_No in ves_row:  {self.ml_no_ves_rows}')
-        f.write(f'ml_user_not_found:  {len(self.ml_user_not_found)}')
-        f.write(f'Duplicate Pers_No in ves_row:  {len(self.ml_no_ves_rows)}')
-        f.write(f'Moorings not Found:  {mooring_not_found}')
-        f.write(f'Moorings not Found:  {len(mooring_not_found)}')
-        f.write(f'Owners not Found:  {owner_not_found}')
-        f.write(f'VesselOwnership not Found:  {len(vessel_ownership_not_found)}')
-        f.write(f'VesselOwnership not Found:  {vessel_ownership_not_found}')
-        f.write(f'Owners not Found:  {len(owner_not_found)}')
-        f.write(f'Vessels not Found:  {vessel_not_found}')
-        f.write(f'Vessels not Found:  {len(vessel_not_found)}')
+        f.write(f'\nml_user_not_found:  {self.ml_user_not_found}')
+        f.write(f'\nDuplicate Pers_No in ves_row:  {self.ml_no_ves_rows}')
+        f.write(f'\nml_user_not_found:  {len(self.ml_user_not_found)}')
+        f.write(f'\nDuplicate Pers_No in ves_row:  {len(self.ml_no_ves_rows)}')
+        f.write(f'\nMoorings not Found:  {mooring_not_found}')
+        f.write(f'\nMoorings not Found:  {len(mooring_not_found)}')
+        f.write(f'\nOwners not Found:  {owner_not_found}')
+        f.write(f'\nVesselOwnership not Found:  {len(vessel_ownership_not_found)}')
+        f.write(f'\nVesselOwnership not Found:  {vessel_ownership_not_found}')
+        f.write(f'\nOwners not Found:  {len(owner_not_found)}')
+        f.write(f'\nVessels not Found:  {vessel_not_found}')
+        f.write(f'\nVessels not Found:  {len(vessel_not_found)}')
 
-        f.write("\nTime taken for migrating mooring licenses: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating mooring licenses: {}s".format(end_time-start_time))
         f.close()
 
     def create_authuser_permits(self):
@@ -1594,20 +1594,20 @@ class MooringLicenceReader():
         
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate Authorised User Permits Summary\n")
-        f.write("Migrate Authorised User Permits started at:", start_time,"\n")
+        f.write("\n\nMigrate Authorised User Permits Summary\n")
+        f.write("Migrate Authorised User Permits started at: {}\n".format(start_time))
 
-        f.write(f'vessel_not_found: {vessel_not_found}')
-        f.write(f'vessel_not_found: {len(vessel_not_found)}')
-        f.write(f'aup_created: {len(aup_created)}')
-        f.write(f'au_stickers: au_stickers, {len(au_stickers)}')
-        f.write(f'no_au_stickers: no_au_stickers, {len(no_au_stickers)}')
+        f.write(f'\nvessel_not_found: {vessel_not_found}')
+        f.write(f'\nvessel_not_found: {len(vessel_not_found)}')
+        f.write(f'\naup_created: {len(aup_created)}')
+        f.write(f'\nau_stickers: au_stickers, {len(au_stickers)}')
+        f.write(f'\nno_au_stickers: no_au_stickers, {len(no_au_stickers)}')
         if errors:
             f.write('\naup error details\n')
             for i in errors:
-                f.write(i)
+                f.write("\n"+i)
 
-        f.write("\nTime taken for migrating authorised user permits: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating authorised user permits: {}s".format(end_time-start_time))
         f.close()
 
     def create_waiting_list(self):
@@ -1760,20 +1760,20 @@ class MooringLicenceReader():
         
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate Waiting List Allocations Summary\n")
-        f.write("Migrate Waiting List Allocations started at:", start_time,"\n")
+        f.write("\n\nMigrate Waiting List Allocations Summary\n")
+        f.write("Migrate Waiting List Allocations started at: {}\n".format(start_time))
 
-        f.write(f'vessel_not_found: {vessel_not_found}')
-        f.write(f'vessel_not_found: {len(vessel_not_found)}')
-        f.write(f'user_not_found: {user_not_found}')
-        f.write(f'user_not_found: {len(user_not_found)}')
-        f.write(f'wl_created: {len(wl_created)}')
+        f.write(f'\nvessel_not_found: {vessel_not_found}')
+        f.write(f'\nvessel_not_found: {len(vessel_not_found)}')
+        f.write(f'\nuser_not_found: {user_not_found}')
+        f.write(f'\nuser_not_found: {len(user_not_found)}')
+        f.write(f'\nwl_created: {len(wl_created)}')
         if errors:
             f.write('\nwla error details\n')
             for i in errors:
-                f.write(i)
+                f.write("\n"+i)
 
-        f.write("\nTime taken for migrating waiting list allocations: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating waiting list allocations: {}s".format(end_time-start_time))
         f.close()
 
     def create_dcv(self):
@@ -1890,20 +1890,20 @@ class MooringLicenceReader():
         
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate DCV Permits Summary\n")
-        f.write("Migrate DCV Permits started at:", start_time,"\n")
+        f.write("\n\nMigrate DCV Permits Summary\n")
+        f.write("Migrate DCV Permits started at: {}\n".format(start_time))
 
-        f.write(f'vessel_not_found: {vessel_not_found}')
-        f.write(f'vessel_not_found: {len(vessel_not_found)}')
-        f.write(f'user_not_found: {user_not_found}')
-        f.write(f'user_not_found: {len(user_not_found)}')
-        f.write(f'dcv_created: {len(dcv_created)}')
+        f.write(f'\nvessel_not_found: {vessel_not_found}')
+        f.write(f'\nvessel_not_found: {len(vessel_not_found)}')
+        f.write(f'\nuser_not_found: {user_not_found}')
+        f.write(f'\nuser_not_found: {len(user_not_found)}')
+        f.write(f'\ndcv_created: {len(dcv_created)}')
         if errors:
             f.write('\ndcv error details\n')
             for i in errors:
-                f.write(i)
+                f.write("\n"+i)
 
-        f.write("\nTime taken for migrating dcv permits: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating dcv permits: {}s".format(end_time-start_time))
         f.close()
 
     def _create_single_vessel(self, user, rego_no, ves_name, ves_type, length, draft, beam, weight, pct_interest, berth_mooring=''):
@@ -2152,19 +2152,19 @@ class MooringLicenceReader():
         
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nMigrate Annual Admissions Summary\n")
-        f.write("Migrate Annual Admissions started at:", start_time,"\n")
+        f.write("\n\nMigrate Annual Admissions Summary\n")
+        f.write("Migrate Annual Admissions started at: {}\n".format(start_time))
 
-        f.write(f'rego_aa_created: {len(rego_aa_created)}')
-        f.write(f'total_aa_created: {len(total_aa_created)}')
-        f.write(f'Vessel Details Not Found: {vessel_details_not_found}')
-        f.write(f'Vessel Details Not Found: {len(vessel_details_not_found)}')
+        f.write(f'\nrego_aa_created: {len(rego_aa_created)}')
+        f.write(f'\ntotal_aa_created: {len(total_aa_created)}')
+        f.write(f'\nVessel Details Not Found: {vessel_details_not_found}')
+        f.write(f'\nVessel Details Not Found: {len(vessel_details_not_found)}')
         if errors:
             f.write('\naa error details\n')
             for i in errors:
-                f.write(i)
+                f.write("\n"+i)
 
-        f.write("\nTime taken for migrating annual admissions: {}s".format(end_time-start_time))
+        f.write("\n\nTime taken for migrating annual admissions: {}s".format(end_time-start_time))
         f.close()
 
     def create_licence_pdfs(self):
@@ -2183,8 +2183,8 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nCreate Mooring License PDFs Summary\n")
-        f.write("Create Mooring License PDFs started at:", start_time,"\n")
+        f.write("\n\nCreate Mooring License PDFs Summary\n")
+        f.write("Create Mooring License PDFs started at: {}\n".format(start_time))
         f.write("\nTime taken for creating mooring license pdfs: {}s".format(end_time-start_time))
         f.close()
 
@@ -2197,8 +2197,8 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nCreate Authorised User Permit PDFs Summary\n")
-        f.write("Create Authorised User Permit PDFs started at:", start_time,"\n")
+        f.write("\n\nCreate Authorised User Permit PDFs Summary\n")
+        f.write("Create Authorised User Permit PDFs started at: {}\n".format(start_time))
         f.write("\nTime taken for creating authorised user permit pdfs: {}s".format(end_time-start_time))
         f.close()
 
@@ -2211,8 +2211,8 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nCreate Waiting List Allocation PDFs Summary\n")
-        f.write("Create Waiting List Allocation PDFs started at:", start_time,"\n")
+        f.write("\n\nCreate Waiting List Allocation PDFs Summary\n")
+        f.write("Create Waiting List Allocation PDFs started at: {}\n".format(start_time))
         f.write("\nTime taken for creating waiting list allocation pdfs: {}s".format(end_time-start_time))
         f.close()
 
@@ -2225,8 +2225,8 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nCreate Annual Admission PDFs Summary\n")
-        f.write("Create Annual Admission PDFs started at:", start_time,"\n")
+        f.write("\n\nCreate Annual Admission PDFs Summary\n")
+        f.write("Create Annual Admission PDFs started at: {}\n".format(start_time))
         f.write("\nTime taken for creating annual admission pdfs: {}s".format(end_time-start_time))
         f.close()
 
@@ -2239,8 +2239,8 @@ class MooringLicenceReader():
 
         end_time = time.time()
         f = open(self.summary_file, "a")
-        f.write("\nCreate DCV Permit PDFs Summary\n")
-        f.write("Create DCV Permit PDFs started at:", start_time,"\n")
+        f.write("\n\nCreate DCV Permit PDFs Summary\n")
+        f.write("Create DCV Permit PDFs started at: {}\n".format(start_time))
         f.write("\nTime taken for creating dcv permit pdfs: {}s".format(end_time-start_time))
         f.close()
 
