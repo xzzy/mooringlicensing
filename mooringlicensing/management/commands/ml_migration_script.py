@@ -40,3 +40,6 @@ class Command(BaseCommand):
         t_end = time.time()
         logger.info('TIME TAKEN: {}'.format(t_end - t_start))
 
+        f = open(mlr.summary_file, "a")
+        f.write("\n\nTotal time taken for migration: {}".format(t_end - t_start))
+        f.close()
