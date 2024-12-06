@@ -46,7 +46,6 @@ module.exports = defineConfig({
                 moment: 'moment',
                 swal: 'sweetalert2',
                 _: 'lodash',
-                "select2": "../node_modules/select2/dist/js/select2.full.min.js",
                 datetimepicker:"../node_modules/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js"
             }),
             new MomentLocalesPlugin(),
