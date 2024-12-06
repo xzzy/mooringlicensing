@@ -31,11 +31,11 @@ class Command(BaseCommand):
         mlr.create_dcv()
         mlr.create_annual_admissions()
 
-        MooringLicenceReader.create_pdf_ml()
-        MooringLicenceReader.create_pdf_aup()
-        MooringLicenceReader.create_pdf_wl()
-        MooringLicenceReader.create_pdf_dcv()
-        MooringLicenceReader.create_pdf_aa()
+        mlr.create_pdf_ml()
+        mlr.create_pdf_aup()
+        mlr.create_pdf_wl()
+        mlr.create_pdf_dcv()
+        mlr.create_pdf_aa()
 
         t_end = time.time()
         logger.info('TIME TAKEN: {}'.format(t_end - t_start))

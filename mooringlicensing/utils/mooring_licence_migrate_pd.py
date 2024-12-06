@@ -631,7 +631,7 @@ class MooringLicenceReader():
         f.write(f'\nno_email errors:   {self.no_email}')
 
         if self.user_error_details:
-            f.write('\nusers error details\n')
+            f.write('\n\nusers error details\n')
             for i in self.user_error_details:
                 f.write("\n"+i)
 
@@ -1603,7 +1603,7 @@ class MooringLicenceReader():
         f.write(f'\nau_stickers: au_stickers, {len(au_stickers)}')
         f.write(f'\nno_au_stickers: no_au_stickers, {len(no_au_stickers)}')
         if errors:
-            f.write('\naup error details\n')
+            f.write('\n\naup error details\n')
             for i in errors:
                 f.write("\n"+i)
 
@@ -1769,7 +1769,7 @@ class MooringLicenceReader():
         f.write(f'\nuser_not_found: {len(user_not_found)}')
         f.write(f'\nwl_created: {len(wl_created)}')
         if errors:
-            f.write('\nwla error details\n')
+            f.write('\n\nwla error details\n')
             for i in errors:
                 f.write("\n"+i)
 
@@ -1899,7 +1899,7 @@ class MooringLicenceReader():
         f.write(f'\nuser_not_found: {len(user_not_found)}')
         f.write(f'\ndcv_created: {len(dcv_created)}')
         if errors:
-            f.write('\ndcv error details\n')
+            f.write('\n\ndcv error details\n')
             for i in errors:
                 f.write("\n"+i)
 
@@ -2160,7 +2160,7 @@ class MooringLicenceReader():
         f.write(f'\nVessel Details Not Found: {vessel_details_not_found}')
         f.write(f'\nVessel Details Not Found: {len(vessel_details_not_found)}')
         if errors:
-            f.write('\naa error details\n')
+            f.write('\n\naa error details\n')
             for i in errors:
                 f.write("\n"+i)
 
@@ -2174,7 +2174,6 @@ class MooringLicenceReader():
         self.create_pdf_aa()
         self.create_pdf_dcv()
     
-    @classmethod
     def create_pdf_ml(self):
         """ MooringLicenceReader.create_pdf_ml()
         """
@@ -2188,7 +2187,6 @@ class MooringLicenceReader():
         f.write("\nTime taken for creating mooring license pdfs: {}s".format(end_time-start_time))
         f.close()
 
-    @classmethod
     def create_pdf_aup(self):
         """ MooringLicenceReader.create_pdf_aup()
         """
@@ -2202,7 +2200,6 @@ class MooringLicenceReader():
         f.write("\nTime taken for creating authorised user permit pdfs: {}s".format(end_time-start_time))
         f.close()
 
-    @classmethod
     def create_pdf_wl(self):
         """ MooringLicenceReader.create_pdf_wl()
         """
@@ -2216,7 +2213,6 @@ class MooringLicenceReader():
         f.write("\nTime taken for creating waiting list allocation pdfs: {}s".format(end_time-start_time))
         f.close()
 
-    @classmethod
     def create_pdf_aa(self):
         """ MooringLicenceReader.create_pdf_aa()
         """
@@ -2230,7 +2226,6 @@ class MooringLicenceReader():
         f.write("\nTime taken for creating annual admission pdfs: {}s".format(end_time-start_time))
         f.close()
 
-    @classmethod
     def create_pdf_dcv(self):
         """ MooringLicenceReader.create_pdf_dcv()
         """
