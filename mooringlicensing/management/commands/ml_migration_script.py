@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
 import time
+from confy import env
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,6 +17,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         path = options['path']
+        if not path:
+            path = env('MIGRATION_DATA_PATH', '/data/data/projects/mooringlicensing/tmp/clean')
         t_start = time.time()
 
         mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt','annual_admissions_booking_report.csv', path=path)
