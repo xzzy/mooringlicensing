@@ -196,7 +196,6 @@ import ApprovalScreen from '@/components/internal/proposals/proposal_approval.vu
 import CommsLogs from '@common-utils/comms_logs.vue'
 import Submission from '@common-utils/submission.vue'
 import Workflow from '@common-utils/workflow.vue'
-import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js"
 import { api_endpoints, helpers, constants } from '@/utils/hooks'
 import WaitingListApplication from '@/components/form_wla.vue';
 import AnnualAdmissionApplication from '@/components/form_aaa.vue';

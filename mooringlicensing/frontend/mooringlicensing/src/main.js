@@ -1,12 +1,27 @@
-// The Vue build version to load with the `import` command
-// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import resource from 'vue-resource'
 import App from './App'
 import router from './router'
 import bs from 'bootstrap'
 import helpers from '@/utils/helpers'
-import hooks from './packages'
+
+import { extendMoment } from 'moment-range';
+
+import 'datatables.net-responsive-bs';
+import 'datatables.net-buttons-bs';
+
+import jsZip from 'jszip';
+window.JSZip = jsZip;
+
+import 'select2';
+import 'jquery-validation';
+
+import 'sweetalert2/dist/sweetalert2.css';
+import 'select2/dist/css/select2.min.css';
+import 'select2-bootstrap-theme/dist/select2-bootstrap.min.css';
+
+extendMoment(moment);
+
 import api_endpoints from './api'
 require('../node_modules/bootstrap/dist/css/bootstrap.css' );
 require('../node_modules/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css')

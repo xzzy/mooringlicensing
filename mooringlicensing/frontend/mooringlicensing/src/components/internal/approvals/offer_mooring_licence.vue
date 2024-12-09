@@ -184,7 +184,7 @@ export default {
         },
         fetchMooringBays: async function() {
             const res = await this.$http.get(api_endpoints.mooring_bays);
-            for (let bay of res.body) {
+            for (let bay of res.body.results) {
                 this.mooringBays.push(bay)
             }
         },
