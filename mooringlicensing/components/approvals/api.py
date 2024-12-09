@@ -1815,6 +1815,7 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
                 waiting_list_allocation = self.get_object()
                 proposal_type = ProposalType.objects.get(code=PROPOSAL_TYPE_NEW)
                 selected_mooring_id = request.data.get("selected_mooring_id")
+                no_email_notifications = request.data.get("no_emails")
                 allocated_mooring = Mooring.objects.get(id=selected_mooring_id)
 
                 current_date = datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -1839,6 +1840,7 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
                         allocated_mooring=allocated_mooring,
                         waiting_list_allocation=waiting_list_allocation,
                         date_invited=current_date,
+                        no_email_notifications=no_email_notifications,
                     )
                     waiting_list_allocation.proposal_applicant.copy_self_to_proposal(new_proposal)
                     logger.info(f'Offering new Mooring Site Licence application: [{new_proposal}], which has been created from the waiting list allocation: [{waiting_list_allocation}].')

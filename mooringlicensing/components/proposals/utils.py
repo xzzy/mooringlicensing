@@ -70,6 +70,13 @@ def save_proponent_data(instance, request, action, being_auto_approved=False):
             save_proponent_data_aua(instance, request, action)
         elif type(instance.child_obj) == MooringLicenceApplication:
             save_proponent_data_mla(instance, request, action) 
+        
+        if instance.has_assessor_mode(request.user):
+            instance.refresh_from_db()
+            proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
+            if proposal_data and "no_email_notifications" in proposal_data:
+                instance.no_email_notifications = proposal_data["no_email_notifications"]
+                instance.save()
     else:
         raise serializers.ValidationError("user not authorised to update applicant details")
 

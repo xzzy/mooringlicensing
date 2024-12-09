@@ -81,16 +81,21 @@
             </div>
 
             <div slot="footer">
+                <p class="pull-right" style="margin-top:5px">
+                    <input type="checkbox" v-model="noEmails" id="noEmails" />
+                    <label for="noEmails">
+                        &nbsp;Do not send email notifications for this application &nbsp;
+                    </label>
                 <button type="button" v-if="savingOffer" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
                 <button type="button" v-else class="btn btn-default" @click="ok" :disabled="!ok_button_enabled">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
+                </p>
             </div>
         </modal>
     </div>
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
 import alert from '@vue-utils/alert.vue'
@@ -131,6 +136,7 @@ export default {
             //warningString: 'Please attach Level of Approval document before issuing Approval',
             //siteLicenseeMooring: {},
             mooringBays: [],
+            noEmails: false,
         }
     },
     computed: {
@@ -194,6 +200,7 @@ export default {
                 "cc_email": this.ccEmail,
                 "selected_mooring_bay_id": this.selectedMooringBayId,
                 "selected_mooring_id": this.selectedMooringId,
+                "no_email": this.noEmails,
             }
             this.errors = false;
             this.savingOffer = true;

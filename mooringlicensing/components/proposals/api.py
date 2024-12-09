@@ -735,6 +735,7 @@ class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
             if is_internal(request):
 
                 applicant_system_id = request.data.get("applicant_system_id")
+                no_email_notifications = request.data.get("no_emails", False)
                 if not applicant_system_id:
                     raise serializers.ValidationError("no system user id provided")
 
@@ -749,9 +750,10 @@ class InternalAnnualAdmissionApplicationViewSet(viewsets.GenericViewSet):
                     raise serializers.ValidationError("proposal type does not exist")
 
                 obj = AnnualAdmissionApplication.objects.create(
-                        submitter=request.user.id,
-                        proposal_type=proposal_type
-                        )
+                    submitter=request.user.id,
+                    no_email_notifications=no_email_notifications,
+                    proposal_type=proposal_type
+                )
 
                 logger.info(f'Annual Admission Application: [{obj}] has been created by the user: [{request.user}].')
 
@@ -821,6 +823,7 @@ class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
             if is_internal(request):
 
                 applicant_system_id = request.data.get("applicant_system_id")
+                no_email_notifications = request.data.get("no_emails", False)
                 if not applicant_system_id:
                     raise serializers.ValidationError("no system user id provided")
 
@@ -835,9 +838,10 @@ class InternalAuthorisedUserApplicationViewSet(viewsets.GenericViewSet):
                     raise serializers.ValidationError("proposal type does not exist")
 
                 obj = AuthorisedUserApplication.objects.create(
-                        submitter=request.user.id,
-                        proposal_type=proposal_type
-                        )
+                    submitter=request.user.id,
+                    no_email_notifications=no_email_notifications,
+                    proposal_type=proposal_type
+                )
                 logger.info(f'Authorised User Permit Application: [{obj}] has been created by the user: [{request.user}].')
                 obj.log_user_action(f'Authorised User Permit Application: {obj.lodgement_number} has been created.', request)
 
@@ -926,6 +930,7 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
             if is_internal(request):
 
                 applicant_system_id = request.data.get("applicant_system_id")
+                no_email_notifications = request.data.get("no_emails", False)
                 if not applicant_system_id:
                     raise serializers.ValidationError("no system user id provided")
 
@@ -947,9 +952,10 @@ class InternalWaitingListApplicationViewSet(viewsets.GenericViewSet):
                     raise serializers.ValidationError("user not permitted to create WLA at this time")
 
                 obj = WaitingListApplication.objects.create(
-                        submitter=request.user.id,
-                        proposal_type=proposal_type
-                        )
+                    submitter=request.user.id,
+                    no_email_notifications=no_email_notifications,
+                    proposal_type=proposal_type
+                )
 
                 logger.info(f'Waiting List Application: [{obj}] has been created by the user: [{request.user}].')
                 obj.log_user_action(f'Waiting List Application: {obj.lodgement_number} has been created.', request)

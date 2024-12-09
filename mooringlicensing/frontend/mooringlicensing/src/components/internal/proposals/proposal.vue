@@ -160,6 +160,10 @@
                         <div class="navbar-inner">
                             <div v-if="!readonly" class="container">
                                 <p class="pull-right" style="margin-top:5px">
+                                    <input type="checkbox" v-model="proposal.no_email_notifications" id="noEmails" />
+                                    <label for="noEmails">
+                                        &nbsp;Do not send email notifications for this application &nbsp;
+                                    </label>
                                     <button v-if="savingProposal" type="button" class="btn btn-primary" disabled>
                                         Save Proposal&nbsp;<i class="fa fa-circle-o-notch fa-spin fa-fw"></i>
                                     </button>
@@ -513,6 +517,7 @@ export default {
                 }
             }
             payload.profile = this.profile
+            payload.proposal.no_email_notifications = this.proposal.no_email_notifications;
 
             return payload;
         },
