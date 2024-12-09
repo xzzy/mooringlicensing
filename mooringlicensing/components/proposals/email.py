@@ -91,6 +91,9 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
 
 def send_confirmation_email_upon_submit(request, proposal, payment_made, attachments=[]):
     # 1 a and b
+    if proposal.no_email_notifications:
+        return
+
     if payment_made:
         subject='Submission received: Rottnest Island boating application {}'.format(proposal.lodgement_number)
     else:
@@ -126,6 +129,9 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
 
 def send_notification_email_upon_submit_to_assessor(request, proposal, attachments=[]):
     # 2
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='Assessment required: a new application submission is awaiting assessment',
         html_template='mooringlicensing/emails_2/email_2.html',
@@ -158,6 +164,9 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
 
 def send_approver_approve_decline_email_notification(request, proposal):
     # 3
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='Approval required: an assessed application is awaiting approval or decline',
         html_template='mooringlicensing/emails_2/email_3.html',
@@ -182,6 +191,9 @@ def send_approver_approve_decline_email_notification(request, proposal):
 
 def send_amendment_email_notification(amendment_request, request, proposal):
     # 5
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='Amendment required: Rottnest Island boating application {}'.format(proposal.lodgement_number),
         html_template='mooringlicensing/emails_2/email_5.html',
@@ -212,6 +224,9 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 
 def send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, mooring_licence_application):
     # 6
+    if mooring_licence_application.no_email_notifications:
+        return
+    
     allocated_mooring = mooring_licence_application.allocated_mooring
     email = TemplateEmailBase(
         subject='Offer for Mooring Site Licence {} - Rottnest Island Authority'.format(allocated_mooring.name),
@@ -263,6 +278,9 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
 
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
     # 7
+    if proposal.no_email_notifications:
+        return
+    
     allocated_mooring = proposal.allocated_mooring
     email = TemplateEmailBase(
         subject='Additional documents required: Application for mooring site licence {} - Rottnest Island Authority'.format(allocated_mooring.name),
@@ -298,7 +316,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     return msg
 
 
-def send_comppliance_due_date_notification(approval, compliance,):
+def send_compliance_due_date_notification(approval, compliance,):
     #  8
     email = TemplateEmailBase(
         subject='Due: Compliance requirement for permit or licence - Deadline {} - Rottnest Island Authority'.format(compliance.due_date),
@@ -328,7 +346,7 @@ def send_comppliance_due_date_notification(approval, compliance,):
     return msg
 
 
-def send_comliance_overdue_notification(request, approval, compliance,):
+def send_compliance_overdue_notification(request, approval, compliance,):
     # 9
     email = TemplateEmailBase(
         subject='OVERDUE: Compliance requirement for permit or licence - Rottnest Island Authority',
@@ -363,6 +381,8 @@ def send_comliance_overdue_notification(request, approval, compliance,):
 def send_invitee_reminder_email(approval, due_date, request=None):
     # 11
     proposal = approval.current_proposal
+    if proposal.no_email_notifications:
+        return
     allocated_mooring = proposal.allocated_mooring
     email = TemplateEmailBase(
         subject='REMINDER : Your Offer for mooring site licence {} is about to lapse - Rottnest Island Authority'.format(allocated_mooring.name),
@@ -392,6 +412,8 @@ def send_invitee_reminder_email(approval, due_date, request=None):
         _log_user_email(msg, approval.applicant_obj, proposal.applicant_obj, sender=sender_user)
 
 def send_expire_application_email(proposal, due_date,):
+    if proposal.no_email_notifications:
+        return
 
     html_template = 'mooringlicensing/emails_2/application_expire_notification.html'
     txt_template = 'mooringlicensing/emails_2/application_expire_notification.txt'
@@ -423,6 +445,8 @@ def send_expire_application_email(proposal, due_date,):
     return msg
 
 def send_expire_notification_to_assessor(proposal, due_date):
+    if proposal.no_email_notifications:
+        return
     email = TemplateEmailBase(
         subject='Expired application - not paid on time',
         html_template='mooringlicensing/emails_2/assessor_expiry_notification.html',
@@ -449,7 +473,8 @@ def send_expire_notification_to_assessor(proposal, due_date):
     return msg
 
 def send_payment_reminder_email(proposal, request=None):
-    
+    if proposal.no_email_notifications:
+        return
     email = TemplateEmailBase(
         subject='Payment reminder: Application {} - Rottnest Island Authority'.format(proposal.lodgement_number),
         html_template='mooringlicensing/emails_2/application_payment_reminder.html',
@@ -484,6 +509,10 @@ def send_payment_reminder_email(proposal, request=None):
 def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
     # 12 email to mooring licence applicant when mooring licence application is not submitted within configurable
     #    number of days after being invited to apply for a mooring licence
+
+    if proposal.no_email_notifications:
+        return
+    
     allocated_mooring = proposal.allocated_mooring
     html_template = 'mooringlicensing/emails_2/email_12.html'
     txt_template = 'mooringlicensing/emails_2/email_12.txt'
@@ -519,6 +548,10 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
     # 13
     # Expire mooring licence application if additional documents are not submitted within a configurable number of days
     # from the initial submit of the mooring licence application and email to inform the applicant
+
+    if proposal.no_email_notifications:
+        return
+    
     html_template = 'mooringlicensing/emails_2/email_13.html'
     txt_template = 'mooringlicensing/emails_2/email_13.txt'
     allocated_mooring = proposal.allocated_mooring
@@ -553,6 +586,10 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
     # 14
     # email to assessor group when invite to apply for a mooring licence is expired, either because mooring licence is not submitted or additional documents are not submitted
     # (internal)
+
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='Expired mooring site licence application - not submitted on time',
         html_template='mooringlicensing/emails_2/email_14.html',
@@ -582,6 +619,10 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
 
 
 def send_endorser_reminder_email(proposal, request=None):
+
+    if proposal.no_email_notifications:
+        return
+    
     allocated_mooring = proposal.allocated_mooring
     # 15
     # email to authorised user application endorser if application is not endorsed or declined within configurable number of days
@@ -686,6 +727,10 @@ def send_approval_renewal_email_notification(approval):
 def send_application_approved_or_declined_email(proposal, decision, request, stickers_to_be_returned=[]):
     # 17 --- 25
     # email to applicant when application is issued or declined (waiting list allocation application)
+
+    if proposal.no_email_notifications:
+        return
+    
     from mooringlicensing.components.proposals.models import WaitingListApplication, AnnualAdmissionApplication, AuthorisedUserApplication, MooringLicenceApplication
 
     if proposal.application_type.code == WaitingListApplication.code:
@@ -733,6 +778,9 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
 def send_wla_approved_or_declined_email(proposal, decision, request):
     # 17 a and b
     # email to applicant when application is issued or declined (waiting list allocation application)
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
 
@@ -796,6 +844,9 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
     # email to applicant when application is issued or declined (annual admission application, new and renewal)
     # 19 a and b amendment, approval/decline
     # email to applicant when application is issued or declined (annual admission application, amendment)
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
     attach_invoice = False
@@ -862,6 +913,8 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
 def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned):
     # 20 AUA new/renewal, approval/decline
     # email to applicant when application is issued or declined (authorised user application, new and renewal)
+    if proposal.no_email_notifications:
+        return
 
     all_ccs = []
     all_bccs = []
@@ -942,6 +995,9 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
 def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal, decision, request, stickers_to_be_returned):
     #21 a and b
     # email to applicant when application is issued or declined (authorised user application, amendment where no payment is required)
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
 
@@ -1000,6 +1056,9 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
 def send_aua_approved_or_declined_email_amendment_payment_required(proposal, decision, request, stickers_to_be_returned):
     #22
     # email to applicant when application is issued or declined (authorised user application, amendment where payment is required)
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
     attach_invoice = False
@@ -1124,6 +1183,9 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
 
 
 def send_au_summary_to_ml_holder(mooring_licence, request, au_proposal):
+    if au_proposal.no_email_notifications:
+        return
+    
     subject = 'Authorised User Summary for {} - Rottnest Island Authority'.format(mooring_licence.mooring.name)
     attachments = []
 
@@ -1164,6 +1226,9 @@ def send_au_summary_to_ml_holder(mooring_licence, request, au_proposal):
 def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request, stickers_to_be_returned):
     # 23 ML new/renewal, approval/decline
     # email to applicant when application is issued or declined (mooring licence application, new and renewal)
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
     allocated_mooring = proposal.allocated_mooring
@@ -1246,6 +1311,9 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
 def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal, decision, request, stickers_to_be_returned):
     # 24 a and b ML amendment(no payment), approval/decline
     # email to applicant when application is issued or declined (mooring licence application, amendment where no payment is required)
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
     allocated_mooring = proposal.allocated_mooring
@@ -1307,6 +1375,9 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
 def send_mla_approved_or_declined_email_amendment_payment_required(proposal, decision, request, stickers_to_be_returned):
     # 25 ML amendment(payment), approval/decline
     # email to applicant when application is issued or declined (mooring licence application, amendment where payment is required) 
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
     subject = ''
@@ -1387,6 +1458,9 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
 
 def send_aua_declined_by_endorser_email(proposal, request):
     # email to applicant when application is issued or declined (mooring licence application, amendment where payment is required) 
+    if proposal.no_email_notifications:
+        return
+    
     all_ccs = []
     all_bccs = []
 
@@ -1422,6 +1496,9 @@ def send_aua_declined_by_endorser_email(proposal, request):
     return msg
 
 def send_other_documents_submitted_notification_email(request, proposal):
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='Application: {} is ready for assessment.  Other documents have been submitted.'.format(proposal.description),
         html_template='mooringlicensing/emails/send_documents_submitted_for_mla.html',
@@ -1507,6 +1584,10 @@ def send_sticker_printing_batch_email(batches):
     return msg
 
 def send_endorsement_of_authorised_user_application_email(request, proposal):
+
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='Endorsement of Authorised user application',
         html_template='mooringlicensing/emails/send_endorsement_of_aua.html',
@@ -1555,6 +1636,9 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
     return msgs
 
 def send_application_discarded_email(proposal, request):
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='An Application has been discarded.',
         html_template='mooringlicensing/emails_2/application_discarded.html',
@@ -1577,6 +1661,9 @@ def send_application_discarded_email(proposal, request):
     return msg
 
 def send_proposal_approver_sendback_email_notification(request, proposal):
+    if proposal.no_email_notifications:
+        return
+    
     email = TemplateEmailBase(
         subject='An Application has been sent back by approver.',
         html_template='mooringlicensing/emails/send_approver_sendback_notification.html',
