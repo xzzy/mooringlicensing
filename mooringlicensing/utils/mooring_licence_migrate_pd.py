@@ -1,5 +1,6 @@
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+import time
 import datetime
 import pandas as pd
 import numpy as np
@@ -286,6 +287,9 @@ class MooringLicenceReader():
     """
 
     def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='/data/data/projects/mooringlicensing/tmp/clean/'):
+        start_time = time.time()
+        start_datetime = datetime.datetime.now()
+        
         self.df_user=pd.read_csv(path+fname_user, delimiter='-!-', dtype=str)
         self.df_ml=pd.read_csv(path+fname_ml, delimiter='-!-', dtype=str)
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='-!-', dtype=str)
@@ -321,6 +325,17 @@ class MooringLicenceReader():
         # create_vessels
         self.ml_user_not_found = []
         self.ml_no_ves_rows = []
+
+        #summary_file
+        self.summary_file = path + "migration_summary_" + str(start_datetime).replace(" ", "_").replace(".", ":") + ".txt"
+        end_time = time.time()
+
+        #create summary file, add init time
+        f = open(self.summary_file, "w")
+        f.write("Mooring Licensing Migration Summary\n")
+        f.write("\nInitialisation started at: {}".format(start_datetime))
+        f.write("\nTime taken for initialisation: {}s".format(end_time-start_time))
+        f.close()
 
     def __get_phone_number(self, row):
         if 'work_number' in row and row.work_number:
@@ -581,6 +596,9 @@ class MooringLicenceReader():
         return residential_address_dict, postal_address_dict, use_for_postal
 
     def create_users(self):
+
+        start_time = time.time()
+
         logger.info('Creating DCV users ...')
         df = self.df_dcv.groupby('pers_no').first()
         self._create_users_df(df)
@@ -597,6 +615,28 @@ class MooringLicenceReader():
 
         logger.info('Creating AA users ...')
         self._create_users_df_aa(self.df_aa)
+
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate Users Summary\n")
+        f.write("Migrate Users started at: {}\n".format(start_time))
+
+        f.write(f'\nusers created:  {len(self.user_created)}')
+        f.write(f'\nusers existing: {len(self.user_existing)}')
+        f.write(f'\nusers errors:   {len(self.user_errors)}')
+        f.write(f'\nsystem users created:  {len(self.system_user_created)}')
+        f.write(f'\nsystem users existing: {len(self.system_user_existing)}')
+        f.write(f'\nno_email errors:   {len(self.no_email)}')
+        f.write(f'\nusers errors:   {self.user_errors}')
+        f.write(f'\nno_email errors:   {self.no_email}')
+
+        if self.user_error_details:
+            f.write('\n\nusers error details\n')
+            for i in self.user_error_details:
+                f.write("\n"+i)
+
+        f.write("\n\nTime taken for migrating users: {}s".format(end_time-start_time))
+        f.close()
 
     def _create_users_df(self, df):
         # Iterate through the dataframe and create non-existent users
@@ -768,8 +808,21 @@ class MooringLicenceReader():
             print(i)
 
     def create_vessels(self):
+        start_time = time.time()
         self._create_vessels()
         self._create_vessels_wl()
+
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate Vessels Summary\n")
+        f.write("Migrate Vessels started at: {}\n".format(start_time))
+
+        f.write(f'\nvessels created:  {len(self.vessels_created)}')
+        f.write(f'\nvessels errors:   {self.vessels_errors}')
+        f.write(f'\nvessels errors:   {len(self.vessels_errors)}')
+
+        f.write("\n\nTime taken for migrating vessels: {}s".format(end_time-start_time))
+        f.close()
 
     def _create_vessels(self):
 
@@ -1056,6 +1109,7 @@ class MooringLicenceReader():
         print(f'vessels_dict dict size:  {len(self.vessels_dict)}')
 
     def create_mooring_licences(self):
+        start_time = time.time()
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
         date_applied = DATE_APPLIED
@@ -1282,7 +1336,29 @@ class MooringLicenceReader():
         print(f'Vessels not Found:  {vessel_not_found}')
         print(f'Vessels not Found:  {len(vessel_not_found)}')
 
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate Mooring Licenses Summary\n")
+        f.write("Migrate Mooring Licenses started at: {}\n".format(start_time))
+
+        f.write(f'\nml_user_not_found:  {self.ml_user_not_found}')
+        f.write(f'\nDuplicate Pers_No in ves_row:  {self.ml_no_ves_rows}')
+        f.write(f'\nml_user_not_found:  {len(self.ml_user_not_found)}')
+        f.write(f'\nDuplicate Pers_No in ves_row:  {len(self.ml_no_ves_rows)}')
+        f.write(f'\nMoorings not Found:  {mooring_not_found}')
+        f.write(f'\nMoorings not Found:  {len(mooring_not_found)}')
+        f.write(f'\nOwners not Found:  {owner_not_found}')
+        f.write(f'\nVesselOwnership not Found:  {len(vessel_ownership_not_found)}')
+        f.write(f'\nVesselOwnership not Found:  {vessel_ownership_not_found}')
+        f.write(f'\nOwners not Found:  {len(owner_not_found)}')
+        f.write(f'\nVessels not Found:  {vessel_not_found}')
+        f.write(f'\nVessels not Found:  {len(vessel_not_found)}')
+
+        f.write("\n\nTime taken for migrating mooring licenses: {}s".format(end_time-start_time))
+        f.close()
+
     def create_authuser_permits(self):
+        start_time = time.time()
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
         date_applied = DATE_APPLIED
@@ -1515,8 +1591,27 @@ class MooringLicenceReader():
         print(f'no_au_stickers: no_au_stickers, {len(no_au_stickers)}')
         for i in errors:
             print(i)
+        
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate Authorised User Permits Summary\n")
+        f.write("Migrate Authorised User Permits started at: {}\n".format(start_time))
+
+        f.write(f'\nvessel_not_found: {vessel_not_found}')
+        f.write(f'\nvessel_not_found: {len(vessel_not_found)}')
+        f.write(f'\naup_created: {len(aup_created)}')
+        f.write(f'\nau_stickers: au_stickers, {len(au_stickers)}')
+        f.write(f'\nno_au_stickers: no_au_stickers, {len(no_au_stickers)}')
+        if errors:
+            f.write('\n\naup error details\n')
+            for i in errors:
+                f.write("\n"+i)
+
+        f.write("\n\nTime taken for migrating authorised user permits: {}s".format(end_time-start_time))
+        f.close()
 
     def create_waiting_list(self):
+        start_time = time.time()
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
         date_applied = DATE_APPLIED
@@ -1662,8 +1757,27 @@ class MooringLicenceReader():
         print(f'wl_created: {len(wl_created)}')
         for i in errors:
             print(i)
+        
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate Waiting List Allocations Summary\n")
+        f.write("Migrate Waiting List Allocations started at: {}\n".format(start_time))
+
+        f.write(f'\nvessel_not_found: {vessel_not_found}')
+        f.write(f'\nvessel_not_found: {len(vessel_not_found)}')
+        f.write(f'\nuser_not_found: {user_not_found}')
+        f.write(f'\nuser_not_found: {len(user_not_found)}')
+        f.write(f'\nwl_created: {len(wl_created)}')
+        if errors:
+            f.write('\n\nwla error details\n')
+            for i in errors:
+                f.write("\n"+i)
+
+        f.write("\n\nTime taken for migrating waiting list allocations: {}s".format(end_time-start_time))
+        f.close()
 
     def create_dcv(self):
+        start_time = time.time()
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
         fee_season = FeeSeason.objects.filter(application_type__code='dcvp', name=FEE_SEASON)[0]
@@ -1773,6 +1887,24 @@ class MooringLicenceReader():
         print(f'dcv_created: {len(dcv_created)}')
         for i in errors:
             print(i)
+        
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate DCV Permits Summary\n")
+        f.write("Migrate DCV Permits started at: {}\n".format(start_time))
+
+        f.write(f'\nvessel_not_found: {vessel_not_found}')
+        f.write(f'\nvessel_not_found: {len(vessel_not_found)}')
+        f.write(f'\nuser_not_found: {user_not_found}')
+        f.write(f'\nuser_not_found: {len(user_not_found)}')
+        f.write(f'\ndcv_created: {len(dcv_created)}')
+        if errors:
+            f.write('\n\ndcv error details\n')
+            for i in errors:
+                f.write("\n"+i)
+
+        f.write("\n\nTime taken for migrating dcv permits: {}s".format(end_time-start_time))
+        f.close()
 
     def _create_single_vessel(self, user, rego_no, ves_name, ves_type, length, draft, beam, weight, pct_interest, berth_mooring=''):
 
@@ -1820,6 +1952,7 @@ class MooringLicenceReader():
         return vessel, vessel_details, vessel_ownership
 
     def create_annual_admissions(self):
+        start_time = time.time()
         """
             mlr=MooringLicenceReader('PersonDets20221222-125823.txt', 'MooringDets20221222-125546.txt', 'VesselDets20221222-125823.txt', 'UserDets20221222-130353.txt', 'ApplicationDets20221222-125157.txt','annual_admissions_booking_report_20230125084027.csv')
             mlr.create_users()
@@ -2016,7 +2149,23 @@ class MooringLicenceReader():
         print(f'Vessel Details Not Found: {len(vessel_details_not_found)}')
         for i in errors:
             print(i)
+        
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nMigrate Annual Admissions Summary\n")
+        f.write("Migrate Annual Admissions started at: {}\n".format(start_time))
 
+        f.write(f'\nrego_aa_created: {len(rego_aa_created)}')
+        f.write(f'\ntotal_aa_created: {len(total_aa_created)}')
+        f.write(f'\nVessel Details Not Found: {vessel_details_not_found}')
+        f.write(f'\nVessel Details Not Found: {len(vessel_details_not_found)}')
+        if errors:
+            f.write('\n\naa error details\n')
+            for i in errors:
+                f.write("\n"+i)
+
+        f.write("\n\nTime taken for migrating annual admissions: {}s".format(end_time-start_time))
+        f.close()
 
     def create_licence_pdfs(self):
         self.create_pdf_ml()
@@ -2025,35 +2174,70 @@ class MooringLicenceReader():
         self.create_pdf_aa()
         self.create_pdf_dcv()
     
-    @classmethod
     def create_pdf_ml(self):
         """ MooringLicenceReader.create_pdf_ml()
         """
+        start_time = time.time()
         self._create_pdf_licence(MooringLicence.objects.filter(migrated=True))
 
-    @classmethod
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nCreate Mooring License PDFs Summary\n")
+        f.write("Create Mooring License PDFs started at: {}\n".format(start_time))
+        f.write("\nTime taken for creating mooring license pdfs: {}s".format(end_time-start_time))
+        f.close()
+
     def create_pdf_aup(self):
         """ MooringLicenceReader.create_pdf_aup()
         """
+        start_time = time.time()
         self._create_pdf_licence(AuthorisedUserPermit.objects.filter(migrated=True))
 
-    @classmethod
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nCreate Authorised User Permit PDFs Summary\n")
+        f.write("Create Authorised User Permit PDFs started at: {}\n".format(start_time))
+        f.write("\nTime taken for creating authorised user permit pdfs: {}s".format(end_time-start_time))
+        f.close()
+
     def create_pdf_wl(self):
         """ MooringLicenceReader.create_pdf_wl()
         """
+        start_time = time.time()
         self._create_pdf_licence(WaitingListAllocation.objects.filter(migrated=True))
 
-    @classmethod
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nCreate Waiting List Allocation PDFs Summary\n")
+        f.write("Create Waiting List Allocation PDFs started at: {}\n".format(start_time))
+        f.write("\nTime taken for creating waiting list allocation pdfs: {}s".format(end_time-start_time))
+        f.close()
+
     def create_pdf_aa(self):
         """ MooringLicenceReader.create_pdf_aa()
         """
+        start_time = time.time()
         self._create_pdf_licence(AnnualAdmissionPermit.objects.filter(migrated=True))
 
-    @classmethod
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nCreate Annual Admission PDFs Summary\n")
+        f.write("Create Annual Admission PDFs started at: {}\n".format(start_time))
+        f.write("\nTime taken for creating annual admission pdfs: {}s".format(end_time-start_time))
+        f.close()
+
     def create_pdf_dcv(self):
         """ MooringLicenceReader.create_pdf_dcv()
         """
+        start_time = time.time()
         self._create_pdf_licence(DcvPermit.objects.filter(migrated=True))
+
+        end_time = time.time()
+        f = open(self.summary_file, "a")
+        f.write("\n\nCreate DCV Permit PDFs Summary\n")
+        f.write("Create DCV Permit PDFs started at: {}\n".format(start_time))
+        f.write("\nTime taken for creating dcv permit pdfs: {}s".format(end_time-start_time))
+        f.close()
 
     @staticmethod
     def _create_pdf_licence(approvals_migrated):

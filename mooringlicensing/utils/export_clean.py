@@ -2,6 +2,7 @@ import csv
 import os
 import logging
 import re
+from confy import env
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +52,10 @@ def clean(srcpath='/data/data/projects/mooringlicensing/tmp/ml_export', outpath=
 
                     line_col_count = temp.count('-!-')
                     if line_col_count > col_count:
-                        print("\n___Line",line_number,"has the wrong number of -!- -", line_col_count, "when it should be",col_count,"___")
-                        print("\n",header_line,"\n")
-                        print(temp, "\n")
-                        print("__________________________________________________\n")
+                        logger.error("\n___Line",line_number,"has the wrong number of -!- -", line_col_count, "when it should be",col_count,"___")
+                        logger.error("\n",header_line,"\n")
+                        logger.error(temp, "\n")
+                        logger.error("__________________________________________________\n")
 
                     wr.writerow([temp])
                 except Exception as e:

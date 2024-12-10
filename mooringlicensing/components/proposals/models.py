@@ -359,6 +359,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     payment_reminder_sent = models.BooleanField(default=False)
     payment_due_date = models.DateField(blank=True, null=True) #date when payment is due for future invoices
 
+    no_email_notifications = models.BooleanField(default=False)
+
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Application"
@@ -1747,7 +1749,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
                                 'booking_reference': reference,
-                                'no_payment': True,
                                 'tax_override': True,
                             }
                             logger.info(f'basket_params: {basket_params}')

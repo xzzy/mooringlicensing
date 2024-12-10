@@ -967,6 +967,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'uuid',
                 'allocated_mooring',
                 'has_unactioned_endorsements',
+                'no_email_notifications',
                 )
         read_only_fields = (
             'documents',

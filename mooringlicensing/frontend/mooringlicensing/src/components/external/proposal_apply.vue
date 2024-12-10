@@ -212,16 +212,19 @@
                             </div>
                         </div>
                     </FormSection>
-
-                    <!--div class="col-sm-12" v-show="has_active_proposals()">
-                        <p style="color:red;"> An active application already exists in the system: </p>
-                        <p style="color:red;"> {{ active_proposals() }}</p>
-                    </div-->
+                    
                     <div class="col-sm-12">
+                        <p class="pull-right" style="margin-top:5px">
+                        <input v-if="is_internal" type="checkbox" v-model="noEmails" id="noEmails" />
+                        <label v-if="is_internal" for="noEmails">
+                            &nbsp;Do not send email notifications for this application &nbsp;
+                        </label>
+
                         <button v-if="!creatingProposal" :disabled="isDisabled" @click.prevent="submit()"
                             class="btn btn-primary pull-right">Continue</button>
                         <button v-else disabled class="pull-right btn btn-primary"><i
                                 class="fa fa-spin fa-spinner"></i>&nbsp;Creating</button>
+                        </p>
                     </div>
                 </form>
             </div>
@@ -229,9 +232,9 @@
     </div>
 </template>
 <script>
-import Vue from 'vue'
+
 import FormSection from '@/components/forms/section_toggle.vue'
-//require('bootstrap/dist/css/bootstrap.css')
+
 import {
     api_endpoints,
     helpers
@@ -284,6 +287,8 @@ export default {
 
             creatingProposal: false,
             newWlaAllowed: false,
+            
+            noEmails: false,
             //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
 
             season_text: '',
@@ -560,6 +565,7 @@ export default {
 
                         const payload = {
                             "applicant_system_id": this.applicant_system_id,
+                            "no_emails": this.noEmails,
                         };
 
                         const url = helpers.add_endpoint_json(api_endpoints.proposal, (

@@ -5,7 +5,9 @@
         <div class="well">
             <div class="row"><div class="col-sm-12">
                 <h2>Success!</h2>
+                {% if not proposal.no_email_notifications %}
                 <strong>A confirmation email has been sent to {{ applicant }}. </strong>
+                {% endif %}
             </div></div>
             <br/>
 
