@@ -78,8 +78,8 @@ export default {
 
             sticker_details_tr_class_name: 'sticker_details',
 
-            td_expand_class_name: 'expand-icon',
-            td_collapse_class_name: 'collapse-icon',
+            //td_expand_class_name: 'expand-icon',
+            //td_collapse_class_name: 'collapse-icon',
         }
     },
     components:{
@@ -640,9 +640,8 @@ export default {
 </script>
 
 <style>
-.table-sticker-details {
-}
-.collapse-icon {
+
+/*.collapse-icon {
     cursor: pointer;
 }
 .collapse-icon::before {
@@ -687,7 +686,7 @@ export default {
     text-indent: 0 !important;
     font-family: 'Courier New', Courier monospace;
     margin: 5px;
-}
+}*/
 .dcv_permit_lodgement_number {
     padding: 8px 10px;
 }
