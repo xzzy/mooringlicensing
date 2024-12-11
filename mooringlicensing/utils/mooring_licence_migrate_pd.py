@@ -2243,26 +2243,27 @@ class MooringLicenceReader():
     def _create_pdf_licence(approvals_migrated):
         """ MooringLicenceReader._create_pdf_licence(MooringLicence.objects.filter(migrated=True), current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)
         """
-        permit_name = approvals_migrated[0].__class__.__name__
-        print(f'Total {permit_name}: {approvals_migrated.count()} - {approvals_migrated}')
-        if isinstance(approvals_migrated[0], DcvPermit):
-            approvals = approvals_migrated.filter(migrated=True)
-        else:
-            approvals = approvals_migrated.filter(migrated=True).filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+        if len(approvals_migrated) > 0:
+            permit_name = approvals_migrated[0].__class__.__name__
+            print(f'Total {permit_name}: {approvals_migrated.count()} - {approvals_migrated}')
+            if isinstance(approvals_migrated[0], DcvPermit):
+                approvals = approvals_migrated.filter(migrated=True)
+            else:
+                approvals = approvals_migrated.filter(migrated=True).filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
 
-        for idx, a in enumerate(approvals):
-            try:
-                if isinstance(a, DcvPermit) and len(a.dcv_permit_documents.all())==0:
-                    a.generate_dcv_permit_doc()
-                elif not hasattr(a, 'licence_document') or a.licence_document is None: 
-                    a.generate_doc()
-                    #retroactively update history (update last history record of approval)
-                    history = a.approvalhistory_set.last()
-                    history.approval_letter = a.licence_document
-                    history.save()
-                print(f'{idx}, Created PDF for {permit_name}: {a}')
-            except Exception as e:
-                logger.error(e)
+            for idx, a in enumerate(approvals):
+                try:
+                    if isinstance(a, DcvPermit) and len(a.dcv_permit_documents.all())==0:
+                        a.generate_dcv_permit_doc()
+                    elif not hasattr(a, 'licence_document') or a.licence_document is None: 
+                        a.generate_doc()
+                        #retroactively update history (update last history record of approval)
+                        history = a.approvalhistory_set.last()
+                        history.approval_letter = a.licence_document
+                        history.save()
+                    print(f'{idx}, Created PDF for {permit_name}: {a}')
+                except Exception as e:
+                    logger.error(e)
 
 
 def create_application_fee(proposal):
