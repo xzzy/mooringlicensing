@@ -505,7 +505,7 @@ class MooringLicenceReader():
         if system_user:
             get_or_create_system_user_address(system_user,residential_address_dict)
             if use_for_postal:
-                get_or_create_system_user_address(system_user,postal_address_dict)
+                get_or_create_system_user_address(system_user,postal_address_dict,use_for_postal)
 
         return proposal_applicant
 
