@@ -480,7 +480,6 @@ os.environ['UPDATE_PAYMENT_ALLOCATION'] = 'True'
 UNALLOCATED_ORACLE_CODE = 'NNP449 GST'
 
 CRON_CLASSES = [
-    'mooringlicensing.cron.OracleIntegrationCronJob',
     'appmonitor_client.cron.CronJobAppMonitorClient',
     'ledger_api_client.cron.CronJobLedgerTotals',
 ]
