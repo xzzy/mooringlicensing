@@ -64,22 +64,24 @@ class Command(BaseCommand):
         for a in approvals:
             try:
                 if not approval_class == DcvPermit:
-                    v_details = a.current_proposal.latest_vessel_details
-                    v_ownership = a.current_proposal.vessel_ownership
-                    if (not v_details or v_ownership.end_date) and a.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
+                    approval = Approval.objects.get(id=a.id)
+                    v_details = approval.current_proposal.latest_vessel_details
+                    v_ownership = approval.current_proposal.vessel_ownership
+                    if (not v_details or v_ownership.end_date) and approval.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
                         # Null vessel is not allowed for both the annual admission permit application and authorised user permit application.
                         continue
                     else:
-                        a.generate_renewal_doc()
-                        logger.info(f'Renewal document has been generated for the approval: [{a}]')
+                        approval.generate_renewal_doc()
+                        logger.info(f'Renewal document has been generated for the approval: [{approval}]')
+                else:
+                    approval = DcvPermit.objects.get(id=a.id)
+                send_approval_renewal_email_notification(approval)
+                approval.renewal_sent = True
+                approval.save()
 
-                send_approval_renewal_email_notification(a)
-                a.renewal_sent = True
-                a.save()
-
-                a.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a),)
-                logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(a))
-                updates.append(a.lodgement_number)
+                approval.log_user_action(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(approval),)
+                logger.info(ApprovalUserAction.ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL.format(approval))
+                updates.append(approval.lodgement_number)
             except Exception as e:
                 err_msg = 'Error sending renewal notice for Approval {} - Error {}'.format(a.lodgement_number, str(e))
                 logger.error(err_msg)
