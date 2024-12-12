@@ -1,4 +1,4 @@
-from datetime import datetime
+import os
 from io import BytesIO
 
 from ledger_api_client import api
@@ -12,16 +12,17 @@ import json
 import pytz
 from django.conf import settings
 from django.db import connection, transaction
-
+from django.db.models import Q
 from mooringlicensing.components.approvals.models import (
-    Sticker, AnnualAdmissionPermit, AuthorisedUserPermit,
-    MooringLicence, Approval, WaitingListAllocation, ApprovalHistory
+    Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, DcvPermitDocument,
+    MooringLicence, Approval, WaitingListAllocation, ApprovalHistory, DcvPermit, Approval
 )
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
-    StickerPrintingBatch
+    StickerPrintingBatch,
+    Proposal,
 )
 from mooringlicensing.components.main.decorators import query_debugger
 from rest_framework import serializers
@@ -87,6 +88,106 @@ def import_mooring_bookings_data():
     errors.extend(mooring_errors)
     updates.extend(parks_updates)
     updates.extend(mooring_updates)
+    return errors, updates
+
+def validate_files(approvals):
+    #check if a record file exists or not - if it doesn't then update the table row to reflect that
+    if len(approvals) > 0:
+
+        #check if private-media dir exists, if not all pdf files need to be generated    
+        private_media_location = settings.PRIVATE_MEDIA_STORAGE_LOCATION
+        if not os.path.exists(private_media_location):
+            return approvals
+
+        missing_doc_ids = []
+        if isinstance(approvals[0], DcvPermit):
+            #check dcv dir exists
+            if not os.path.exists(os.path.join(private_media_location,'dcv_permit')):
+                return approvals
+
+            dcv_with_file_ids = DcvPermitDocument.objects.distinct('dcv_permit_id').values_list("dcv_permit_id",flat=True)
+            no_files = approvals.exclude(id__in=dcv_with_file_ids).values_list('id', flat=True) #we will keep these for later
+            check_files = approvals.filter(id__in=dcv_with_file_ids) #we will check if the specified files actually exist
+
+            for i in check_files:
+                if not os.path.exists(os.path.join(private_media_location,'dcv_permit/{}'.format(i.id))):
+                    missing_doc_ids.append(i.id)
+            DcvPermitDocument.objects.filter(dcv_permit_id__in=missing_doc_ids).delete()
+            generate_pdf_ids = no_files + missing_doc_ids
+            return DcvPermit.objects.filter(id__in=generate_pdf_ids)
+        else:
+            approval_class = approvals[0].__class__
+            #check proposal dir exists
+            if not os.path.exists(os.path.join(private_media_location,'proposal')):
+                return approvals
+
+            no_files = approvals.filter(licence_document=None).values_list('id', flat=True) #we will keep these for later
+            check_files = approvals.exclude(licence_document=None) #we will check if the specified files actually exist  
+
+            for i in check_files:
+                if not os.path.exists(os.path.join(private_media_location,'proposal/{}/approval_documents'.format(i.id))):
+                    missing_doc_ids.append(i.id)
+            Approval.objects.filter(id__in=missing_doc_ids).update(licence_document=None)
+            generate_pdf_ids = no_files + missing_doc_ids
+            return approval_class.objects.filter(id__in=generate_pdf_ids)
+
+    return approvals
+
+def create_pdf_licence(approvals):
+    if len(approvals) > 0:
+        permit_name = approvals[0].__class__.__name__
+
+        errors = []
+        updates = []
+
+        for idx, a in enumerate(approvals):
+            try:
+                if isinstance(a, DcvPermit) and len(a.dcv_permit_documents.all())==0:
+                    a.generate_dcv_permit_doc()
+                elif not hasattr(a, 'licence_document') or a.licence_document is None: 
+                    a.generate_doc()
+                print(f'{idx}, Created PDF for {permit_name}: {a}')
+                updates.append(a.lodgement_number)
+            except Exception as e:
+                errors.append(e)
+
+        return errors, updates
+
+def generate_pdf_files():
+
+    errors = []
+    updates = []
+
+    ml_qs = MooringLicence.objects.filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+    ml_qs = validate_files(ml_qs)
+    ml_e,ml_u = create_pdf_licence(ml_qs)
+    errors.append(ml_e)
+    updates.append(ml_u)
+
+    aap_qs = AnnualAdmissionPermit.objects.filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+    aap_qs = validate_files(aap_qs)
+    aap_e,aap_u = create_pdf_licence(aap_qs)
+    errors.append(aap_e)
+    updates.append(aap_u)
+
+    aup_qs = AuthorisedUserPermit.objects.filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+    aup_qs = validate_files(aup_qs)
+    aup_e,aup_u = create_pdf_licence(aup_qs)
+    errors.append(aup_e)
+    updates.append(aup_u)
+
+    wla_qs = WaitingListAllocation.objects.filter(Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_APPROVED)|Q(current_proposal__processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER))
+    wla_qs = validate_files(wla_qs)
+    wla_e,wla_u = create_pdf_licence(wla_qs)
+    errors.append(wla_e)
+    updates.append(wla_u)
+
+    dcv_qs = DcvPermit.objects.filter(status=DcvPermit.DCV_PERMIT_STATUS_CURRENT)
+    dcv_qs = validate_files(dcv_qs)
+    dcv_e,dcv_u = create_pdf_licence(dcv_qs)
+    errors.append(dcv_e)
+    updates.append(dcv_u)
+
     return errors, updates
 
 ## Mooring Bookings API interactions
