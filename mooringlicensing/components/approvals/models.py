@@ -447,7 +447,7 @@ class Approval(RevisionedMixin):
     @property
     def postal_address_suburb(self):
         try:
-            ret_value = self.proposal_applicant.postal_address_suburb
+            ret_value = self.proposal_applicant.postal_address_locality
         except:
             logger.error(f'Postal address locality cannot be retrieved for the approval [{self}]')
             return ''

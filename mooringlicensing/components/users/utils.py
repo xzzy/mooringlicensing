@@ -29,7 +29,10 @@ def get_or_create_system_user_address(system_user, system_address_dict, use_for_
     if not qs.exists():
         SystemUserAddress.objects.create(system_user=system_user, **system_address_dict, use_for_postal=use_for_postal)
     elif use_for_postal and not qs.filter(use_for_postal=use_for_postal):
-        qs.update(use_for_postal=True)
+        for i in qs:
+            i.use_for_postal=True
+            i.change_by_user_id = i.system_user_id
+            i.save()
         
 
 def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None, update=False):

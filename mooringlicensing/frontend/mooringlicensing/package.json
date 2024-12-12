@@ -14,7 +14,7 @@
     "babel-polyfill": "^6.26.0",
     "bootstrap": "^3.4.1",
     "datatables.net-buttons-bs": "^2.4.3",
-    "datatables.net-responsive-bs": "^2.5.1",
+    "datatables.net-responsive-bs": "^2.4.1",
     "eonasdan-bootstrap-datetimepicker": "^4.17.47",
     "font-awesome": "^4.7.0",
     "jquery": "^3.7.1",

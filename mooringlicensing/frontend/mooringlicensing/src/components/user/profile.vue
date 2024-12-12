@@ -6,7 +6,7 @@
                 <div class="panel panel-default" v-if="!readonly && is_internal && proposal.proposal_type.code == 'new' && proposal.processing_status == 'Draft'">
                     <div class="panel-heading">
                         <h3 class="panel-title">Applicant
-                        <a class="panelClicker" :href="'#'+adBody" data-toggle="collapse" expanded="true" data-parent="#userInfo" :aria-controls="appBody">
+                        <a class="panelClicker" :href="'#'+appBody" data-toggle="collapse" expanded="true" data-parent="#userInfo" :aria-controls="appBody">
                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                         </a>
                         </h3>

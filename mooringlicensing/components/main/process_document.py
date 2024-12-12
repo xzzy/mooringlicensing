@@ -9,7 +9,6 @@ from mooringlicensing.components.proposals.models import (
     ProposalMooringReportDocument, ProposalWrittenProofDocument, ProposalSignedLicenceAgreementDocument,
     ProposalProofOfIdentityDocument
 )
-from mooringlicensing.settings import PRIVATE_MEDIA_BASE_URL, PRIVATE_MEDIA_STORAGE_LOCATION
 
 logger = logging.getLogger(__name__)
 

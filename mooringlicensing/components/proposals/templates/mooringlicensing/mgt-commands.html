@@ -20,15 +20,6 @@
             {% endif %}
 
             <div class="row">
-                <button type="submit" name="script" value="ml_migration_script" {% if ml_migration_script == 'true' %}style="color:green" {% endif %} title="Migrate mooring licensing data from imported Lotus Notes">Run Script 'ml_migration_script'</button>
-            </div>
-
-            <div class="row">
-                <button type="submit" name="script" value="import_lotus_notes" {% if import_lotus_notes == 'true' %}style="color:green" {% endif %} title="Clean lotus notes ready for migration">Run Script 'import_lotus_notes'</button>
-            </div>
-
-
-            <div class="row">
                 <button type="submit" name="script" value="import_mooring_bookings_data" {% if import_mooring_bookings_data == 'true' %}style="color:green" {% endif %} title="Import Mooring Bookings data">Run Script 'import_mooring_bookings_data'</button>
             </div>
 
