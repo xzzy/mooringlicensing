@@ -106,7 +106,7 @@ def validate_files(approvals):
                 return approvals
 
             dcv_with_file_ids = DcvPermitDocument.objects.distinct('dcv_permit_id').values_list("dcv_permit_id",flat=True)
-            no_files = approvals.exclude(id__in=dcv_with_file_ids).values_list('id', flat=True) #we will keep these for later
+            no_files = list(approvals.exclude(id__in=dcv_with_file_ids).values_list('id', flat=True)) #we will keep these for later
             check_files = approvals.filter(id__in=dcv_with_file_ids) #we will check if the specified files actually exist
 
             for i in check_files:
@@ -121,11 +121,11 @@ def validate_files(approvals):
             if not os.path.exists(os.path.join(private_media_location,'proposal')):
                 return approvals
 
-            no_files = approvals.filter(licence_document=None).values_list('id', flat=True) #we will keep these for later
+            no_files = list(approvals.filter(licence_document=None).values_list('id', flat=True)) #we will keep these for later
             check_files = approvals.exclude(licence_document=None) #we will check if the specified files actually exist  
 
             for i in check_files:
-                if not os.path.exists(os.path.join(private_media_location,'proposal/{}/approval_documents'.format(i.id))):
+                if not os.path.exists(os.path.join(private_media_location,'proposal/{}/approval_documents'.format(i.current_proposal.id))):
                     missing_doc_ids.append(i.id)
             Approval.objects.filter(id__in=missing_doc_ids).update(licence_document=None)
             generate_pdf_ids = no_files + missing_doc_ids
@@ -152,6 +152,8 @@ def create_pdf_licence(approvals):
                 errors.append(e)
 
         return errors, updates
+    else:
+        return [],[]
 
 def generate_pdf_files():
 
