@@ -202,6 +202,7 @@ class ApplicationFeeExistingView(APIView):
                     payment_session = ledger_api_client.utils.generate_payment_session(request, invoice.reference, return_url, fallback_url)
                     return HttpResponseRedirect(payment_session['payment_url'])
 
+
             except Exception as e:
                 logger.error('Error Creating Application Fee: {}'.format(e))
                 raise
@@ -424,6 +425,7 @@ class ApplicationFeeView(TemplateView):
                 )
 
                 user = proposal.applicant_obj
+                request.session["ml_proposal"] = proposal.pk
 
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(user.get_full_name(), user.id), proposal.id))
                 return checkout_response
