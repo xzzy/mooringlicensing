@@ -10,6 +10,7 @@ from ledger_api_client.managed_models import SystemUser, SystemUserAddress
 from django.core.exceptions import ObjectDoesNotExist
 from mooringlicensing.helpers import is_internal
 from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.approvals.models import DcvAdmission, DcvPermit, StickerActionDetail
 
 import logging
 
@@ -96,21 +97,30 @@ class PaymentSessionMiddleware(object):
         and (CHECKOUT_PATH.match(request.path)
         or request.path.startswith("/ledger-api/process-payment") 
         or request.path.startswith('/ledger-api/payment-details'))):
-            #TODO what about DCVs or sticker replacements?
-            if 'ml_proposal' in request.session:
+            if 'payment_model' in request.session and 'payment_pk' in request.session:
                 if request.path.startswith("/ledger-api/process-payment"):
 
-                    checkouthash =  hashlib.sha256(str(request.session["ml_proposal"]).encode('utf-8')).hexdigest() 
+                    checkouthash =  hashlib.sha256(str(str(request.session["payment_model"])+str(request.session["payment_pk"])).encode('utf-8')).hexdigest() 
                     checkouthash_cookie = request.COOKIES.get('checkouthash')
                     validation_cookie = request.COOKIES.get(request.POST['payment-csrfmiddlewaretoken'])
 
-                    proposal_count = Proposal.objects.filter(pk=request.session['ml_proposal']).count()
+                    if request.session['payment_model'] == "proposal":
+                        proposal_count = Proposal.objects.filter(pk=request.session['payment_pk']).count()
+                    elif request.session['payment_model'] == "dcv_permit":
+                        proposal_count = DcvPermit.objects.filter(pk=request.session['payment_pk']).count()
+                    elif request.session['payment_model'] == "dcv_admission":
+                        proposal_count = DcvAdmission.objects.filter(pk=request.session['payment_pk']).count()
+                    elif request.session['payment_model'] == "sticker":  
+                        proposal_count = StickerActionDetail.objects.filter(pk=request.session['payment_pk']).count()
+                    else:
+                        proposal_count = 0
+
                     if checkouthash_cookie != checkouthash or checkouthash_cookie != validation_cookie or proposal_count == 0:                         
                         url_redirect = reverse(redirect_path)
                         response = HttpResponse("<script> window.location='"+url_redirect+"';</script> <center><div class='container'><div class='alert alert-primary' role='alert'><a href='"+url_redirect+"'> Redirecting please wait: "+url_redirect+"</a><div></div></center>")
                         return response  
             else:
-                 if request.path.startswith("/ledger-api/process-payment"):# or request.path.startswith('/ledger-api/payment-details'):
+                 if request.path.startswith("/ledger-api/process-payment"):
                     url_redirect = reverse(redirect_path)
                     response = HttpResponse("<script> window.location='"+url_redirect+"';</script> <center><div class='container'><div class='alert alert-primary' role='alert'><a href='"+url_redirect+"'> Redirecting please wait: "+url_redirect+"</a><div></div></center>")
                     return response
@@ -127,39 +137,58 @@ class PaymentSessionMiddleware(object):
         and (CHECKOUT_PATH.match(request.path)
         or request.path.startswith("/ledger-api/process-payment") 
         or request.path.startswith('/ledger-api/payment-details'))):
-            #TODO what about DCVs or sticker replacements?
-            if 'ml_proposal' in request.session:
+            if 'payment_model' in request.session and 'payment_pk' in request.session:
                 try:
-                    proposal = Proposal.objects.get(pk=request.session['ml_proposal'])
-                except:
-                    # no idea what object is in self.request.session['ml_proposal'], ditch it
-                    del request.session['ml_proposal']
+                    if request.session['payment_model'] == "proposal":
+                        proposal_count = Proposal.objects.get(pk=request.session['payment_pk'])
+                    elif request.session['payment_model'] == "dcv_permit":
+                        proposal_count = DcvPermit.objects.get(pk=request.session['payment_pk'])
+                    elif request.session['payment_model'] == "dcv_admission":
+                        proposal_count = DcvAdmission.objects.get(pk=request.session['payment_pk'])
+                    elif request.session['payment_model'] == "sticker":  
+                        proposal_count = StickerActionDetail.objects.get(pk=request.session['payment_pk'])
+                    else:
+                        proposal_count = 0
+
+                except Exception as e:
+                    del request.session['payment_model']
+                    del request.session['payment_pk']
                     return response
 
-                if request.path.startswith("/ledger-api/process-payment"):# or request.path.startswith('/ledger-api/payment-details'):      
+                if request.path.startswith("/ledger-api/process-payment"):
                     
-                    if "ml_proposal" not in request.session:
+                    if "payment_pk" not in request.session:
                          url_redirect = reverse(redirect_path)
                          response = HttpResponse("<script> window.location='"+url_redirect+"';</script> <center><div class='container'><div class='alert alert-primary' role='alert'><a href='"+url_redirect+"'> Redirecting please wait: "+url_redirect+"</a><div></div></center>")
                          return response    
 
-                    checkouthash =  hashlib.sha256(str(request.session["ml_proposal"]).encode('utf-8')).hexdigest() 
+                    checkouthash =  hashlib.sha256(str(str(request.session["payment_model"])+str(request.session["payment_pk"])).encode('utf-8')).hexdigest() 
                     checkouthash_cookie = request.COOKIES.get('checkouthash')
                     validation_cookie = request.COOKIES.get(request.POST['payment-csrfmiddlewaretoken'])
 
-                    proposal_count = Proposal.objects.filter(pk=request.session['ml_proposal']).count()
+                    if request.session['payment_model'] == "proposal":
+                        proposal_count = Proposal.objects.filter(pk=request.session['payment_pk']).count()
+                    elif request.session['payment_model'] == "dcv_permit":
+                        proposal_count = DcvPermit.objects.filter(pk=request.session['payment_pk']).count()
+                    elif request.session['payment_model'] == "dcv_admission":
+                        proposal_count = DcvAdmission.objects.filter(pk=request.session['payment_pk']).count()
+                    elif request.session['payment_model'] == "sticker":  
+                        proposal_count = StickerActionDetail.objects.filter(pk=request.session['payment_pk']).count()
+                    else:
+                        proposal_count = 0
+
                     if checkouthash_cookie != checkouthash or checkouthash_cookie != validation_cookie or proposal_count == 0:                         
                          url_redirect = reverse(redirect_path)
                          response = HttpResponse("<script> window.location='"+url_redirect+"';</script> <center><div class='container'><div class='alert alert-primary' role='alert'><a href='"+url_redirect+"'> Redirecting please wait: "+url_redirect+"</a><div></div></center>")
                          return response                                                                                                 
             else:
-                 if request.path.startswith("/ledger-api/process-payment"):# or request.path.startswith('/ledger-api/payment-details'):
+                 if request.path.startswith("/ledger-api/process-payment"):
                     url_redirect = reverse(redirect_path)
                     response = HttpResponse("<script> window.location='"+url_redirect+"';</script> <center><div class='container'><div class='alert alert-primary' role='alert'><a href='"+url_redirect+"'> Redirecting please wait: "+url_redirect+"</a><div></div></center>")
                     return response
 
             # force a redirect if in the checkout
-            if ('ml_proposal' not in request.session) and CHECKOUT_PATH.match(request.path):
+            if ('payment_pk' not in request.session or 'payment_model' not in request.session) and CHECKOUT_PATH.match(request.path):
                 url_redirect = reverse(redirect_path)
                 response = HttpResponse("<script> window.location='"+url_redirect+"';</script> <center><div class='container'><div class='alert alert-primary' role='alert'><a href='"+url_redirect+"'> Redirecting please wait: "+url_redirect+"</a><div></div></center>")
                 return response

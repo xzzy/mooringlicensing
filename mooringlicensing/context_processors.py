@@ -10,8 +10,8 @@ def mooringlicensing_processor(request):
 
     checkouthash = None #hashlib.sha256(str(uuid.uuid4()).encode('utf-8')).hexdigest()
     sessionVal = None
-    if 'ml_proposal' in request.session:
-        checkouthash =  hashlib.sha256(str(request.session["ml_proposal"]).encode('utf-8')).hexdigest()
+    if 'payment_model' in request.session and 'payment_pk' in request.session:
+        checkouthash =  hashlib.sha256(str(str(request.session["payment_model"])+str(request.session["payment_pk"])).encode('utf-8')).hexdigest()
 
     return {
         'public_url': web_url,

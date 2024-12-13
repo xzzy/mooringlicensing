@@ -85,6 +85,10 @@ class DcvAdmissionFeeView(TemplateView):
                     booking_reference=str(dcv_admission_fee.uuid),
                     invoice_text='DCV Admission Fee',
                 )
+
+                request.session["payment_pk"] = dcv_admission.pk
+                request.session["payment_model"] = "dcv_admission"
+
                 logger.info('{} built payment line item {} for DcvAdmission Fee and handing over to payment gateway'.format(dcv_admission.applicant, dcv_admission.id))
                 return checkout_response
 
@@ -127,6 +131,9 @@ class DcvPermitFeeView(TemplateView):
                         invoice_text='DCV Permit Fee',
                     )
                     
+                    request.session["payment_pk"] = dcv_permit.pk
+                    request.session["payment_model"] = "dcv_permit"
+
                     logger.info('{} built payment line item {} for DcvPermit Fee and handing over to payment gateway'.format(request.user, dcv_permit.id))
                     return checkout_response
 
@@ -263,6 +270,9 @@ class StickerReplacementFeeView(TemplateView):
                         booking_reference=str(sticker_action_fee.uuid),
                         invoice_text='{}'.format(application_type.description),
                     )
+
+                    request.session["payment_pk"] = sticker_action_detail.pk
+                    request.session["payment_model"] = "sticker"
 
                     logger.info('{} built payment line item(s) {} for Sticker Replacement Fee and handing over to payment gateway'.format('User {} with id {}'.format(request.user.get_full_name(), request.user.id), sticker_action_fee))
                     return checkout_response
@@ -425,7 +435,8 @@ class ApplicationFeeView(TemplateView):
                 )
 
                 user = proposal.applicant_obj
-                request.session["ml_proposal"] = proposal.pk
+                request.session["payment_pk"] = proposal.pk
+                request.session["payment_model"] = "proposal"
 
                 logger.info('{} built payment line item {} for Application Fee and handing over to payment gateway'.format('User {} with id {}'.format(user.get_full_name(), user.id), proposal.id))
                 return checkout_response
