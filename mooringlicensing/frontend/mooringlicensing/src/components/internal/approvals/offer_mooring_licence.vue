@@ -200,7 +200,7 @@ export default {
                 "cc_email": this.ccEmail,
                 "selected_mooring_bay_id": this.selectedMooringBayId,
                 "selected_mooring_id": this.selectedMooringId,
-                "no_email": this.noEmails,
+                "no_emails": this.noEmails,
             }
             this.errors = false;
             this.savingOffer = true;
