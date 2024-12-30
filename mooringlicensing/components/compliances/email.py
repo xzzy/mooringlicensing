@@ -114,7 +114,7 @@ def send_reminder_email_notification(compliance, is_test=False):
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         try:
-            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
         except:
             sender_user = None
 
@@ -141,7 +141,7 @@ def send_internal_reminder_email_notification(compliance, is_test=False):
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         try:
-            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
         except:
             sender_user = None
 
@@ -171,7 +171,7 @@ def send_due_email_notification(compliance, is_test=False):
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         try:
-            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
         except:
             sender_user = None
 
@@ -199,7 +199,7 @@ def send_internal_due_email_notification(compliance, is_test=False):
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         try:
-            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
         except:
             sender_user = None
         _log_compliance_email(msg, compliance, sender=sender_user)

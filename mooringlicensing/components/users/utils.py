@@ -50,7 +50,7 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, 
             system_user.save()
         return system_user, False 
     else:
-        if EmailUserRO.objects.filter(id=email_user_id, is_active=True).exists():
+        if EmailUserRO.objects.filter(id=email_user_id, is_active=True).order_by('-id').exists():
             try:
                 system_user = SystemUser.objects.create(
                     ledger_id_id=email_user_id,
