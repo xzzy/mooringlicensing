@@ -872,7 +872,7 @@ class DcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 if email_address and email_address_confirmation:
                     if email_address == email_address_confirmation:
                         if skipper:
-                            this_user = EmailUser.objects.filter(email__iexact=email_address, is_active=True)
+                            this_user = EmailUser.objects.filter(email__iexact=email_address, is_active=True).order_by('-id')
                             if this_user:
                                 new_user = this_user.first()
                             else:
@@ -1006,7 +1006,7 @@ class InternalDcvAdmissionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelM
             if email_address and email_address_confirmation:
                 if email_address == email_address_confirmation:
                     if skipper:
-                        this_user = EmailUser.objects.filter(email__iexact=email_address, is_active=True)
+                        this_user = EmailUser.objects.filter(email__iexact=email_address, is_active=True).order_by('-id')
                         if this_user:
                             new_user = this_user.first()
                         else:

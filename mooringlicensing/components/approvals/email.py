@@ -105,7 +105,7 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         try:
-            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
         except:
             sender_user = None
 
@@ -142,7 +142,7 @@ def send_approval_expire_email_notification(approval):
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         try:
-            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+            sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
         except:
             sender_user = None
 
@@ -172,7 +172,7 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
 
     sender = settings.DEFAULT_FROM_EMAIL
     try:
-        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
     except:
         sender_user = None
 
@@ -209,7 +209,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
 
     sender = settings.DEFAULT_FROM_EMAIL
     try:
-        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
     except:
         sender_user = None
 
@@ -464,7 +464,7 @@ def send_approval_cancel_email_notification(approval):
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
-        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
     except:
         sender_user = None
     all_ccs = []
@@ -504,7 +504,7 @@ def send_approval_suspend_email_notification(approval, request=None):
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
-        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
     except:
         sender_user = None
     all_ccs = []
@@ -549,7 +549,7 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
     }
     sender = settings.DEFAULT_FROM_EMAIL
     try:
-        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).first()
+        sender_user = EmailUser.objects.filter(email__iexact=sender, is_active=True).order_by('-id').first()
     except:
         sender_user = None
     all_ccs = []

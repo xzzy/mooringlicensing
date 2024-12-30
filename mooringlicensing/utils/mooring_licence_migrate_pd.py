@@ -14,7 +14,7 @@ from django.db.models import Q
 from mooringlicensing.components.users.utils import (
     create_system_user, get_or_create_system_user, 
     get_user_name, get_or_create_system_user_address,
-    )
+)
 
 from mooringlicensing.components.proposals.models import (
     Proposal,
@@ -997,7 +997,7 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                users = EmailUser.objects.filter(email__iexact=email, is_active=True)
+                users = EmailUser.objects.filter(email__iexact=email, is_active=True).order_by('-id')
                 if users.count() == 0:
                     print(f'wl - email not found: {email}')
  
@@ -1146,7 +1146,7 @@ class MooringLicenceReader():
                     self.no_email.append(user_row.pers_no)
                     continue
 
-                users = EmailUser.objects.filter(email__iexact=email, is_active=True)
+                users = EmailUser.objects.filter(email__iexact=email, is_active=True).order_by('-id')
                 if users.count() == 0:
                     print(f'ml - email not found: {email}')
  
@@ -1393,7 +1393,7 @@ class MooringLicenceReader():
                     continue
                 
                 try:
-                    licensee = EmailUser.objects.filter(email__iexact=email_l.lower(), is_active=True).first()
+                    licensee = EmailUser.objects.filter(email__iexact=email_l.lower(), is_active=True).order_by('-id').first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
@@ -1409,7 +1409,7 @@ class MooringLicenceReader():
                     continue
 
                 try:
-                    user = EmailUser.objects.filter(email__iexact=email_u.lower(), is_active=True).first()
+                    user = EmailUser.objects.filter(email__iexact=email_u.lower(), is_active=True).order_by('-id').first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + ": User with email " + str(email_u.lower()) + " does not exist") 
                     continue
@@ -1632,7 +1632,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.filter(email__iexact=email.lower(), is_active=True).first()
+                    user = EmailUser.objects.filter(email__iexact=email.lower(), is_active=True).order_by('-id').first()
                 except Exception as e:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
                     continue
@@ -1797,7 +1797,7 @@ class MooringLicenceReader():
                 first_name = row.first_name.lower().title().strip()
                 last_name = row.last_name.lower().title().strip()
                 try:
-                    user = EmailUser.objects.filter(email__iexact=email.lower(), is_active=True).first()
+                    user = EmailUser.objects.filter(email__iexact=email.lower(), is_active=True).order_by('-id').first()
                     user.first_name = first_name
                     user.last_name = last_name
                     user.save()
@@ -1980,7 +1980,7 @@ class MooringLicenceReader():
                 vessel_length = row['vessel_length']
 
                 try:
-                    user = EmailUser.objects.filter(email__iexact=email.lower().strip(), is_active=True).first()
+                    user = EmailUser.objects.filter(email__iexact=email.lower().strip(), is_active=True).order_by('-id').first()
                 except Exception as e:
                     errors.append("User with email " + str(email.lower()) + " does not exist") 
                     continue
