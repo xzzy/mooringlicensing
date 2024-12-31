@@ -321,7 +321,7 @@ export default {
                     }
                     return ''
                 },
-                name: 'applicant'
+                name: 'proposal_applicant'
             }
         },
         column_assigned_to: function(){
