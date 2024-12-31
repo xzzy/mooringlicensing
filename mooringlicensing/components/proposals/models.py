@@ -924,6 +924,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         kwargs.pop('version_comment', None)
         kwargs['no_revision'] = True
         self.update_customer_status()
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(Proposal, self).save(**kwargs)
         if type(self) == Proposal:
             self.child_obj.refresh_from_db()
