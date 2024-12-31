@@ -610,17 +610,17 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         
         #special handling for ordering by applicant
         special_ordering = False
-        APPLICANT = 'applicant'
-        REVERSE_APPLICANT = '-applicant'
+        APPLICANT = 'proposal_applicant'
+        REVERSE_APPLICANT = '-proposal_applicant'
         if APPLICANT in ordering:
             special_ordering = True
             ordering.remove(APPLICANT)
-            queryset = queryset.annotate(applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
+            queryset = queryset.annotate(proposal_applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
             queryset = queryset.order_by(APPLICANT+"_full_name")
         if REVERSE_APPLICANT in ordering:
             special_ordering = True
             ordering.remove(REVERSE_APPLICANT)
-            queryset = queryset.annotate(applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
+            queryset = queryset.annotate(proposal_applicant_full_name=Concat('proposal_applicant__first_name',Value(" "),'proposal_applicant__last_name'))
             queryset = queryset.order_by(REVERSE_APPLICANT+"_full_name")
 
         if len(ordering):
@@ -632,8 +632,64 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_filtered_count', total_count)
         return queryset
 
+class ProposalSiteLicenseeMooringRequestFilterBackend(DatatablesFilterBackend):
+    def filter_queryset(self, request, queryset, view):
+
+        total_count = queryset.count()
+        filter_query = Q()
+
+        try:
+            super_queryset = super(ProposalSiteLicenseeMooringRequestFilterBackend, self).filter_queryset(request, queryset, view).distinct()
+        except Exception as e:
+            logger.exception(f'Failed to filter the queryset.  Error: [{e}]')
+
+        search_text = request.GET.get('search[value]')
+        if search_text:
+
+            system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
+            .filter(
+                Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+            ).values_list("ledger_id", flat=True))
+
+            proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+            .filter(
+                Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
+            ).values_list("proposal_id", flat=True))
+
+            queryset = queryset.filter(Q(proposal__id__in=proposal_applicant_proposals)|Q(proposal__submitter__in=system_user_ids))
+            queryset = queryset.distinct() | super_queryset    
+
+        queryset = queryset.filter(filter_query)
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+        
+        #special handling for ordering by applicant
+        special_ordering = False
+        APPLICANT = 'proposal__proposal_applicant'
+        REVERSE_APPLICANT = '-proposal__proposal_applicant'
+        if APPLICANT in ordering:
+            special_ordering = True
+            ordering.remove(APPLICANT)
+            queryset = queryset.annotate(proposal__proposal_applicant_full_name=Concat('proposal__proposal_applicant__first_name',Value(" "),'proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(APPLICANT+"_full_name")
+        if REVERSE_APPLICANT in ordering:
+            special_ordering = True
+            ordering.remove(REVERSE_APPLICANT)
+            queryset = queryset.annotate(proposal__proposal_applicant_full_name=Concat('proposal__proposal_applicant__first_name',Value(" "),'proposal__proposal_applicant__last_name'))
+            queryset = queryset.order_by(REVERSE_APPLICANT+"_full_name")
+
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+        elif not special_ordering:
+            queryset = queryset.order_by('-id')
+        
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
+        return queryset
 
 class SiteLicenseeMooringRequestPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
+    filter_backends = (ProposalSiteLicenseeMooringRequestFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     queryset = ProposalSiteLicenseeMooringRequest.objects.none()
     serializer_class = ListProposalSiteLicenseeMooringRequestSerializer

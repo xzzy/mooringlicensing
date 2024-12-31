@@ -19,7 +19,6 @@
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
-import Vue from 'vue'
 import { api_endpoints, helpers, constants } from '@/utils/hooks'
 export default {
     name: 'TableCompliances',
@@ -71,12 +70,11 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                searching: false,
+                searching: true,
                 ajax: {
                     "url": api_endpoints.site_licensee_mooring_requests + '?format=datatables',
                     "dataSrc": 'data',
                 },
-                // dom: 'lBfrtip',
                 dom: 'lBfrtp',
                 buttons: buttons,
                 columns: [
@@ -87,7 +85,6 @@ export default {
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
-                            console.log(full)
                             return full.id
                         }
                     },
@@ -108,7 +105,8 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             return full.proposal_number
-                        }
+                        },
+                        name: "proposal__lodgement_number",
                     },
                     {
                         // 3. Mooring
@@ -118,23 +116,25 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             return full.mooring_name
-                        }
+                        },
+                        name: "mooring__name",
                     },
                     {
                         // 4. Applicant
                         data: "applicant_name",
                         orderable: true,
-                        searchable: true,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             return full.applicant_name
-                        }
+                        },
+                        name: "proposal__proposal_applicant",
                     },
                     {
                         // 5. Status
                         data: "proposal_status",
                         orderable: true,
-                        searchable: true,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             if (full.approved_by_endorser) {
@@ -144,13 +144,14 @@ export default {
                             } else {
                                 return full.proposal_status
                             }
-                        }
+                        },
+                        name: "proposal__processing_status",
                     },
                     {
                         // 10. Action
                         data: "can_endorse",
-                        orderable: true,
-                        searchable: true,
+                        orderable: false,
+                        searchable: false,
                         visible: true,
                         'render': function(row, type, full){
                             //return 'View<br />Endorse<br />Decline'
@@ -162,12 +163,8 @@ export default {
                                 && !full.declined_by_endorser 
                                 && !full.approved_by_endorser
                             ){
-                                // links +=  `<a href='/aua_for_endorsement/${full.uuid}/endorse/'>Endorse</a><br/>`;
-                                // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
-                                // links +=  `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`
                                 links +=  `<a href='#${full.id}' data-approve-endorsement='${full.uuid}' data-approve-endorsement-mooring='${full.mooring_name}'>Endorse</a><br/>`
                                 links +=  `<a href='#${full.id}' data-decline-endorsement='${full.uuid}' data-approve-endorsement-mooring='${full.mooring_name}'>Decline</a><br/>`
-                                // links +=  `<a href='/aua_for_endorsement/${full.uuid}/decline/'>Decline</a><br/>`;
                             }
                             return links
                         }
@@ -210,9 +207,6 @@ export default {
     },
     components:{
         datatable
-    },
-    watch: {
-
     },
     computed: {
         is_external: function() {

@@ -547,7 +547,7 @@ export default {
                         'render': function(row, type, full){
                             return full.holder;
                         },
-                        name: 'holder'
+                        name: 'current_proposal__proposal_applicant'
                     }
         },
         columnPreferredMooringBay: function() {
