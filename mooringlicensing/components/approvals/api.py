@@ -296,14 +296,14 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
                 ).values_list("proposal_id", flat=True))
 
                 #Search by vessel registration
-                q_set = queryset.filter(
+                queryset = queryset.filter(
                     Q(current_proposal__id__in=proposal_applicant_proposals)|
                     Q(current_proposal__submitter__in=system_user_ids)|
                     Q(id__in=VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel__rego_no__icontains=search_text).values_list('approval__id', flat=True))|
                     Q(current_proposal__vessel_details__vessel__rego_no__icontains=search_text)
                 )
 
-                queryset = super_queryset.union(q_set)
+                queryset = queryset.distinct() | super_queryset 
         except Exception as e:
             logger.error(e)
 
@@ -312,17 +312,17 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 
         #special handling for ordering by holder
         special_ordering = False
-        HOLDER = 'holder'
-        REVERSE_HOLDER = '-holder'
+        HOLDER = 'current_proposal__proposal_applicant'
+        REVERSE_HOLDER = '-current_proposal__proposal_applicant'
         if HOLDER in ordering:
             special_ordering = True
             ordering.remove(HOLDER)
-            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.annotate(current_proposal__proposal_applicant=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
             queryset = queryset.order_by(HOLDER)
         if REVERSE_HOLDER in ordering:
             special_ordering = True
             ordering.remove(REVERSE_HOLDER)
-            queryset = queryset.annotate(holder=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
+            queryset = queryset.annotate(current_proposal__proposal_applicant=Concat('current_proposal__proposal_applicant__first_name',Value(" "),'current_proposal__proposal_applicant__last_name'))
             queryset = queryset.order_by(REVERSE_HOLDER)
 
         if len(ordering):
