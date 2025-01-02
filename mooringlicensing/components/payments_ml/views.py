@@ -832,9 +832,6 @@ class ApplicationFeeSuccessView(TemplateView):
                 if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
                     if proposal.auto_approve:
                         proposal.final_approval_for_WLA_AAA(request, details={})
-                elif type(proposal.child_obj) in [MooringLicenceApplication, AuthorisedUserApplication]:
-                    if proposal.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
-                        proposal.final_approval_for_AUA_MLA(request)
 
                 wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
