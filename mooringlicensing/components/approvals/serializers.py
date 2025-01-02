@@ -40,7 +40,7 @@ from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
 
-from mooringlicensing.ledger_api_utils import retrieve_system_user, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_system_user
 
 logger = logging.getLogger(__name__)
 
@@ -1411,7 +1411,8 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             dcv_permit_fee = obj.dcv_permit_fees.order_by('-id').first()
             if dcv_permit_fee:
                 invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
-                invoice_payment_status = get_invoice_payment_status(invoice.id).lower()
+                inv_props = obj.get_invoice_property_cache()
+                invoice_payment_status = inv_props[invoice.id]["payment_status"]
                 if invoice_payment_status == 'unpaid':
                     return 'Unpaid'
                 elif invoice_payment_status == 'partially_paid':
@@ -1470,8 +1471,22 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
         if not invoices:
             return ''
         else:
-            serializer = InvoiceSerializer(invoices, many=True)
-            return serializer.data
+            inv_props = obj.get_invoice_property_cache()
+            invoice_data = []
+            for invoice in inv_props:
+                invoice_data.append(
+                    {
+                        'id': invoice,
+                        'amount':inv_props[invoice]['amount'],
+                        'reference':inv_props[invoice]['reference'],
+                        'payment_status':inv_props[invoice]['payment_status'],
+                        'settlement_date':inv_props[invoice]['settlement_date'],
+                        'invoice_url':f'/ledger-toolkit-api/invoice-pdf/{inv_props[invoice]['reference']}/',
+                        'ledger_payment_url':f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={inv_props[invoice]['reference']}',
+                    }
+                )
+
+            return invoice_data
 
     def get_fee_invoice_url(self, obj):
         url = f'/ledger-toolkit-api/invoice-pdf/{obj.invoice.reference}/' if obj.invoice else ''
@@ -1540,10 +1555,24 @@ class ListDcvAdmissionSerializer(serializers.ModelSerializer):
             if not invoices:
                 return ''
             else:
-                serializer = InvoiceSerializer(invoices, many=True)
-                return serializer.data
+                inv_props = obj.get_invoice_property_cache()
+                invoice_data = []
+                for invoice in inv_props:
+                    invoice_data.append(
+                        {
+                            'id': invoice,
+                            'amount':inv_props[invoice]['amount'],
+                            'reference':inv_props[invoice]['reference'],
+                            'payment_status':inv_props[invoice]['payment_status'],
+                            'settlement_date':inv_props[invoice]['settlement_date'],
+                            'invoice_url':f'/ledger-toolkit-api/invoice-pdf/{inv_props[invoice]['reference']}/',
+                            'ledger_payment_url':f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={inv_props[invoice]['reference']}',
+                        }
+                    )
+
+                return invoice_data
         except Exception as e:
-            logger.warning(f'Exception raised when retrieving the invoice of the item : [{obj}].')
+            logger.warning(f'Exception raised when retrieving the invoice of the item : [{obj}] - [{e}].')
             return ''
 
     def get_fee_invoice_url(self, obj):

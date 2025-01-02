@@ -275,8 +275,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
     invoice_property_cache = JSONField(null=True, blank=True, default={})
-    #invoice_property_cache_version = models.CharField(max_length=10, blank=True, null=True)
-    #invoice_property_cache_stale = models.BooleanField(default=True)
 
     customer_status = models.CharField('Customer Status', 
         max_length=40, choices=CUSTOMER_STATUS_CHOICES,
@@ -985,9 +983,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     @property
     def fee_paid(self):
         inv_props = self.get_invoice_property_cache()
-        invoice_payment_status = inv_props[self.invoice.id]['payment_status']
-        if (self.invoice and invoice_payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
-            return True
+        try:
+            invoice_payment_status = inv_props[self.invoice.id]['payment_status']
+            if (self.invoice and invoice_payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+                return True
+        except:
+            return False
         return False
 
     @property
