@@ -1412,7 +1412,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
             if dcv_permit_fee:
                 invoice = Invoice.objects.get(reference=dcv_permit_fee.invoice_reference)
                 inv_props = obj.get_invoice_property_cache()
-                invoice_payment_status = inv_props[invoice.id]["payment_status"]
+                invoice_payment_status = inv_props[str(invoice.id)]["payment_status"]
                 if invoice_payment_status == 'unpaid':
                     return 'Unpaid'
                 elif invoice_payment_status == 'partially_paid':
@@ -1426,7 +1426,7 @@ class ListDcvPermitSerializer(serializers.ModelSerializer):
                     return 'Migrated'
                 return 'Unpaid'
         except Exception as e:
-            logger.warning(f'Payment status of the DcvPermit: [{obj}] is unavailable')
+            logger.warning(f'Payment status of the DcvPermit: [{obj}] is unavailable - {e}')
             return 'Unavailable'
 
     def get_stickers(self, obj):
