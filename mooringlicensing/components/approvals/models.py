@@ -2626,6 +2626,8 @@ class DcvAdmission(RevisionedMixin):
     def save(self, **kwargs):
         if self.lodgement_number in ['', None]:
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(DcvAdmission, self).save(**kwargs)
 
     def generate_dcv_admission_doc(self):
@@ -3013,7 +3015,8 @@ class DcvPermit(RevisionedMixin):
             # Only when the fee has been paid, a lodgement number is assigned
             logger.info(f'DcvPermit: [{self}] has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
-
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(DcvPermit, self).save(**kwargs)
         logger.info(f"DcvPermit: [{self}] has been updated with the lodgement_number: [{self.lodgement_number}].")
 
@@ -3344,6 +3347,8 @@ class Sticker(models.Model):
             print(e)
 
     def save(self, *args, **kwargs):
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(Sticker, self).save(*args, **kwargs)
         if self.status not in [Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]:
             # We don't want to assign a number yet to not_ready_yet sticker.
