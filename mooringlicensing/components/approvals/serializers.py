@@ -29,7 +29,7 @@ from mooringlicensing.components.approvals.models import (
     ApprovalHistory, MooringOnApproval,
 )
 
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.proposals.serializers import (
     InternalProposalSerializer, 
     MooringSimpleSerializer, 
@@ -1194,8 +1194,22 @@ class StickerSerializerSimple(serializers.ModelSerializer):
         if not invoices:
             return ''
         else:
-            serializer = InvoiceSerializer(invoices, many=True)
-            return serializer.data
+            inv_props = obj.get_invoice_property_cache()
+            invoice_data = []
+            for invoice in inv_props:
+                invoice_data.append(
+                    {
+                        'id': invoice,
+                        'amount':inv_props[invoice]['amount'],
+                        'reference':inv_props[invoice]['reference'],
+                        'payment_status':inv_props[invoice]['payment_status'],
+                        'settlement_date':inv_props[invoice]['settlement_date'],
+                        'invoice_url':f'/ledger-toolkit-api/invoice-pdf/{inv_props[invoice]['reference']}/',
+                        'ledger_payment_url':f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={inv_props[invoice]['reference']}',
+                    }
+                )
+
+            return invoice_data
 
     def get_vessel_rego_no(self, obj):
         if obj.vessel_ownership and obj.vessel_ownership.vessel:
@@ -1311,8 +1325,22 @@ class StickerSerializer(serializers.ModelSerializer):
         if not invoices:
             return ''
         else:
-            serializer = InvoiceSerializer(invoices, many=True)
-            return serializer.data
+            inv_props = obj.get_invoice_property_cache()
+            invoice_data = []
+            for invoice in inv_props:
+                invoice_data.append(
+                    {
+                        'id': invoice,
+                        'amount':inv_props[invoice]['amount'],
+                        'reference':inv_props[invoice]['reference'],
+                        'payment_status':inv_props[invoice]['payment_status'],
+                        'settlement_date':inv_props[invoice]['settlement_date'],
+                        'invoice_url':f'/ledger-toolkit-api/invoice-pdf/{inv_props[invoice]['reference']}/',
+                        'ledger_payment_url':f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={inv_props[invoice]['reference']}',
+                    }
+                )
+
+            return invoice_data
 
     def get_moorings(self, obj):
         moorings = obj.get_moorings()

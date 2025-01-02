@@ -48,7 +48,7 @@ from mooringlicensing.components.approvals.email import (
     send_swap_moorings_application_created_notification,
 )
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
-from ledger_api_client.utils import calculate_excl_gst
+from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties
 
 from django.core.files.storage import FileSystemStorage
 
@@ -3173,9 +3173,32 @@ class Sticker(models.Model):
     postal_address_country = CountryField(default='AU', null=True, blank=True)
     postal_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
+    invoice_property_cache = JSONField(null=True, blank=True, default={})
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['-date_updated', '-date_created', '-number',]
+
+
+    def get_invoice_property_cache(self):
+        if len(self.invoice_property_cache) == 0:
+            self.update_invoice_property_cache()
+        return self.invoice_property_cache
+    
+    def update_invoice_property_cache(self, save=True):
+        for inv in self.get_invoices():
+            inv_props = get_invoice_properties(inv.id)
+
+            self.invoice_property_cache[inv.id] = {
+                'payment_status': inv_props['data']['invoice']['payment_status'],
+                'reference': inv_props['data']['invoice']['reference'],
+                'amount': inv_props['data']['invoice']['amount'],
+                'settlement_date': inv_props['data']['invoice']['settlement_date'],
+            }
+            
+        if save:
+           self.save()
+        return self.invoice_property_cache
 
     def get_invoices(self):
         invoices = []

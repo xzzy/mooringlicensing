@@ -358,7 +358,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             if not invoices:
                 return ''
             else:
-
                 inv_props = obj.get_invoice_property_cache()
                 invoice_data = []
                 for invoice in inv_props:

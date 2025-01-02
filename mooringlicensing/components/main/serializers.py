@@ -29,7 +29,7 @@ class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
-
+#TODO no longer in user - consider removing
 class InvoiceSerializer(serializers.ModelSerializer):
     payment_status = serializers.SerializerMethodField()
     invoice_url = serializers.SerializerMethodField()
