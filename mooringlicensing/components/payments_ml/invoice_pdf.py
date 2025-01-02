@@ -321,7 +321,7 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    invoice_payment_status = get_invoice_payment_status(invoice.id)
+    invoice_payment_status = invoice.id)
     if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 

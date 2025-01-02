@@ -11,10 +11,11 @@ import pytz
 import uuid
 from mooringlicensing.components.approvals.email import send_aup_revoked_due_to_mooring_swap_email
 from mooringlicensing.components.proposals.email import send_aua_declined_by_endorser_email
-from mooringlicensing.ledger_api_utils import retrieve_system_user
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
-from ledger_api_client.utils import calculate_excl_gst
+from mooringlicensing.ledger_api_utils import (
+    retrieve_email_userro, get_invoice_payment_status, retrieve_system_user
+)
+from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties
 from mooringlicensing.settings import (
     PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE,
     GROUP_ASSESSOR_MOORING_LICENCE, 
@@ -272,6 +273,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     proposal_type = models.ForeignKey(ProposalType, blank=True, null=True, on_delete=models.SET_NULL)
 
     proposed_issuance_approval = JSONField(blank=True, null=True)
+
+    invoice_property_cache = JSONField(null=True, blank=True, default={})
 
     customer_status = models.CharField('Customer Status', 
         max_length=40, choices=CUSTOMER_STATUS_CHOICES,
@@ -756,6 +759,26 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             return None
 
+    def get_invoice_property_cache(self):
+        if len(self.invoice_property_cache) == 0:
+            self.update_invoice_property_cache()
+        return self.invoice_property_cache
+    
+    def update_invoice_property_cache(self, save=True):
+        for inv in self.invoices_display():
+            inv_props = get_invoice_properties(inv.id)
+
+            self.invoice_property_cache[inv.id] = {
+                'payment_status': inv_props['data']['invoice']['payment_status'],
+                'reference': inv_props['data']['invoice']['reference'],
+                'amount': inv_props['data']['invoice']['amount'],
+                'settlement_date': inv_props['data']['invoice']['settlement_date'],
+            }
+            
+        if save:
+           self.save()
+        return self.invoice_property_cache
+
     def invoices_display(self):
         invoice_references = [item.invoice_reference for item in self.application_fees.filter(system_invoice=False)]
         return Invoice.objects.filter(reference__in=invoice_references)
@@ -899,6 +922,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         kwargs.pop('version_comment', None)
         kwargs['no_revision'] = True
         self.update_customer_status()
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(Proposal, self).save(**kwargs)
         if type(self) == Proposal:
             self.child_obj.refresh_from_db()
@@ -957,8 +982,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def fee_paid(self):
-        if (self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
-            return True
+        inv_props = self.get_invoice_property_cache()
+        try:
+            invoice_payment_status = inv_props[self.invoice.id]['payment_status']
+            if (self.invoice and invoice_payment_status in ['paid', 'over_paid']) or self.proposal_type==PROPOSAL_TYPE_AMENDMENT:
+                return True
+        except:
+            return False
         return False
 
     @property

@@ -20,7 +20,7 @@ from django.conf import settings
 from django.db.models import Q
 from django_countries.fields import CountryField
 
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, GROUP_DCV_PERMIT_ADMIN, PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL
 from ledger_api_client.ledger_models import Invoice, EmailUserRO
 from mooringlicensing.components.approvals.pdf import (
@@ -48,7 +48,7 @@ from mooringlicensing.components.approvals.email import (
     send_swap_moorings_application_created_notification,
 )
 from mooringlicensing.settings import PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW
-from ledger_api_client.utils import calculate_excl_gst
+from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties
 
 from django.core.files.storage import FileSystemStorage
 
@@ -2547,6 +2547,8 @@ class DcvAdmission(RevisionedMixin):
     dcv_organisation = models.ForeignKey(DcvOrganisation, blank=True, null=True, related_name='dcv_admissions', on_delete=models.SET_NULL)
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
+
+    invoice_property_cache = JSONField(null=True, blank=True, default={})
     
     @property
     def admin_group(self):
@@ -2573,10 +2575,38 @@ class DcvAdmission(RevisionedMixin):
             lodgement_number = self.lodgement_number
         return f'{lodgement_number} (id: {self.id})'
 
+    def invoices_display(self):
+        invoice_references = [item.invoice_reference for item in self.dcv_admission_fees.all()]
+        return Invoice.objects.filter(reference__in=invoice_references)
+
+    def get_invoice_property_cache(self):
+        if len(self.invoice_property_cache) == 0:
+            self.update_invoice_property_cache()
+        return self.invoice_property_cache
+    
+    def update_invoice_property_cache(self, save=True):
+        for inv in self.invoices_display():
+            inv_props = ledger_api_client.utils.get_invoice_properties(inv.id)
+
+            self.invoice_property_cache[inv.id] = {
+                'payment_status': inv_props['data']['invoice']['payment_status'],
+                'reference': inv_props['data']['invoice']['reference'],
+                'amount': inv_props['data']['invoice']['amount'],
+                'settlement_date': inv_props['data']['invoice']['settlement_date'],
+            }
+            
+        if save:
+           self.save()
+        return self.invoice_property_cache
+
     @property
     def fee_paid(self):
-        if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
-            return True
+        inv_props = self.get_invoice_property_cache()
+        try:
+            if self.invoice and inv_props[self.invoice.id]["payment_status"] in ['paid', 'over_paid']:
+                return True
+        except:
+            return False
         return False
 
     @property
@@ -2596,6 +2626,8 @@ class DcvAdmission(RevisionedMixin):
     def save(self, **kwargs):
         if self.lodgement_number in ['', None]:
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(DcvAdmission, self).save(**kwargs)
 
     def generate_dcv_admission_doc(self):
@@ -2821,6 +2853,7 @@ class DcvPermit(RevisionedMixin):
     postal_address_state = models.CharField(max_length=255, default='WA', blank=True, null=True)
     postal_address_country = CountryField(default='AU', blank=True, null=True)
     
+    invoice_property_cache = JSONField(null=True, blank=True, default={})
 
     @property
     def submitter_obj(self):
@@ -2925,10 +2958,38 @@ class DcvPermit(RevisionedMixin):
                 attachment = (file_name, licence_document.file.read(), 'application/pdf')
         return attachment
 
+    def invoices_display(self):
+        invoice_references = [item.invoice_reference for item in self.dcv_permit_fees.all()]
+        return Invoice.objects.filter(reference__in=invoice_references)
+
+    def get_invoice_property_cache(self):
+        if len(self.invoice_property_cache) == 0:
+            self.update_invoice_property_cache()
+        return self.invoice_property_cache
+    
+    def update_invoice_property_cache(self, save=True):
+        for inv in self.invoices_display():
+            inv_props = ledger_api_client.utils.get_invoice_properties(inv.id)
+
+            self.invoice_property_cache[inv.id] = {
+                'payment_status': inv_props['data']['invoice']['payment_status'],
+                'reference': inv_props['data']['invoice']['reference'],
+                'amount': inv_props['data']['invoice']['amount'],
+                'settlement_date': inv_props['data']['invoice']['settlement_date'],
+            }
+            
+        if save:
+           self.save()
+        return self.invoice_property_cache
+
     @property
     def fee_paid(self):
-        if self.invoice and get_invoice_payment_status(self.invoice.id) in ['paid', 'over_paid']:
-            return True
+        inv_props = self.get_invoice_property_cache()
+        try:
+            if self.invoice and inv_props[self.invoice.id]["payment_status"] in ['paid', 'over_paid']:
+                return True
+        except:
+            return False
         return False
 
     @property
@@ -2954,7 +3015,8 @@ class DcvPermit(RevisionedMixin):
             # Only when the fee has been paid, a lodgement number is assigned
             logger.info(f'DcvPermit: [{self}] has no lodgement number.')
             self.lodgement_number = self.LODGEMENT_NUMBER_PREFIX + '{0:06d}'.format(self.get_next_id())
-
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(DcvPermit, self).save(**kwargs)
         logger.info(f"DcvPermit: [{self}] has been updated with the lodgement_number: [{self.lodgement_number}].")
 
@@ -3114,9 +3176,32 @@ class Sticker(models.Model):
     postal_address_country = CountryField(default='AU', null=True, blank=True)
     postal_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
+    invoice_property_cache = JSONField(null=True, blank=True, default={})
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ['-date_updated', '-date_created', '-number',]
+
+
+    def get_invoice_property_cache(self):
+        if len(self.invoice_property_cache) == 0:
+            self.update_invoice_property_cache()
+        return self.invoice_property_cache
+    
+    def update_invoice_property_cache(self, save=True):
+        for inv in self.get_invoices():
+            inv_props = get_invoice_properties(inv.id)
+
+            self.invoice_property_cache[inv.id] = {
+                'payment_status': inv_props['data']['invoice']['payment_status'],
+                'reference': inv_props['data']['invoice']['reference'],
+                'amount': inv_props['data']['invoice']['amount'],
+                'settlement_date': inv_props['data']['invoice']['settlement_date'],
+            }
+            
+        if save:
+           self.save()
+        return self.invoice_property_cache
 
     def get_invoices(self):
         invoices = []
@@ -3262,6 +3347,8 @@ class Sticker(models.Model):
             print(e)
 
     def save(self, *args, **kwargs):
+        if self.pk:
+            self.update_invoice_property_cache(save=False)
         super(Sticker, self).save(*args, **kwargs)
         if self.status not in [Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]:
             # We don't want to assign a number yet to not_ready_yet sticker.

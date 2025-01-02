@@ -28,9 +28,9 @@ from mooringlicensing.components.proposals.models import (
     Mooring, MooringLicenceApplication, AuthorisedUserApplication,
     ProposalSiteLicenseeMooringRequest,
 )
-from mooringlicensing.ledger_api_utils import retrieve_email_userro, get_invoice_payment_status
+from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
-from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer, InvoiceSerializer
+from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
 from ledger_api_client.managed_models import SystemUser
 from rest_framework import serializers
@@ -358,8 +358,22 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             if not invoices:
                 return ''
             else:
-                serializer = InvoiceSerializer(invoices, many=True)
-                return serializer.data
+                inv_props = obj.get_invoice_property_cache()
+                invoice_data = []
+                for invoice in inv_props:
+                    invoice_data.append(
+                        {
+                            'id': invoice,
+                            'amount':inv_props[invoice]['amount'],
+                            'reference':inv_props[invoice]['reference'],
+                            'payment_status':inv_props[invoice]['payment_status'],
+                            'settlement_date':inv_props[invoice]['settlement_date'],
+                            'invoice_url':f'/ledger-toolkit-api/invoice-pdf/{inv_props[invoice]['reference']}/',
+                            'ledger_payment_url':f'{settings.LEDGER_UI_URL}/ledger/payments/oracle/payments?invoice_no={inv_props[invoice]['reference']}',
+                        }
+                    )
+
+                return invoice_data
         return ''
 
 class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializer):
@@ -508,21 +522,25 @@ class ListProposalSerializer(BaseProposalSerializer):
         (
             is_internal(self.context['request']) or
             (proposal.proposal_applicant and proposal.proposal_applicant.email_user_id == self.context['request'].user.id)
-        )):
+        )):       
+            invoice_property_cache = proposal.get_invoice_property_cache()
             # pdf
-            for invoice in proposal.invoices_display():
-                url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
-                links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice.reference}</a></div>"
-            if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
-                # paid invoices url
-                invoices_str=''
-                for inv in proposal.invoices_display():
-                    payment_status = get_invoice_payment_status(inv.id)
-                    if payment_status == 'paid':
-                        invoices_str += 'invoice_no={}&'.format(inv.reference)
-                if invoices_str:
-                    invoices_str = invoices_str[:-1]
-                    links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
+            try:
+                for invoice in invoice_property_cache:
+                    url = f'/ledger-toolkit-api/invoice-pdf/{invoice_property_cache[invoice]["reference"]}/'
+                    links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice_property_cache[invoice]["reference"]}</a></div>"
+
+                if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
+                    # paid invoices url
+                    invoices_str=''
+                    for inv in invoice_property_cache:
+                        if invoice_property_cache[invoice]["payment_status"] == 'paid':
+                            invoices_str += 'invoice_no={}&'.format(invoice_property_cache[invoice]["reference"])
+                    if invoices_str:
+                        invoices_str = invoices_str[:-1]
+                        links += "<div><a href='{}/ledger/payments/oracle/payments?{}' target='_blank'>Ledger Payment</a></div>".format(settings.LEDGER_UI_URL, invoices_str)
+            except:
+                return links
         return links
 
     def get_can_view_payment_details(self, proposal):
