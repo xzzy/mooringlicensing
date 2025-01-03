@@ -103,7 +103,6 @@ class TemplateEmailBase(object):
 
 
 def _extract_email_headers(email_message, sender=None):
-    print(sender)
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
         # instead
         text = email_message.body

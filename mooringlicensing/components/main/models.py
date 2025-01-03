@@ -343,9 +343,6 @@ class VesselSizeCategory(RevisionedMixin):
 
 @receiver(post_save, sender=VesselSizeCategory)
 def _post_save_vsc(sender, instance, **kwargs):
-    print('VesselSizeCategory post save()')
-    print(instance.vessel_size_category_group)
-
     for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
         if fee_constructor.is_editable:
             fee_constructor.reconstruct_fees()
@@ -353,9 +350,6 @@ def _post_save_vsc(sender, instance, **kwargs):
 
 @receiver(post_delete, sender=VesselSizeCategory)
 def _post_delete_vsc(sender, instance, **kwargs):
-    print('VesselSizeCategory post delete()')
-    print(instance.vessel_size_category_group)
-
     for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
         if fee_constructor.is_editable:
             fee_constructor.reconstruct_fees()

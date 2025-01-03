@@ -971,8 +971,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def end_date(self):
         end_date = None
         application_fee = self.get_main_application_fee()
-        print(application_fee)
-        print(self.fee_season)
         if application_fee:
             end_date = application_fee.fee_constructor.end_date
         elif self.fee_season:
@@ -1443,7 +1441,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #sanitise mooring on approval - count only entry per id and only the latest among each id
                 for i in mooring_on_approval:
-                    print(i)
                     if "id" in i and "checked" in i and not i["id"] in id_list:
                         temp.append(i)
                         checked_list.append(i["checked"])

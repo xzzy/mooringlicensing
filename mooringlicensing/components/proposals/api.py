@@ -1751,7 +1751,6 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     @detail_route(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     @basic_exception_handler
     def final_approval(self, request, *args, **kwargs):
-        print('final_approval() in ProposalViewSet')
         if is_internal(request):
             instance = self.get_object()
             serializer = ProposedApprovalSerializer(data=request.data)
@@ -2539,7 +2538,6 @@ class MooringFilterBackend(DatatablesFilterBackend):
                 queryset = super_queryset.union(q_set)
 
             return queryset
-
 
         except Exception as e:
             print(e)

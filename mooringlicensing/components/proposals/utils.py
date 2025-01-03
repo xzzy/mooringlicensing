@@ -632,7 +632,6 @@ def handle_vessel_registration_documents_in_limbo(proposal_id, vessel_ownership)
 
 
 def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
-    print("handle document")
     temporary_document_collection_id = request_data.get('proposal', {}).get('temporary_document_collection_id')
     if temporary_document_collection_id:
         temp_doc_collection = None

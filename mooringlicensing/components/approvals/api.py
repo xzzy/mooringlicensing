@@ -1384,8 +1384,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
             data = {}
             today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
             for sticker in stickers:
-                print("sticker address")
-                print(sticker.postal_address_line1)
                 data['action'] = 'Request new sticker'
                 data['user'] = request.user.id
                 data['reason'] = details['reason']

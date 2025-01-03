@@ -561,8 +561,6 @@ def export_to_mooring_booking(approval_id):
 
 
 def calculate_minimum_max_length(fee_items_interested, max_amount_paid):
-    for item in fee_items_interested:
-        print(item)
     """
     Find out MINIMUM max-length from fee_items_interested by max_amount_paid
     """

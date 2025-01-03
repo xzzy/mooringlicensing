@@ -64,8 +64,6 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             elif document_type == 'proof_of_identity_document':
                 documents_qs = instance.proof_of_identity_documents.filter(proposalproofofidentitydocument__enabled=True)
 
-            print(documents_qs)
-
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
             ret = {'filedata': returned_file_data}
         else:
