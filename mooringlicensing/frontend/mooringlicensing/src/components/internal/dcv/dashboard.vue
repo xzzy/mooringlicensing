@@ -20,19 +20,10 @@ import DcvAdmissionsTable from "@/components/common/table_dcv_admissions.vue"
 
 export default {
     name: 'InternalDcvDashboard',
-    data() {
-        let vm = this;
-        return {
-
-        }
-    },
     components:{
         FormSection,
         DcvPermitsTable,
         DcvAdmissionsTable,
-    },
-    methods: {
-
     },
 }
 </script>

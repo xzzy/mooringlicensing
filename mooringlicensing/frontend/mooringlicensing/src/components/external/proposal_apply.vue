@@ -1,6 +1,5 @@
 <template lang="html">
     <div class="container">
-        <!--button type="button" @click="createML">Mooring Licence Application</button-->
         <FormSection label="Select Applicant" v-if="is_internal">
             <div>
                 <div>
@@ -289,8 +288,6 @@ export default {
             newWlaAllowed: false,
             
             noEmails: false,
-            //site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
-
             season_text: '',
 
             applicant_system_id: null,
@@ -386,7 +383,6 @@ export default {
                 vm.applicant_system_id  = null;
             }).
             on("select2:open",function (e) {
-                //const searchField = $(".select2-search__field")
                 const searchField = $('[aria-controls="select2-person_lookup-results"]')
                 // move focus to select2 field
                 searchField[0].focus();
@@ -449,7 +445,6 @@ export default {
                 // new app
                 for (let app of this.application_types_and_licences) {
                     if (['aaa', 'aap'].includes(app.code) && !app.approval_id) {
-                        //if (app.code === 'wla' && !app.approval_id) {
                         this.aaaMultiple.push(app)
                     }
                 }
@@ -463,7 +458,6 @@ export default {
             } else {
                 // add wla approval to wlaChoices
                 for (let app of this.application_types_and_licences) {
-                    //if (app.code === 'wla') {
                     if (['aaa', 'aap'].includes(app.code)) {
                         this.aaaChoices.push(app);
                     }
@@ -475,7 +469,6 @@ export default {
                 // new app
                 for (let app of this.application_types_and_licences) {
                     if (['aua', 'aup'].includes(app.code) && !app.approval_id) {
-                        //if (app.code === 'wla' && !app.approval_id) {
                         this.auaMultiple.push(app)
                     }
                 }
@@ -489,7 +482,6 @@ export default {
             } else {
                 // add wla approval to wlaChoices
                 for (let app of this.application_types_and_licences) {
-                    //if (app.code === 'wla') {
                     if (['aua', 'aup'].includes(app.code)) {
                         this.auaChoices.push(app);
                     }
@@ -498,15 +490,6 @@ export default {
         },
         parseMl: function () {
             if (this.mlApprovals.length > 1) {
-                /*
-                // new app
-                for (let app of this.application_types_and_licences) {
-                    if (['aua','aup'].includes(app.code) && !app.approval_id) {
-                    //if (app.code === 'wla' && !app.approval_id) {
-                        this.auaMultiple.push(app)
-                    }
-                }
-                */
                 // add generic
                 this.mlMultiple.push({
                     new_application_text: "I want to amend or renew my current mooring site licence",
@@ -517,7 +500,6 @@ export default {
             } else {
                 // add wla approval to wlaChoices
                 for (let app of this.application_types_and_licences) {
-                    //if (app.code === 'wla') {
                     if (app.code === "ml") {
                         this.mlChoices.push(app);
                     }
@@ -533,7 +515,6 @@ export default {
             }
         },
         submit: function () {
-            //let vm = this;
             let title_verb = 'Create'
             let text_verb = 'create'
             if (this.selectedApplication.approval_id) {
@@ -628,7 +609,6 @@ export default {
                         const proposal = res.body;
                         this.$router.push({
                             name: "draft_proposal",
-                            // params: { proposal_id: proposal.id, add_vessel: vm.add_vessel }
                             params: { proposal_id: proposal.id }
                         });
                     }
@@ -739,14 +719,11 @@ export default {
 
         let initialisers = [
             utils.fetchProfile(),
-
-            //utils.fetchProposal(to.params.proposal_id)
         ]
         next(vm => {
             vm.loading.push('fetching profile')
             Promise.all(initialisers).then(data => {
                 vm.profile = data[0];
-                //vm.proposal = data[1];
                 vm.loading.splice('fetching profile', 1)
             })
         })

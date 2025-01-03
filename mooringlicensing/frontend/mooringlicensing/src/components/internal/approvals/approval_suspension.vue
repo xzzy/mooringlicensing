@@ -43,7 +43,6 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-3">
-
                                         <label class="control-label pull-left"  for="Name">Suspension Details</label>
                                     </div>
                                     <div class="col-sm-9">
@@ -66,7 +65,6 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
@@ -75,12 +73,6 @@ export default {
     components:{
         modal,
         alert
-    },
-    props:{
-        //approval_id: {
-        //    type: Number,
-        //    required: true
-        //},
     },
     data:function () {
         let vm = this;
@@ -128,8 +120,6 @@ export default {
         close:function () {
             this.isModalOpen = false;
             this.approval = {};
-            //this.approval.from_date = ""
-            //this.approval.to_date = ""
             this.errors = false;
             $('.has-error').removeClass('has-error');
             $(this.$refs.from_date).data('DateTimePicker').clear();
@@ -162,17 +152,11 @@ export default {
                              'success'
                         );
                         vm.$emit('refreshFromResponse',response);
-
-
                     },(error)=>{
                         vm.errors = true;
                         vm.issuingApproval = false;
                         vm.errorString = helpers.apiVueResourceError(error);
-                        //vm.approval={};
-                        //vm.close();
                     });
-
-
         },
         addFormValidations: function() {
             let vm = this;
@@ -239,6 +223,3 @@ export default {
    }
 }
 </script>
-
-<style lang="css">
-</style>

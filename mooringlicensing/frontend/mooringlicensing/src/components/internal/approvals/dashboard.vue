@@ -25,9 +25,6 @@ export default {
         FormSection,
         ApprovalsTable,
     },
-    methods: {
-
-    },
 }
 </script>
 

@@ -3,7 +3,6 @@
 
         <div v-if="proposal && show_application_title" id="scrollspy-heading" class="" >
             <h4>Annual Admission {{ applicationTypeText }} Application: {{proposal.lodgement_number}}</h4>
-            <!--h5>{{ proposal.proposal_type.description }}</h5-->
         </div>
 
         <div class="">
@@ -159,7 +158,6 @@
                 higherVesselCategory: false,
                 max_vessel_length_with_no_payment: 0,  // This is the smaller of the following two variables.
                 max_vessel_length_for_main_component: 0,
-                //max_vessel_length_for_aa_component: 0,
             }
         },
         components: {
@@ -192,8 +190,6 @@
             updateVesselLength: function (length) {
                 console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
-                    //if (this.proposal.max_vessel_length_with_no_payment !== null &&
-                    //    this.proposal.max_vessel_length_with_no_payment <= length) {
                     if (this.max_vessel_length_with_no_payment !== null &&
                         (this.max_vessel_length_with_no_payment.max_length < length ||
                             this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
@@ -212,36 +208,10 @@
                 this.updateAmendmentRenewalProperties();
             },
             updateMaxVesselLength: function(max_length) {
-                console.log('updateMaxVesselLength')
-                //this.max_vessel_length_with_no_payment = max_length
-                //let combined_length = 0
-                //if (this.max_vessel_length_for_main_component == null && this.max_vessel_length_for_aa_component == null){
-                //    combined_length = null
-                //} else {
-                //    if (this.max_vessel_length_for_main_component == null){
-                //        // aa component has a value
-                //        combined_length = this.max_vessel_length_for_aa_component
-                //    } else if (this.max_vessel_length_for_aa_component == null){
-                //        // main component has a value
-                //        combined_length = this.max_vessel_length_for_main_component
-                //    } else {
-                //        // both have a value
-                //        if (this.max_vessel_length_for_aa_component < this.max_vessel_length_for_main_component){
-                //            combined_length = this.max_vessel_length_for_aa_component
-                //        } else {
-                //            combined_length = this.max_vessel_length_for_main_component
-                //        }
-                //    }
-                //}
-                //if (combined_length < 0){  // This can be -1, which is set as a defautl value at the vessels.vue
-                //    combined_length = 0
-                //}
-                //this.max_vessel_length_with_no_payment = combined_length
                 this.max_vessel_length_with_no_payment = this.max_vessel_length_for_main_component
             },
             updateMaxVesselLengthForAAComponent: function(length){
                 console.log('updateMaxVesselLengthForAAComponent')
-                //this.max_vessel_length_for_aa_component = length
                 this.updateMaxVesselLength()
             },
             updateMaxVesselLengthForMainComponent: function(length){
@@ -251,7 +221,6 @@
             },
             updateAmendmentRenewalProperties: async function() {
                 console.log('updateAmendmentRenewalProperties in form_aaa.vue')
-                //if (this.proposal && this.proposal.proposal_type.code === 'amendment') {
                 if (this.proposal && (this.proposal.proposal_type.code === 'amendment' || this.proposal.pending_amendment_request)) {
                     this.$nextTick(async () => {
                         // insurance
@@ -284,7 +253,6 @@
                 }
             },
             populateProfile: function(profile) {
-                // this.profile = Object.assign({}, profile);
                 this.profile = profile
                 this.$emit('profile-fetched', this.profile);
             },

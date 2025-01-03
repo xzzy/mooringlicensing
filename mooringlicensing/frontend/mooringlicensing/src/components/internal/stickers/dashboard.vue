@@ -51,7 +51,6 @@ export default {
             console.log({params})
             let vm = this
             let action = params.action
-            // vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params.details).then(
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.stickers, params.sticker.id + '/' + action), params).then(
                 res => {
                     if (action == 'request_replacement'){

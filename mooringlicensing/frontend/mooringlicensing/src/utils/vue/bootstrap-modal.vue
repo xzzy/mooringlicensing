@@ -160,8 +160,6 @@
         border-bottom-right-radius: .3rem;
     }
     .modal-body, .modal-footer, .modal-header {
-        /*background-color: #F5F5F5;
-        color: #333333;*/
         background-color: #efefef;
         color: #333333;
     }

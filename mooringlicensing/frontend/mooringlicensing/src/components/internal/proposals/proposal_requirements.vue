@@ -55,11 +55,10 @@ export default {
                 order: [],
                 dom: 'lBfrtip',
                 buttons:[
-                'excel', 'csv', ], //'copy'
+                'excel', 'csv', ],
                 columns: [
                     {
                         data: "requirement",
-                        //orderable: false,
                         'render': function (value) {
                             var ellipsis = '...',
                                 truncated = _.truncate(value, {
@@ -121,7 +120,6 @@ export default {
                                 {
                                     links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
                                 }
-                                //links +=  `<a href='#' class="editRequirement" data-id="${full.id}">Edit</a><br/>`;
                                 links +=  `<a href='#' class="deleteRequirement" data-id="${full.id}">Delete</a><br/>`;
                             }
                             return links;
@@ -146,7 +144,6 @@ export default {
                     if (data.copied_for_renewal && data.require_due_date && !data.due_date) {
                         $('td', row).css('background-color', 'Red');
                         vm.setApplicationWorkflowState(false)
-                        //vm.$emit('refreshRequirements',false);
                     }
                 },
                 drawCallback: function (settings) {
@@ -163,7 +160,6 @@ export default {
                 },
                  preDrawCallback: function (settings) {
                     vm.setApplicationWorkflowState(true)
-                    //vm.$emit('refreshRequirements',true);
                 }
             }
         }
@@ -197,13 +193,6 @@ export default {
                 confirmButtonText: 'Remove Requirement',
                 confirmButtonColor:'#d9534f'
             }).then(() => {
-                // vm.$http.delete(helpers.add_endpoint_json(api_endpoints.proposal_requirements,_id))
-                // .then((response) => {
-                //     vm.$refs.requirements_datatable.vmDataTable.ajax.reload();
-                // }, (error) => {
-                //     console.log(error);
-                // });
-
                 vm.$http.get(helpers.add_endpoint_json(api_endpoints.proposal_requirements,_id+'/discard'))
                 .then((response) => {
                     vm.$refs.requirements_datatable.vmDataTable.ajax.reload();

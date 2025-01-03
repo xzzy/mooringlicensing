@@ -106,7 +106,6 @@
     import Applicant from '@/components/common/applicant.vue'
     import Confirmation from '@/components/common/confirmation.vue'
     import Vessels from '@/components/common/vessels.vue'
-    // import Vessel from '@/components/common/vessel.vue'
     import CurrentVessels from '@/components/common/current_vessels.vue'
     import Insurance from '@/components/common/insurance.vue'
     import MooringSiteLicenceDocumentsUpload from '@/components/external/mooring_licence_documents_upload.vue'
@@ -161,10 +160,6 @@
                 type: Boolean,
                 default: true,
             },
-            // add_vessel: {
-            //     type: Boolean,
-            //     default: false,
-            // },
         },
         data:function () {
             return{
@@ -185,7 +180,6 @@
             Applicant,
             Confirmation,
             Vessels,
-            // Vessel,
             CurrentVessels,
             Insurance,
             Profile,
@@ -193,7 +187,6 @@
         },
         computed:{
             showDocumentsTab: function(){
-                // return true (processing_status, proposal_type)
                 if (this.is_internal){
                     return true
                 } else if (this.proposal.amendment_requests){
@@ -223,22 +216,6 @@
                 }
                 return text;
             },
-            /*
-            showInsuranceTab:function(){
-                let show=true;
-                if (this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new' && this.keep_current_vessel){
-                    show=false;
-                }
-                return show;
-            },
-            showElectoralRoll: function() {
-                let show = false;
-                if (this.proposal && ['wla', 'mla'].includes(this.proposal.application_type_code)) {
-                    show = true;
-                }
-                return show;
-            },
-            */
         },
         methods:{
             updateVesselOwnershipChanged: async function(changed){
@@ -247,8 +224,6 @@
                 this.updateAmendmentRenewalProperties();
             },
             updateMaxVesselLength: function(max_length) {
-                console.log('updateMaxVesselLength')
-                //this.max_vessel_length_with_no_payment = max_length
                 let combined_length = 0
                 if (this.max_vessel_length_for_main_component == null && this.max_vessel_length_for_aa_component == null){
                     combined_length = null
@@ -292,8 +267,6 @@
             updateVesselLength: function (length) {
                 console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
-                    //if (this.proposal.max_vessel_length_with_no_payment !== null &&
-                    //    this.proposal.max_vessel_length_with_no_payment <= length) {
                     if (this.max_vessel_length_with_no_payment !== null &&
                         (this.max_vessel_length_with_no_payment.max_length < length ||
                             this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
@@ -336,7 +309,6 @@
                     });
                 } else if (this.proposal && this.proposal.proposal_type.code === 'renewal') {
                     this.$nextTick(() => {
-                        //if (this.keepCurrentVessel && !this.higherVesselCategory) {
                         if (this.proposal.vessel_on_proposal && this.keepCurrentVessel && !this.higherVesselCategory) {
                             this.showPaymentTab = true;
                             this.showInsuranceTab = false;
@@ -363,7 +335,6 @@
                 }
             },
             populateProfile: function(profile) {
-                // this.profile = Object.assign({}, profile);
                 this.profile = profile
                 this.$emit('profile-fetched', this.profile);
             },

@@ -33,12 +33,10 @@
 </template>
 
 <script>
-//import $ from 'jquery'
-import Vue from 'vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 
-import {helpers, api_endpoints} from "@/utils/hooks.js"
+import {helpers} from "@/utils/hooks.js"
 export default {
     name:'compliance-amendment-request',
     components:{
@@ -46,9 +44,9 @@ export default {
         alert
     },
     props:{
-            compliance_id:{
-                type:Number,
-            },
+        compliance_id:{
+            type:Number,
+        },
     },
     data:function () {
         let vm = this;
@@ -108,45 +106,35 @@ export default {
         sendData:function(){
             let vm = this;
             vm.errors = false;
-            //console.log(vm.amendment);
             let amendment = JSON.parse(JSON.stringify(vm.amendment));            
             vm.$http.post('/api/compliance_amendment_request.json',JSON.stringify(amendment),{
-                        emulateJSON:true,
-                    }).then((response)=>{
-                        //vm.$parent.loading.splice('processing contact',1);
-                        swal(
-                             'Sent',
-                             'An email has been sent to applicant with the request to amend this compliance',
-                             'success'
-                        );
-                        vm.amendingcompliance = true;
-                        console.log(response)
-                        vm.close();
-                        //vm.$emit('refreshFromResponse',response);
-                       
-                        vm.$router.push({ path: '/internal' }); //Navigate to dashboard after creating Amendment request
-                     
-                    },(error)=>{
-                        console.log(error);
-                        vm.errors = true;
-                        vm.errorString = helpers.apiVueResourceError(error);
-                        vm.amendingcompliance = true;
-                        
-                    });
+                emulateJSON:true,
+            }).then((response)=>{
+                swal(
+                        'Sent',
+                        'An email has been sent to applicant with the request to amend this compliance',
+                        'success'
+                );
+                vm.amendingcompliance = true;
+                console.log(response)
+                vm.close();
+                vm.$router.push({ path: '/internal' });
                 
-
+            },(error)=>{
+                console.log(error);
+                vm.errors = true;
+                vm.errorString = helpers.apiVueResourceError(error);
+                vm.amendingcompliance = true;                        
+            });                
         },
         addFormValidations: function() {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
                 rules: {
                     reason: "required"
-                    
-                     
                 },
                 messages: {              
-                    reason: "field is required",
-                                         
+                    reason: "field is required",                         
                 },
                 showErrors: function(errorMap, errorList) {
                     $.each(this.validElements(), function(index, element) {
@@ -168,7 +156,7 @@ export default {
                 }
             });
        },
-       eventListerners:function () {
+       eventListeners:function () {
             let vm = this;
             
             // Intialise select2
@@ -193,12 +181,8 @@ export default {
        vm.fetchAmendmentChoices();
        vm.addFormValidations();
        this.$nextTick(()=>{  
-            vm.eventListerners();
+            vm.eventListeners();
         });
-    //console.log(validate);
    }
 }
 </script>
-
-<style lang="css">
-</style>

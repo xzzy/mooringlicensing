@@ -57,7 +57,6 @@ export default
         },
         {
             path: 'moorings',
-            //component: MooringsDash,
             component: {
                 render(c)
                 {
@@ -79,7 +78,6 @@ export default
         },
         {
             path: 'vessel',
-            //component: MooringsDash,
             component: {
                 render(c)
                 {

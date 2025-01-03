@@ -163,7 +163,6 @@ export default {
       "loading": [],
       form: null,
       amendment_request: [],
-      //isDataSaved: false,
       proposal_readonly: true,
       hasAmendmentRequest: false,
       submitting: false,
@@ -183,7 +182,6 @@ export default {
       vesselOwnershipChanged: false,
       submitText: "Submit",
       missingVessel: false,
-      // add_vessel: false,
       profile_original: {},
       profile: {},
       submitRes: null,
@@ -257,8 +255,6 @@ export default {
       },
       proposal_form_url: function() {
         return (this.proposal) ? `/api/proposal/${this.proposal.id}/draft.json` : '';
-          // revert to above
-        //return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
       },
       application_fee_url: function() {
           return (this.proposal) ? `/application_fee/${this.proposal.id}/` : '';
@@ -269,7 +265,6 @@ export default {
       },
       proposal_submit_url: function() {
         return (this.proposal) ? `/api/proposal/${this.proposal.id}/submit.json` : '';
-        //return this.submit();
       },
       canEditActivities: function(){
         return this.proposal ? this.proposal.can_user_edit: 'false';
@@ -298,7 +293,6 @@ export default {
       },
       amendmentOrRenewal: function(){
           let amendRenew=false;
-          //if (this.proposal && ['amendment', 'renewal'].includes(this.proposal.proposal_type.code)) 
           if(this.proposal && this.proposal.proposal_type && this.proposal.proposal_type.code !== 'new'){
               amendRenew=true;
           }
@@ -359,8 +353,6 @@ export default {
                     payload.proposal.bay_preferences_numbered =
                         this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
                 } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') {
-                    //payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
-                    //payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                     payload.proposal.site_licensee_moorings = this.proposal.site_licensee_moorings;
                 }
             }
@@ -392,17 +384,14 @@ export default {
     },
     updateMooringAuth: function(changed) {
         this.mooringOptionsChanged = changed;
-        //console.log("updateMooringAuth");
     },
     updateVesselChanged: function(vesselChanged) {
         console.log('in updateVesselChanged at the proposal.vue')
         this.vesselChanged = vesselChanged;
         console.log('this.vesselChanged: ' + this.vesselChanged)
-        //console.log("updateVesselChanged");
     },
     updateMooringPreference: function(preferenceChanged) {
         this.mooringPreferenceChanged = preferenceChanged;
-        //console.log("updateMooringPreference");
     },
     updateVesselOwnershipChanged: function(changed) {
         console.log('updateVesselOwnershipChanged in proposal.vue:' + changed)
@@ -434,7 +423,6 @@ export default {
 
         let payload = this.buildPayload();
 
-        //vm.$http.post(vm.proposal_form_url,payload).then(res=>{
         const res = await vm.$http.post(url, payload);
         if (res.ok) {
             if (withConfirm) {
@@ -503,10 +491,8 @@ export default {
             console.log(typeof(err.body))
             await swal({
                 title: 'Submit Error',
-                //text: helpers.apiVueResourceError(err),
                 html: helpers.formatError(err),
                 type: "error",
-                //html: true,
             })
             this.savingProposal=false;
             this.paySubmitting=false;
@@ -524,18 +510,13 @@ export default {
                 });
             }
         } catch(err) {
-            //console.log(err)
-            //console.log(typeof(err.body))
             await swal({
                 title: 'Submit Error',
-                //text: helpers.apiVueResourceError(err),
                 html: helpers.formatError(err),
                 type: "error",
-                //html: true,
             })
             this.savingProposal=false;
             this.paySubmitting=false;
-            //this.submitting = false;
         }
     },
     setdata: function(readonly){
@@ -575,85 +556,6 @@ export default {
             $("#" + missing_field.id).css("color", 'red');
         }
     },
-    /*
-    validate: function(){
-        let vm = this;
-
-        // reset default colour
-        for (var field of vm.missing_fields) {
-            $("#" + field.id).css("color", '#515151');
-        }
-        vm.missing_fields = [];
-
-        // get all required fields, that are not hidden in the DOM
-        //var hidden_fields = $('input[type=text]:hidden, textarea:hidden, input[type=checkbox]:hidden, input[type=radio]:hidden, input[type=file]:hidden');
-        //hidden_fields.prop('required', null);
-        //var required_fields = $('select:required').not(':hidden');
-        var required_fields = $('input[type=text]:required, textarea:required, input[type=checkbox]:required, input[type=radio]:required, input[type=file]:required, select:required').not(':hidden');
-        console.log(required_fields);
-        // loop through all (non-hidden) required fields, and check data has been entered
-        required_fields.each(function() {
-
-            //console.log('type: ' + this.type + ' ' + this.name)
-            var id = 'id_' + this.name
-            if (this.type == 'radio') {
-                //if (this.type == 'radio' && !$("input[name="+this.name+"]").is(':checked')) {
-                if (!$("input[name="+this.name+"]").is(':checked')) {
-                    var text = $('#'+id).text()
-                    console.log('radio not checked: ' + this.type + ' ' + text)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'checkbox') {
-                //if (this.type == 'radio' && !$("input[name="+this.name+"]").is(':checked')) {
-                var id = 'id_' + this.classList['value']
-                if ($("[class="+this.classList['value']+"]:checked").length == 0) {
-                    var text = $('#'+id).text()
-                    console.log('checkbox not checked: ' + this.type + ' ' + text)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'select-one') {
-                if ($(this).val() == '') {
-                    var text = $('#'+id).text()  // this is the (question) label
-                    var id = 'id_' + $(this).prop('name'); // the label id
-                    console.log('selector not selected: ' + this.type + ' ' + text)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'file') {
-                var num_files = $('#'+id).attr('num_files')
-                if (num_files == "0") {
-                    var text = $('#'+id).text()
-                    console.log('file not uploaded: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'text') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('text not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-            if (this.type == 'textarea') {
-                if (this.value == '') {
-                    var text = $('#'+id).text()
-                    console.log('textarea not provided: ' + this.type + ' ' + this.name)
-                    vm.missing_fields.push({id: id, label: text});
-                }
-            }
-
-        });
-
-        return vm.missing_fields.length
-    },
-      */
 
     can_submit: function(){
       let vm=this;
@@ -669,9 +571,7 @@ export default {
                 if(vm.proposal.other_details.accreditations[i].accreditation_expiry==null || vm.proposal.other_details.accreditations[i].accreditation_expiry==''){
                   blank_fields.push('Expiry date for accreditation type '+vm.proposal.other_details.accreditations[i].accreditation_type_value+' is required')
                 }
-                // var acc_doc_ref='accreditation_file'+vm.proposal.other_details.accreditations[i].accreditation_type;
                 var acc_ref= vm.proposal.other_details.accreditations[i].accreditation_type;
-                // console.log(acc_doc_ref, acc_ref);
                 if(vm.$refs.proposal_tclass.$refs.other_details.$refs[acc_ref][0].$refs.accreditation_file.documents.length==0){
                   blank_fields.push('Accreditation Certificate for accreditation type '+vm.proposal.other_details.accreditations[i].accreditation_type_value+' is required')
                 }
@@ -741,10 +641,8 @@ export default {
                     console.log(err)
                     await swal({
                         title: 'Submit Error',
-                        //text: helpers.apiVueResourceError(err),
                         html: helpers.formatError(err),
                         type: "error",
-                        //html: true,
                     })
                 }
             });
@@ -780,21 +678,10 @@ export default {
   mounted: function() {
     let vm = this;
     vm.form = document.forms.new_proposal;
-    //this.addEventListeners();
-      /* uncomment later - too annoying while making front end changes
-    window.addEventListener('beforeunload', vm.leaving);
-    window.addEventListener('onblur', vm.leaving);
-    */
-    // if (vm.$route.params.add_vessel){
-    //   vm.add_vessel = true  // This is used only for ML.
-    // }
   },
 
 
   beforeRouteEnter: function(to, from, next) {
-    // if (to.params.add_vessel){
-    //   this.add_vessel = true  // This is used only for ML.
-    // }
     if (to.params.proposal_id) {
       let vm = this;
       Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
@@ -804,37 +691,11 @@ export default {
             //used in activities_land for T Class licence
             vm.loading.splice('fetching proposal', 1);
             vm.setdata(vm.proposal.readonly);
-              /*
-            Vue.http.get(helpers.add_endpoint_json(api_endpoints.proposals,to.params.proposal_id+'/amendment_request')).then((res) => {
-                      vm.setAmendmentData(res.body);
-                },
-              err => {
-                        console.log(err);
-                  });
-              */
-              });
+            });
           },
         err => {
-          //console.log(err);
         });
     }
-      /*
-    else {
-      Vue.http.post('/api/proposal.json').then(res => {
-          next(vm => {
-            vm.loading.push('fetching proposal')
-            vm.proposal = res.body;
-            vm.loading.splice('fetching proposal', 1);
-          });
-        },
-        err => {
-          console.log(err);
-        });
-    }
-    */
   }
 }
 </script>
-
-<style lang="css" scoped>
-</style>

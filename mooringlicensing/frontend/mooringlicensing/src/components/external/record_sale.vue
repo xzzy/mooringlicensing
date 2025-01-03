@@ -42,7 +42,6 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
@@ -71,10 +70,6 @@ export default {
                 showClear:true,
                 useCurrent:false,
                 maxDate: moment().endOf('day'),
-                /*
-                keepInvalid:true,
-                allowInputToggle:true
-                */
             },
             saving: false,
             saleDate: null,
@@ -86,13 +81,6 @@ export default {
             return vm.errors;
         },
     },
-    /*
-    watch: {
-        due_date: function(){
-            this.validDate = moment(this.requirement.due_date,'DD/MM/YYYY').isValid();
-        },
-    },
-    */
     methods:{
         ok:function () {
             this.$nextTick(()=>{
@@ -169,6 +157,3 @@ export default {
     },
 }
 </script>
-
-<style lang="css">
-</style>

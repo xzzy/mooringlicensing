@@ -85,8 +85,7 @@
 </template>
 <script>
 import {
-    api_endpoints,
-    helpers
+    api_endpoints
 }
 from '@/utils/hooks'
 import FormSection from "@/components/forms/section_toggle.vue"
@@ -116,7 +115,6 @@ export default {
     },
     components:{
         FormSection,
-        //ComponentSiteSelection,
     },
     computed:{
         decisionTitle: function(){
@@ -239,7 +237,6 @@ export default {
         },
     },
     mounted: function(){
-        let vm = this;
         this.updateComponentSiteSelectionKey()
         this.retrieveMooringDetails()
     }

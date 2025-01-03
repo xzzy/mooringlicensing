@@ -100,7 +100,7 @@ import WaitingListTable from "@/components/common/table_approvals"
 import LicencesAndPermitsTable from "@/components/common/table_approvals"
 import CompliancesTable from "@/components/common/table_compliances"
 import VesselsTable from "@/components/common/table_vessels"
-import { api_endpoints, helpers, constants } from '@/utils/hooks'
+import { api_endpoints, helpers } from '@/utils/hooks'
 import CommsLogs from '@common-utils/comms_logs.vue'
 
 export default {

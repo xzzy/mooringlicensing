@@ -100,19 +100,9 @@
                           <div class="form-group">
                               <label for="" class="col-sm-3 control-label" >{{ approvalLabel }}</label>
                             <div class="col-sm-4">
-                                <!-- <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Approval.pdf</a></p> -->
-                                <!--p><a :href="'#'+approval.id" class="control-label pull-left" @click="viewApprovalPDF(approval.id, approval.latest_apiary_licence_document)">Approval.pdf</a></p-->
                                 <p><a target="_blank" :href="approval.licence_document" class="control-label pull-left">Licence.pdf</a></p>
                             </div>
                           </div>
-                          <!--div class="form-group">
-                            <label for="" class="col-sm-3 control-label" >Document History</label>
-                            <div class="col-sm-4">
-                                <div v-for="doc in approval.apiary_licence_document_history">
-                                    <p><a target="_blank" :href="doc.url" class="control-label pull-left">{{doc.name}}</a></p>
-                                </div>
-                            </div>
-                          </div-->
                        </form>
                   </div>
                 </div>
@@ -189,7 +179,6 @@
 </div>
 </template>
 <script>
-import $ from 'jquery'
 import Vue from 'vue'
 import datatable from '@vue-utils/datatable.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
@@ -197,10 +186,6 @@ import Applicant from '@/components/common/applicant.vue'
 import Vessels from '@/components/common/vessels.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
-//import OnSiteInformation from '@/components/common/apiary/section_on_site_information.vue'
-//import TemporaryUse from '@/components/common/apiary/section_temporary_use.vue'
-//import ComponentSiteSelection from '@/components/common/apiary/component_site_selection.vue'
-//import SectionAnnualRentalFee from '@/components/common/apiary/section_annual_rental_fee.vue'
 export default {
   name: 'ApprovalDetail',
   data() {
@@ -229,7 +214,6 @@ export default {
         comms_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/comms_log'),
         comms_add_url: helpers.add_endpoint_json(api_endpoints.approvals,vm.$route.params.approval_id+'/add_comms_log'),
         moorings_datatable_headers: [
-                //'Id',
                 'Mooring',
                 'Sticker',
                 'Licensee',
@@ -272,7 +256,6 @@ export default {
             ],
         },
         ml_vessels_datatable_headers: [
-                //'Id',
                 'Vessel',
                 'Rego No',
                 'Sticker',
@@ -343,8 +326,6 @@ export default {
   },
   watch: {
       showExpired: function(value){
-          console.log(value)
-          //this.$refs.approvals_datatable.vmDataTable.ajax.reload()
           this.$nextTick(() => {
               this.constructMLAuthorisedUsersTable()
           });
@@ -355,11 +336,11 @@ export default {
         return moment(data).format('DD/MM/YYYY');
     }
   },
-    props: {
-        approvalId: {
-            type: Number,
-        },
-    },
+  props: {
+      approvalId: {
+          type: Number,
+      },
+  },
   created: async function(){
       const response = await Vue.http.get(helpers.add_endpoint_json(api_endpoints.approvals,this.$route.params.approval_id));
       this.approval = Object.assign({}, response.body);
@@ -376,11 +357,11 @@ export default {
       })
   },
   components: {
-        datatable,
-        CommsLogs,
-        FormSection,
-        Applicant,
-        Vessels,
+    datatable,
+    CommsLogs,
+    FormSection,
+    Applicant,
+    Vessels,
   },
   computed: {
     isLoading: function () {
@@ -414,7 +395,6 @@ export default {
         }
         return permit;
     },
-
   },
   methods: {
     constructMooringsTable: function() {
@@ -514,18 +494,14 @@ export default {
     },
     viewApprovalPDF: function(id,media_link){
             let vm=this;
-            //console.log(approval);
             vm.$http.get(helpers.add_endpoint_json(api_endpoints.approvals,(id+'/approval_pdf_view_log')),{
                 })
                 .then((response) => {
-                    //console.log(response)
                 }, (error) => {
                     console.log(error);
                 });
             window.open(media_link, '_blank');
     },
-
-
   },
   mounted: function () {
     window.removeMooringFromAUP = (mooringName) => {
