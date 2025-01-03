@@ -19,8 +19,6 @@ def make_url_for_internal(url):
         else:
             url = url.replace('.dbca.wa.gov.au', '-internal.dbca.wa.gov.au')
 
-    # url = url.replace('-internal.dbca', '-internal-oim01.dbca')
-
     url = make_http_https(url)
     return url
 
@@ -29,8 +27,6 @@ def make_url_for_external(url):
     # Public URL should not have 'internal' substring
     if '-dev-internal' in url:
         url = url.replace('-dev-internal', '-dev')
-    # elif '-uat-internal-oim01' in url:
-    #     url = url.replace('-uat-internal-oim01', '-uat')
     elif '-uat-internal' in url:
         url = url.replace('-uat-internal', '-uat')
     else:
@@ -39,7 +35,6 @@ def make_url_for_external(url):
     # For seg-dev environment
     if '-ria-seg-dev' in url:
         url = url.replace('-ria-seg-dev', '-seg-dev')
-        # url = url.replace('-oim01', '')
 
     web_url = make_http_https(url)
 

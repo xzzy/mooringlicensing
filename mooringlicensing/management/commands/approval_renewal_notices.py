@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import Q
 from mooringlicensing.components.approvals.models import (
@@ -16,7 +15,7 @@ from mooringlicensing.components.proposals.email import send_approval_renewal_em
 
 import logging
 
-from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting, ApplicationType
+from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
 from mooringlicensing.management.commands.utils import construct_email_message
 from mooringlicensing.settings import (
     CODE_DAYS_FOR_RENEWAL_WLA,

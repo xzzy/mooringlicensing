@@ -12,7 +12,7 @@ from mooringlicensing.components.main.models import (
     Document, RevisionedMixin
 )
 from django.core.files.storage import FileSystemStorage
-from mooringlicensing.components.proposals.models import ProposalRequirement, AmendmentReason
+from mooringlicensing.components.proposals.models import ProposalRequirement
 from mooringlicensing.components.compliances.email import (
                         send_compliance_accept_email_notification,
                         send_amendment_email_notification,

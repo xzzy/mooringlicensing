@@ -1,8 +1,6 @@
 import logging
 from django.core.management.base import BaseCommand
-from mooringlicensing.components.approvals.models import Approval
-from mooringlicensing.components.main.utils import sticker_export, email_stickers_document, reorder_wla
-from mooringlicensing.components.proposals.models import Mooring
+from mooringlicensing.components.main.utils import sticker_export, email_stickers_document
 from mooringlicensing.management.commands.utils import construct_email_message
 
 logger = logging.getLogger('cron_tasks')

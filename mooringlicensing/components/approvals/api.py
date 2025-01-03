@@ -62,7 +62,7 @@ from mooringlicensing.components.approvals.serializers import (
     DcvVesselSerializer,
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
-    ApprovalHistorySerializer, LookupDcvAdmissionSerializer, LookupDcvPermitSerializer, StickerForDcvSaveSerializer,
+    ApprovalHistorySerializer, StickerForDcvSaveSerializer,
     StickerPostalAddressSaveSerializer
 )
 from mooringlicensing.components.users.utils import get_user_name
@@ -1370,7 +1370,6 @@ class InternalDcvPermitViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixi
             #internal
             dcv_permit = self.get_object()
             details = request.data['details']
-            # sticker_ids = [sticker['id'] for sticker in request.data['stickers']]
             sticker_ids = []
             for sticker in request.data['stickers']:
                 if sticker['checked'] == True:

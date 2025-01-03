@@ -59,7 +59,6 @@ from mooringlicensing.components.proposals.email import (
 from mooringlicensing.ordered_model import OrderedModel
 import copy
 from django.db.models import Q, Max
-from reversion.models import Version
 from dirtyfields import DirtyFieldsMixin
 from rest_framework import serializers
 
@@ -2977,7 +2976,6 @@ class AnnualAdmissionApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        # return user in self.assessor_group.user_set.all()
         if isinstance(user, EmailUserRO):
             user = user.id
         return user in self.assessor_group.get_system_group_member_ids()
@@ -3071,7 +3069,6 @@ class AuthorisedUserApplication(Proposal):
                     approvals_aup.append(approval)
 
         if proposals_aua or approvals_aup:
-            #association_fail = True
             raise serializers.ValidationError("The vessel in the application is already listed in " +  
                 ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_aua]) +
                 ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_aup])
@@ -3416,7 +3413,6 @@ class AuthorisedUserApplication(Proposal):
                 proposal=target_proposal,
                 processing_status='future',
                 ):
-                #approval_compliances.delete()
                 compliance.processing_status='discarded'
                 compliance.customer_status = 'discarded'
                 compliance.post_reminder_sent=True
@@ -4596,9 +4592,6 @@ class CompanyOwnership(RevisionedMixin):
         return f"{self.company}: {self.percentage}%"
 
     def save(self, *args, **kwargs):
-        from mooringlicensing.components.approvals.models import AuthorisedUserPermit, MooringLicence
-
-        existing_record = True if CompanyOwnership.objects.filter(id=self.id) else False
         super(CompanyOwnership, self).save(*args,**kwargs)
 
 

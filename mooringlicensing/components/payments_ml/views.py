@@ -265,7 +265,6 @@ class StickerReplacementFeeView(TemplateView):
                 if is_internal(request) or (applicant and applicant.id == request.user.id): 
                     checkout_response = checkout(
                         request,
-                        # request.user,
                         applicant,
                         lines,
                         return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
@@ -294,7 +293,7 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{StickerReplacementFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not StickerActionFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'StickerActionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -489,7 +488,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{DcvAdmissionFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not DcvAdmissionFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'DcvAdmissionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -522,14 +521,12 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
 
                 dcv_admission_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 dcv_admission_fee.expiry_time = None
-                # update_payments(invoice_ref)
 
                 if 'fee_item_ids' in db_operations:
                     for item_id in db_operations['fee_item_ids']:
                         fee_item = FeeItem.objects.get(id=item_id)
                         dcv_admission_fee.fee_items.add(fee_item)
 
-                # if dcv_admission and invoice.payment_status in ('paid', 'over_paid',):
                 if dcv_admission and get_invoice_payment_status(invoice.id) in ('paid', 'over_paid',):
                     self.adjust_db_operations(dcv_admission, db_operations)
                     dcv_admission.generate_dcv_admission_doc()
@@ -544,9 +541,6 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
-            # this end-point is called by an unmonitored get request in ledger so there is no point having a
-            # a response body however we will return a status in case this is used on the ledger end in future
-            # return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(status=status.HTTP_200_OK)
 
 
@@ -591,7 +585,7 @@ class DcvPermitFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{DcvPermitFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not DcvPermitFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'DcvPermitFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -651,8 +645,6 @@ class DcvPermitFeeSuccessViewPreload(APIView):
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
-            # this end-point is called by an unmonitored get request in ledger so there is no point having a
-            # a response body however we will return a status in case this is used on the ledger end in future
             return Response(status=status.HTTP_200_OK)
 
 

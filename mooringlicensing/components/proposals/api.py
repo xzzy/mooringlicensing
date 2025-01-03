@@ -335,9 +335,8 @@ class GetMooringPerBay(views.APIView):
                     )
                     data = Mooring.available_moorings.filter(mooring_filter, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
                 else:
-                    data = Mooring.available_moorings.filter(name__icontains=search_term, mooring_bay__id=mooring_bay_id, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
+                    data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence')[:num_of_moorings_to_return]
 
-                #data = Mooring.available_moorings.filter(name__icontains=search_term, active=True).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
             else:
                 # aup
                 aup_mooring_ids = []
@@ -357,13 +356,6 @@ class GetMooringPerBay(views.APIView):
                     data = Mooring.authorised_user_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
                 else:
                     data = []
-
-                #mooring_filter = Q(
-                #    Q(name__icontains=search_term) &
-                #    Q(active=True) &
-                #    Q(mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)  # Make sure this mooring is licensed because an unlicensed mooring would never be allocated to an AU permit.
-                #)
-                #data = Mooring.private_moorings.filter(mooring_filter).values('id', 'name', 'mooring_licence', "vessel_size_limit", "vessel_draft_limit", "vessel_weight_limit")[:num_of_moorings_to_return]
 
             data_transform = []
             for mooring in data:
@@ -2132,7 +2124,6 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                             raise serializers.ValidationError(
                                     "You cannot record the sale of this vessel at this time as application {} that lists this vessel is still in progress.".format(proposal.lodgement_number)
                                     )
-                    # submitted proposals with instance == proposal.vessel_ownership
                     for proposal in instance.proposal_set.all():
                         if proposal.processing_status not in [Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_EXPIRED]:
                             raise serializers.ValidationError(
@@ -2144,7 +2135,6 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 logger.info(f'Vessel sold: VesselOwnership: [{instance}] has been updated with the end_date: [{sale_date}].')
-                # send_vessel_sale_notification_mail(request, instance)
 
                 ## collect impacted Approvals
                 approval_list = []

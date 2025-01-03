@@ -5,7 +5,6 @@
 }
 
 .topmast-rottnest {
-    /* height: 115px; */
     padding-top: 0px;
     background: #ffffff;
 }
@@ -60,27 +59,10 @@
 .horizontal-scroll {
     overflow-x: scroll;
 }
-/*
-.modal-header {
-    background-color: #529b6b;
-    color: #fcb13f;
-}
 
-.modal-body {
-    background-color: #529b6b;
-    color: #fff;
-}
-
-.modal-footer {
-    background-color: #529b6b;
-}
-*/
 .popover {
     max-width: 100%;
 }
-
-/* Padding fixes for top bar */
-
 
 .login-success-bg-body {
     z-index:3; 
@@ -106,5 +88,4 @@
     position: absolute; 
     margin-top: -30px; 
     width:92%; 
-    align-text: center;
 }

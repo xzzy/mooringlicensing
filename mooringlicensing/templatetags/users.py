@@ -1,11 +1,8 @@
 from django.template import Library
-#from wildlifelicensing.apps.main import helpers
-#from mooringlicensing import helpers
 from django.conf import settings
 from mooringlicensing import helpers as mooringlicensing_helpers
 from mooringlicensing.components.main.models import SystemMaintenance
-# from ledger.payments.helpers import is_payment_admin
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 from ledger_api_client.helpers import is_payment_admin_cached
 import pytz
@@ -40,7 +37,6 @@ def is_model_backend(context):
 @register.simple_tag(takes_context=True)
 def is_payment_officer(context):
     request = context['request']
-    #user= request.user._wrapped if hasattr(request.user,'_wrapped') else request.user
     return is_payment_admin_cached(request, request.user)
 
 @register.simple_tag()
@@ -72,4 +68,3 @@ def system_maintenance_can_start():
 @register.simple_tag()
 def dept_support_phone2():
     return settings.DEPT_NAME
-

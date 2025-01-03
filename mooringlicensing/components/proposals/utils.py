@@ -489,10 +489,7 @@ def store_vessel_ownership(request, vessel, instance):
 
 
     ## add to vessel_ownership_data
-    # vessel_ownership_data['company_ownership'] = None
     if company_ownership and company_ownership.id:
-        # vessel_ownership_data['company_ownership'] = company_ownership.id
-        # vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # This line is doesn't work at all, due to through table???
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -625,7 +622,6 @@ def handle_vessel_registration_documents_in_limbo(proposal_id, vessel_ownership)
     for doc in documents_in_limbo:
         doc.vessel_ownership = vessel_ownership  # Link to the vessel_ownership
         doc.can_delete = False
-        # doc.proposal = None  # Unlink to the proposal.  This link is used when proposal is draft and vessel_ownership is unknown.
         doc.save()
 
         logger.info(f'VesselRegistrationFile: {doc} has had a link to the vessel_ownership: {vessel_ownership}')

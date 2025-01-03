@@ -58,7 +58,6 @@ class Payment(models.Model):
         return amount
 
     def __check_payment_status(self):
-        amount = Decimal('0.0')
         invoice = Invoice.objects.filter(reference=self.invoice_reference)
         if invoice:
             invoice = invoice.first()
@@ -280,8 +279,6 @@ class FeeSeason(models.Model):
 
     @property
     def is_editable(self):
-        temp = self.fee_constructors
-        temp = self.fee_constructors.all()
         for fee_constructor in self.fee_constructors.all():
             if not fee_constructor.is_editable:
                 # This season has been used in the fee_constructor for payments at least once
@@ -574,7 +571,6 @@ class FeeConstructor(models.Model):
                             if (
                                     (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,]) or
                                     (not fee_period.is_first_period and proposal_type.code in [settings.PROPOSAL_TYPE_RENEWAL,])
-                                    # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication <== When renew the ML with null vessel, do we need nul vessel AA fee_item...???
                                     # When first period and renewal proposal
                             ):
                                 # No need to create fee_items
