@@ -146,8 +146,8 @@ MOORING_AUTH_PREFERENCES = (
         )
 
 
-class ProposalType(RevisionedMixin):
-    code = models.CharField(max_length=30, blank=True, null=True)
+class ProposalType(models.Model):
+    code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
