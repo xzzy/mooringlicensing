@@ -361,8 +361,8 @@ def _post_delete_vsc(sender, instance, **kwargs):
             fee_constructor.reconstruct_fees()
 
 
-class NumberOfDaysType(RevisionedMixin):
-    code = models.CharField(max_length=100, blank=True, null=True)
+class NumberOfDaysType(models.Model):
+    code = models.CharField(max_length=100, blank=True, null=True, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, verbose_name='description', help_text='')
 
@@ -414,10 +414,8 @@ class NumberOfDaysSetting(RevisionedMixin):
 
 import reversion
 reversion.register(CommunicationsLogEntry, follow=[])
-reversion.register(ApplicationType, follow=['proposalstandardrequirement_set', 'feeseason_set', 'feeconstructor_set', 'oracle_code_items'])
 reversion.register(GlobalSettings, follow=[])
 reversion.register(SystemMaintenance, follow=[])
 reversion.register(VesselSizeCategoryGroup, follow=['vessel_size_categories', 'fee_constructors'])
 reversion.register(VesselSizeCategory, follow=['feeitem_set'])
-reversion.register(NumberOfDaysType, follow=['settings'])
 reversion.register(NumberOfDaysSetting, follow=[])
