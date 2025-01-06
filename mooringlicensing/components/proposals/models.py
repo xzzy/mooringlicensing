@@ -5171,7 +5171,6 @@ def delete_documents(sender, instance, *args, **kwargs):
 
 import reversion
 reversion.register(ProposalDocument)
-reversion.register(ProposalType, follow=['proposal_set',])
 reversion.register(Proposal, follow=['proposal_applicant'])
 reversion.register(ProposalApplicant)
 reversion.register(StickerPrintingContact, follow=[])
