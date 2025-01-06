@@ -19,7 +19,7 @@
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
-import { api_endpoints, helpers, constants } from '@/utils/hooks'
+import { api_endpoints, constants } from '@/utils/hooks'
 export default {
     name: 'TableCompliances',
     props: {
@@ -154,9 +154,7 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            //return 'View<br />Endorse<br />Decline'
                             let links = '';
-                            // links +=  `<a href='/aua_for_endorsement/${full.uuid}/view/'>View</a><br/>`;
                             links +=  `<a href='/external/proposal/${full.uuid}/'>View</a><br/>`;
                             if(full.proposal_status === constants.AWAITING_ENDORSEMENT 
                                 && full.can_endorse
@@ -198,10 +196,6 @@ export default {
                     },
                 ],
                 processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                },
-
             },
         }
     },
@@ -283,9 +277,6 @@ export default {
             });
 
         },
-    },
-    created: function(){
-
     },
     mounted: function(){
         this.$nextTick(() => {

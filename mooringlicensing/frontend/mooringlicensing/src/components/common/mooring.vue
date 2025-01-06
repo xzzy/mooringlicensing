@@ -15,8 +15,7 @@
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
 import {
-  api_endpoints,
-  helpers
+  api_endpoints
 }
 from '@/utils/hooks'
 
@@ -39,27 +38,7 @@ from '@/utils/hooks'
             return {
                 selectedMooring: null,
                 mooringBays: [],
-                /*
-                moorings: [
-                    'Catherine Bay',
-                    'Longreach Bay',
-                    'Narrow Neck (Rocky Bay)',
-                    'Stark Bay',
-                    'Geordie Bay',
-                    'Majorie Bay',
-                    'Porpoise Bay',
-                    'Thomson Bay',
-                ],
-                */
             }
-        },
-        computed: {
-            // disable_mooring_selection: function(){
-            //     let disable = false
-            //     if (this.proposal.proposal_type.code != 'new'){
-            //         disable = true
-            //     }
-            // }
         },
         methods:{
             mooringPreferenceChanged: async function() {

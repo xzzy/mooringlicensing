@@ -60,8 +60,7 @@
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
-import Vue from 'vue'
-import { api_endpoints, helpers } from '@/utils/hooks'
+import { api_endpoints } from '@/utils/hooks'
 
 export default {
     name: 'TableDcvAdmissions',
@@ -114,15 +113,7 @@ export default {
             return this.level == 'internal'
         },
         datatable_headers: function(){
-            /*
-            if (this.is_external){
-                return ['id', 'Lodgement Number', 'Type', 'Application Type', 'Status', 'Lodged on', 'Invoice', 'Action']
-            }
-            if (this.is_internal){
-                return ['id', 'Lodgement Number', 'Type', 'Applicant', 'Status', 'Lodged on', 'Assigned To', 'Payment Status', 'Action']
-            }
-            */
-            return ['id', 'Number', 'Invoice / Confirmation',/* 'Organisation', 'Status',*/'Arrival Date', 'Lodgement Date', 'Action']
+            return ['id', 'Number', 'Invoice / Confirmation', 'Arrival Date', 'Lodgement Date', 'Action']
         },
         column_id: function(){
             return {
@@ -218,26 +209,6 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
-                    /*
-                    let links = '';
-                    if (!vm.is_external){
-                        if(full.assessor_process){
-                            links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                        } else {
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                        }
-                    }
-                    else{
-                        if (full.can_user_edit) {
-                            links +=  `<a href='/external/proposal/${full.id}'>Continue</a><br/>`;
-                            links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}'>Discard</a><br/>`;
-                        }
-                        else if (full.can_user_view) {
-                            links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                        }
-                    }
-                    return links;
-                    */
                     let links = '';
                     if (full.invoices){
                         for (let invoice of full.invoices){
@@ -255,8 +226,6 @@ export default {
                 vm.column_id,
                 vm.column_lodgement_number,
                 vm.column_invoice_confirmation,
-                //vm.column_organisation,
-                //vm.column_status,
                 vm.column_arrival_date,
                 vm.column_lodgement_date,
                 vm.column_action,
@@ -283,7 +252,6 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                //buttons:[ ],
                 buttons:[
                     {
                         extend: 'excel',
@@ -400,9 +368,6 @@ export default {
                 }
             })
         },
-    },
-    created: function(){
-        console.log('table_applications created')
     },
     mounted: function(){
         let vm = this;

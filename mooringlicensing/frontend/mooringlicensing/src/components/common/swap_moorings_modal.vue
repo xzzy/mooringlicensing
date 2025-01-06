@@ -29,7 +29,7 @@
 <script>
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+import { helpers, api_endpoints } from "@/utils/hooks.js"
 import datatable from '@/utils/vue/datatable.vue'
 
 export default {
@@ -68,12 +68,6 @@ export default {
             datatable_id: 'swap-moorings-datatable-' + vm._uid,
             selectedApprovalId: null,
             selectedApprovalLodgementNumber: null,
-        }
-    },
-    watch: {
-        approval_id: async function(){
-            console.log('aho')
-            let vm = this
         }
     },
     computed: {
@@ -151,7 +145,6 @@ export default {
                         ret += rego + '<br/>'
                     }
                     return ret
-                    //return '';
                 },
                 name: "current_proposal__vessel_details__vessel__rego_no"
             }
@@ -291,6 +284,3 @@ export default {
     }
 }
 </script>
-
-<style lang="css">
-</style>

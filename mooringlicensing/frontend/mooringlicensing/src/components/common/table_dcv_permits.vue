@@ -183,7 +183,6 @@ export default {
                 visible: true,
                 'render': function(row, type, full){
                     return full.dcv_organisation_name;
-                    //return '';
                 },
                 name: 'dcv_organisation__name',
             }
@@ -313,7 +312,6 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                //buttons:[ ],
                 buttons:[
                     {
                         extend: 'excel',
@@ -488,7 +486,6 @@ export default {
         fetchFilterLists: function(){
             let vm = this;
             // FeeSeason list
-            //vm.$http.get(api_endpoints.fee_seasons_dict + '?application_type_codes=dcvp').then((response) => {
             vm.$http.get(api_endpoints.fee_seasons_dict + '?application_type_codes=dcvp').then((response) => {
                 vm.fee_seasons = response.body
             },(error) => {
