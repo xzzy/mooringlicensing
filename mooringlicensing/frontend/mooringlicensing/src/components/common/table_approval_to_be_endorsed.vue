@@ -145,7 +145,7 @@ export default {
                                 return full.proposal_status
                             }
                         },
-                        name: "proposal__processing_status",
+                        name: "proposal__customer_status",
                     },
                     {
                         // 10. Action

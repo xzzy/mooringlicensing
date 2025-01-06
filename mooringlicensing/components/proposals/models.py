@@ -145,8 +145,8 @@ MOORING_AUTH_PREFERENCES = (
         )
 
 
-class ProposalType(RevisionedMixin):
-    code = models.CharField(max_length=30, blank=True, null=True)
+class ProposalType(models.Model):
+    code = models.CharField(max_length=30, blank=True, null=True, unique=True)
     description = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
@@ -5161,7 +5161,6 @@ def delete_documents(sender, instance, *args, **kwargs):
 
 import reversion
 reversion.register(ProposalDocument)
-reversion.register(ProposalType, follow=['proposal_set',])
 reversion.register(Proposal, follow=['proposal_applicant'])
 reversion.register(ProposalApplicant)
 reversion.register(StickerPrintingContact, follow=[])

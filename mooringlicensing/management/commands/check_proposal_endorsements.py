@@ -46,6 +46,8 @@ class Command(BaseCommand):
         update_proposals.update(
             processing_status=Proposal.PROCESSING_STATUS_WITH_ASSESSOR
         )
-
+        update_proposals.update(
+            customer_status=Proposal.CUSTOMER_STATUS_WITH_ASSESSOR
+        )
         
         
