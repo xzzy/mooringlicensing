@@ -2767,7 +2767,7 @@ class AgeGroup(models.Model):
         (AGE_GROUP_ADULT, 'Adult'),
         (AGE_GROUP_CHILD, 'Child'),
     )
-    code = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0])
+    code = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0], unique=True)
 
     def __str__(self):
         for item in self.NAME_CHOICES:
@@ -2791,7 +2791,7 @@ class AdmissionType(models.Model):
         (ADMISSION_TYPE_WATER_BASED, 'Water based'),
         (ADMISSION_TYPE_APPROVED_EVENTS, 'Approved events'),
     )
-    code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0], unique=True)
 
     def __str__(self):
         for item in self.TYPE_CHOICES:
@@ -3433,8 +3433,6 @@ reversion.register(DcvOrganisation, follow=['dcv_vessels', 'dcvpermit_set'])
 reversion.register(DcvVessel, follow=['dcv_admissions', 'dcv_permits'])
 reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'dcv_admission_documents'])
 reversion.register(DcvAdmissionArrival, follow=['numberofpeople_set'])
-reversion.register(AgeGroup, follow=['numberofpeople_set'])
-reversion.register(AdmissionType, follow=['numberofpeople_set'])
 reversion.register(NumberOfPeople, follow=[])
 reversion.register(DcvPermit, follow=['dcv_permit_documents', 'stickers'])
 reversion.register(DcvAdmissionDocument, follow=[])
