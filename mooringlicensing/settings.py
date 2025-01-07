@@ -142,6 +142,8 @@ CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).low
 EMAIL_FROM = DEFAULT_FROM_EMAIL
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 
+SYSTEM_EMAIL=env('SYSTEM_EMAIL','ledger@dbca.wa.gov.au')
+
 ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 
 BASE_URL=env('BASE_URL')
