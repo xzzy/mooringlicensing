@@ -89,15 +89,7 @@ def get_or_create_system_user(email_user_id, email, first_name, last_name, dob, 
     else:
         if EmailUserRO.objects.filter(id=email_user_id, is_active=True).order_by('-id').exists():
             try:
-                system_user = SystemUser.objects.create(
-                    ledger_id_id=email_user_id,
-                    email=email,
-                    legal_first_name=first_name,
-                    legal_last_name=last_name,
-                    legal_dob=dob,
-                    phone_number=phone,
-                    mobile_number=mobile,
-                )
+                system_user = create_system_user(email_user_id, email, first_name, last_name, dob, phone=None, mobile=None)
                 return system_user, True
             except:
                 #update the existing record with the correct ledger id
