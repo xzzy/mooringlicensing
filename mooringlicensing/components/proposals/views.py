@@ -89,7 +89,6 @@ class AuthorisedUserApplicationEndorseView(TemplateView):
 
         context = {
             'proposal': proposal,
-            'mooring': proposal.mooring,
         }
 
         return render(request, self.template_name, context)

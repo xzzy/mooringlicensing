@@ -221,7 +221,7 @@ export default {
         retrieveMooringDetails: async function(){
             console.log('%cAHO', 'color: #370;')
             let mooring_id = null
-            if (this.proposal.proposed_issuance_approval.mooring_id){
+            if (this.proposal.proposed_issuance_approval && this.proposal.proposed_issuance_approval.mooring_id){
                 mooring_id = this.proposal.proposed_issuance_approval.mooring_id
             } else if (this.proposal.allocated_mooring){
                 mooring_id = this.proposal.allocated_mooring
