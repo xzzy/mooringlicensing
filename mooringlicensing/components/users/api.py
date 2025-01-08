@@ -189,7 +189,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                     }
                     eu_entry = EmailUserLogEntry.objects.create(**kwargs)
 
-                    # for attachment in attachments:
                     for f in request.FILES:
                         document = eu_entry.documents.create(
                         name = str(request.FILES[f]),

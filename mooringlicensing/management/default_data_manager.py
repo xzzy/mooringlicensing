@@ -3,7 +3,6 @@ import logging
 import pytz
 import os
 
-from django.contrib.auth.models import Group
 from django.core.files import File
 
 from mooringlicensing import settings
@@ -72,7 +71,6 @@ class DefaultDataManager(object):
                             obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=True)
                         obj.save()
                     else:
-                        # obj.value = item[1]
                         obj.value = GlobalSettings.default_values[item[0]]
                         obj.save()
                     logger.info("Created {}: {}".format(item[0], item[1]))
@@ -160,7 +158,6 @@ class DefaultDataManager(object):
                     )
 
             except Exception as e:
-                # logger.error('{}, Number of days type: {}'.format(e, myType.name))
                 logger.error('{}'.format(e))
 
         # Oracle account codes

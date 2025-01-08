@@ -7,7 +7,6 @@ from django.conf import settings
 
 from mooringlicensing.components.emails.emails import TemplateEmailBase
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
-from django.core.files.base import ContentFile
 
 from mooringlicensing.components.emails.utils import get_public_url, make_http_https
 from mooringlicensing.components.users.utils import _log_user_email

@@ -46,20 +46,12 @@
                     <div class="form-group">
                         <label for="">Max Vessel Length:</label>
                         <input class="form-control" type="number" v-model="maxVesselLength" id="maxVesselLength"/>
-                        <!--select class="form-control" v-model="filterStatus">
-                            <option value="All">All</option>
-                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
-                        </select-->
                     </div>
                 </div>
                 <div class="col-md-2">
                     <div class="form-group">
                         <label for="">Max Vessel Draft:</label>
                         <input class="form-control" type="number" v-model="maxVesselDraft" id="maxVesselDraft"/>
-                        <!--select class="form-control" v-model="filterStatus">
-                            <option value="All">All</option>
-                            <option v-for="status in statusValues" :value="status.code">{{ status.description }}</option>
-                        </select-->
                     </div>
                 </div>
             </div>
@@ -94,7 +86,6 @@
                 :approvalId="approvalHistoryId"
             />
         </div>
-        <!--ApprovalHistory ref="approval_history" /-->
         <RequestNewStickerModal
             ref="request_new_sticker_modal"
             :is_internal="is_internal"
@@ -132,12 +123,6 @@ export default {
         approvalTypeFilter: {
             type: Array,
             required: true,
-            /*
-            validator: function(val) {
-                let options = ['wla', 'ml', 'aap', 'aup'];
-                return options.indexOf(val) != -1 ? true: false;
-            }
-            */
         },
         level:{
             type: String,
@@ -157,7 +142,6 @@ export default {
         let vm = this;
         return {
             datatable_id: 'waiting_lists-datatable-' + vm._uid,
-            //approvalTypesToDisplay: ['wla'],
             show_expired_surrendered: false,
             selectedWaitingListAllocationId: null,
             approvalHistoryId: null,
@@ -207,12 +191,6 @@ export default {
     computed: {
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
-        },
-        debug: function(){
-            if (this.$route.query.debug){
-                return this.$route.query.debug === 'Tru3'
-            }
-            return false
         },
         externalWaitingList: function() {
             let extWLA = false;
@@ -304,7 +282,6 @@ export default {
                     'Start Date',
                     'Expiry Date',
                     'Approval letter',
-                    //'Sticker replacement',
                     'Vessel Rego',
                     'Grace period end date',
                     'Action',
@@ -462,11 +439,11 @@ export default {
                         'render': function(row, type, full){
                             let links = '';
                             if (vm.is_external && full.can_reissue) {
-                                if(full.can_action || vm.debug){
-                                    if(full.amend_or_renew === 'amend' || vm.debug){
+                                if(full.can_action){
+                                    if(full.amend_or_renew === 'amend'){
                                        links +=  `<a href='#${full.id}' data-amend-approval='${full.current_proposal_id}' data-approval-type-name='${full.approval_type_dict.description}'>Amend</a><br/>`;
                                     }
-                                    if(full.amend_or_renew === 'renew' || vm.debug){
+                                    if(full.amend_or_renew === 'renew'){
                                         links +=  `<a href='#${full.id}' data-renew-approval='${full.current_proposal_id}' data-approval-type-name='${full.approval_type_dict.description}'>Renew</a><br/>`;
                                     }
                                     links +=  `<a href='#${full.id}' data-surrender-approval='${full.id}' data-approval-type-name='${full.approval_type_dict.description}'>Surrender</a><br/>`;
@@ -600,14 +577,12 @@ export default {
                     }
         },
         columnApprovalType: function() {
-            //let vm = this;
             return {
                         data: "id",
                         orderable: false,
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            //return full.vessel_draft;
                             let approvalType = '';
                             if (full.approval_type_dict) {
                                 approvalType = full.approval_type_dict.description;
@@ -703,7 +678,6 @@ export default {
                         ret += rego + '<br/>'
                     }
                     return ret
-                    //return '';
                 },
                 name: "current_proposal__vessel_details__vessel__rego_no"
             }
@@ -715,12 +689,9 @@ export default {
                 selectedColumns = [
                     vm.columnId,
                     vm.columnLodgementNumber,
-                    //vm.columnBay,
                     vm.columnPreferredMooringBay,
-                    //vm.columnApplicationNumberInBay,
                     vm.columnAllocationNumberInBay,
                     vm.columnStatus,
-                    // vm.columnVesselRegistration,
                     vm.columnVesselRegos,
                     vm.columnVesselName,
                     vm.columnIssueDate,
@@ -746,7 +717,6 @@ export default {
                     vm.columnAction,
                     vm.columnGracePeriod,
                     vm.columnApprovalLetter,
-                    //vm.columnStickerReplacement,
                 ]
             } else if (vm.is_internal && this.wlaDash) {
                 selectedColumns = [
@@ -783,7 +753,6 @@ export default {
                     vm.columnStartDate,
                     vm.columnExpiryDate,
                     vm.columnApprovalLetter,
-                    //vm.columnStickerReplacement,
                     vm.columnVesselRegos,
                     vm.columnGracePeriod,
                     vm.columnAction,
@@ -794,15 +763,9 @@ export default {
                 buttons = [
                     {
                         extend: 'excel',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                     {
                         extend: 'csv',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                 ]
             }
@@ -815,7 +778,6 @@ export default {
                 responsive: true,
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
-                //searching: false,
                 searching: true,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '/list2/?format=datatables&target_email_user_id=' + vm.target_email_user_id,
@@ -836,7 +798,6 @@ export default {
                         d.csrfmiddlewaretoken = vm.csrf_token
                     }
                 },
-                //dom: 'frt', //'lBfrtip',
                 dom: 'lBfrtip',
                 buttons: buttons,
                 columns: selectedColumns,
@@ -979,21 +940,11 @@ export default {
             $('#maxVesselLength').on("blur", async function(e) {
                 vm.$nextTick(() => {
                     vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
-                    /*
-                    if (vm.maxVesselLength) {
-                        vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
-                    }
-                    */
                 });
             });
             $('#maxVesselDraft').on("blur", async function(e) {
                 vm.$nextTick(() => {
                     vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
-                    /*
-                    if (vm.maxVesselDraft) {
-                        vm.$refs.approvals_datatable.vmDataTable.ajax.reload();
-                    }
-                    */
                 });
             });
             // Internal Reissue listener
@@ -1083,7 +1034,6 @@ export default {
             for (let s of statusRes.body) {
                 if (this.wlaDash && !(['extended', 'awaiting_payment', 'approved'].includes(s.code))) {
                     this.statusValues.push(s);
-                //} else if (!(['extended', 'awaiting_payment', 'offered', 'approved'].includes(s.code))) {
                 } else if (!(['extended', 'awaiting_payment', 'offered', 'approved'].includes(s.code))) {
                     this.statusValues.push(s);
                 }
@@ -1100,13 +1050,6 @@ export default {
             for (let b of mooringBayRes.body.results) {
                 this.mooringBays.push(b);
             }
-            /*
-            // Holder list
-            const holderListRes = await this.$http.get(api_endpoints.holder_list);
-            for (let h of holderListRes.body) {
-                this.holderList.push(h);
-            }
-            */
         },
         reissueApproval:function (proposal_id) {
             let vm = this;
@@ -1118,7 +1061,6 @@ export default {
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Reissue approval',
-                //confirmButtonColor:'#d9534f'
             }).then(() => {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/reissue_approval')),JSON.stringify(data),{
                 emulateJSON:true,
@@ -1144,15 +1086,12 @@ export default {
 
         reinstateApproval:function (approval_id) {
             let vm = this;
-            let status= 'with_approver'
-            //let data = {'status': status}
             swal({
                 title: "Reinstate Approval",
                 text: "Are you sure you want to reinstate this approval?",
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Reinstate approval',
-                //confirmButtonColor:'#d9534f'
             }).then(() => {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.approvals,(approval_id+'/approval_reinstate')),{
 
@@ -1191,7 +1130,6 @@ export default {
             this.$refs.swap_moorings_modal.approval_id = approval_id
             this.$refs.swap_moorings_modal.approval_lodgement_number = lodgement_number
             this.$refs.swap_moorings_modal.isModalOpen = true
-            // this.$refs.swap_moorings_modal.vmDataTable.ajax.reload()
         },
         surrenderApproval: function(approval_id, approval_type_name){
             this.$refs.approval_surrender.approval_id = approval_id;
@@ -1216,17 +1154,14 @@ export default {
 
         renewApproval:function (proposal_id) {
             let vm = this;
-            let status= 'with_approver'
-            //let data = {'status': status}
             swal({
                 title: "Renew Approval",
                 text: "Are you sure you want to renew this approval?",
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Renew approval',
-                //confirmButtonColor:'#d9534f'
             }).then(() => {
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=renew', {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?type=renew', {
 
                 })
                 .then((response) => {
@@ -1256,9 +1191,8 @@ export default {
                 type: "warning",
                 showCancelButton: true,
                 confirmButtonText: 'Amend',
-                //confirmButtonColor:'#d9534f'
             }).then(() => {
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?debug=' + vm.debug + '&type=amend', {
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,(proposal_id+'/renew_amend_approval_wrapper')) + '?type=amend', {
 
                 })
                 .then((response) => {
@@ -1294,6 +1228,3 @@ export default {
     }
 }
 </script>
-
-<style lang="css" scoped>
-</style>

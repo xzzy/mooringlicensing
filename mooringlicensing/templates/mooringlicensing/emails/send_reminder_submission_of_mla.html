@@ -9,18 +9,3 @@ Please click <a href="{{ url }}">here</a> to access the application.
 
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}
-
-
-
-{% comment %}
-{% extends 'mooringlicensing/emails/base_email.html' %}
-
-{% block content %}
-    <p>
-        The submission of the moorling licence application {{ approval.lodgement_number }} deadline is approaching. Please do not forget to submit it.
-        <a href="{{ proposal_url }}">Access the mooring site licence application</a>
-    </p>
-
-    Regards,
-{%  endblock %}
-{% endcomment %}

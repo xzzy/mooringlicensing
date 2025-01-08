@@ -312,8 +312,7 @@
 import datatable from '@/utils/vue/datatable.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
 import {
-    api_endpoints,
-    helpers
+    api_endpoints
 }
 from '@/utils/hooks'
 export default {
@@ -476,5 +475,3 @@ export default {
     }
 }
 </script>
-
-<style lang="css" scoped></style>

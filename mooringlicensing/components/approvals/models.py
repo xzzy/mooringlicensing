@@ -1,4 +1,3 @@
-import math
 from dateutil.relativedelta import relativedelta
 
 import ledger_api_client.utils
@@ -1185,7 +1184,6 @@ class WaitingListAllocation(Approval):
     def processes_after_cancel(self):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
-        # self.wla_queue_date = None
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
@@ -2659,7 +2657,7 @@ class DcvAdmission(RevisionedMixin):
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-        # vessel_length = 1  # any number greater than 0
+
         vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
         proposal_type = None
         oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)

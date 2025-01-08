@@ -5,7 +5,7 @@ from docxtpl import DocxTemplate
 from mooringlicensing.components.main.models import GlobalSettings
 
 
-def create_dcv_permit_pdf_tytes(dcv_permit):
+def create_dcv_permit_pdf_bytes(dcv_permit):
 
     licence_template = GlobalSettings.objects.get(key=GlobalSettings.KEY_DCV_PERMIT_TEMPLATE_FILE)
 
@@ -15,10 +15,6 @@ def create_dcv_permit_pdf_tytes(dcv_permit):
         raise Exception('DcvPermit template file not found.')
 
     doc = DocxTemplate(path_to_template)
-
-    serializer_context = {
-        'dcv_permit': dcv_permit,
-    }
     
     context = dcv_permit.get_context_for_licence_permit()
     if 'p_address_line2' in context and context['p_address_line2'] is None:

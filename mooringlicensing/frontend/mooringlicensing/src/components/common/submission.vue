@@ -33,12 +33,6 @@
 <script>
 export default {
     name: 'Submission',
-    data: function() {
-        let vm = this;
-        return {
-
-        }
-    },
     props: {
         submitter_first_name: {
             type: String,

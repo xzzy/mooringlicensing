@@ -10,16 +10,10 @@
 <p>- Landing: {{ arrival.adult.landing }}</p>
 <p>- Extended stay: {{ arrival.adult.extended_stay }}</p>
 <p>- Not landing: {{ arrival.adult.water_based }}</p>
-{% comment "Hide for now" %}
-<p>- Approved events: {{ arrival.adult.approved_events }}</p>
-{% endcomment %}
 <p>Number of children (4-12)</p>
 <p>- Landing: {{ arrival.child.landing }}</p>
 <p>- Extended stay: {{ arrival.child.extended_stay }}</p>
 <p>- Not landing: {{ arrival.child.water_based }}</p>
-{% comment "Hide for now" %}
-<p>- Approved events: {{ arrival.child.approved_events }}</p>
-{% endcomment %}
 {% endfor %}
 <p>Please find attached the DCV permit and the invoice for the payment.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}

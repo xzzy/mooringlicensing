@@ -1,19 +1,13 @@
 import ExternalDashboard from '@/components/external/dashboard.vue'
 import Proposal from '@/components/external/proposal.vue'
 import ProposalApply from '@/components/external/proposal_apply.vue'
-import ProposalSubmit from '@/components/external/proposal_submit.vue'
 import DcvPermit from '@/components/external/dcv/dcv_permit.vue'
 import DcvAdmission from '@/components/external/dcv/dcv_admission.vue'
 import VesselsDashboard from '@/components/external/vessels_dashboard.vue'
 import ManageVessel from '@/components/external/manage_vessel.vue'
 import Compliance from '../compliances/access.vue'
 import ComplianceSubmit from '../compliances/submit.vue'
-import DcvAdmissionForm from '@/components/external/dcv/dcv_admission.vue'
-/*
-import Compliance from '../compliances/access.vue'
-import ComplianceSubmit from '../compliances/submit.vue'
-import Approval from '../approvals/approval.vue'
-*/
+
 export default
 {
     path: '/external',
@@ -39,12 +33,6 @@ export default
             component: ComplianceSubmit,
             name:"submit_compliance"
         },
-        /*
-        {
-            path: 'approval/:approval_id',
-            component: Approval,
-        },
-        */
         {
             path: 'proposal',
             component:
@@ -59,11 +47,6 @@ export default
                     path: '/',
                     component: ProposalApply,
                     name:"apply_proposal"
-                },
-                {
-                    path: 'submit',
-                    component: ProposalSubmit,
-                    name:"submit_proposal"
                 },
                 {
                     path: ':proposal_id',

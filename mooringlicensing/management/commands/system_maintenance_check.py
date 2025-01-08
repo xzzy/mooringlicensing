@@ -3,8 +3,6 @@ import subprocess
 import os
 from mooringlicensing.templatetags.users import system_maintenance_can_start
 
-import itertools
-
 import logging
 logger = logging.getLogger(__name__)
 

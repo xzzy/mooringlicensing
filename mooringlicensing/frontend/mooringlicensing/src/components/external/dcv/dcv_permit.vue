@@ -42,7 +42,6 @@
                 <div class="col-sm-9">
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
                     </select>
-                    <!--input type="text" class="form-control" name="rego_no" placeholder="" v-model="dcv_permit.rego_no"-->
                 </div>
             </div>
             <div class="row form-group">
@@ -93,11 +92,9 @@
 </template>
 
 <script>
-import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 
-var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
@@ -112,12 +109,8 @@ export default {
                 organisation: '',
                 abn_acn: '',
                 season: null,
-                //uvi_vessel_identifier: '',
-                //rego_no: '',
-                //vessel_name: '',
                 dcv_vessel: {
                     id: null,
-                    //uvi_vessel_identifier: '',
                     rego_no: '',
                     vessel_name: '',
                 },
@@ -129,12 +122,6 @@ export default {
         }
     },
     props: {
-        /*
-        level: {
-            type: String,
-            default: 'external',
-        },
-        */
         readonly:{
             type: Boolean,
             default: false,
@@ -193,18 +180,15 @@ export default {
                 },
             }).
             on("select2:select", function (e) {
-                var selected = $(e.currentTarget);
                 vm.dcv_permit.applicant = e.params.data.ledger_id;
                 if(e.params.data.postal_address_list){
                     vm.postal_addresses = e.params.data.postal_address_list
                 }
             }).
             on("select2:unselect",function (e) {
-                var selected = $(e.currentTarget);
                 vm.dcv_permit.applicant  = null;
             }).
             on("select2:open",function (e) {
-                //const searchField = $(".select2-search__field")
                 const searchField = $('[aria-controls="select2-person_lookup-results"]')
                 // move focus to select2 field
                 searchField[0].focus();
@@ -222,16 +206,15 @@ export default {
             
         },
         lookupDcvVessel: async function(id) {
-            var error = null;
             try {
-            const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
-            const vesselData = res.body;
-            console.log('existing dcv_vessel: ')
-            console.log(vesselData);
-                if (vesselData && vesselData.rego_no) {
-                    this.dcv_permit.dcv_vessel = Object.assign({}, vesselData);
-                    console.log(this.dcv_permit.dcv_vessel)
-                }
+                const res = await this.$http.get(api_endpoints.lookupDcvVessel(id));
+                const vesselData = res.body;
+                console.log('existing dcv_vessel: ')
+                console.log(vesselData);
+                    if (vesselData && vesselData.rego_no) {
+                        this.dcv_permit.dcv_vessel = Object.assign({}, vesselData);
+                        console.log(this.dcv_permit.dcv_vessel)
+                    }
             } catch(e) {
                 if (e.status == '400'){
                     //empty the search
@@ -262,7 +245,6 @@ export default {
                 minimumInputLength: 2,
                 "theme": "bootstrap",
                 allowClear: true,
-                //placeholder:"Select Vessel Registration",
                 placeholder: "",
                 tags: true,
                 createTag: function (tag) {
@@ -282,17 +264,14 @@ export default {
             }).
             on("select2:select",function (e) {
                 var selected = $(e.currentTarget);
-                // vm.vessel.rego_no = selected.val();
                 let id = selected.val();
                 vm.$nextTick(() => {
-                    //if (!isNew) {
                     if (e.params.data.isNew) {
                         // fetch the selected vessel from the backend
                         id = vm.validateRegoNo(id);
                         vm.dcv_permit.dcv_vessel =
                         {
                             id: id,
-                            //uvi_vessel_identifier: '',
                             rego_no: id,
                             vessel_name: '',
                         }
@@ -308,14 +287,11 @@ export default {
                 vm.dcv_permit.dcv_vessel = Object.assign({},
                     {
                         id: null,
-                        //uvi_vessel_identifier: '',
                         rego_no: '',
                         vessel_name: '',
                     }
                 );
                 $(vm.$refs.dcv_vessel_rego_nos).empty().trigger('change')
-
-                //vm.selectedRego = ''
             }).
             on("select2:open",function (e) {
                 const searchField = $(".select2-search__field")
@@ -323,19 +299,15 @@ export default {
                 searchField[0].focus();
                 // prevent spacebar from being used
                 searchField.on("keydown",function (e) {
-                    //console.log(e.which);
                     if ([32,].includes(e.which)) {
                         e.preventDefault();
                         return false;
                     }
                 });
             });
-            // read vessel.rego_no if exists on vessel.vue open
-            //vm.readRegoNo();
         },
 
         pay_and_submit: function(){
-            // pay_and_submit() --> save_and_pay() --> post_and_redirect()
             let vm = this
             vm.paySubmitting = true;
 
@@ -367,7 +339,6 @@ export default {
                 await helpers.post_and_redirect(this.dcv_permit_fee_url, {'csrfmiddlewaretoken' : this.csrf_token});
                 this.paySubmitting = false
             } catch(err) {
-                // helpers.processError(err)
                 this.processError(err)
                 this.paySubmitting = false
             }
@@ -390,7 +361,6 @@ export default {
                     // When field errors raised
                     for (let field_name in err.body){
                         if (err.body.hasOwnProperty(field_name)){
-                            // errorText += field_name + ':<br />';  // As requested by RIA, we don't display the field name.
                             for (let j=0; j<err.body[field_name].length; j++){
                                 errorText += err.body[field_name][j] + '<br />'
                             }

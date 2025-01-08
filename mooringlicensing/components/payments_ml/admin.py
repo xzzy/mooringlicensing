@@ -19,11 +19,7 @@ class FeePeriodFormSet(forms.models.BaseInlineFormSet):
         if num_of_periods < 1:
             # No periods configured for this season
             raise forms.ValidationError('At lease one period must exist in a season.')
-        elif num_of_periods == 1:
-            # There is one period configured
-            # All fine
-            pass
-        else:
+        elif num_of_periods > 1:
             # There are more than one periods configured
             # Check if all the periods sit in one year span
             sorted_cleaned_data = sorted(self.cleaned_data, key=lambda item: item['start_date'])
@@ -43,12 +39,6 @@ class FeePeriodFormSet(forms.models.BaseInlineFormSet):
                     temp.append(item['start_date'])
                 else:
                     raise forms.ValidationError('Period\'s start date must be unique, but {} is duplicated.'.format(item['start_date']))
-
-
-
-# @admin.register(FeePeriod)
-# class FeePeriodAdmin(admin.ModelAdmin):
-#     list_display = ['id', 'name', 'start_date', 'is_first_period',]
 
 
 class FeePeriodForm(forms.ModelForm):

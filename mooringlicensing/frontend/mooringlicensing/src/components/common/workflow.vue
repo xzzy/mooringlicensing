@@ -43,24 +43,8 @@
                             </div>
 
                             <template v-if="proposal.processing_status == 'With Assessor (Requirements)' || proposal.processing_status == 'With Approver' || isFinalised">
-                                <!-- <div class="col-sm-12">
-                                    <strong>Proposal</strong><br/>
-                                    <a class="actionBtn" v-if="!showingProposal" @click.prevent="toggleProposal()">Show Application</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleProposal()">Hide Application</a>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div> -->
                             </template>
                             <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
-                                <!-- <div class="col-sm-12">
-                                    <strong>Requirements</strong><br/>
-                                    <a class="actionBtn" v-if="!showingRequirements" @click.prevent="toggleRequirements()">Show Requirements</a>
-                                    <a class="actionBtn" v-else @click.prevent="toggleRequirements()">Hide Requirements</a>
-                                </div>
-                                <div class="col-sm-12">
-                                    <div class="separator"></div>
-                                </div> -->
                             </template>
                                 <div class="col-sm-12">
                                     <div class="separator"></div>
@@ -71,9 +55,6 @@
                                         <strong>Action</strong>
                                     </div>
                                 </div>
-<!--
-                                <template v-if="proposal.processing_status == 'With Assessor'">
--->
                                     <div class="row" v-if="display_action_enter_conditions">
                                         <div class="col-sm-12">
                                             <button 
@@ -140,20 +121,12 @@
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
                                                 @click.prevent="switchStatus('with_assessor')"
-                                            ><!-- Back To Processing -->Back To Assessor</button>
+                                            >Back To Assessor</button>
                                         </div>
                                     </div>
 
-<!--
-                                        <div class="col-sm-12" v-else>
--->
                                     <div class="row" v-if="display_action_back_to_assessor_requirements">
                                         <div class="col-sm-12">
-                                            <!-- <button 
-                                                class="btn btn-primary top-buffer-s w-btn" 
-                                                :disabled="can_user_edit" 
-                                                @click.prevent="switchStatus('with_assessor_requirements')"
-                                            ><Back To Requirements>Back To Assessor</button><br/ -->
                                             <button 
                                                 class="btn btn-primary top-buffer-s w-btn" 
                                                 :disabled="can_user_edit" 
@@ -188,9 +161,6 @@
                                             >Request Endorsement</button><br/>
                                         </div>
                                     </div>
-<!--
-                                </template>
--->
                             </div>
                         </div>
                     </div>
@@ -215,14 +185,6 @@ export default {
             type: Object,
             default: null,
         },
-        //display_status: {
-        //    type: String,
-        //    default: '',
-        //},
-        //processing_status: {
-        //    type: String,
-        //    default: '',
-        //},
         isFinalised: {
             type: Boolean,
             default: false,
@@ -239,10 +201,6 @@ export default {
             type: Boolean,
             default: false,
         },
-        //proposed_decline_status: {
-        //    type: Boolean,
-        //    default: false,
-        //},
     },
     computed: {
         display_actions: function(){

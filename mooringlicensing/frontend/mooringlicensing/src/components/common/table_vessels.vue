@@ -35,7 +35,7 @@
 import datatable from '@/utils/vue/datatable.vue'
 import FormSection from "@/components/forms/section_toggle.vue"
 import RecordSale from '@/components/external/record_sale.vue'
-import { api_endpoints, helpers } from '@/utils/hooks'
+import { api_endpoints } from '@/utils/hooks'
 
 export default {
     name: 'TableVessels',
@@ -187,23 +187,12 @@ export default {
         addEventListeners: function() {
             let vm = this;
             let table = vm.$refs.vessels_datatable.vmDataTable
-            /*
-            table.on('processing.dt', function(e) {
-            })
-            */
             table.on('click', 'a[data-id]', async function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-id');
-                //await vm.actionShortcut(id, 'issue');
                 vm.recordSaleId = parseInt(id);
                 vm.openSaleModal();
             });
-            /*
-            let recordSale = $('#record_sale_96');
-            recordSale.on('click', () => {
-                console.log("record sale")
-            })
-            */
         }
     },
     mounted: function () {

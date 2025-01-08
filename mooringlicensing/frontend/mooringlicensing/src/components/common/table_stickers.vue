@@ -75,11 +75,7 @@ export default {
             fee_seasons: [],
             sticker_statuses: [],
 
-
             sticker_details_tr_class_name: 'sticker_details',
-
-            //td_expand_class_name: 'expand-icon',
-            //td_collapse_class_name: 'collapse-icon',
         }
     },
     components:{
@@ -97,12 +93,6 @@ export default {
         },
     },
     computed: {
-        debug: function(){
-            if (this.$route.query.debug){
-                return ['true', 't', 'yes', 'y'].includes(this.$route.query.debug.toLowerCase())
-            }
-            return false
-        },
         number_of_columns: function() {
             return this.datatable_headers.length
         },
@@ -126,7 +116,7 @@ export default {
                 data: "id",
                 orderable: false,
                 searchable: false,
-                visible: this.debug,
+                visible: false,
                 'render': function(row, type, full){
                     return full.id
                 }
@@ -137,7 +127,7 @@ export default {
                 data: "date_updated",
                 orderable: true,
                 searchable: false,
-                visible: this.debug,
+                visible: false,
                 'render': function(row, type, full){
                     return full.date_updated
                 }
@@ -281,13 +271,10 @@ export default {
                     if (full.invoices){
                         for (let invoice of full.invoices){
                             links += '<div>'
-                            // links +=  `<div><a href='/payments/invoice-pdf/${invoice.reference}.pdf' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             links +=  `<div><a href='${invoice.invoice_url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #${invoice.reference}</a></div>`;
                             if (vm.is_internal && full.can_view_payment_details){
                                 if (invoice.payment_status.toLowerCase() === 'paid'){
                                     links +=  `<div><a href='${invoice.ledger_payment_url}' target='_blank'>Ledger Payment</a></div>`;
-                                } else {
-                                    //links +=  `<div><a href='/ledger/payments/invoice/payment?invoice=${invoice.reference}' target='_blank'>Record Payment</a></div>`;
                                 }
                             }
                             links += '</div>'
@@ -347,7 +334,6 @@ export default {
 
                 },
                 autoWidth: true,
-                //responsive: true,
                 responsive: true,
                 serverSide: true,
                 paging: true,
@@ -368,19 +354,12 @@ export default {
                     }
                 },
                 dom: 'lBfrtip',
-                //buttons:['csv'],
                 buttons:[
                     {
                         extend: 'excel',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                     {
                         extend: 'csv',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                 ],
 
@@ -395,13 +374,6 @@ export default {
     methods: {
         getActionCellContents: function(sticker){
             let links = ''
-            if (this.debug){
-                links += `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
-                links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
-                links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
-                //links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
-                return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
-            }
 
             switch(sticker.status.code){
                 case 'ready':
@@ -426,8 +398,6 @@ export default {
                     break
 
             }
-
-            //links += `<a href='#${sticker.id}' data-view-details='${sticker.id}'>Show/Hide Details</a><br/>`
             return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
         },
         getActionDetailTable: function(sticker){
@@ -461,7 +431,6 @@ export default {
             let vm = this;
 
             let include_codes = vm.approvalTypesToDisplay.join(',');
-            //vm.$http.get(api_endpoints.approval_types_dict + '?include_codes=' + include_codes).then((response) => {
 
             // Application Types
             vm.$http.get(api_endpoints.approval_types_dict+'?include_codes=' + include_codes).then((response) => {
@@ -564,7 +533,6 @@ export default {
 
             // Listener for thr row
             vm.$refs.stickers_datatable.vmDataTable.on('click', 'td', function(e) {
-                //e.preventDefault();
 
                 let td_link = $(this)
 
@@ -626,9 +594,6 @@ export default {
     },
     created: function(){
         this.fetchFilterLists()
-        //if (this.$route.query && this.$route.query.debug){
-        //    this.debug = this.$route.query.debug
-        //}
     },
     mounted: function(){
         let vm = this;
@@ -640,53 +605,6 @@ export default {
 </script>
 
 <style>
-
-/*.collapse-icon {
-    cursor: pointer;
-}
-.collapse-icon::before {
-    top: 5px;
-    left: 4px;
-    height: 14px;
-    width: 14px;
-    border-radius: 14px;
-    line-height: 14px;
-    border: 2px solid white;
-    line-height: 14px;
-    content: '-';
-    color: white;
-    background-color: #d33333;
-    display: inline-block;
-    box-shadow: 0px 0px 3px #444;
-    box-sizing: content-box;
-    text-align: center;
-    text-indent: 0 !important;
-    font-family: 'Courier New', Courier monospace;
-    margin: 5px;
-}
-.expand-icon {
-    cursor: pointer;
-}
-.expand-icon::before {
-    top: 5px;
-    left: 4px;
-    height: 14px;
-    width: 14px;
-    border-radius: 14px;
-    line-height: 14px;
-    border: 2px solid white;
-    line-height: 14px;
-    content: '+';
-    color: white;
-    background-color: #337ab7;
-    display: inline-block;
-    box-shadow: 0px 0px 3px #444;
-    box-sizing: content-box;
-    text-align: center;
-    text-indent: 0 !important;
-    font-family: 'Courier New', Courier monospace;
-    margin: 5px;
-}*/
 .dcv_permit_lodgement_number {
     padding: 8px 10px;
 }

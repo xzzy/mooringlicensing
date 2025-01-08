@@ -29,10 +29,8 @@
 </template>
 <script>
 import Vessel from '../common/vessels.vue';
-import Vue from 'vue' 
 import {
-  api_endpoints,
-  helpers
+  api_endpoints
 }
 from '@/utils/hooks'
 export default {
@@ -60,6 +58,3 @@ export default {
   },
 }
 </script>
-
-<style lang="css" scoped>
-</style>

@@ -107,9 +107,7 @@ class Remittance(Flowable):
         canvas = self.canv
         current_y, current_x = self.current_y, self.current_x
         bpay_logo = ImageReader(BPAY_LOGO)
-        # Pay By Cheque
-        cheque_x = current_x + 4 * inch
-        cheque_y = current_y - 10
+        
         if self.invoice.payment_method in [self.invoice.PAYMENT_METHOD_MONTHLY_INVOICING, self.invoice.PAYMENT_METHOD_BPAY]:
             # Outer BPAY Box
             canvas.rect(current_x,current_y - 25,2.3*inch,-1.2*inch)
@@ -321,7 +319,7 @@ def _create_invoice(invoice_buffer, invoice, proposal):
     elements.append(t)
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT * 2))
     # /Products Table
-    invoice_payment_status = invoice.id)
+    invoice_payment_status = invoice.id
     if invoice_payment_status != 'paid' and invoice_payment_status != 'over_paid':
         elements.append(Paragraph(settings.INVOICE_UNPAID_WARNING, styles['Left']))
 

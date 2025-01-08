@@ -68,16 +68,13 @@
 <script>
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+import { api_endpoints } from "@/utils/hooks.js"
 
 export default {
     name:'CreateNewStickerModal',
     components:{
         modal,
         alert,
-    },
-    props:{
-
     },
     data:function () {
         let vm = this;
@@ -139,8 +136,6 @@ export default {
         },
         close:function () {
             this.isModalOpen = false
-            // this.mailed_date = null
-            // $('#mailed_date_elem').val('')
             this.errors = false
             this.processing = false
             this.dcv_permit_id = null
@@ -159,7 +154,7 @@ export default {
             el_mailed.on("dp.change", function(e) {
                 let selected_date = null;
                 if (e.date){
-                    selected_date = e.date.format('DD/MM/YYYY')  // e.date is moment object
+                    selected_date = e.date.format('DD/MM/YYYY')
                 }
                 vm.mailed_date = selected_date;
             });
@@ -181,6 +176,3 @@ export default {
     }
 }
 </script>
-
-<style lang="css">
-</style>

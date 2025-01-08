@@ -79,13 +79,11 @@ export default {
             filterApplicationType: null,
             filterApplicationCategory: null,
             filterApplicationStatus: null,
-            //filterApplicant: null,
 
             // filtering options
             application_types: [],
             application_categories: [],
             application_statuses: [],
-            //applicants: [],
         }
     },
     components:{
@@ -95,11 +93,6 @@ export default {
         filterApplicationStatus: function() {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-            //if (vm.filterApplicationStatus != 'All') {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search('').draw();
-            //} else {
-            //    vm.$refs.application_datatable.vmDataTable.column('status:name').search(vm.filterApplicationStatus).draw();
-            //}
         },
         filterApplicationType: function() {
             let vm = this;
@@ -109,18 +102,8 @@ export default {
             let vm = this;
             vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
-        //filterApplicant: function(){
-        //    let vm = this;
-        //    vm.$refs.application_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        //}
     },
     computed: {
-        debug: function(){
-            if (this.$route.query.debug){
-                return this.$route.query.debug === 'Tru3'
-            }
-            return false
-        },
         is_external: function() {
             return this.level == 'external'
         },
@@ -263,16 +246,13 @@ export default {
                 'render': function(row, type, full){
                     let links = '';
                     if (vm.is_internal){
-                        if (vm.debug){
+
+                        if(full.assessor_process){
                             links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
                         } else {
-                            if(full.assessor_process){
-                                links +=  `<a href='/internal/proposal/${full.id}'>Process</a><br/>`;
-                            } else {
-                                links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
-                            }
+                            links +=  `<a href='/internal/proposal/${full.id}'>View</a><br/>`;
                         }
+                        
                         if (full.application_type_dict.code === 'mla' && full.processing_status === 'Draft'){
                             // Only ML draft application can be withdrawn
                             links +=  `<a href='#${full.id}' data-withdraw-proposal='${full.id}'>Withdraw</a><br/>`
@@ -353,7 +333,6 @@ export default {
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
-                            //ret_str += '<div>' + item.payment_status + '</div>'
                             ret_str += '<span>' + item.payment_status + '</span>'
                         }
                         return ret_str
@@ -400,15 +379,9 @@ export default {
                 buttons = [
                     {
                         extend: 'excel',
-                        exportOptions: {
-                            //columns: ':visible',
-                        }
                     },
                     {
                         extend: 'csv',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                 ]
             }
@@ -431,12 +404,10 @@ export default {
                         d.filter_application_type = vm.filterApplicationType
                         d.filter_application_category = vm.filterApplicationCategory
                         d.filter_application_status = vm.filterApplicationStatus
-                        //d.filter_applicant = vm.filterApplicant
                         d.level = vm.level
                     }
                 },
                 dom: 'lBfrtip',
-                //buttons:[ ],
                 buttons: buttons,
 
                 columns: columns,

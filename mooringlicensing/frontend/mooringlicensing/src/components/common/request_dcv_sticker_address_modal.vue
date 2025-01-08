@@ -80,7 +80,7 @@
 <script>
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+import { helpers, api_endpoints } from "@/utils/hooks.js"
 
 export default {
     name:'RequestDCVStickerAddressModal',
@@ -95,7 +95,6 @@ export default {
         }
     },
     data:function () {
-        let vm = this;
         return {
             dcv_permit_id: null,
             stickers: [],
@@ -187,6 +186,3 @@ export default {
     },
 }
 </script>
-
-<style lang="css">
-</style>

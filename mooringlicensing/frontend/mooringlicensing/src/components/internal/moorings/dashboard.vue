@@ -11,18 +11,9 @@ import FormSection from "@/components/forms/section_toggle.vue"
 import MooringsTable from "@/components/common/table_moorings.vue"
 export default {
     name: 'InternalMooringsDashboard',
-    data() {
-        let vm = this;
-        return {
-
-        }
-    },
     components:{
         FormSection,
         MooringsTable,
-    },
-    methods: {
-
     },
 }
 </script>

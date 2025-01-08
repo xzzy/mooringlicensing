@@ -11,7 +11,6 @@
 
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
-//import WaitingListTable from "@/components/common/table_approval_waiting_list"
 import WaitingListTable from "@/components/common/table_approvals"
 
 export default {
@@ -25,9 +24,6 @@ export default {
     components:{
         FormSection,
         WaitingListTable,
-    },
-    methods: {
-
     },
 }
 </script>

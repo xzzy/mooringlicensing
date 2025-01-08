@@ -76,8 +76,6 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
             'text',
             'application_type',
             'obsolete',
-            #'participant_number_required',
-            #'default'
             ]
     list_filter = ('application_type', 'obsolete',)
 
@@ -158,7 +156,6 @@ class StickersPrintingBatchAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', '_file', 'uploaded_date', 'emailed_datetime',]
     list_display_links = ['id', 'name', '_file',]
     search_fields = ['name',]
-    # list_filter = ('processed', 'no_errors_when_process',)
 
     def get_actions(self, request):
         actions = super(StickersPrintingBatchAdmin, self).get_actions(request)

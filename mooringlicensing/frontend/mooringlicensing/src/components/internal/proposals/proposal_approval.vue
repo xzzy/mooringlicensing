@@ -85,8 +85,7 @@
 </template>
 <script>
 import {
-    api_endpoints,
-    helpers
+    api_endpoints
 }
 from '@/utils/hooks'
 import FormSection from "@/components/forms/section_toggle.vue"
@@ -116,7 +115,6 @@ export default {
     },
     components:{
         FormSection,
-        //ComponentSiteSelection,
     },
     computed:{
         decisionTitle: function(){
@@ -223,7 +221,7 @@ export default {
         retrieveMooringDetails: async function(){
             console.log('%cAHO', 'color: #370;')
             let mooring_id = null
-            if (this.proposal.proposed_issuance_approval.mooring_id){
+            if (this.proposal.proposed_issuance_approval && this.proposal.proposed_issuance_approval.mooring_id){
                 mooring_id = this.proposal.proposed_issuance_approval.mooring_id
             } else if (this.proposal.allocated_mooring){
                 mooring_id = this.proposal.allocated_mooring
@@ -239,7 +237,6 @@ export default {
         },
     },
     mounted: function(){
-        let vm = this;
         this.updateComponentSiteSelectionKey()
         this.retrieveMooringDetails()
     }

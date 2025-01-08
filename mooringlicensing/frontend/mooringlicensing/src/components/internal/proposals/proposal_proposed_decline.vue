@@ -9,8 +9,6 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <!--label v-if=check_status() class="control-label"  for="Name">Details</label>
-                                        <label v-else class="control-label"  for="Name">Provide Reason for the proposed decline </label-->
                                         <label class="control-label"  for="Name">{{ detailsText }} </label>
                                         <textarea style="width: 70%;"class="form-control" name="reason" v-model="decline.reason"></textarea>
                                     </div>
@@ -19,8 +17,6 @@
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
-                                        <!--label v-if=check_status() class="control-label"  for="Name">CC email</label>
-                                        <label v-else class="control-label"  for="Name">Proposed CC email</label-->
                                         <label class="control-label"  for="Name">{{ ccText }}</label>
                                         <input type="text" style="width: 70%;"class="form-control" name="cc_email" v-model="decline.cc_email"/>
                                     </div>
@@ -40,7 +36,6 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
@@ -131,23 +126,12 @@ export default {
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
         },
-        /*
-        check_status: function (){
-            let vm= this;
-            if (vm.processing_status == 'With Approver')
-                return true;
-            else
-                return false;
-
-        },
-        */
         sendData:function(){
             console.log('in sendData')
             let vm = this;
             vm.errors = false;
             let decline = JSON.parse(JSON.stringify(vm.decline));
             vm.decliningProposal = true;
-            //if (vm.processing_status != 'With Approver'){
             if (vm.callFinalDecline){
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, vm.proposal.id + '/final_decline'), JSON.stringify(decline), {
                         emulateJSON:true,
@@ -178,9 +162,6 @@ export default {
         addFormValidations: function() {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
-                rules: {
-               //     reason:"required",
-                },
                 messages: {
                     arrival:"field is required",
                     departure:"field is required",
@@ -207,9 +188,6 @@ export default {
                 }
             });
        },
-       eventListerners:function () {
-           let vm = this;
-       }
    },
    mounted:function () {
        let vm =this;
@@ -218,6 +196,3 @@ export default {
    }
 }
 </script>
-
-<style lang="css">
-</style>

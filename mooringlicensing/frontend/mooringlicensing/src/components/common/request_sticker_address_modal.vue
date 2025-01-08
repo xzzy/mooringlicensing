@@ -86,7 +86,7 @@
 <script>
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+import { helpers, api_endpoints } from "@/utils/hooks.js"
 
 export default {
     name:'RequestStickerAddressModal',
@@ -101,7 +101,6 @@ export default {
         }
     },
     data:function () {
-        let vm = this;
         return {
             approval_id: null,
             stickers: [],
@@ -131,9 +130,6 @@ export default {
                     sticker.checked = false
                 }
                 vm.stickers = ret.body.stickers
-                console.log('vm.stickers')
-                console.log(vm.stickers)
-
             } else {
                 vm.stickers = []
             }
@@ -194,6 +190,3 @@ export default {
     },
 }
 </script>
-
-<style lang="css">
-</style>

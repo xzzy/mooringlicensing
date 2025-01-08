@@ -36,9 +36,7 @@ module.exports = {
 
     profile: '/api/profile',
     users: '/api/users.json',
-    //department_users: '/api/department_users',
     filtered_users: '/api/filtered_users',
-    //countries: "https://restcountries.eu/rest/v1/?fullText=true",
     countries: '/api/countries',
 
     proposals_paginated_list: '/api/proposals_paginated', // both for external and internal
@@ -55,7 +53,6 @@ module.exports = {
     waitinglistapplication: '/api/waitinglistapplication/',
     internalwaitinglistapplication: '/api/internalwaitinglistapplication/',
     waitinglistallocation: '/api/waitinglistallocation/',
-    // existing_mooring_licences: '/api/mooringlicence/existing_mooring_licences',
     existing_licences: '/api/approvals/existing_licences',
     annualadmissionapplication: '/api/annualadmissionapplication/',
     internalannualadmissionapplication: '/api/internalannualadmissionapplication/',
@@ -95,7 +92,6 @@ module.exports = {
     lookupIndividualOwnership: function(id) {
         return `/api/vessel/${id}/lookup_individual_ownership.json`;
     },
-
     discard_proposal: function (id) {
         return `/api/proposal/${id}.json`;
     },

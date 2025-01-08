@@ -6,7 +6,6 @@
                     <label for="">Status:</label>
                     <select class="form-control" v-model="filterMooringStatus">
                         <option value="All">All</option>
-                        <!--option v-for="status in mooring_statuses" :value="status.code">{{ status.description }}</option-->
                         <option v-for="status in mooringStatuses" :value="status">{{ status }}</option>
                     </select>
                 </div>
@@ -16,7 +15,6 @@
                     <label for="">Bay:</label>
                     <select class="form-control" v-model="filterMooringBay">
                         <option value="All">All</option>
-                        <!--option v-for="status in mooring_statuses" :value="status.code">{{ status.description }}</option-->
                         <option v-for="bay in mooringBays" :value="bay.id">{{ bay.name }}</option>
                     </select>
                 </div>
@@ -39,18 +37,6 @@ import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 export default {
     name: 'TableMoorings',
-    /*
-    props: {
-        level:{
-            type: String,
-            required: true,
-            validator: function(val) {
-                let options = ['internal', 'referral', 'external'];
-                return options.indexOf(val) != -1 ? true: false;
-            }
-        },
-    },
-    */
     data() {
         let vm = this;
         return {
@@ -80,12 +66,6 @@ export default {
             return this.level == 'external'
         },
         mooringsHeaders: function () {
-            /*
-            let headers = ['Number', 'Licence/Permit', 'Condition', 'Due Date', 'Status', 'Action'];
-            if (this.level === 'internal') {
-                headers = ['Number', 'Type', 'Approval Number', 'Holder', 'Status', 'Due Date', 'Assigned to', 'Action'];
-            }
-            */
             return ['Mooring', 'Bay', 'Type', 'Status', 'Holder', 'Authorised User Permits<br/>(RIA/LIC)', 'Max Vessel<br/>Length', 'Max Vessel<br/>Draft', 'Action'];
         },
         holderColumn: function () {
@@ -144,7 +124,6 @@ export default {
                 searchable: false,
                 visible: true,
                 'render': function (row, type, full) {
-                    //return 'not implemented';
                     return full.status;
                 }
             }
@@ -160,7 +139,6 @@ export default {
                 },
                 visible: true,
                 'render': function (row, type, full) {
-                    //return 'not implemented';
                     let total = full.authorised_user_permits.ria + full.authorised_user_permits.site_licensee
                     return total + ' (' + full.authorised_user_permits.ria + '/' + full.authorised_user_permits.site_licensee + ')'
                 }
@@ -262,15 +240,9 @@ export default {
                 buttons: [
                     {
                         extend: 'excel',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                     {
                         extend: 'csv',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                 ],
                 processing: true,
@@ -293,7 +265,6 @@ export default {
             })
             // Mooring Bays
             vm.$http.get(api_endpoints.mooring_bays).then((response) => {
-                //for (let bay of response.body) {
                 vm.mooringBays = response.body.results
             }, (error) => {
                 console.log(error);
@@ -304,8 +275,5 @@ export default {
     created: function () {
         this.fetchFilterLists()
     },
-    mounted: function () {
-
-    }
 }
 </script>
