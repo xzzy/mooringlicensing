@@ -3487,7 +3487,7 @@ class AuthorisedUserApplication(Proposal):
         self.proposal.refresh()  # so that the approval doc field is updated by the doc generated above
 
         # Email
-        send_application_approved_or_declined_email(self, 'approved_paid', request, stickers_to_be_returned)
+        send_application_approved_or_declined_email(self.proposal, 'approved_paid', request, stickers_to_be_returned)
 
         # Email to ML holder when new moorings added
         for mooring_licence in mls_to_be_emailed:
