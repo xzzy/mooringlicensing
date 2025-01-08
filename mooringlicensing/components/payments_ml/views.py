@@ -54,6 +54,8 @@ from mooringlicensing.helpers import is_internal
 logger = logging.getLogger(__name__)
 from rest_framework.permissions import IsAuthenticated
 
+from ledger_api_client import utils
+
 class DcvAdmissionFeeView(TemplateView):
 
     def get_object(self):
@@ -757,6 +759,17 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
             application_fee.invoice_reference = invoice_reference
             application_fee.handled_in_preload = datetime.datetime.now()
+
+            #get invoice properties
+            inv_props = utils.get_invoice_properties(invoice.id)
+
+            #record cost and payment status in ApplicationFee model
+            if 'data' in inv_props and 'invoice' in inv_props['data']:
+                payment_status = inv_props['data']['invoice']["payment_status"] if "payment_status" in inv_props['data']['invoice'] else ""
+                amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
+
+                application_fee.payment_status = payment_status
+                application_fee.cost = amount
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:

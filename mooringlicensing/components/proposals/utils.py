@@ -111,13 +111,14 @@ def save_proponent_data_aaa(instance, request, action):
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
     instance.refresh_from_db()
-    if action == 'submit':
-        if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid'] and not instance.auto_approve:
-            # Save + Submit + Paid ==> We have to update the status
-            # Probably this is the case that assessor put back this application to external and then external submit this.
-            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
-            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            instance.save()     
+    #TODO rework/remove
+    #if action == 'submit':
+    #    if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid'] and not instance.auto_approve:
+    #        # Save + Submit + Paid ==> We have to update the status
+    #        # Probably this is the case that assessor put back this application to external and then external submit this.
+    #        logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
+    #        instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+    #        instance.save()     
 
 
 def save_proponent_data_wla(instance, request, action):
@@ -149,13 +150,14 @@ def save_proponent_data_wla(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
-    if action == 'submit':
-        if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
-            # Save + Submit + Paid ==> We have to update the status
-            # Probably this is the case that assessor put back this application to external and then external submit this.
-            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
-            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            instance.save()
+    #TODO rework/remove
+    #if action == 'submit':
+    #    if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
+    #        # Save + Submit + Paid ==> We have to update the status
+    #        # Probably this is the case that assessor put back this application to external and then external submit this.
+    #        logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
+    #        instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+    #        instance.save()
 
 def save_proponent_data_mla(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
