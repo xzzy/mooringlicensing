@@ -431,7 +431,7 @@ class ApplicationFeeView(TemplateView):
                 previous_application_fee = previous_application_fees.last()
 
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                fee_amount = previous_application_fee.cost
+                fee_amount = previous_application_fee.cost if previous_application_fee else 0
 
                 if settings.ROUND_FEE_ITEMS:
                     # In debug environment, we want to avoid decimal number which may cause some kind of error.
@@ -441,13 +441,14 @@ class ApplicationFeeView(TemplateView):
                     total_amount = 0 - float(fee_amount)
                     total_amount_excl_tax = 0 - float(fee_amount)
 
-                lines.append({
-                    'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
-                    'oracle_code': proposal.application_type.get_oracle_code_by_date(current_datetime.date()),
-                    'price_incl_tax': total_amount,
-                    'price_excl_tax': total_amount_excl_tax,
-                    'quantity': 1,
-                })
+                if total_amount != 0:
+                    lines.append({
+                        'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
+                        'oracle_code': proposal.application_type.get_oracle_code_by_date(current_datetime.date()),
+                        'price_incl_tax': total_amount,
+                        'price_excl_tax': total_amount_excl_tax,
+                        'quantity': 1,
+                    })
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
@@ -792,8 +793,12 @@ class ApplicationFeeSuccessViewPreload(APIView):
                 payment_status = inv_props['data']['invoice']["payment_status"] if "payment_status" in inv_props['data']['invoice'] else ""
                 amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
 
+                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                previous_application_fee_cost = previous_application_fees.last().cost if previous_application_fees.last() else 0.0
+
                 application_fee.payment_status = payment_status
-                application_fee.cost = amount
+                application_fee.cost = float(amount) + float(previous_application_fee_cost)
+
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
