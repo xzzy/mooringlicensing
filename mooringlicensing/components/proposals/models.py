@@ -1775,6 +1775,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 'system': settings.PAYMENT_SYSTEM_ID,
                                 'custom_basket': True,
                                 'booking_reference': reference,
+                                'booking_reference_link': reference,
                                 'no_payment': False,
                                 'tax_override': True,
                             }
