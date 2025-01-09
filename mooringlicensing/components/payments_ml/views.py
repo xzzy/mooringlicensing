@@ -55,6 +55,7 @@ logger = logging.getLogger(__name__)
 from rest_framework.permissions import IsAuthenticated
 
 from ledger_api_client import utils
+from django.db.models import Q
 
 class DcvAdmissionFeeView(TemplateView):
 
@@ -424,6 +425,29 @@ class ApplicationFeeView(TemplateView):
                     return render(request, self.template_name, context)
 
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
+
+                #adjust if there is a previous payment
+                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                previous_application_fee = previous_application_fees.last()
+
+                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                fee_amount = previous_application_fee.cost
+
+                if settings.ROUND_FEE_ITEMS:
+                    # In debug environment, we want to avoid decimal number which may cause some kind of error.
+                    total_amount = 0 - round(float(fee_amount))
+                    total_amount_excl_tax = 0 - round(float(fee_amount))
+                else:
+                    total_amount = 0 - float(fee_amount)
+                    total_amount_excl_tax = 0 - float(fee_amount)
+
+                lines.append({
+                    'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
+                    'oracle_code': proposal.application_type.get_oracle_code_by_date(current_datetime.date()),
+                    'price_incl_tax': total_amount,
+                    'price_excl_tax': total_amount_excl_tax,
+                    'quantity': 1,
+                })
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
