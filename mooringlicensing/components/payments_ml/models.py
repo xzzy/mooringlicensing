@@ -28,42 +28,11 @@ class Payment(models.Model):
     confirmation_sent = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     expiry_time = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    payment_status = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
         abstract = True
-
-    @property
-    def paid(self):
-        payment_status = self.__check_payment_status()
-        if payment_status == 'paid' or payment_status == 'over_paid':
-            return True
-        return False
-
-    @property
-    def unpaid(self):
-        payment_status = self.__check_payment_status()
-        if payment_status == 'unpaid':
-            return True
-        return False
-
-    @property
-    def amount_paid(self):
-        return self.__check_payment_amount()
-
-    def __check_payment_amount(self):
-        amount = Decimal('0.0')
-        if self.active_invoice:
-            return self.active_invoice.payment_amount
-        return amount
-
-    def __check_payment_status(self):
-        invoice = Invoice.objects.filter(reference=self.invoice_reference)
-        if invoice:
-            invoice = invoice.first()
-            return invoice.payment_status
-        else:
-            return '---'
 
 
 class DcvAdmissionFee(Payment):

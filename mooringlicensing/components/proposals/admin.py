@@ -12,12 +12,15 @@ from reversion.admin import VersionAdmin
 from mooringlicensing.components.proposals.models import StickerPrintingBatch, StickerPrintingResponse, \
     StickerPrintingContact, StickerPrintedContact, MooringBay, Mooring
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
-
+from mooringlicensing.components.payments_ml.models import ApplicationFee
 
 class ProposalDocumentInline(admin.TabularInline):
     model = models.ProposalDocument
     extra = 0
 
+class ApplicationFeeInline(admin.TabularInline):
+    model = ApplicationFee
+    extra = 0
 
 @admin.register(models.ProposalType)
 class ProposalTypeAdmin(admin.ModelAdmin):
@@ -59,7 +62,7 @@ class CompanyOwnershipAdmin(admin.ModelAdmin):
 class ProposalAdmin(VersionAdmin):
     list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'get_submitter', 'approval',]
     list_display_links = ['id', 'lodgement_number', ]
-    inlines =[ProposalDocumentInline,]
+    inlines =[ProposalDocumentInline,ApplicationFeeInline,]
     search_fields = ['id', 'lodgement_number', 'approval__lodgement_number',]
 
     def get_submitter(self, obj):

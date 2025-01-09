@@ -54,6 +54,9 @@ from mooringlicensing.helpers import is_internal
 logger = logging.getLogger(__name__)
 from rest_framework.permissions import IsAuthenticated
 
+from ledger_api_client import utils
+from django.db.models import Q
+
 class DcvAdmissionFeeView(TemplateView):
 
     def get_object(self):
@@ -423,6 +426,30 @@ class ApplicationFeeView(TemplateView):
 
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
+                #adjust if there is a previous payment
+                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                previous_application_fee = previous_application_fees.last()
+
+                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                fee_amount = previous_application_fee.cost if previous_application_fee else 0
+
+                if settings.ROUND_FEE_ITEMS:
+                    # In debug environment, we want to avoid decimal number which may cause some kind of error.
+                    total_amount = 0 - round(float(fee_amount))
+                    total_amount_excl_tax = 0 - round(float(fee_amount))
+                else:
+                    total_amount = 0 - float(fee_amount)
+                    total_amount_excl_tax = 0 - float(fee_amount)
+
+                if total_amount != 0:
+                    lines.append({
+                        'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
+                        'oracle_code': proposal.application_type.get_oracle_code_by_date(current_datetime.date()),
+                        'price_incl_tax': total_amount,
+                        'price_excl_tax': total_amount_excl_tax,
+                        'quantity': 1,
+                    })
+
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
                 reference = proposal.previous_application.lodgement_number if proposal.previous_application else proposal.lodgement_number
@@ -757,6 +784,21 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
             application_fee.invoice_reference = invoice_reference
             application_fee.handled_in_preload = datetime.datetime.now()
+
+            #get invoice properties
+            inv_props = utils.get_invoice_properties(invoice.id)
+
+            #record cost and payment status in ApplicationFee model
+            if 'data' in inv_props and 'invoice' in inv_props['data']:
+                payment_status = inv_props['data']['invoice']["payment_status"] if "payment_status" in inv_props['data']['invoice'] else ""
+                amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
+
+                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                previous_application_fee_cost = previous_application_fees.last().cost if previous_application_fees.last() else 0.0
+
+                application_fee.payment_status = payment_status
+                application_fee.cost = float(amount) + float(previous_application_fee_cost)
+
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
