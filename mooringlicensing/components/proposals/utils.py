@@ -627,41 +627,28 @@ def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
             instance.temporary_document_collection_id = None
             instance.save()
 
-def ownership_percentage_validation(vessel_ownership, proposal):
-    logger.info(f'Calculating the total vessel ownership percentage of the vessel: [{vessel_ownership.vessel}]...')
+def ownership_percentage_validation(proposal):
+    logger.info(f'Calculating the total vessel ownership percentage of the draft vessel: [{proposal.rego_no}]...')
 
     individual_ownership_id = None
     company_ownership_id = None
     min_percent_fail = False
     vessel_ownership_percentage = 0
     ## First ensure applicable % >= 25
-    if vessel_ownership.company_ownerships.count():
-        company_ownership = vessel_ownership.company_ownerships.filter(
-            vessel=vessel_ownership.vessel, 
-            vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
-        ).order_by('created').last()
-        if company_ownership:
-            company_ownership_id = company_ownership.id
-    if company_ownership_id:
-        if not company_ownership.percentage:
-            raise serializers.ValidationError({
-                "Ownership Percentage": "You must specify a percentage"
-                })
+    if not proposal.individual_owner and proposal.company_ownership_name and proposal.company_ownership_percentage:
+        if proposal.company_ownership_percentage < 25:
+            min_percent_fail = True
         else:
-            if company_ownership.percentage < 25:
-                min_percent_fail = True
-            else:
-                vessel_ownership_percentage = company_ownership.percentage    
-    elif not vessel_ownership.percentage:
+            vessel_ownership_percentage = proposal.company_ownership_percentage   
+    elif not proposal.percentage:
         raise serializers.ValidationError({
             "Ownership Percentage": "You must specify a percentage"
             })
     else:
-        individual_ownership_id = vessel_ownership.id
-        if vessel_ownership.percentage < 25:
+        if proposal.percentage < 25:
             min_percent_fail = True
         else:
-            vessel_ownership_percentage = vessel_ownership.percentage
+            vessel_ownership_percentage = proposal.percentage
     if min_percent_fail:
         raise serializers.ValidationError({
             "Ownership Percentage": "Minimum of 25 percent"
@@ -672,26 +659,29 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     logger.info(f'Vessel ownerships to be excluded from the calculation: {previous_vessel_ownerships}')
 
     total_percent = vessel_ownership_percentage
-    vessel = vessel_ownership.vessel
+    vessel = Vessel.objects.filter(rego_no=proposal.rego_no).last()
 
-    for vo in vessel.filtered_vesselownership_set.distinct('owner'): 
-        if vo in previous_vessel_ownerships:
-            # We don't want to count the percentage in the previous vessel ownerships
-            continue
-        if vo.company_ownerships.count():
-            company_ownership = vo.get_latest_company_ownership()
-            if company_ownership:
-                if (company_ownership.id != company_ownership_id and 
-                        company_ownership.percentage and
-                        company_ownership.blocking_proposal
-                ):
-                    total_percent += company_ownership.percentage
-                    logger.info(f'Vessel ownership to be taken into account in the calculation: {company_ownership}')
-        elif vo.percentage and vo.id != individual_ownership_id:
-            total_percent += vo.percentage
-            logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
+    if vessel:
+        for vo in vessel.filtered_vesselownership_set.distinct('owner'):
+            if proposal.vessel_ownership and vo ==  proposal.vessel_ownership:
+                continue
+            if vo in previous_vessel_ownerships:
+                # We don't want to count the percentage in the previous vessel ownerships
+                continue
+            if vo.company_ownerships.count():
+                company_ownership = vo.get_latest_company_ownership()
+                if company_ownership:
+                    if (company_ownership.id != company_ownership_id and 
+                            company_ownership.percentage and
+                            company_ownership.blocking_proposal
+                    ):
+                        total_percent += company_ownership.percentage
+                        logger.info(f'Vessel ownership to be taken into account in the calculation: {company_ownership}')
+            elif vo.percentage and vo.id != individual_ownership_id:
+                total_percent += vo.percentage
+                logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
 
-    logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}%')
+        logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}%')
 
     if total_percent > 100:
         raise serializers.ValidationError({
