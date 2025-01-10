@@ -61,6 +61,7 @@ class CompanyOwnershipAdmin(admin.ModelAdmin):
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'get_submitter', 'approval',]
+    readonly_fields = ['vessel_ownership', 'listed_moorings', 'listed_vessels', 'vessel_details', 'allocated_mooring', 'approval', 'previous_application', 'waiting_list_allocation', 'fee_season']
     list_display_links = ['id', 'lodgement_number', ]
     inlines =[ProposalDocumentInline,ApplicationFeeInline,]
     search_fields = ['id', 'lodgement_number', 'approval__lodgement_number',]
