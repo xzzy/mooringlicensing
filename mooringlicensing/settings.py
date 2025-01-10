@@ -514,6 +514,7 @@ LEDGER_UI_ACCOUNTS_MANAGEMENT = [
     {'postal_same_as_residential' : {'options' : {'view': True, 'edit': True}}},
     {'address_details' : {'options' : {'billing_address': {'show': False}}}},
 ]
+LEDGER_UI_SYSTEM_ACCOUNTS_MANAGEMENT['address_details']['options']['billing_address']['show'] = False
 FILE_UPLOAD_PERMISSIONS = None
 MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
 PRIVATE_MEDIA_DIR_NAME = env('PRIVATE_MEDIA_DIR_NAME', 'private-media')
