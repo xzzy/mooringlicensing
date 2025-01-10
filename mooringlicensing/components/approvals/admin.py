@@ -8,6 +8,7 @@ from mooringlicensing.ledger_api_utils import retrieve_email_userro
 class StickerAdmin(admin.ModelAdmin):
     list_display = ['id', 'number', 'status', 'approval', 'dcv_permit', 'printing_date', 'mailing_date', 'fee_season', 'date_created', 'date_updated',]
     search_fields = ['id', 'number', 'approval__lodgement_number',]
+    readonly_fields = ['sticker_printing_batch','sticker_printing_response','approval','dcv_permit','fee_constructor','fee_season','vessel_ownership','proposal_initiated','sticker_to_replace',]
     list_filter = ['status',]
     list_display_links = ['id', 'number',]
     ordering = ['-id', ]
@@ -26,6 +27,7 @@ class ApprovalAdmin(admin.ModelAdmin):
         'applicant',
     ]
     search_fields = ['lodgement_number',]
+    readonly_fields = ['licence_document', 'authorised_user_summary_document', 'current_proposal', 'renewal_document']
     list_filter = ('status',)
 
     def get_submitter(self, obj):
