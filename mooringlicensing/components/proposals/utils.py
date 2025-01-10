@@ -110,15 +110,7 @@ def save_proponent_data_aaa(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
-    instance.refresh_from_db()
-    #TODO rework/remove
-    #if action == 'submit':
-    #    if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid'] and not instance.auto_approve:
-    #        # Save + Submit + Paid ==> We have to update the status
-    #        # Probably this is the case that assessor put back this application to external and then external submit this.
-    #        logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
-    #        instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-    #        instance.save()     
+    instance.refresh_from_db()   
 
 
 def save_proponent_data_wla(instance, request, action):
@@ -150,14 +142,7 @@ def save_proponent_data_wla(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
-    #TODO rework/remove
-    #if action == 'submit':
-    #    if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
-    #        # Save + Submit + Paid ==> We have to update the status
-    #        # Probably this is the case that assessor put back this application to external and then external submit this.
-    #        logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
-    #        instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-    #        instance.save()
+
 
 def save_proponent_data_mla(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
@@ -376,21 +361,23 @@ def submit_vessel_data(instance, request, vessel_data):
     # Update Proposal obj
     save_vessel_data(instance, request, vessel_data)
 
-    # Update VesselDetails obj
-    vessel, vessel_details = store_vessel_data(request, vessel_data)
+    #TODO on approval only
+    if None:
+        # Update VesselDetails obj
+        vessel, vessel_details = store_vessel_data(request, vessel_data)
 
-    # Associate the vessel_details with the proposal
-    instance.vessel_details = vessel_details
-    instance.save()
+        # Associate the vessel_details with the proposal
+        instance.vessel_details = vessel_details
+        instance.save()
 
-    # record ownership data
-    vessel_ownership = store_vessel_ownership(request, vessel, instance)
-    instance.vessel_ownership = vessel_ownership
-    instance.save()
+        # record ownership data
+        vessel_ownership = store_vessel_ownership(request, vessel, instance)
+        instance.vessel_ownership = vessel_ownership
+        instance.save()
 
-    instance.validate_against_existing_proposals_and_approvals()
+        instance.validate_against_existing_proposals_and_approvals() #TODO change
 
-    ownership_percentage_validation(vessel_ownership, instance)
+        ownership_percentage_validation(vessel_ownership, instance) #TODO change
 
 
 def store_vessel_data(request, vessel_data):
@@ -610,7 +597,7 @@ def store_vessel_ownership(request, vessel, instance):
 
     # check and set blocking_owner
     if instance:
-        vessel.check_blocking_ownership(vessel_ownership, instance)
+        vessel.check_blocking_ownership(vessel_ownership, instance) #TODO this needs to be changed or duplicated so it works without a vessel record
 
     # save temp doc if exists
     handle_vessel_registration_documents_in_limbo(instance.id, vessel_ownership)
