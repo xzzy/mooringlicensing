@@ -1548,9 +1548,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise
 
     def final_approval_for_WLA_AAA(self, request, details=None):
+        from mooringlicensing.components.proposals.utils import submit_vessel_data
         with transaction.atomic():
             try:
                 logger.info(f'Processing final_approval...for the proposal: [{self}].')
+
+                submit_vessel_data(self, request, approving=True)
 
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 self.proposed_decline_status = False
@@ -1706,7 +1709,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         with transaction.atomic():
             try:
                 from mooringlicensing.components.approvals.models import Sticker
+                from mooringlicensing.components.proposals.utils import submit_vessel_data
                 logger.info(f'Processing final_approval... for the proposal: [{self}].')
+
+                submit_vessel_data(self, request, approving=True)
 
                 self.proposed_decline_status = False
 

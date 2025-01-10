@@ -89,7 +89,7 @@ def save_proponent_data_aaa(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -121,7 +121,7 @@ def save_proponent_data_wla(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -153,7 +153,7 @@ def save_proponent_data_mla(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -197,7 +197,7 @@ def save_proponent_data_aua(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -318,7 +318,36 @@ def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
         vessel_lookup_errors[vessel_data.get("rego_no")] = "The provided details do not match those recorded with the Department of Transport"
 
-def submit_vessel_data(instance, request, vessel_data):
+def submit_vessel_data(instance, request, vessel_data=None, approving=False):
+
+    #if vessel data not provided, get from instance
+    if not vessel_data:
+        vessel_data = {
+            "id": instance.vessel_id,
+            "rego_no": instance.rego_no,
+            "vessel_details": {
+                "berth_mooring": instance.berth_mooring,
+                "vessel_beam": instance.vessel_beam,
+                "vessel_draft": instance.vessel_draft,
+                "vessel_length": instance.vessel_length,
+                "vessel_name": instance.vessel_name,
+                "vessel_type": instance.vessel_type,
+                "vessel_weight": instance.vessel_weight,
+            },
+            "vessel_ownership": {
+                "individual_owner": instance.individual_owner,
+                "dot_name": instance.dot_name,
+            },
+        }
+
+        if instance.individual_owner:
+            vessel_data["vessel_ownership"]["percentage"] = instance.percentage
+        else:    
+            vessel_data["vessel_ownership"]["company_ownership"] = {
+                "company": {"name": instance.company_ownership_name},
+                "percentage": instance.company_ownership_percentage,
+            }
+
     logger.info(f'submit_vessel_data() is called with the vessel_data: {vessel_data}')
 
     # Dot vessel rego lookup
@@ -361,8 +390,7 @@ def submit_vessel_data(instance, request, vessel_data):
     # Update Proposal obj
     save_vessel_data(instance, request, vessel_data)
 
-    #TODO on approval only
-    if None:
+    if approving:
         # Update VesselDetails obj
         vessel, vessel_details = store_vessel_data(request, vessel_data)
 
@@ -375,9 +403,9 @@ def submit_vessel_data(instance, request, vessel_data):
         instance.vessel_ownership = vessel_ownership
         instance.save()
 
-        instance.validate_against_existing_proposals_and_approvals() #TODO change
+    instance.validate_against_existing_proposals_and_approvals()
 
-        ownership_percentage_validation(vessel_ownership, instance) #TODO change
+    ownership_percentage_validation(instance)
 
 
 def store_vessel_data(request, vessel_data):
