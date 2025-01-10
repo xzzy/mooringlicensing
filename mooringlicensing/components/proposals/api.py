@@ -2490,7 +2490,7 @@ class MooringBayViewSet(viewsets.ReadOnlyModelViewSet):
 
 class MooringFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        total_count = queryset.count()
+        
         # filter_mooring_status
         filter_mooring_status = request.GET.get('filter_mooring_status')
         if filter_mooring_status and not filter_mooring_status.lower() == 'all':
@@ -2527,11 +2527,10 @@ class MooringFilterBackend(DatatablesFilterBackend):
 
                 queryset = super_queryset.union(q_set)
 
-            return queryset
-
         except Exception as e:
             print(e)
-        setattr(view, '_datatables_total_count', total_count)
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
         return queryset
 
 

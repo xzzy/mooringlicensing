@@ -41,26 +41,31 @@ class CompanyAdmin(admin.ModelAdmin):
 @admin.register(models.VesselRegistrationDocument)
 class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
     list_display = ['original_file_name', 'original_file_ext', 'proposal', 'vessel_ownership', '_file']
+    readonly_fields = ['vessel_ownership', 'proposal']
 
 
 @admin.register(models.VesselOwnership)
 class VesselOwnershipAdmin(admin.ModelAdmin):
     list_display = ['id', 'owner', 'vessel', 'percentage', 'start_date', 'end_date', 'dot_name',]
+    readonly_fields = ['owner','vessel']
 
 
 @admin.register(models.VesselDetails)
 class VesselDetailsAdmin(admin.ModelAdmin):
     list_display = ['id', 'vessel', 'vessel_type', 'vessel_name', 'vessel_length', 'vessel_draft',]
+    readonly_fields = ['vessel']
 
 
 @admin.register(models.CompanyOwnership)
 class CompanyOwnershipAdmin(admin.ModelAdmin):
     list_display = ['id', 'company', 'vessel', 'percentage',]
+    readonly_fields = ['blocking_proposal','vessel','company']
 
 
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     list_display = ['id', 'lodgement_number', 'lodgement_date', 'processing_status', 'get_submitter', 'approval',]
+    readonly_fields = ['vessel_ownership', 'listed_moorings', 'listed_vessels', 'vessel_details', 'allocated_mooring', 'approval', 'previous_application', 'waiting_list_allocation', 'fee_season']
     list_display_links = ['id', 'lodgement_number', ]
     inlines =[ProposalDocumentInline,ApplicationFeeInline,]
     search_fields = ['id', 'lodgement_number', 'approval__lodgement_number',]
@@ -103,7 +108,8 @@ class MooringBayAdmin(admin.ModelAdmin):
 
 @admin.register(Mooring)
 class MooringAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'mooring_bay', 'active', 'vessel_size_limit', 'vessel_draft_limit', 'mooring_licence',]
+    list_display = ['id', 'name', 'mooring_bay', 'active', 'vessel_size_limit', 'vessel_draft_limit', ]
+    readonly_fields = ['mooring_licence',]
     list_filter = ('active',)
     search_fields = ['name',]
 
@@ -202,6 +208,7 @@ class StickersPrintingResponseAdmin(admin.ModelAdmin):
         'processed',
         'no_errors_when_process',
     ]
+    exclude = ['sticker_printing_response_email']
     search_fields = ['name',]
     list_filter = ('processed', 'no_errors_when_process',)
 
