@@ -2686,8 +2686,8 @@ class WaitingListApplication(Proposal):
 
         application_type = self.application_type
 
-        if self.vessel_details:
-            vessel_length = self.vessel_details.vessel_applicable_length
+        if self.vessel_length:
+            vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
