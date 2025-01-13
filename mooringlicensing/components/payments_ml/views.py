@@ -759,7 +759,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         fee_item_application_fee = FeeItemApplicationFee.objects.create(
                             fee_item=fee_item,
                             application_fee=application_fee,
-                            vessel_details=proposal.vessel_details,
+                            vessel_details=proposal.vessel_details, #TODO change
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
@@ -771,6 +771,8 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         fee_amount_adjusted = item['fee_amount_adjusted']
                         amount_to_be_paid = Decimal(fee_amount_adjusted)
                         amount_paid = amount_to_be_paid
+
+                        #TODO change FeeApplicationFee model
                         vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
                         vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
                         fee_item_application_fee = FeeItemApplicationFee.objects.create(

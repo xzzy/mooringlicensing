@@ -154,7 +154,10 @@ class StickerActionFee(Payment):
 class FeeItemApplicationFee(models.Model):
     fee_item = models.ForeignKey('FeeItem', on_delete=models.CASCADE)
     application_fee = models.ForeignKey('ApplicationFee', on_delete=models.CASCADE)
-    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True, on_delete=models.SET_NULL)
+    
+    #TODO change FeeApplicationFee model - do not refer to model, store required values in this model directly
+    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True, on_delete=models.SET_NULL) 
+
     amount_to_be_paid = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
     amount_paid = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
 

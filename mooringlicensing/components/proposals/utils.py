@@ -954,7 +954,7 @@ def get_max_vessel_length_for_main_component(proposal):
 
     fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee__proposal_id__in=proposal_id_list).filter(fee_item__fee_constructor__application_type=proposal_application_type)
     for fee_item_application_fee in fee_item_application_fees:     
-        length_tuple = fee_item_application_fee.get_max_allowed_length()
+        length_tuple = fee_item_application_fee.get_max_allowed_length() #TODO change
         if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
             max_vessel_length = length_tuple
 

@@ -732,7 +732,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
                     application_fee__proposal=proposal,
                     fee_item__fee_constructor__application_type=annual_admission_type,
-                    vessel_details__vessel=vessel):
+                    vessel_details__vessel=vessel): #TODO change
                     # When not for AAP component
                     # or for AAP component and fee_item paid is for this vessel
                     amount_paid = fee_item_application_fee.amount_paid
@@ -792,7 +792,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         queries &= Q(fee_item__fee_period__fee_season=fee_season)
         if vessel_details:
             # AA component for ML, we mind the vessel
-            queries &= Q(vessel_details__vessel=vessel_details.vessel)
+            queries &= Q(vessel_details__vessel=vessel_details.vessel) #TODO change
 
         fee_item_application_fees = FeeItemApplicationFee.objects.filter(queries)
 
@@ -1821,7 +1821,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 fiaf = FeeItemApplicationFee.objects.create(
                                     fee_item=fee_item,
                                     application_fee=application_fee,
-                                    vessel_details=vessel_details,
+                                    vessel_details=vessel_details, #TODO change
                                     amount_to_be_paid=amount_to_be_paid,
                                 )
                                 logger.info(f'FeeItemApplicationFee: [{fiaf}] has been created.')
@@ -2579,10 +2579,12 @@ class WaitingListApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+
         # Get blocking proposals 
         # Checking if there are any applications still in progress
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=self.vessel_ownership.vessel) &
+            (Q(vessel_details__vessel=vessel) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -2605,7 +2607,7 @@ class WaitingListApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            Q(current_proposal__vessel_ownership__vessel=self) &
+            Q(current_proposal__vessel_ownership__vessel=vessel) &
             (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
             Q(current_proposal__vessel_ownership__end_date=None))
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
@@ -2823,9 +2825,11 @@ class AnnualAdmissionApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+
         # Get blocking proposals
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=self.vessel_ownership.vessel) &
+            (Q(vessel_details__vessel=vessel) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -2852,7 +2856,7 @@ class AnnualAdmissionApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            Q(current_proposal__vessel_ownership__vessel=self) &
+            Q(current_proposal__vessel_ownership__vessel=vessel) &
             (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
             Q(current_proposal__vessel_ownership__end_date=None))
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
@@ -2914,8 +2918,8 @@ class AnnualAdmissionApplication(Proposal):
         db_processes_after_success = {}
         accept_null_vessel = False
 
-        if self.vessel_details:
-            vessel_length = self.vessel_details.vessel_applicable_length
+        if self.vessel_length:
+            vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
@@ -3047,9 +3051,11 @@ class AuthorisedUserApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+
         # Get blocking proposals
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=self.vessel_ownership.vessel) &
+            (Q(vessel_details__vessel=vessel) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -3071,7 +3077,7 @@ class AuthorisedUserApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            Q(current_proposal__vessel_ownership__vessel=self) &
+            Q(current_proposal__vessel_ownership__vessel=vessel) &
             (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
             Q(current_proposal__vessel_ownership__end_date=None))
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
@@ -3145,8 +3151,8 @@ class AuthorisedUserApplication(Proposal):
 
         logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self, target_date))
 
-        if self.vessel_details:
-            vessel_length = self.vessel_details.vessel_applicable_length
+        if self.vessel_length:
+            vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
@@ -3550,9 +3556,11 @@ class MooringLicenceApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+
         # Get blocking proposals
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=self.vessel_ownership.vessel) &
+            (Q(vessel_details__vessel=vessel) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -3574,7 +3582,7 @@ class MooringLicenceApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            Q(current_proposal__vessel_ownership__vessel=self) &
+            Q(current_proposal__vessel_ownership__vessel=vessel) &
             (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
             Q(current_proposal__vessel_ownership__end_date=None))
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
@@ -3701,8 +3709,8 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'Largest vessel details are [{vessel_details_largest}] for the application: [{self}].')
 
         # For Mooring Licence component
-        if vessel_details_largest:
-            vessel_length = vessel_details_largest.vessel_applicable_length
+        if self.vessel_length:
+            vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
