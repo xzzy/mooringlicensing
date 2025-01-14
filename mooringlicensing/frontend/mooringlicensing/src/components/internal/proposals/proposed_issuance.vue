@@ -914,7 +914,9 @@ export default {
                             term: params.term,
                             type: 'public',
                             mooring_bay_id: vm.approval.mooring_bay_id,
-                            vessel_details_id: vm.proposal.vessel_details_id,
+                            vessel_length:vm.proposal.vessel_length,
+                            vessel_draft:vm.proposal.vessel_draft,
+                            vessel_weight:vm.proposal.vessel_weight,
                             aup_id: vm.proposal.approval_id,
                         }
                         console.log('in data()')
