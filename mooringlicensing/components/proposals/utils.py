@@ -471,6 +471,13 @@ def store_vessel_ownership(request, vessel, instance):
                 "dot_name": instance.dot_name,
             },
         }
+        if instance.individual_owner:
+            vessel_data["vessel_ownership"]["percentage"] = instance.percentage
+        else:    
+            vessel_data["vessel_ownership"]["company_ownership"] = {
+                "company": {"name": instance.company_ownership_name},
+                "percentage": instance.company_ownership_percentage,
+            }
         vessel_ownership_data = vessel_data["vessel_ownership"]
 
     if vessel_ownership_data.get('individual_owner') is None:
@@ -678,7 +685,6 @@ def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
 def ownership_percentage_validation(proposal):
     logger.info(f'Calculating the total vessel ownership percentage of the draft vessel: [{proposal.rego_no}]...')
 
-    individual_ownership_id = None
     company_ownership_id = None
     min_percent_fail = False
     vessel_ownership_percentage = 0
@@ -725,7 +731,7 @@ def ownership_percentage_validation(proposal):
                     ):
                         total_percent += company_ownership.percentage
                         logger.info(f'Vessel ownership to be taken into account in the calculation: {company_ownership}')
-            elif vo.percentage and vo.id != individual_ownership_id:
+            elif vo.percentage:
                 total_percent += vo.percentage
                 logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
 
