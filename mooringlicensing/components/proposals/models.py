@@ -2611,6 +2611,10 @@ class WaitingListApplication(Proposal):
             if proposal.succeeding_proposals.count() == 0: # There are no succeeding proposals, which means this proposal is the lastest proposal.
                 if type(proposal) == WaitingListApplication or type(proposal) == MooringLicenceApplication:
                     blocking_proposals.append(proposal)
+                elif (proposal.proposal_applicant and 
+                    self.proposal_applicant and 
+                    proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                    blocking_proposals.append(proposal)
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
@@ -2623,7 +2627,12 @@ class WaitingListApplication(Proposal):
 
         for approval in approvals:
             if type(approval.child_obj) == WaitingListAllocation or type(approval.child_obj) == MooringLicence:
-                blocking_approvals.append(approval)      
+                blocking_approvals.append(approval)
+            elif (approval.child_obj.current_proposal and 
+                approval.child_obj.current_proposal.proposal_applicant and 
+                self.proposal_applicant and 
+                approval.child_obj.current_proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):     
+                blocking_approvals.append(approval) 
 
         if (blocking_proposals):
             msg = f'The vessel: {self.vessel_ownership.vessel} is already listed in another active waiting list or mooring license application'
@@ -2829,7 +2838,7 @@ class AnnualAdmissionApplication(Proposal):
                 self.save()
 
     def validate_against_existing_proposals_and_approvals(self):
-        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
+        from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
@@ -2853,6 +2862,7 @@ class AnnualAdmissionApplication(Proposal):
         proposals_mla = []
         proposals_aaa = []
         proposals_aua = []
+        proposals_wla = []
         for proposal in child_proposals:
             if type(proposal) == MooringLicenceApplication:
                 proposals_mla.append(proposal)
@@ -2860,6 +2870,12 @@ class AnnualAdmissionApplication(Proposal):
                 proposals_aaa.append(proposal)
             if type(proposal) == AuthorisedUserApplication:
                 proposals_aua.append(proposal)
+            if type(proposal) == WaitingListApplication:
+                #only blocks if from a different user/owner
+                if (proposal.proposal_applicant and 
+                    self.proposal_applicant and 
+                    proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                    proposals_wla.append(proposal)
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
@@ -2871,6 +2887,7 @@ class AnnualAdmissionApplication(Proposal):
         approvals_ml = []
         approvals_aap = []
         approvals_aup = []
+        approvals_wla = []
         for approval in approvals:
             if type(approval.child_obj) == MooringLicence:
                 approvals_ml.append(approval)
@@ -2878,9 +2895,16 @@ class AnnualAdmissionApplication(Proposal):
                 approvals_aap.append(approval)
             if type(approval.child_obj) == AuthorisedUserPermit:
                 approvals_aup.append(approval)
+            if type(approval.child_obj) == WaitingListAllocation:
+                #only blocks if from a different user/owner
+                if (approval.child_obj.current_proposal and 
+                    approval.child_obj.current_proposal.proposal_applicant and 
+                    self.proposal_applicant and 
+                    approval.child_obj.current_proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                    approvals_wla.append(approval)
 
-        if proposals_aaa or approvals_aap or proposals_aua or approvals_aup or proposals_mla or approvals_ml:
-            list_sum = proposals_aaa + proposals_aua + proposals_mla + approvals_aap + approvals_aup + approvals_ml
+        if proposals_aaa or approvals_aap or proposals_aua or approvals_aup or proposals_mla or approvals_ml or proposals_wla:
+            list_sum = proposals_aaa + proposals_aua + proposals_mla + approvals_aap + approvals_aup + approvals_ml + proposals_wla
             raise serializers.ValidationError("The vessel in the application is already listed in " +
             ", ".join(['{} {} '.format(item.description, item.lodgement_number) for item in list_sum]))
 
@@ -3078,9 +3102,14 @@ class AuthorisedUserApplication(Proposal):
         logger.debug(f'child_proposals: [{child_proposals}]')
 
         proposals_aua = []
+        proposals_other = []
         for proposal in child_proposals:
             if type(proposal) == AuthorisedUserApplication:
                 proposals_aua.append(proposal)
+            elif (proposal.proposal_applicant and 
+                self.proposal_applicant and 
+                proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                proposals_other.append(proposal)
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
@@ -3089,14 +3118,25 @@ class AuthorisedUserApplication(Proposal):
             Q(current_proposal__vessel_ownership__end_date=None))
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
         approvals_aup = []
+        approvals_other = []
         for approval in approvals:
             if type(approval.child_obj) == AuthorisedUserPermit:
                 approvals_aup.append(approval)
+            elif (approval.child_obj.current_proposal and 
+                approval.child_obj.current_proposal.proposal_applicant and 
+                self.proposal_applicant and 
+                approval.child_obj.current_proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                approvals_other.append(approval)
 
         if proposals_aua or approvals_aup:
             raise serializers.ValidationError("The vessel in the application is already listed in " +  
                 ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_aua]) +
                 ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_aup])
+            )
+        elif proposals_other or approvals_other:
+            raise serializers.ValidationError("The vessel in the application is already listed in " +  
+                ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_other]) +
+                ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_other])
             )
 
     def validate_vessel_length(self, request):
@@ -3583,9 +3623,14 @@ class MooringLicenceApplication(Proposal):
         logger.debug(f'child_proposals: [{child_proposals}]')
 
         proposals_mla = []
+        proposals_other = []
         for proposal in child_proposals:
             if type(proposal) == MooringLicenceApplication:
                 proposals_mla.append(proposal)
+            elif (proposal.proposal_applicant and 
+                self.proposal_applicant and 
+                proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                proposals_other.append(proposal)
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
@@ -3595,14 +3640,25 @@ class MooringLicenceApplication(Proposal):
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
 
         approvals_ml = []
+        approvals_other = []
         for approval in approvals:
             if type(approval.child_obj) == MooringLicence:
                 approvals_ml.append(approval)
+            elif (approval.child_obj.current_proposal and 
+                approval.child_obj.current_proposal.proposal_applicant and 
+                self.proposal_applicant and 
+                approval.child_obj.current_proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                approvals_other.append(approval)
 
         if proposals_mla or approvals_ml:
             raise serializers.ValidationError("The vessel in the application is already listed in " +  
                 ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_mla]) +
                 ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_ml])
+            )
+        elif proposals_other or approvals_other:
+            raise serializers.ValidationError("The vessel in the application is already listed in " +  
+                ", ".join(['{} {} '.format(proposal.description, proposal.lodgement_number) for proposal in proposals_other]) +
+                ", ".join(['{} {} '.format(approval.description, approval.lodgement_number) for approval in approvals_other])
             )
 
     def validate_vessel_length(self, request):
