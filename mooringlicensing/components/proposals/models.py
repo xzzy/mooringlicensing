@@ -2618,9 +2618,14 @@ class WaitingListApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            (Q(current_proposal__vessel_ownership__vessel=vessel) | Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no))
-            (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-            Q(current_proposal__vessel_ownership__end_date=None))
+            (
+                Q(current_proposal__vessel_ownership__vessel=vessel) | 
+                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+            ) &
+            (
+                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                Q(current_proposal__vessel_ownership__end_date=None)
+            )
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
 
         blocking_approvals = []
@@ -2879,9 +2884,14 @@ class AnnualAdmissionApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            (Q(current_proposal__vessel_ownership__vessel=vessel) | Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)) &
-            (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-            Q(current_proposal__vessel_ownership__end_date=None))
+            (
+                Q(current_proposal__vessel_ownership__vessel=vessel) | 
+                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+            ) &
+            (
+                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                Q(current_proposal__vessel_ownership__end_date=None)
+            )
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
 
         approvals_ml = []
@@ -3113,9 +3123,14 @@ class AuthorisedUserApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            (Q(current_proposal__vessel_ownership__vessel=vessel) | Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)) &
-            (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-            Q(current_proposal__vessel_ownership__end_date=None))
+            (
+                Q(current_proposal__vessel_ownership__vessel=vessel) | 
+                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+            ) &
+            (
+                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                Q(current_proposal__vessel_ownership__end_date=None)
+            )
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
         approvals_aup = []
         approvals_other = []
@@ -3634,9 +3649,14 @@ class MooringLicenceApplication(Proposal):
 
         # Get blocking approvals
         approvals = Approval.objects.filter(
-            (Q(current_proposal__vessel_ownership__vessel=vessel) | Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)) &
-            (Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-            Q(current_proposal__vessel_ownership__end_date=None))
+            (
+                Q(current_proposal__vessel_ownership__vessel=vessel) | 
+                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+            ) &
+            (
+                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                Q(current_proposal__vessel_ownership__end_date=None)
+            )
         ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
 
         approvals_ml = []
