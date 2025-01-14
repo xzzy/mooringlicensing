@@ -732,7 +732,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
                     application_fee__proposal=proposal,
                     fee_item__fee_constructor__application_type=annual_admission_type,
-                    vessel_details__vessel=vessel): #TODO change
+                    vessel_details__vessel=vessel):
                     # When not for AAP component
                     # or for AAP component and fee_item paid is for this vessel
                     amount_paid = fee_item_application_fee.amount_paid
@@ -792,7 +792,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         queries &= Q(fee_item__fee_period__fee_season=fee_season)
         if vessel_details:
             # AA component for ML, we mind the vessel
-            queries &= Q(vessel_details__vessel=vessel_details.vessel) #TODO change
+            queries &= Q(vessel_details__vessel=vessel_details.vessel)
 
         fee_item_application_fees = FeeItemApplicationFee.objects.filter(queries)
 
@@ -1549,11 +1549,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def final_approval_for_WLA_AAA(self, request, details=None):
         from mooringlicensing.components.proposals.utils import submit_vessel_data
+        from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
         with transaction.atomic():
             try:
                 logger.info(f'Processing final_approval...for the proposal: [{self}].')
 
                 submit_vessel_data(self, request, approving=True)
+                self.refresh_from_db()
 
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
                 self.proposed_decline_status = False
@@ -1606,6 +1608,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         approval.log_user_action(f'New approval: {approval} has been created.', request)
                 self.approval = approval
                 self.save()
+
+                #update FeeItemApplicationFee with vessel details
+                application_fee = self.get_main_application_fee()
+                fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
+                fee_item_application_fees.update(vessel_details=self.vessel_details)
 
                 # always reset this flag
                 approval.renewal_sent = False
@@ -1713,7 +1720,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 logger.info(f'Processing final_approval... for the proposal: [{self}].')
 
                 submit_vessel_data(self, request, approving=True)
-
+                self.refresh_from_db()
                 self.proposed_decline_status = False
 
                 if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
@@ -1821,7 +1828,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                                 fiaf = FeeItemApplicationFee.objects.create(
                                     fee_item=fee_item,
                                     application_fee=application_fee,
-                                    vessel_details=vessel_details, #TODO change
+                                    vessel_details=vessel_details,
                                     amount_to_be_paid=amount_to_be_paid,
                                 )
                                 logger.info(f'FeeItemApplicationFee: [{fiaf}] has been created.')

@@ -2295,7 +2295,7 @@ def create_application_fee(proposal):
                 fee_item_application_fee = FeeItemApplicationFee.objects.create(
                     fee_item=fee_item,
                     application_fee=application_fee,
-                    vessel_details=proposal.vessel_details, #TODO change to use new model fields
+                    vessel_details=proposal.vessel_details,
                     amount_to_be_paid=amount_to_be_paid,
                     amount_paid=amount_paid,
                 )
@@ -2311,7 +2311,7 @@ def create_application_fee(proposal):
                 fee_item_application_fee = FeeItemApplicationFee.objects.create(
                     fee_item=fee_item,
                     application_fee=application_fee,
-                    vessel_details=vessel_details, #TODO change to use new model fields
+                    vessel_details=vessel_details,
                     amount_to_be_paid=amount_to_be_paid,
                     amount_paid=amount_paid,
                 )

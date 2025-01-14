@@ -393,7 +393,6 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
     if approving:
         # Update VesselDetails obj
         vessel, vessel_details = store_vessel_data(request, vessel_data)
-
         # Associate the vessel_details with the proposal
         instance.vessel_details = vessel_details
         instance.save()
@@ -452,7 +451,28 @@ def store_vessel_ownership(request, vessel, instance):
 
     ## Get Vessel
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
-    vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
+    if request.data.get('vessel'):
+        vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
+    else:
+        vessel_data = {
+            "id": instance.vessel_id,
+            "rego_no": instance.rego_no,
+            "vessel_details": {
+                "berth_mooring": instance.berth_mooring,
+                "vessel_beam": instance.vessel_beam,
+                "vessel_draft": instance.vessel_draft,
+                "vessel_length": instance.vessel_length,
+                "vessel_name": instance.vessel_name,
+                "vessel_type": instance.vessel_type,
+                "vessel_weight": instance.vessel_weight,
+            },
+            "vessel_ownership": {
+                "individual_owner": instance.individual_owner,
+                "dot_name": instance.dot_name,
+            },
+        }
+        vessel_ownership_data = vessel_data["vessel_ownership"]
+
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
     elif (not vessel_ownership_data.get('individual_owner') and not 
@@ -625,7 +645,7 @@ def store_vessel_ownership(request, vessel, instance):
 
     # check and set blocking_owner
     if instance:
-        vessel.check_blocking_ownership(vessel_ownership, instance) #TODO this needs to be changed or duplicated so it works without a vessel record
+        vessel.check_blocking_ownership(vessel_ownership, instance)
 
     # save temp doc if exists
     handle_vessel_registration_documents_in_limbo(instance.id, vessel_ownership)
@@ -954,7 +974,7 @@ def get_max_vessel_length_for_main_component(proposal):
 
     fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee__proposal_id__in=proposal_id_list).filter(fee_item__fee_constructor__application_type=proposal_application_type)
     for fee_item_application_fee in fee_item_application_fees:     
-        length_tuple = fee_item_application_fee.get_max_allowed_length() #TODO change
+        length_tuple = fee_item_application_fee.get_max_allowed_length()
         if max_vessel_length[0] < length_tuple[0] or (max_vessel_length[0] == length_tuple[0] and length_tuple[1] == True):
             max_vessel_length = length_tuple
 
