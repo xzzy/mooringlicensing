@@ -2591,7 +2591,7 @@ class WaitingListApplication(Proposal):
         # Get blocking proposals 
         # Checking if there are any applications still in progress
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=vessel) &
+            ((Q(vessel_details__vessel=vessel) & ~Q(vessel_details__vessel=None)) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -2613,7 +2613,7 @@ class WaitingListApplication(Proposal):
                     blocking_proposals.append(proposal)
                 elif (proposal.proposal_applicant and 
                     self.proposal_applicant and 
-                    proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):
+                    proposal.proposal_applicant.email_user_id != self.proposal_applicant.email_user_id):            
                     blocking_proposals.append(proposal)
 
         # Get blocking approvals
@@ -2850,7 +2850,7 @@ class AnnualAdmissionApplication(Proposal):
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=vessel) &
+            ((Q(vessel_details__vessel=vessel) & ~Q(vessel_details__vessel=None)) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -3096,7 +3096,7 @@ class AuthorisedUserApplication(Proposal):
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=vessel) &
+            ((Q(vessel_details__vessel=vessel) & ~Q(vessel_details__vessel=None)) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
@@ -3622,7 +3622,7 @@ class MooringLicenceApplication(Proposal):
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
-            (Q(vessel_details__vessel=vessel) &
+            ((Q(vessel_details__vessel=vessel) & ~Q(vessel_details__vessel=None)) &
             (Q(vessel_ownership__end_date__gt=today) | Q(vessel_ownership__end_date__isnull=True)) |
             Q(rego_no=self.rego_no)) & # Vessel has not been sold yet
             ~Q(processing_status__in=[  # Blocking proposal's status is not in the statuses listed
