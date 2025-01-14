@@ -451,7 +451,7 @@ def store_vessel_ownership(request, vessel, instance):
 
     ## Get Vessel
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
-    if request.data.get('vessel'):
+    if hasattr(request,'data') and request.data.get('vessel'):
         vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
     else:
         vessel_data = {
