@@ -725,7 +725,7 @@ class SaveAnnualAdmissionApplicationSerializer(serializers.ModelSerializer):
                 pass 
             else:
                 insurance_choice = data.get("insurance_choice")
-                vessel_length = proposal.vessel_details.vessel_applicable_length
+                vessel_length = proposal.vessel_length
                 if not insurance_choice:
                     custom_errors["Insurance Choice"] = "You must make an insurance selection"
                 elif vessel_length > Decimal("6.4") and insurance_choice not in ['ten_million', 'over_ten']:
@@ -759,12 +759,12 @@ class SaveMooringLicenceApplicationSerializer(serializers.ModelSerializer):
 
         if self.context.get("action") == 'submit':
             if not ignore_insurance_check:
-                renewal_or_amendment_application_with_vessel = proposal.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,] and proposal.vessel_details
+                renewal_or_amendment_application_with_vessel = proposal.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT,] and proposal.vessel_details #TODO review if this would work
                 new_application = proposal.proposal_type.code == PROPOSAL_TYPE_NEW
                 if renewal_or_amendment_application_with_vessel or new_application:
                     logger.info(f'This proposal: [{self.instance}] is a new proposal or a renewal/amendment proposal with a vessel.')
                     insurance_choice = data.get("insurance_choice")
-                    vessel_length = proposal.vessel_details.vessel_applicable_length
+                    vessel_length = proposal.vessel_length
                     if not insurance_choice:
                         custom_errors["Insurance Choice"] = "You must make an insurance selection"
                     elif vessel_length > Decimal("6.4") and insurance_choice not in ['ten_million', 'over_ten']:
@@ -817,7 +817,7 @@ class SaveAuthorisedUserApplicationSerializer(serializers.ModelSerializer):
         if self.context.get("action") == 'submit':
             if not ignore_insurance_check:
                 insurance_choice = data.get("insurance_choice")
-                vessel_length = proposal.vessel_details.vessel_applicable_length
+                vessel_length = proposal.vessel_length
                 if not insurance_choice:
                     custom_errors["Insurance Choice"] = "You must make an insurance selection"
                 elif vessel_length > Decimal("6.4") and insurance_choice not in ['ten_million', 'over_ten']:

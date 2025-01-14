@@ -759,7 +759,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         fee_item_application_fee = FeeItemApplicationFee.objects.create(
                             fee_item=fee_item,
                             application_fee=application_fee,
-                            vessel_details=proposal.vessel_details,
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
@@ -771,12 +770,10 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         fee_amount_adjusted = item['fee_amount_adjusted']
                         amount_to_be_paid = Decimal(fee_amount_adjusted)
                         amount_paid = amount_to_be_paid
-                        vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
-                        vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
+
                         fee_item_application_fee = FeeItemApplicationFee.objects.create(
                             fee_item=fee_item,
                             application_fee=application_fee,
-                            vessel_details=vessel_details,
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
@@ -866,6 +863,12 @@ class ApplicationFeeSuccessView(TemplateView):
                 if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
                     if proposal.auto_approve:
                         proposal.final_approval_for_WLA_AAA(request, details={})
+
+                proposal.refresh_from_db()
+
+                #update FeeItemApplicationFee with vessel details
+                fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
+                fee_item_application_fees.update(vessel_details=proposal.vessel_details)
 
                 wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
