@@ -2640,11 +2640,11 @@ class WaitingListApplication(Proposal):
                 blocking_approvals.append(approval) 
 
         if (blocking_proposals):
-            msg = f'The vessel: {self.vessel_ownership.vessel} is already listed in another active waiting list or mooring license application'
+            msg = f'The vessel: {self.rego_no} is already listed in another active application'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         elif (blocking_approvals):
-            msg = f'The vessel: {self.vessel_ownership.vessel} is already listed in another active waiting list or mooring license'
+            msg = f'The vessel: {self.rego_no} is already listed in another active license'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         # Person can have only one WLA, Waiting List application, Mooring Licence, and Mooring Licence application
