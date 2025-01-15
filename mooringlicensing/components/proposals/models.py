@@ -273,7 +273,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
     customer_status = models.CharField('Customer Status', 
         max_length=40, choices=CUSTOMER_STATUS_CHOICES,
@@ -3820,7 +3820,7 @@ class MooringLicenceApplication(Proposal):
             'vessel_details_id': vessel_details_largest.id if vessel_details_largest else '',
             'fee_amount_adjusted': str(fee_amount_adjusted),
         })
-        line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime))
+        line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime, vessel_details_largest.vessel.rego_no))
 
         # For Annual Admission component
         for vessel_details in vessel_detais_list_to_be_processed:
