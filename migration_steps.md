@@ -38,8 +38,8 @@ vi venv/lib/python3.12/site-packages/reversion/migrations/0001_squashed_0004_aut
 
 Add environment variables
 LOTUS_NOTES_PATH = Location of unclean migration data   
-MIGRATION_DATA_PATH = Output directory for cleaned migratrion data   
-![image](https://github.com/user-attachments/assets/583087a9-2719-495c-b8a6-70fa0473e260)    
+MIGRATION_DATA_PATH = Output directory for cleaned migratrion data    
+![image](https://github.com/user-attachments/assets/e113c018-cf50-447f-ac87-26134adafe3f)
 
 
 ```
