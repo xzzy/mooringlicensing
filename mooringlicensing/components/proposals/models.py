@@ -273,7 +273,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     proposed_issuance_approval = JSONField(blank=True, null=True)
 
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
     customer_status = models.CharField('Customer Status', 
         max_length=40, choices=CUSTOMER_STATUS_CHOICES,

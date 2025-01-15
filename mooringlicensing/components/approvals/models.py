@@ -2546,7 +2546,7 @@ class DcvAdmission(RevisionedMixin):
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
 
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
     
     @property
     def admin_group(self):
@@ -2851,7 +2851,7 @@ class DcvPermit(RevisionedMixin):
     postal_address_state = models.CharField(max_length=255, default='WA', blank=True, null=True)
     postal_address_country = CountryField(default='AU', blank=True, null=True)
     
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
     @property
     def submitter_obj(self):
@@ -3174,7 +3174,7 @@ class Sticker(models.Model):
     postal_address_country = CountryField(default='AU', null=True, blank=True)
     postal_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
     class Meta:
         app_label = 'mooringlicensing'
