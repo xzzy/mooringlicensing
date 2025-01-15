@@ -373,7 +373,7 @@ export default {
             return this.proposal.processing_status == 'Declined' || this.proposal.processing_status == 'Approved';
         },
         canAssess: function(){
-            return this.hasAssessorMode || this.hasApproverMode;
+            return this.proposal.assessor_mode.assessor_can_assess;
         },
         hasAssessorMode:function(){
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
