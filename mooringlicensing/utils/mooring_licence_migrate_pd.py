@@ -2141,7 +2141,10 @@ class MooringLicenceReader():
                     )
 
             except Exception as e:
-                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                if user:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id None:" + str(e))
 
         print(f'rego_aa_created: {len(rego_aa_created)}')
         print(f'total_aa_created: {len(total_aa_created)}')
