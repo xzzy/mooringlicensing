@@ -33,8 +33,19 @@ vi venv/lib/python3.12/site-packages/reversion/migrations/0001_squashed_0004_aut
 ./manage_ml.py loaddata mooringlicensing/fixtures/mooring_mooring_bay.json
 ./manage_ml.py loaddata mooringlicensing/fixtures/ml_fixtures.json
  ```
- 
-## Step 5 run migrations script
+
+## Step 5 Run Migration Clean Script
+
+Add environment variables
+LOTUS_NOTES_PATH = Location of unclean migration data   
+MIGRATION_DATA_PATH = Output directory for cleaned migratrion data   
+![image](https://github.com/user-attachments/assets/583087a9-2719-495c-b8a6-70fa0473e260)    
+
+
+```
+python manage_ml.py import_lotus_notes
+```
+## Step 6 run migrations script
 ```
 python ./manage_ml.py ml_migration_script --path ~/datamigration/outpath04122024/ >> ~/datamigration/outpath04122024/migration_run_08012024.log 2>&1
 
