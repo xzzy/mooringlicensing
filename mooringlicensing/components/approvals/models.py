@@ -991,6 +991,13 @@ class Approval(RevisionedMixin):
         """
         stickers_to_be_returned = []
         stickers_updated = []
+
+        # There should only be one set of stickers that can be restored after cancellation/surrender
+        # So we set the status_before_cancelled of all stickers to None before assigning that status
+        for a_sticker in Sticker.objects.filter(approval = self).exclude(status_before_cancelled=None):
+            a_sticker.status_before_cancelled = None
+            a_sticker.save()
+
         # Handle stickers with status CURRENT and AWAITING_PRINTING
         for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
             a_sticker.status_before_cancelled = a_sticker.status
