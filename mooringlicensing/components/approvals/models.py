@@ -839,6 +839,9 @@ class Approval(RevisionedMixin):
                 cancellation_date = datetime.datetime.strptime(cancellation_date,'%Y-%m-%d').date()
                 self.cancellation_date = cancellation_date
                 self.cancellation_details = details.get('cancellation_details')
+
+                self._process_stickers()
+                
                 today = timezone.now().date()
                 if cancellation_date <= today:
                     if not self.status == Approval.APPROVAL_STATUS_CANCELLED:
@@ -908,13 +911,26 @@ class Approval(RevisionedMixin):
                 today = timezone.now().date()
                 if not self.can_reinstate and self.expiry_date>= today:
                     raise ValidationError('You cannot reinstate approval at this stage')
+                
+
                 if self.status == Approval.APPROVAL_STATUS_CANCELLED:
+                    #validate based on other proposals TODO
+
                     self.cancellation_details =  ''
                     self.cancellation_date = None
+
+                    self.restore_stickers()
+
                 if self.status == Approval.APPROVAL_STATUS_SURRENDERED:
+                    #validate based on other proposals TODO
+
                     self.surrender_details = {}
+
+                    self.restore_stickers()
+
                 if self.status == Approval.APPROVAL_STATUS_SUSPENDED:
                     self.suspension_details = {}
+
                 previous_status = self.status
                 self.status = Approval.APPROVAL_STATUS_CURRENT
                 self.save()
@@ -976,6 +992,7 @@ class Approval(RevisionedMixin):
         stickers_updated = []
         # Handle stickers with status CURRENT and AWAITING_PRINTING
         for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
+            a_sticker.status_before_cancelled = a_sticker.status
             a_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
             a_sticker.save()
             stickers_to_be_returned.append(a_sticker)
@@ -984,6 +1001,7 @@ class Approval(RevisionedMixin):
         
         # Handle stickers with status READY and NOT_READY_YET
         for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET]):
+            a_sticker.status_before_cancelled = a_sticker.status
             a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
             a_sticker.save()
             stickers_updated.append(a_sticker)
@@ -997,6 +1015,19 @@ class Approval(RevisionedMixin):
             logger.info(f'Sticker: None is set to the MooringOnApproval: {moa}')
         
         return stickers_to_be_returned
+
+    def restore_stickers(self):
+
+        #get latest sticker associated with approval
+
+        #check if the status is cancelled, returned, or to be returned - else stop
+
+        #check if the previous status exists and corresponds with the current status - else stop
+
+        #restore old sticker status, set status_before_cancelled to None
+
+        #set moa stickers to found stickers
+        pass
 
     @property
     def child_obj(self):
@@ -3151,7 +3182,10 @@ class Sticker(models.Model):
         {'length': 1000, 'colour': 'White'},  # This is returned whenever any of the previous doesn't fit the requirement.
     ]
     number = models.CharField(max_length=9, blank=True, default='')
+    
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    status_before_cancelled = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True, on_delete=models.SET_NULL)  # When None, most probably 'awaiting_
     sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True, on_delete=models.SET_NULL)
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers', on_delete=models.SET_NULL)  # Sticker links to either approval or dcv_permit, never to both.
