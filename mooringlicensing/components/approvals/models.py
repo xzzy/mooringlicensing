@@ -1038,9 +1038,10 @@ class Approval(RevisionedMixin):
 
             #set moa stickers
             moa = moas.filter(previous_sticker=i).first()
-            moa.sticker = moa.previous_sticker
-            moa.previous_sticker = None
-            moa.save()
+            if moa:
+                moa.sticker = moa.previous_sticker
+                moa.previous_sticker = None
+                moa.save()
 
     @property
     def child_obj(self):
@@ -3197,7 +3198,7 @@ class Sticker(models.Model):
     number = models.CharField(max_length=9, blank=True, default='')
     
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
-    status_before_cancelled = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    status_before_cancelled = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
 
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True, on_delete=models.SET_NULL)  # When None, most probably 'awaiting_
     sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True, on_delete=models.SET_NULL)
