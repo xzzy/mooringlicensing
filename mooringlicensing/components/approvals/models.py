@@ -181,6 +181,7 @@ class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
     mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
+    previous_sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL, related_name="previous_sticker")
     site_licensee = models.BooleanField()
     end_date = models.DateField(blank=True, null=True)
     active = models.BooleanField(default=True)
@@ -841,7 +842,7 @@ class Approval(RevisionedMixin):
                 self.cancellation_details = details.get('cancellation_details')
 
                 self._process_stickers()
-                
+
                 today = timezone.now().date()
                 if cancellation_date <= today:
                     if not self.status == Approval.APPROVAL_STATUS_CANCELLED:
@@ -1018,16 +1019,28 @@ class Approval(RevisionedMixin):
 
     def restore_stickers(self):
 
-        #get latest sticker associated with approval
+        #get stickers associated with approval
+        stickers = Sticker.objects.filter(approval=self)
 
-        #check if the status is cancelled, returned, or to be returned - else stop
+        #check if the status is cancelled, returned, or to be returned
+        stickers = stickers.filter(status__in=[Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_TO_BE_RETURNED])
 
-        #check if the previous status exists and corresponds with the current status - else stop
+        #check if the previous status exists
+        #if the sticker has not got a previous state recorded, then it was probably cancelled via amendment/renewal
+        stickers = stickers.filter(status_before_cancelled__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
 
+        moas = MooringOnApproval.objects.filter(previous_sticker__id__in=stickers.values_list('id',flat=True))
         #restore old sticker status, set status_before_cancelled to None
+        for i in stickers:
+            i.status = i.status_before_cancelled
+            i.status_before_cancelled = None
+            i.save()
 
-        #set moa stickers to found stickers
-        pass
+            #set moa stickers
+            moa = moas.filter(previous_sticker=i).first()
+            moa.sticker = moa.previous_sticker
+            moa.previous_sticker = None
+            moa.save()
 
     @property
     def child_obj(self):
