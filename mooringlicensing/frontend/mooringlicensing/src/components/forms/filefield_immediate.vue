@@ -70,7 +70,11 @@ export default {
         text_string: {
             type: String,
             default: 'Attach Document'
-        }
+        },
+        keepCurrentVessel:{
+            type: Boolean,
+            default: true, 
+        },
     },
     data:function(){
         return {
@@ -115,6 +119,13 @@ export default {
                 await this.$emit('update-parent');
             },
             deep: true
+        },            
+        keepCurrentVessel: { 
+            handler: function() {
+                if(!this.keepCurrentVessel){
+                    this.delete_all_documents();
+                }
+            },
         },
         temporaryDocumentCollectionId: function() {
             // read in prop value

@@ -78,6 +78,7 @@
                   id="insurance"
                   ref="insurance"
                   :readonly="readonly"
+                  :keepCurrentVessel="keepCurrentVessel"
                   />
               </div>
               <div class="tab-pane fade" id="pills-confirm" role="tabpanel" aria-labelledby="pills-confirm-tab">
@@ -145,6 +146,10 @@
             readonly:{
                 type: Boolean,
                 default: true
+            },
+            keepCurrentVessel:{
+                type: Boolean,
+                default: true, 
             },
         },
         data:function () {
@@ -227,7 +232,7 @@
                         if (!this.keepCurrentVessel) {
                             this.showInsuranceTab = true;
                         } else {
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                         }
                         // payment
                         if (this.higherVesselCategory) {
@@ -246,7 +251,7 @@
                             await this.$emit("updateSubmitText", "Pay / Submit");
                         } else {
                             this.showPaymentTab = true;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             await this.$emit("updateSubmitText", "Pay / Submit");
                         }
                     });
