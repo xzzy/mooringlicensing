@@ -34,10 +34,6 @@
 </template>
 <script>
 import AddCommLog from './add_comm_log.vue'
-import {
-    api_endpoints,
-    helpers
-}from '@/utils/hooks'
 export default {
     name: 'CommsLogSection',
     props: {
@@ -99,7 +95,6 @@ export default {
                         data:"when",
                         orderable: false,
                         mRender:function(data,type,full){
-                            //return moment(data).format(vm.DATE_TIME_FORMAT)
                             return moment(data).format(vm.dateFormat);
                         }
                     },
@@ -128,8 +123,6 @@ export default {
                         title: 'Date',
                         data: 'created',
                         render: function (date) {
-                            //return moment(date).format("DD-MMM-YYYY HH:mm:ss");
-                            //return moment(date).format(vm.DATE_TIME_FORMAT);
                             return moment(date).format(vm.dateFormat);
                         }
                     },
@@ -137,14 +130,9 @@ export default {
                         title: 'Type',
                         data: 'type'
                     },
-                    /*{
-                        title: 'Reference',
-                        data: 'reference'
-                    },*/
                     {
                         title: 'To',
                         data: 'to',
-                        //render: vm.commaToNewline
                         'render': function (value) {
                             var ellipsis = '...',
                                 truncated = _.truncate(value, {
@@ -176,23 +164,23 @@ export default {
                     {
                         title: 'CC',
                         data: 'cc',
-                        //render: vm.commaToNewline
-                          'render': function (value) {
+                        'render': function (value) {
                             var ellipsis = '...',
-                                truncated = _.truncate(value, {
-                                    length: 25,
-                                    omission: ellipsis,
-                                    separator: ' '
-                                }),
-                                result = '<span>' + truncated + '</span>',
-                                popTemplate = _.template('<a href="#" ' +
-                                    'role="button" ' +
-                                    'data-toggle="popover" ' +
-                                    'data-trigger="click" ' +
-                                    'data-placement="top auto"' +
-                                    'data-html="true" ' +
-                                    'data-content="<%= text %>" ' +
-                                    '>more</a>');
+                            truncated = _.truncate(value, {
+                                length: 25,
+                                omission: ellipsis,
+                                separator: ' '
+                            }),
+                            result = '<span>' + truncated + '</span>',
+                            popTemplate = _.template('<a href="#" ' +
+                                'role="button" ' +
+                                'data-toggle="popover" ' +
+                                'data-trigger="click" ' +
+                                'data-placement="top auto"' +
+                                'data-html="true" ' +
+                                'data-content="<%= text %>" ' +
+                                '>more</a>');
+
                             if (_.endsWith(truncated, ellipsis)) {
                                 result += popTemplate({
                                     text: value
@@ -354,19 +342,9 @@ export default {
                 });
             }).on('shown.bs.popover', function () {
                 var el = ref;
-                var popoverheight = parseInt($('.'+popover_name).height());
-
                 var popover_bounding_top = parseInt($('.'+popover_name)[0].getBoundingClientRect().top);
-                var popover_bounding_bottom = parseInt($('.'+popover_name)[0].getBoundingClientRect().bottom);
-
                 var el_bounding_top = parseInt($(el)[0].getBoundingClientRect().top);
-                var el_bounding_bottom = parseInt($(el)[0].getBoundingClientRect().top);
-                
                 var diff = el_bounding_top - popover_bounding_top;
-
-                var position = parseInt($('.'+popover_name).position().top);
-                var pos2 = parseInt($(el).position().top) - 5;
-
                 var x = diff + 5;
                 $('.'+popover_name).children('.arrow').css('top', x + 'px');
             });
@@ -402,19 +380,9 @@ export default {
                 table = $('#'+actionLogId).DataTable(datatable_options);
             }).on('shown.bs.popover', function () {
                 var el = ref;
-                var popoverheight = parseInt($('.'+popover_name).height());
-
                 var popover_bounding_top = parseInt($('.'+popover_name)[0].getBoundingClientRect().top);
-                var popover_bounding_bottom = parseInt($('.'+popover_name)[0].getBoundingClientRect().bottom);
-
                 var el_bounding_top = parseInt($(el)[0].getBoundingClientRect().top);
-                var el_bounding_bottom = parseInt($(el)[0].getBoundingClientRect().top);
-                
                 var diff = el_bounding_top - popover_bounding_top;
-
-                var position = parseInt($('.'+popover_name).position().top);
-                var pos2 = parseInt($(el).position().top) - 5;
-
                 var x = diff + 5;
                 $('.'+popover_name).children('.arrow').css('top', x + 'px');
             });

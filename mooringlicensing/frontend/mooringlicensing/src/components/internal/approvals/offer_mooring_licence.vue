@@ -3,7 +3,6 @@
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <div class="row">
-                    <!-- <alert v-if="isApprovalLevelDocument" type="warning"><strong>{{warningString}}</strong></alert> -->
                     <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                     <div class="col-sm-12">
                         <div class="form-group">
@@ -56,14 +55,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!--div class="form-group">
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <label class="control-label pull-left"  for="Name">Document</label>
-                                </div>
-
-                            </div>
-                        </div-->
                         <div class="row form-group">
                             <label for="" class="col-sm-3 control-label">Document</label>
                             <div class="col-sm-9">
@@ -99,7 +90,7 @@
 import modal from '@vue-utils/bootstrap-modal.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+import { helpers, api_endpoints } from "@/utils/hooks.js"
 
 export default {
     name:'OfferMooringLicence',
@@ -133,8 +124,6 @@ export default {
             errorString: '',
             successString: '',
             success:false,
-            //warningString: 'Please attach Level of Approval document before issuing Approval',
-            //siteLicenseeMooring: {},
             mooringBays: [],
             noEmails: false,
         }
@@ -148,8 +137,6 @@ export default {
         },
         waitingListOfferSubmitUrl: function() {
           return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application.json`;
-          //return `/api/waitinglistallocation/${this.wlaId}/create_mooring_licence_application/`;
-          //return this.submit();
         },
         waitingListOfferDocumentUrl: function() {
             let url = '';
@@ -167,7 +154,6 @@ export default {
             return vm.errors;
         },
         title: function(){
-            //return this.processing_status == 'With Approver' ? 'Grant' : 'Propose grant';
             return "Offer Mooring Site Licence";
         },
         csrf_token: function() {
@@ -186,7 +172,6 @@ export default {
             this.isModalOpen = false;
             this.errors = false;
             $('.has-error').removeClass('has-error');
-            //this.validation_form.resetForm();
         },
         fetchMooringBays: async function() {
             const res = await this.$http.get(api_endpoints.mooring_bays);
@@ -227,7 +212,6 @@ export default {
                 placeholder:"Select Mooring",
                 ajax: {
                     url: api_endpoints.mooring_lookup_per_bay,
-                    //url: api_endpoints.vessel_rego_nos,
                     dataType: 'json',
                     data: function(params) {
                         var query = {
@@ -251,28 +235,15 @@ export default {
                 vm.selectedMooringId = null;
             }).
             on("select2:open",function (e) {
-                //const searchField = $(".select2-search__field")
                 const searchField = $('[aria-controls="select2-mooring_lookup-results"]')
                 // move focus to select2 field
                 searchField[0].focus();
             });
-            //vm.readRiaMooring();
             // clear mooring lookup on Mooring Bay change
             $('#mooring_bay_lookup').on('change', function() {
                 $(vm.$refs.mooring_lookup).val(null).trigger('change');
             });
         },
-        /*
-        readRiaMooring: function() {
-            let vm = this;
-            if (vm.approval.ria_mooring_name) {
-                console.log("read ria mooring")
-                var option = new Option(vm.approval.ria_mooring_name, vm.approval.ria_mooring_name, true, true);
-                $(vm.$refs.mooring_lookup).append(option).trigger('change');
-            }
-        },
-        */
-
     },
     mounted:function () {
         this.$nextTick(()=>{
@@ -288,6 +259,3 @@ export default {
     },
 }
 </script>
-
-<style lang="css">
-</style>

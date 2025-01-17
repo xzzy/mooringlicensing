@@ -76,12 +76,6 @@ export default {
         let vm = this;
         $('#' + vm.custom_id).on('click',function () {
             vm.switchPanelChevronClass();
-            /*
-            var chev = $(this).children()[0];
-            window.setTimeout(function () {
-                $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
-            }, 100);
-            */
         });
         $('#'+vm.section_id).on('show.bs.collapse', function(){
             $('#' + this.id + ' table').each(function(){ 

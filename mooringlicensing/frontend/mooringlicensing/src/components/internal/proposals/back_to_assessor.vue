@@ -26,7 +26,6 @@
 </template>
 
 <script>
-import Vue from 'vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers, api_endpoints} from "@/utils/hooks.js"
@@ -105,7 +104,6 @@ export default {
             console.log('in sendData')
             let vm = this;
             vm.errors = false;
-            // vm.back_to_assessor.proposal = vm.proposal
 
             let data = {'status': 'with_assessor_requirements', 'approver_comment': vm.back_to_assessor.details}
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal, (vm.proposal.id + '/switch_status')), JSON.stringify(data),{
@@ -113,14 +111,10 @@ export default {
             })
             .then(
                 (res) => {
-                    // vm.proposal = res.body;
-                    // vm.original_proposal = helpers.copyObject(res.body);
                     vm.close()
                     vm.$router.push({ path: '/internal' }); //Navigate to dashboard after creating Amendment request
                 }, 
                 (err) => {
-                    // vm.proposal = helpers.copyObject(vm.original_proposal)
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     swal(
                         'Proposal Error',
                         helpers.apiVueResourceError(err),
@@ -128,37 +122,6 @@ export default {
                     )
                 }
             );
-
-// 
-            // vm.$http.post('/api/back_to_assessor.json', vm.back_to_assessor).then(
-            //     response => {
-            //         //vm.$parent.loading.splice('processing contact',1);
-            //         swal(
-            //              'Sent',
-            //              'An email has been sent to the applicant with the request to amend this application',
-            //              'success'
-            //         );
-            //         vm.amendingProposal = true;
-            //         vm.close();
-            //         //vm.$emit('refreshFromResponse',response);
-            //         Vue.http.get(`/api/proposal/${vm.proposal.id}/internal_proposal.json`).then(
-            //             response => {
-            //                 vm.$emit('refreshFromResponse', response);
-            //             }, error => {
-            //                 console.log(error);
-            //             }
-            //         );
-            //         vm.$router.push({ path: '/internal' }); //Navigate to dashboard after creating Amendment request
-            //     }, 
-            //     error => {
-            //         console.log(error);
-            //         vm.errors = true;
-            //         vm.errorString = helpers.apiVueResourceError(error);
-            //         vm.amendingProposal = true;
-
-            //     }
-            // );
-
         },
         close: function(){
             this.isModalOpen = false;
@@ -171,7 +134,6 @@ export default {
             $('.has-error').removeClass('has-error');
 
             this.validation_form.resetForm();
-
         },
     },
     computed: {
@@ -182,9 +144,6 @@ export default {
     mounted:function () {
         this.form = document.forms.backToAssessorForm;
         this.addFormValidations();
-        this.$nextTick(()=>{
-            // vm.eventListerners();
-        });
     },
 }
 </script>

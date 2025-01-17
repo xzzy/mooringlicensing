@@ -204,9 +204,6 @@ export default {
         ]
     }
   },
-  watch: {
-    
-  },
   filters: {
     formatDate: function(data){
         return data ? moment(data).format('DD/MM/YYYY'): '';    }
@@ -249,7 +246,6 @@ export default {
     }
   },
   methods: {
-
     delete_document: function(doc){
         let vm= this;
         let data = {'document': doc}
@@ -299,7 +295,6 @@ export default {
                 vm.sendData();
             }                
     },
-
     sendData:function(){
             let vm = this;
             vm.errors = false;
@@ -422,7 +417,6 @@ export default {
 
     check_assessor: function(){
         let vm = this;
-        //vm.members = vm.compliance.allowed_assessors
         
         var assessor = vm.members.filter(function(elem){
                     return(elem.id==vm.profile.id);

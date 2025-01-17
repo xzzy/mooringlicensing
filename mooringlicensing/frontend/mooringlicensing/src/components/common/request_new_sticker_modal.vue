@@ -102,7 +102,7 @@
 <script>
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
+import { helpers, api_endpoints } from "@/utils/hooks.js"
 
 export default {
     name:'RequestNewStickerModal',
@@ -231,8 +231,6 @@ export default {
             this.errors = false
             this.processing = false
             this.approval_id = null
-            //$('.has-error').removeClass('has-error');
-            //this.validation_form.resetForm();
         },
         addEventListeners: function () {
             let vm = this;
@@ -302,6 +300,3 @@ export default {
     }
 }
 </script>
-
-<style lang="css">
-</style>

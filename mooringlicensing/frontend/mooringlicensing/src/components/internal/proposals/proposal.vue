@@ -186,9 +186,6 @@
 </template>
 
 <script>
-//import ProposalDisturbance from '../../form.vue'
-//import ProposalApiary from '@/components/form_apiary.vue'
-//import NewApply from '../../external/proposal_apply_new.vue'
 import Vue from 'vue'
 import ProposedDecline from '@/components/internal/proposals/proposal_proposed_decline.vue'
 import AmendmentRequest from '@/components/internal/proposals/amendment_request.vue'
@@ -224,12 +221,9 @@ export default {
             "proposal": null,
             "original_proposal": null,
             "loading": [],
-            //selected_referral: '',
-            //referral_text: '',
             approver_comment: '',
             form: null,
             members: [],
-            //department_users : [],
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingProposal:false,
@@ -277,14 +271,10 @@ export default {
             },
             contacts_table: null,
             DATE_TIME_FORMAT: 'DD/MM/YYYY HH:mm:ss',
-            //comms_url: helpers.add_endpoint_json(api_endpoints.proposals, vm.$route.params.proposal_id + '/comms_log'),
-            //comms_add_url: helpers.add_endpoint_json(api_endpoints.proposals, vm.$route.params.proposal_id + '/add_comms_log'),
-            //logs_url: helpers.add_endpoint_json(api_endpoints.proposals, vm.$route.params.proposal_id + '/action_log'),
             comms_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/comms_log'),
             comms_add_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/add_comms_log'),
             logs_url: helpers.add_endpoint_json(api_endpoints.proposal, vm.$route.params.proposal_id + '/action_log'),
             panelClickersInitialised: false,
-            //sendingReferral: false,
             uuid: 0,
             mooringBays: [],
             siteLicenseeMooring: {},
@@ -292,8 +282,6 @@ export default {
         }
     },
     components: {
-        //ProposalDisturbance,
-        //ProposalApiary,
         datatable,
         ProposedDecline,
         AmendmentRequest,
@@ -304,9 +292,6 @@ export default {
         CommsLogs,
         Submission,
         Workflow,
-        //MoreReferrals,
-        //NewApply,
-        //MapLocations,
         WaitingListApplication,
         AnnualAdmissionApplication,
         AuthorisedUserApplication,
@@ -322,7 +307,6 @@ export default {
             console.log('%cproposal has been changed.', 'color: #33f;')
             if (this.proposal){
                 this.fetchSiteLicenseeMooring()
-                // this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
             }
         }
     },
@@ -389,7 +373,7 @@ export default {
             return this.proposal.processing_status == 'Declined' || this.proposal.processing_status == 'Approved';
         },
         canAssess: function(){
-            return this.hasAssessorMode || this.hasApproverMode;
+            return this.proposal.assessor_mode.assessor_can_assess;
         },
         hasAssessorMode:function(){
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
@@ -496,8 +480,6 @@ export default {
                         payload.proposal.bay_preferences_numbered =
                             this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringBays.map((item) => item.id);
                     } else if (payload.proposal.mooring_authorisation_preference === 'site_licensee') {
-                        //payload.proposal.site_licensee_email = this.$refs.authorised_user_application.$refs.mooring_authorisation.siteLicenseeEmail;
-                        //payload.proposal.mooring_id = this.$refs.authorised_user_application.$refs.mooring_authorisation.mooringSiteId;
                         payload.proposal.site_licensee_moorings = this.proposal.site_licensee_moorings;
                     }
                 }
@@ -590,10 +572,8 @@ export default {
                         console.log(err)
                         await swal({
                             title: 'Submit Error',
-                            //text: helpers.apiVueResourceError(err),
                             html: helpers.formatError(err),
                             type: "error",
-                            //html: true,
                         })
                     }
                 });
@@ -651,10 +631,8 @@ export default {
                 console.log(typeof(err.body))
                 await swal({
                     title: 'Submit Error',
-                    //text: helpers.apiVueResourceError(err),
                     html: helpers.formatError(err),
                     type: "error",
-                    //html: true,
                 })
                 this.savingProposal=false;
                 this.paySubmitting=false;
@@ -672,14 +650,10 @@ export default {
                     }
                 });
             } catch(err) {
-                //console.log(err)
-                //console.log(typeof(err.body))
                 await swal({
                     title: 'Submit Error',
-                    //text: helpers.apiVueResourceError(err),
                     html: helpers.formatError(err),
                     type: "error",
-                    //html: true,
                 })
                 this.savingProposal=false;
                 this.paySubmitting=false;
@@ -699,17 +673,12 @@ export default {
         },
         fetchMooringBays: async function() {
             console.log('%cin fetchMooringBays', 'color:#f33;')
-            //const res = await this.$http.get(api_endpoints.mooring_bays);
             const res = await this.$http.get(api_endpoints.mooring_bays_lookup);
             console.log(res.body)
             for (let bay of res.body) {
                 this.mooringBays.push(bay)
             }
         },
-        // retrieve_mooring_details: function(){
-        //     console.log('%cin retrieve_mooring_details', 'color:#3b3')
-        //     this.$refs.approval_screen.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-        // },
         locationUpdated: function(){
             console.log('in locationUpdated()');
         },
@@ -819,7 +788,6 @@ export default {
             $('.deficiency').each((i,d) => {
                 values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
             });
-            //this.deficientFields();
             this.$refs.amendment_request.amendment.text = values;
 
             this.$refs.amendment_request.isModalOpen = true;
@@ -838,10 +806,8 @@ export default {
                     var name=$(d)[0].name
                     var tmp=name.replace("-comment-field","")
                     deficient_fields.push(tmp);
-                    //console.log('data', $("#"+"id_" + tmp))
                 }
             });
-            //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
         toggleProposal:function(value){
@@ -868,11 +834,9 @@ export default {
             .then((response) => {
                 vm.proposal = response.body;
                 vm.original_proposal = helpers.copyObject(response.body);
-                //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 vm.updateAssignedOfficerSelect();
             }, (error) => {
                 vm.proposal = helpers.copyObject(vm.original_proposal)
-                //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 vm.updateAssignedOfficerSelect();
                 swal(
                     'Proposal Error',
@@ -888,7 +852,6 @@ export default {
             let vm = this;
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
-            //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
             vm.$nextTick(() => {
                 vm.initialiseAssignedOfficerSelect(true);
                 vm.updateAssignedOfficerSelect();
@@ -916,11 +879,9 @@ export default {
                 }).then((response) => {
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.updateAssignedOfficerSelect();
                 }, (error) => {
                     vm.proposal = helpers.copyObject(vm.original_proposal)
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.updateAssignedOfficerSelect();
                     swal(
                         'Proposal Error',
@@ -934,11 +895,9 @@ export default {
                 .then((response) => {
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.updateAssignedOfficerSelect();
                 }, (error) => {
                     vm.proposal = helpers.copyObject(vm.original_proposal)
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.updateAssignedOfficerSelect();
                     swal(
                         'Proposal Error',
@@ -965,7 +924,6 @@ export default {
                     console.log(response.body)
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.approver_comment='';
                     vm.$nextTick(() => {
                         vm.initialiseAssignedOfficerSelect(true);
@@ -973,7 +931,6 @@ export default {
                     });
                 }, (error) => {
                     vm.proposal = helpers.copyObject(vm.original_proposal)
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     swal(
                         'Proposal Error',
                         helpers.apiVueResourceError(error),
@@ -991,7 +948,6 @@ export default {
                 .then((response) => {
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.approver_comment='';
                     vm.$nextTick(() => {
                         vm.initialiseAssignedOfficerSelect(true);
@@ -1000,7 +956,6 @@ export default {
                     vm.$router.push({ path: '/internal' });
                 }, (error) => {
                     vm.proposal = helpers.copyObject(vm.original_proposal)
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     swal(
                         'Proposal Error',
                         helpers.apiVueResourceError(error),
@@ -1018,7 +973,6 @@ export default {
 
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     vm.approver_comment='';
                     vm.$nextTick(() => {
                         vm.initialiseAssignedOfficerSelect(true);
@@ -1026,7 +980,6 @@ export default {
                     });
                 }, (error) => {
                     vm.proposal = helpers.copyObject(vm.original_proposal)
-                    //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                     swal(
                         'Proposal Error',
                         helpers.apiVueResourceError(error),
@@ -1035,19 +988,6 @@ export default {
                 });
             }
         },
-        /*
-        fetchDeparmentUsers: function(){
-            let vm = this;
-            vm.loading.push('Loading Department Users');
-            vm.$http.get(api_endpoints.department_users).then((response) => {
-                vm.department_users = response.body
-                vm.loading.splice('Loading Department Users',1);
-            },(error) => {
-                console.log(error);
-                vm.loading.splice('Loading Department Users',1);
-            })
-        },
-        */
         initialiseAssignedOfficerSelect:function(reinit=false){
             console.log('initialiseAssignedOfficerSelect')
             let vm = this;
@@ -1088,21 +1028,6 @@ export default {
         initialiseSelects: function(){
             let vm = this;
             if (!vm.initialisedSelects){
-                /*
-                $(vm.$refs.department_users).select2({
-                    "theme": "bootstrap",
-                    allowClear: true,
-                    //placeholder:"Select Referral"
-                }).
-                on("select2:select",function (e) {
-                    var selected = $(e.currentTarget);
-                    //vm.selected_referral = selected.val();
-                }).
-                on("select2:unselect",function (e) {
-                    var selected = $(e.currentTarget);
-                    //vm.selected_referral = ''
-                });
-                */
                 vm.initialiseAssignedOfficerSelect();
                 vm.initialisedSelects = true;
             }
@@ -1110,8 +1035,6 @@ export default {
     },
     mounted: function() {
         let vm = this;
-        //vm.fetchDeparmentUsers();
-        // vm.retrieve_mooring_details()
         vm.fetchMooringBays()
         console.log('AAA')
     },
@@ -1140,35 +1063,18 @@ export default {
             console.log('%cproposal has been returned.', 'color: #f11;')
             this.proposal = res.body;
             this.original_proposal = helpers.copyObject(res.body);
-            //this.proposal.applicant.address = this.proposal.applicant.address != null ? this.proposal.applicant.address : {};
             this.hasAmendmentRequest=this.proposal.hasAmendmentRequest;
         },
         err => {
           console.log(err);
         });
     },
-    /*
-    beforeRouteEnter: function(to, from, next) {
-          Vue.http.get(`/api/proposal/${to.params.proposal_id}/internal_proposal.json`).then(res => {
-              next(vm => {
-                vm.proposal = res.body;
-                vm.original_proposal = helpers.copyObject(res.body);
-                vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
-                vm.hasAmendmentRequest=vm.proposal.hasAmendmentRequest;
-              });
-            },
-            err => {
-              console.log(err);
-            });
-    },
-    */
     beforeRouteUpdate: function(to, from, next) {
         console.log("beforeRouteUpdate")
           Vue.http.get(`/api/proposal/${to.params.proposal_id}.json`).then(res => {
               next(vm => {
                 vm.proposal = res.body;
                 vm.original_proposal = helpers.copyObject(res.body);
-                //vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
               });
             },
             err => {
@@ -1177,6 +1083,3 @@ export default {
     }
 }
 </script>
-<style scoped>
-
-</style>

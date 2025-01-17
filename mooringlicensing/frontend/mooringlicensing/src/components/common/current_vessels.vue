@@ -69,107 +69,95 @@
 
 </template>
 <script>
-import Vue from 'vue'
 import FormSection from '@/components/forms/section_toggle.vue'
-var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-import {
-  api_endpoints,
-  helpers
-}
-from '@/utils/hooks'
 
-    export default {
-        name:'current_vessels',
-        data:function () {
-            return {
-                keep_current_vessel: null,  // Force the user to select one of the radio buttons
+export default {
+    name:'current_vessels',
+    data:function () {
+        return {
+            keep_current_vessel: null,  // Force the user to select one of the radio buttons
+        }
+    },
+    components:{
+        FormSection,
+    },
+    props:{
+        proposal:{
+            type: Object,
+            required:true
+        },
+        readonly:{
+            type: Boolean,
+            default: true,
+        },
+        is_internal:{
+            type: Boolean,
+            default: false
+        },
+        add_vessel: {
+            type: Boolean,
+            default: false,
+        },
+        forEndorser: {
+            type: Boolean,
+            default: false,
+        }
+    },
+    computed: {
+        vesselExists: function() {
+            if (this.proposal && !this.proposal.null_vessel_on_create) {
+                return true
+            }
+            return false
+        },
+        mooringLicenceCurrentVesselDisplayText: function() {
+            if (this.proposal && this.proposal.current_vessels_rego_list && this.proposal.current_vessels_rego_list.length > 0) {
+                return `Your mooring site licence ${this.proposal.approval_lodgement_number}
+                currently lists the following vessels ${this.proposal.current_vessels_rego_list}.
+                    Do you want to apply to add another vessel to your Mooring Site Licence?`;
             }
         },
-        components:{
-            FormSection,
-        },
-        props:{
-            proposal:{
-                type: Object,
-                required:true
-            },
-            readonly:{
-                type: Boolean,
-                default: true,
-            },
-            is_internal:{
-              type: Boolean,
-              default: false
-            },
-            add_vessel: {
-                type: Boolean,
-                default: false,
-            },
-            forEndorser: {
-                type: Boolean,
-                default: false,
+        currentVesselDisplayText: function() {
+            if (this.proposal && this.proposal.approval_vessel_rego_no) {
+                return `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
+                lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}.
+                    Do you want to keep this vessel listed or do you want to change to a different vessel?`;
             }
         },
-        computed: {
-            vesselExists: function() {
-                if (this.proposal && !this.proposal.null_vessel_on_create) {
-                    return true
-                }
-                return false
-            },
-            mooringLicenceCurrentVesselDisplayText: function() {
-                //if (this.proposal && this.proposal.mooring_licence_vessels && this.proposal.mooring_licence_vessels.length) {
-                if (this.proposal && this.proposal.current_vessels_rego_list && this.proposal.current_vessels_rego_list.length > 0) {
-                    return `Your mooring site licence ${this.proposal.approval_lodgement_number}
-                    currently lists the following vessels ${this.proposal.current_vessels_rego_list}.
-                        Do you want to apply to add another vessel to your Mooring Site Licence?`;
-                }
-                //return '';
-            },
-            currentVesselDisplayText: function() {
-                if (this.proposal && this.proposal.approval_vessel_rego_no) {
-                    return `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
-                    lists a vessel with registration number ${this.proposal.approval_vessel_rego_no}.
-                        Do you want to keep this vessel listed or do you want to change to a different vessel?`;
-                }
-                //return '';
-            },
+    },
+    methods:{
+        resetCurrentVessel: function() {
+            this.$nextTick(() => {
+                this.$emit("resetCurrentVessel", this.keep_current_vessel)
+            });
         },
-        methods:{
-            resetCurrentVessel: function() {
-                this.$nextTick(() => {
-                    this.$emit("resetCurrentVessel", this.keep_current_vessel)
-                });
-            },
-        },
-        mounted: function () {
-            if (!this.vesselExists){
-                // When there are no vessels, it is internally handled as keep_current_vessel=false
-                this.keep_current_vessel = false
+    },
+    mounted: function () {
+        if (!this.vesselExists){
+            // When there are no vessels, it is internally handled as keep_current_vessel=false
+            this.keep_current_vessel = false
+            this.resetCurrentVessel()
+            return 
+        }
+
+        if (this.proposal){
+            if (this.proposal.proposal_type.code == 'swap_moorings'){
+                // When swap moorings, always keep the current vessel
+                this.keep_current_vessel = true
                 this.resetCurrentVessel()
-                return 
+            } else if (this.proposal.proposal_type.code == 'new' && this.proposal.processing_status != 'Draft'){
+                // When new and Draft
+                this.keep_current_vessel = true
+                this.resetCurrentVessel()
+            } else {
+                this.keep_current_vessel = this.proposal.keep_existing_vessel
+                this.resetCurrentVessel()
             }
-
-            if (this.proposal){
-                if (this.proposal.proposal_type.code == 'swap_moorings'){
-                    // When swap moorings, always keep the current vessel
-                    this.keep_current_vessel = true
-                    this.resetCurrentVessel()
-                } else if (this.proposal.proposal_type.code == 'new' && this.proposal.processing_status != 'Draft'){
-                    // When new and Draft
-                    this.keep_current_vessel = true
-                    this.resetCurrentVessel()
-                } else {
-                    this.keep_current_vessel = this.proposal.keep_existing_vessel
-                    this.resetCurrentVessel()
-                }
-            } 
-        },
-        created: function() {
-        },
-    }
+        } 
+    },
+}
 </script>
 
 <style lang="css" scoped>

@@ -253,7 +253,6 @@
                     <input :disabled="readonly" type="radio" id="electoral_roll_yes" :value="false" v-model="silentElector"/>
                     <label for="electoral_roll_yes">
                         Yes, I am on the
-                        <!-- <a href="https://www.elections.wa.gov.au/oes#/oec" @click.prevent="uploadProofElectoralRoll">WA state electoral roll</a> -->
                         <a target="_blank" href="https://www.elections.wa.gov.au/oes#/oec">WA state electoral roll</a>
                     </label>
                 </div>
@@ -621,18 +620,7 @@ export default {
 .label-right {
     float: right;
     text-align: left;
-    /*margin-right: 50%;*/
 }
-/*
-input[type=checkbox] {
-    transform: scale(0.4, 0.4);
-    float: left;
-}
-*/
-/*
-input[type=checkbox] {
-}
-*/
 .address-box {
     border: 1px solid;
     border-color: #DCDCDC;

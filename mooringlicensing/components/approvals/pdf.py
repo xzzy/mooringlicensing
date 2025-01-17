@@ -1,10 +1,8 @@
 import datetime
-from io import BytesIO
-
 from django.core.files.base import ContentFile
 
 from mooringlicensing.doctopdf import (
-    create_dcv_permit_pdf_tytes, 
+    create_dcv_permit_pdf_bytes, 
     create_dcv_admission_pdf_bytes,
     create_approval_doc_bytes,
 )
@@ -12,7 +10,7 @@ from mooringlicensing.doctopdf import (
 
 def create_dcv_permit_document(dcv_permit):
     # create bytes
-    contents_as_bytes = create_dcv_permit_pdf_tytes(dcv_permit)
+    contents_as_bytes = create_dcv_permit_pdf_bytes(dcv_permit)
 
     filename = 'dcv_permit-{}.pdf'.format(dcv_permit.lodgement_number)
     from mooringlicensing.components.approvals.models import DcvPermitDocument

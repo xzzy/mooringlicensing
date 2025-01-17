@@ -247,7 +247,6 @@
             },
             updateMaxVesselLength: function(max_length) {
                 console.log('updateMaxVesselLength')
-                //this.max_vessel_length_with_no_payment = max_length
                 let combined_length = 0
                 if (this.max_vessel_length_for_main_component == null && this.max_vessel_length_for_aa_component == null){
                     combined_length = null
@@ -291,8 +290,6 @@
             updateVesselLength: function (length) {
                 console.log('%cin updateVesselLength()', 'color: #44aa33')
                 if (this.is_external && this.proposal) {
-                    //if (this.proposal.max_vessel_length_with_no_payment !== null &&
-                    //    this.proposal.max_vessel_length_with_no_payment <= length) {
                     if (this.max_vessel_length_with_no_payment !== null &&
                         (this.max_vessel_length_with_no_payment.max_length < length ||
                             this.max_vessel_length_with_no_payment.max_length == length && !this.max_vessel_length_with_no_payment.include_max_length)) {
@@ -374,19 +371,6 @@
 
                 /* set Applicant tab Active */
                 $('#pills-tab a[href="#pills-applicant"]').tab('show');
-
-                /*
-                if (vm.proposal.fee_paid) {
-                    $('#pills-online-training-tab').attr('style', 'background-color:#E5E8E8 !important; color: #99A3A4;');
-                    $('#li-training').attr('class', 'nav-item disabled');
-                    $('#pills-online-training-tab').attr("href", "")
-                }
-                if (!vm.proposal.training_completed) {
-                    $('#pills-payment-tab').attr('style', 'background-color:#E5E8E8 !important; color: #99A3A4;');
-                    $('#li-payment').attr('class', 'nav-item disabled');
-                }
-                */
-
                 /* Confirmation tab - Always Disabled */
                 $('#pills-confirm-tab').attr('style', 'background-color:#E5E8E8 !important; color: #99A3A4;');
                 $('#li-confirm').attr('class', 'nav-item disabled');
@@ -394,28 +378,12 @@
                 $('#pills-payment-tab').attr('style', 'background-color:#E5E8E8 !important; color: #99A3A4;');
                 $('#li-payment').attr('class', 'nav-item disabled');
             },
-            /*
-            eventListener: function(){
-              let vm=this;
-              $('a[href="#pills-activities-land"]').on('shown.bs.tab', function (e) {
-                vm.$refs.activities_land.$refs.vehicles_table.$refs.vehicle_datatable.vmDataTable.columns.adjust().responsive.recalc();
-              });
-              $('a[href="#pills-activities-marine"]').on('shown.bs.tab', function (e) {
-                vm.$refs.activities_marine.$refs.vessel_table.$refs.vessel_datatable.vmDataTable.columns.adjust().responsive.recalc();
-              });
-            },
-            */
-
         },
         mounted: function() {
             let vm = this;
             vm.set_tabs();
             vm.form = document.forms.new_proposal;
             this.updateAmendmentRenewalProperties();
-            //vm.eventListener();
-            //window.addEventListener('beforeunload', vm.leaving);
-            //indow.addEventListener('onblur', vm.leaving);
-
         }
 
     }

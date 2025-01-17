@@ -3,7 +3,6 @@ import logging
 import os
 from django.core.files.base import ContentFile
 import traceback
-from django.conf import settings
 
 from mooringlicensing.components.proposals.models import (
     ProposalMooringReportDocument, ProposalWrittenProofDocument, ProposalSignedLicenceAgreementDocument,
@@ -63,8 +62,6 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
                 documents_qs = instance.written_proof_documents.filter(proposalwrittenproofdocument__enabled=True)
             elif document_type == 'proof_of_identity_document':
                 documents_qs = instance.proof_of_identity_documents.filter(proposalproofofidentitydocument__enabled=True)
-
-            print(documents_qs)
 
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
             ret = {'filedata': returned_file_data}
@@ -191,26 +188,21 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'mooring_report_document':
             document = instance.mooring_report_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalMooringReportDocument.objects.filter(mooring_report_document=document).first()
-            # path_format_string = '{}/proposals/{}/mooring_report_documents/{}'
             path_format_string = 'proposal/{}/mooring_report_documents/{}'
         elif document_type == 'written_proof_document':
             document = instance.written_proof_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalWrittenProofDocument.objects.filter(written_proof_document=document).first()
-            # path_format_string = '{}/proposals/{}/written_proof_documents/{}'
             path_format_string = 'proposal/{}/written_proof_documents/{}'
         elif document_type == 'signed_licence_agreement_document':
             document = instance.signed_licence_agreement_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalSignedLicenceAgreementDocument.objects.filter(signed_licence_agreement_document=document).first()            
-            # path_format_string = '{}/proposals/{}/signed_licence_agreement_documents/{}'
             path_format_string = 'proposal/{}/signed_licence_agreement_documents/{}'
         elif document_type == 'proof_of_identity_document':
             document = instance.proof_of_identity_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalProofOfIdentityDocument.objects.filter(proof_of_identity_document=document).first()
-            # path_format_string = '{}/proposals/{}/proof_of_identity_documents/{}'
             path_format_string = 'proposal/{}/proof_of_identity_documents/{}'
         elif document_type == 'waiting_list_offer_document':
             document = instance.waiting_list_offer_documents.get_or_create(input_name=input_name, name=filename)[0]
-            # path_format_string = '{}/approvals/{}/waiting_list_offer_documents/{}'
             path_format_string = 'approval/{}/waiting_list_offer_documents/{}'
 
         path = private_storage.save(path_format_string.format(instance.id, filename), ContentFile(_file.read()))

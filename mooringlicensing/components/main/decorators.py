@@ -2,12 +2,8 @@ import time
 import traceback
 from django.db import connection, reset_queries
 import functools
-from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.handlers.wsgi import WSGIRequest
-from django.http import HttpRequest
 from rest_framework import serializers
-from rest_framework.request import Request
 import logging
 from functools import wraps
 
@@ -41,7 +37,6 @@ def timeit(method):
             kw['log_time'][name] = int((te - ts) * 1000)
         else:
             print('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
-            #logger.error('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
         return result
     return timed
 

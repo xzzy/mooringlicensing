@@ -1470,9 +1470,11 @@ def send_aua_declined_by_endorser_email(proposal, request):
     txt_template = 'mooringlicensing/emails_2/email_52.txt'
 
     subject = 'Declined: Application for authorised user permit - vessel <vessel registration number> - Rottnest Island Authority'
-    cc_list = proposal.proposed_issuance_approval.get('cc_email')
+    
+    cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else '' #TODO review all instance where proposed_issuance_approval is referenced to have a check like this... 
     if cc_list:
         all_ccs = cc_list.split(',')
+
     email = TemplateEmailBase(
         subject=subject,
         html_template=html_template,
@@ -1607,7 +1609,6 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
 
         #iterate through each site licensee mooring request
         mooring_name = site_licensee_mooring_request.mooring.name if site_licensee_mooring_request.mooring else ''
-        print(proposal)
         due_date = proposal.get_due_date_for_endorsement_by_target_date()
 
         # Configure recipients, contents, etc

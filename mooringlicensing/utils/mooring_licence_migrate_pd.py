@@ -1123,7 +1123,7 @@ class MooringLicenceReader():
         df = self.df_ml.groupby('mooring_no').first()
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
-                if not row.name or len([_str for _str in ['KINGSTON REEF','NN64','PB 02','RIA'] if row.name in _str])>0:
+                if not row.name:
                     continue
 
                 user_row = self.df_user[self.df_user['pers_no']==row.pers_no] 
@@ -2141,7 +2141,10 @@ class MooringLicenceReader():
                     )
 
             except Exception as e:
-                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                if user:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                else:
+                    errors.append("Rego No " + str(rego_no) + " - User Id None:" + str(e))
 
         print(f'rego_aa_created: {len(rego_aa_created)}')
         print(f'total_aa_created: {len(total_aa_created)}')

@@ -343,9 +343,6 @@ class VesselSizeCategory(RevisionedMixin):
 
 @receiver(post_save, sender=VesselSizeCategory)
 def _post_save_vsc(sender, instance, **kwargs):
-    print('VesselSizeCategory post save()')
-    print(instance.vessel_size_category_group)
-
     for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
         if fee_constructor.is_editable:
             fee_constructor.reconstruct_fees()
@@ -353,16 +350,13 @@ def _post_save_vsc(sender, instance, **kwargs):
 
 @receiver(post_delete, sender=VesselSizeCategory)
 def _post_delete_vsc(sender, instance, **kwargs):
-    print('VesselSizeCategory post delete()')
-    print(instance.vessel_size_category_group)
-
     for fee_constructor in instance.vessel_size_category_group.fee_constructors.all():
         if fee_constructor.is_editable:
             fee_constructor.reconstruct_fees()
 
 
-class NumberOfDaysType(RevisionedMixin):
-    code = models.CharField(max_length=100, blank=True, null=True)
+class NumberOfDaysType(models.Model):
+    code = models.CharField(max_length=100, blank=True, null=True, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, verbose_name='description', help_text='')
 
@@ -414,10 +408,8 @@ class NumberOfDaysSetting(RevisionedMixin):
 
 import reversion
 reversion.register(CommunicationsLogEntry, follow=[])
-reversion.register(ApplicationType, follow=['proposalstandardrequirement_set', 'feeseason_set', 'feeconstructor_set', 'oracle_code_items'])
 reversion.register(GlobalSettings, follow=[])
 reversion.register(SystemMaintenance, follow=[])
 reversion.register(VesselSizeCategoryGroup, follow=['vessel_size_categories', 'fee_constructors'])
 reversion.register(VesselSizeCategory, follow=['feeitem_set'])
-reversion.register(NumberOfDaysType, follow=['settings'])
 reversion.register(NumberOfDaysSetting, follow=[])

@@ -54,6 +54,9 @@ from mooringlicensing.helpers import is_internal
 logger = logging.getLogger(__name__)
 from rest_framework.permissions import IsAuthenticated
 
+from ledger_api_client import utils
+from django.db.models import Q
+
 class DcvAdmissionFeeView(TemplateView):
 
     def get_object(self):
@@ -265,7 +268,6 @@ class StickerReplacementFeeView(TemplateView):
                 if is_internal(request) or (applicant and applicant.id == request.user.id): 
                     checkout_response = checkout(
                         request,
-                        # request.user,
                         applicant,
                         lines,
                         return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
@@ -294,7 +296,7 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{StickerReplacementFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not StickerActionFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'StickerActionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -424,6 +426,30 @@ class ApplicationFeeView(TemplateView):
 
                 new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes_after_success)
 
+                #adjust if there is a previous payment
+                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                previous_application_fee = previous_application_fees.last()
+
+                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                fee_amount = previous_application_fee.cost if previous_application_fee else 0
+
+                if settings.ROUND_FEE_ITEMS:
+                    # In debug environment, we want to avoid decimal number which may cause some kind of error.
+                    total_amount = 0 - round(float(fee_amount))
+                    total_amount_excl_tax = 0 - round(float(fee_amount))
+                else:
+                    total_amount = 0 - float(fee_amount)
+                    total_amount_excl_tax = 0 - float(fee_amount)
+
+                if total_amount != 0:
+                    lines.append({
+                        'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
+                        'oracle_code': proposal.application_type.get_oracle_code_by_date(current_datetime.date()),
+                        'price_incl_tax': total_amount,
+                        'price_excl_tax': total_amount_excl_tax,
+                        'quantity': 1,
+                    })
+
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
                 reference = proposal.previous_application.lodgement_number if proposal.previous_application else proposal.lodgement_number
@@ -489,7 +515,7 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{DcvAdmissionFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not DcvAdmissionFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'DcvAdmissionFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -522,14 +548,12 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
 
                 dcv_admission_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
                 dcv_admission_fee.expiry_time = None
-                # update_payments(invoice_ref)
 
                 if 'fee_item_ids' in db_operations:
                     for item_id in db_operations['fee_item_ids']:
                         fee_item = FeeItem.objects.get(id=item_id)
                         dcv_admission_fee.fee_items.add(fee_item)
 
-                # if dcv_admission and invoice.payment_status in ('paid', 'over_paid',):
                 if dcv_admission and get_invoice_payment_status(invoice.id) in ('paid', 'over_paid',):
                     self.adjust_db_operations(dcv_admission, db_operations)
                     dcv_admission.generate_dcv_admission_doc()
@@ -544,9 +568,6 @@ class DcvAdmissionFeeSuccessViewPreload(APIView):
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
-            # this end-point is called by an unmonitored get request in ledger so there is no point having a
-            # a response body however we will return a status in case this is used on the ledger end in future
-            # return Response(status=status.HTTP_204_NO_CONTENT)
             return Response(status=status.HTTP_200_OK)
 
 
@@ -591,7 +612,7 @@ class DcvPermitFeeSuccessViewPreload(APIView):
     def get(self, request, uuid, format=None):
         logger.info(f'{DcvPermitFeeSuccessViewPreload.__name__} get method is called.')
 
-        if uuid:  # and invoice_reference:
+        if uuid:
             if not DcvPermitFee.objects.filter(uuid=uuid).exists():
                 logger.info(f'DcvPermitFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
                 return redirect(reverse('external'))
@@ -651,8 +672,6 @@ class DcvPermitFeeSuccessViewPreload(APIView):
             logger.info(
                 "Returning status.HTTP_200_OK. Order created successfully.",
             )
-            # this end-point is called by an unmonitored get request in ledger so there is no point having a
-            # a response body however we will return a status in case this is used on the ledger end in future
             return Response(status=status.HTTP_200_OK)
 
 
@@ -740,7 +759,6 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         fee_item_application_fee = FeeItemApplicationFee.objects.create(
                             fee_item=fee_item,
                             application_fee=application_fee,
-                            vessel_details=proposal.vessel_details,
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
@@ -752,12 +770,10 @@ class ApplicationFeeSuccessViewPreload(APIView):
                         fee_amount_adjusted = item['fee_amount_adjusted']
                         amount_to_be_paid = Decimal(fee_amount_adjusted)
                         amount_paid = amount_to_be_paid
-                        vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
-                        vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
+
                         fee_item_application_fee = FeeItemApplicationFee.objects.create(
                             fee_item=fee_item,
                             application_fee=application_fee,
-                            vessel_details=vessel_details,
                             amount_to_be_paid=amount_to_be_paid,
                             amount_paid=amount_paid,
                         )
@@ -765,6 +781,21 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
             application_fee.invoice_reference = invoice_reference
             application_fee.handled_in_preload = datetime.datetime.now()
+
+            #get invoice properties
+            inv_props = utils.get_invoice_properties(invoice.id)
+
+            #record cost and payment status in ApplicationFee model
+            if 'data' in inv_props and 'invoice' in inv_props['data']:
+                payment_status = inv_props['data']['invoice']["payment_status"] if "payment_status" in inv_props['data']['invoice'] else ""
+                amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
+
+                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                previous_application_fee_cost = previous_application_fees.last().cost if previous_application_fees.last() else 0.0
+
+                application_fee.payment_status = payment_status
+                application_fee.cost = float(amount) + float(previous_application_fee_cost)
+
             application_fee.save()
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
@@ -832,6 +863,12 @@ class ApplicationFeeSuccessView(TemplateView):
                 if type(proposal.child_obj) in [WaitingListApplication, AnnualAdmissionApplication]:
                     if proposal.auto_approve:
                         proposal.final_approval_for_WLA_AAA(request, details={})
+
+                proposal.refresh_from_db()
+
+                #update FeeItemApplicationFee with vessel details
+                fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
+                fee_item_application_fees.update(vessel_details=proposal.vessel_details)
 
                 wla_or_aaa = True if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code,] else False
                 invoice = Invoice.objects.get(reference=application_fee.invoice_reference)

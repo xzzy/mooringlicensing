@@ -191,7 +191,6 @@ export default {
         },
         applicant_email: {
             type: String,
-            //default: ''
         },
         mooringBays: {
             type: Array,
@@ -279,13 +278,10 @@ export default {
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.id;
-                            //return '';
                         }
                     },
                     {
                         // Checkbox
-                        //visible: vm.show_col_checkbox,
-                        //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
                             let disabled_str = ''
@@ -297,46 +293,30 @@ export default {
                             } else {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-mooring-on-approval-id="' + full.id + '"'  + disabled_str +  '/>'
                             }
-                            return '';
-
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
-                        mRender: function (data, type, full) {
-                            
+                        mRender: function (data, type, full) {                            
                             return full.mooring_name;
-                            //return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.bay;
-                            //return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
-                            //return full.site_licensee ? 'User requested' : 'RIA allocated';
                             return full.site_licensee;
-                            //return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.status;
-                            //return '';
                         }
                     },
                     {
@@ -373,7 +353,6 @@ export default {
                 'Bay',
                 'Site Licensee',
                 'Endorsement',
-                //'Status',
                 'Length limit',
                 'Draft limit',
                 'Weight limit',
@@ -415,13 +394,10 @@ export default {
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.id;
-                            //return '';
                         }
                     },
                     {
                         // Checkbox
-                        //visible: vm.show_col_checkbox,
-                        //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
                             let disabled_str = ''
@@ -433,73 +409,47 @@ export default {
                             } else {
                                 return '<input type="checkbox" class="requested_mooring_on_approval_checkbox" data-requested-mooring-on-approval-id="' + full.id + '"'  + disabled_str +  '/>'
                             }
-                            return '';
-
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
-                        mRender: function (data, type, full) {
-                            
+                        mRender: function (data, type, full) {                            
                             return full.mooring_name;
-                            //return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.bay;
-                            //return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
-                            //return full.site_licensee ? 'User requested' : 'RIA allocated';
                             return full.site_licensee;
-                            //return '';
                         }
                     },
                     {
                         data: 'id',
                         mRender: function (data, type, full) {
-                            
                             return full.endorsement
                         }
                     },
-                    //{
-                    //    // Id (database id)
-                    //    //visible: vm.show_col_id,
-                    //    data: 'id',
-                    //    mRender: function (data, type, full) {
-                    //        return full.status;
-                    //        //return '';
-                    //    }
-                    //},
                     {
                         data: 'id',
-                        mRender: function (data, type, full) {
-                            
+                        mRender: function (data, type, full) {                            
                             return full.vessel_size_limit;
                         }
                     },
                     {
                         data: 'id',
-                        mRender: function (data, type, full) {
-                            
+                        mRender: function (data, type, full) {                            
                             return full.vessel_draft_limit;
                         }
                     },
                     {
                         data: 'id',
-                        mRender: function (data, type, full) {
-                            
+                        mRender: function (data, type, full) {                            
                             if (full.weight_draft_limit > 0) {
                                 return full.weight_draft_limit;
                             } else {
@@ -510,7 +460,6 @@ export default {
                     
                 ],
             },
-
             vesselsDtHeaders: [
                 'Id',
                 '',
@@ -541,13 +490,10 @@ export default {
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.id;
-                            //return '';
                         }
                     },
                     {
                         // Checkbox
-                        //visible: vm.show_col_checkbox,
-                        //className: 'dt-body-center',
                         data: 'id',
                         mRender: function (data, type, full) {
                             let disabled_str = ''
@@ -559,45 +505,24 @@ export default {
                             } else {
                                 return '<input type="checkbox" class="mooring_on_approval_checkbox" data-vessel-ownership-id="' + full.id + '"' + disabled_str + '/>'
                             }
-                            return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.rego;
-                            //return '';
                         }
                     },
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.vessel_name;
-                            //return '';
                         }
                     },
-                    /*
                     {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
-                        data: 'id',
-                        mRender: function (data, type, full) {
-                            return full.site_licensee ? 'User requested' : 'RIA allocated';
-                            //return '';
-                        }
-                    },
-                    */
-                    {
-                        // Id (database id)
-                        //visible: vm.show_col_id,
                         data: 'id',
                         mRender: function (data, type, full) {
                             return full.status;
-                            //return '';
                         }
                     },
                 ],
@@ -708,7 +633,6 @@ export default {
             let vm = this;
             if ($(vm.form).valid()) {
                 vm.sendData();
-                //vm.$router.push({ path: '/internal' });
             }
         },
         cancel: function () {
@@ -802,13 +726,6 @@ export default {
         addFormValidations: function () {
             let vm = this;
             vm.validation_form = $(vm.form).validate({
-                rules: {
-                    //start_date:"required",
-                    //due_date:"required",
-                    //approval_details:"required",
-                },
-                messages: {
-                },
                 showErrors: function (errorMap, errorList) {
                     $.each(this.validElements(), function (index, element) {
                         var $element = $(element);
@@ -965,11 +882,9 @@ export default {
         },
         vesselsCheckboxClicked: function (e) {
             let vm = this;
-            //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
             let vesselOwnershipId = this.getVesselOwnershipIdFromEvent(e);
             console.log(vesselOwnershipId);
             let checked_status = e.target.checked;
-            //for (let i=0; i<this.apiary_sites_local.length; i++) {
             for (let vo of this.mooringLicenceVessels) {
                 if (vo.id == vesselOwnershipId) {
                     console.log(e.target.checked)
@@ -980,19 +895,9 @@ export default {
         },
 
         addEventListeners: function () {
-            /*
-            $("#" + this.table_id).on("click", "a[data-view-on-map]", this.zoomOnApiarySite)
-            $("#" + this.table_id).on("click", "a[data-toggle-availability]", this.toggleAvailability)
-            */
             $("#" + this.mooringsTableId).on('click', 'input[type="checkbox"]', this.mooringsCheckboxClicked);
             $("#" + this.requestedMooringsTableId).on('click', 'input[type="checkbox"]', this.requestedMooringsCheckboxClicked);
             $("#" + this.vesselsTableId).on('click', 'input[type="checkbox"]', this.vesselsCheckboxClicked);
-            /*
-            $("#" + this.table_id).on('click', 'a[data-make-vacant]', this.makeVacantClicked)
-            $("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
-            $("#" + this.table_id).on('mouseenter', "tr", this.mouseEnter)
-            $("#" + this.table_id).on('mouseleave', "tr", this.mouseLeave)
-            */
         },
         initialiseMooringLookup: function () {
             let vm = this;
@@ -1003,14 +908,15 @@ export default {
                 placeholder: "Select Mooring",
                 ajax: {
                     url: api_endpoints.mooring_lookup_per_bay,
-                    //url: api_endpoints.vessel_rego_nos,
                     dataType: 'json',
                     data: function (params) {
                         var query = {
                             term: params.term,
                             type: 'public',
                             mooring_bay_id: vm.approval.mooring_bay_id,
-                            vessel_details_id: vm.proposal.vessel_details_id,
+                            vessel_length:vm.proposal.vessel_length,
+                            vessel_draft:vm.proposal.vessel_draft,
+                            vessel_weight:vm.proposal.vessel_weight,
                             aup_id: vm.proposal.approval_id,
                         }
                         console.log('in data()')
@@ -1019,8 +925,6 @@ export default {
                 },
             }).
                 on("select2:select", function (e) {
-                    console.log('in select2:select')
-                    var selected = $(e.currentTarget);
                     let data = e.params.data.id;
                     vm.approval.mooring_id = data;
                     vm.vessel_size_limit = e.params.data.vessel_size_limit;
@@ -1028,14 +932,10 @@ export default {
                     vm.vessel_draft_limit = e.params.data.vessel_draft_limit;
                 }).
                 on("select2:unselect", function (e) {
-                    console.log('in select2:unselect')
-                    var selected = $(e.currentTarget);
                     vm.approval.mooring_id = null;
                     vm.vessel_size_limit = null;
                 }).
                 on("select2:open", function (e) {
-                    console.log('in select2:open')
-                    //const searchField = $(".select2-search__field")
                     const searchField = $('[aria-controls="select2-mooring_lookup-results"]')
                     // move focus to select2 field
                     searchField[0].focus();

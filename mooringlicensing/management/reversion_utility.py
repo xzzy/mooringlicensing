@@ -1,9 +1,5 @@
-import datetime
 import logging
-import pytz
-import os
 from django.apps import apps
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +7,6 @@ app_label = "mooringlicensing"
 # add through models here to produce a different set of follow relationships
 through_model_keys = [
         'userdelegation',
-        #'feeitemapplicationfee',
         'vesselownership',
         'companyownership',
         'mooringonapproval',
@@ -28,7 +23,6 @@ def print_reversion_registrations():
         model = apps.all_models.get(app_label).get(key)
         model_name = model._meta.label.split('.')[1]
         follow = []
-        #import ipdb; ipdb.set_trace()
         if key in ignore_keys:
             continue
         elif key in through_model_keys:

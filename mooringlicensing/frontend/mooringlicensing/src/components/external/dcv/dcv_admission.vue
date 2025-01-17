@@ -29,9 +29,6 @@
                     <select :disabled="readonly" id="vessel_search" name="vessel_registration" ref="dcv_vessel_rego_nos" class="form-control" style="width: 40%">
                         <option></option>
                     </select>
-                    <!--
-                    <span v-if="is_valid_rego_no"><i class="fa fa-check-circle"></i></span>
-                    -->
                 </div>
             </div>
 
@@ -54,7 +51,6 @@
                 </div>
             </div>
 
-            <!-- <div v-if="show_dcv_organisation_fields" class="row form-group"> -->
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Organisation</label>
                 <div class="col-sm-6">
@@ -134,14 +130,12 @@
 </template>
 
 <script>
-//import 'eonasdan-bootstrap-datetimepicker';
-import datatable from '@/utils/vue/datatable.vue'
+
 import FormSection from "@/components/forms/section_toggle.vue"
 import PanelArrival from "@/components/common/panel_dcv_admission_arrival.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import { v4 as uuidv4 } from 'uuid';
 
-var select2 = require('select2');
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 
@@ -263,17 +257,13 @@ export default {
             let enabled = true
             if(this.paySubmitting)
                 enabled = false
-            //if(!this.is_valid_rego_no)
-            //    enabled = false
             if(!this.is_valid_vessel_name)
                 enabled = false
             if(!this.dcv_admission.skipper)
                 enabled = false
             if(!this.dcv_admission.contact_number)
                 enabled = false
-            if(this.is_authenticated){
-                // Authenticated
-            } else {
+            if(!this.is_authenticated) {
                 // Not authenticated
                 if(!this.does_dcv_permit_exist){
                     if(!this.is_valid_email_address)
@@ -359,8 +349,6 @@ export default {
                     var option = new Option(searchValue, searchValue, true, true);
                     $(this.$refs.dcv_vessel_rego_nos).append(option).trigger('change');
                     
-                } else {
-                    
                 }
             }
         },
@@ -393,8 +381,7 @@ export default {
                         
                         return {
                             results: [searchOption,
-                                ...data.results
-                                
+                                ...data.results                                
                             ],
                             pagination: {
                                 more: data.pagination.more
@@ -404,8 +391,6 @@ export default {
                 }
             }).
             on("select2:select", function(e) {
-                var selected = $(e.currentTarget);
-                const selectedTerm = e.params.data.text;
                 if (e.params.data.customValue) {
                     vm.dcv_admission.email_address_confirmation = ''
                     vm.show_confirm_email_field = true;
@@ -418,7 +403,6 @@ export default {
                 }
             }).
             on("select2:unselect", function(e) {
-                var selected = $(e.currentTarget);
                 vm.applicant_system_id = null;
                 vm.show_confirm_email_field = false; 
                 vm.dcv_admission.email_address = ''
@@ -442,8 +426,6 @@ export default {
             $(vm.$refs.dcv_vessel_rego_nos).select2({
                 minimumInputLength: 2,
                 "theme": "bootstrap",
-                //allowClear: true,
-                //placeholder:"Select Vessel Registration",
                 placeholder: "",
                 tags: true,
                 createTag: function (tag) {
@@ -461,8 +443,6 @@ export default {
                     return vm.validateRegoNo(data.text);
                 },
             }).
-            on('select2:clear', function(e){
-            }).
             on("select2:select",function (e) {
                 if (!e.params.data.selected) {
                     e.preventDefault();
@@ -470,10 +450,8 @@ export default {
                     return false;
                 }
                 var selected = $(e.currentTarget);
-                //vm.vessel.rego_no = selected.val();
                 let id = selected.val();
                 vm.$nextTick(() => {
-                    //if (!isNew) {
                     if (e.params.data.isNew) {
                         // fetch the selected vessel from the backend
                         id = vm.validateRegoNo(id);
@@ -483,10 +461,6 @@ export default {
                             rego_no: id,
                             vessel_name: '',
                         }
-                        //vm.dcv_admission.dcv_vessel = Object.assign({},
-                        //    {
-                        //        rego_no: id,
-                        //    });
                     } else {
                         // fetch the selected vessel from the backend
                         vm.lookupDcvVessel(id);
@@ -504,8 +478,6 @@ export default {
                     }
                 );
                 $(vm.$refs.dcv_vessel_rego_nos).empty().trigger('change')
-
-                //vm.selectedRego = ''
             }).
             on("select2:open",function (e) {
                 const searchField = $(".select2-search__field")
@@ -519,8 +491,6 @@ export default {
                     }
                 });
             });
-            // read vessel.rego_no if exists on vessel.vue open
-            //vm.readRegoNo();
         },
         pay_and_submit: function(){
             let vm = this

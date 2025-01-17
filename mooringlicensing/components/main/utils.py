@@ -1,7 +1,6 @@
 import os
 from io import BytesIO
 
-from ledger_api_client import api
 from ledger_api_client.settings_base import TIME_ZONE
 from django.utils import timezone
 from confy import env
@@ -24,7 +23,6 @@ from mooringlicensing.components.proposals.models import (
     StickerPrintingBatch,
     Proposal,
 )
-from mooringlicensing.components.main.decorators import query_debugger
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
@@ -200,7 +198,6 @@ def retrieve_mooring_areas():
         res = requests.get(url)
         res.raise_for_status()
         data = res.json().get('data')
-        #return data
         # update Mooring records
         with transaction.atomic():
             for mooring in data:
@@ -561,8 +558,6 @@ def export_to_mooring_booking(approval_id):
 
 
 def calculate_minimum_max_length(fee_items_interested, max_amount_paid):
-    for item in fee_items_interested:
-        print(item)
     """
     Find out MINIMUM max-length from fee_items_interested by max_amount_paid
     """

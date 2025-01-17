@@ -1,7 +1,5 @@
 <template lang="html">
-    <!--div class="container" id="bookingsPermits"-->
     <div id="bookingsPermits">
-        <!--table style="width:100%"-->
         <div class="row form-group">
             <div class="col-sm-12">
                 <label for="" class="col-sm-2 control-label">Date</label>
@@ -71,159 +69,134 @@
 
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
-import {
-  api_endpoints,
-  helpers
-}
-from '@/utils/hooks'
-    export default {
-        name:'BookingsPermits',
-        components:{
-            FormSection,
+
+export default {
+    name:'BookingsPermits',
+    components:{
+        FormSection,
+    },
+    props: {
+        entity: {
+            type: Object,
+            required: true,
         },
-        props: {
-            entity: {
-                type: Object,
-                required: true,
-            },
-        },
-        data:function () {
+    },
+    data:function () {
+        let vm = this;
+        return {
+            approvals: [],
+            bookings: [],
+            selectedDate: null,
+            dataLoading: false,
+            }
+    },
+    methods:{
+        addEventListeners: async function () {
             let vm = this;
-            return {
-                approvals: [],
-                bookings: [],
-                selectedDate: null,
-                dataLoading: false,
-             }
-        },
-        /*
-        watch: {
-            selectedDate: async function() {
-                if (this.selectedDate) {
-                    console.log("watch date")
-                    //await this.retrieveIndividualOwner();
+            let el_fr = $(vm.$refs.datePicker);
+            let options = {
+                format: "DD/MM/YYYY",
+                showClear: true ,
+            };
+
+            el_fr.datetimepicker(options);
+
+            el_fr.on("dp.change", function(e) {
+                if (e.date) {
+                    // Date selected
+                    vm.selectedDate = e.date.format('DD/MM/YYYY')
+                } else {
+                    // Date not selected
+                    vm.selectedDate = null;
                 }
-            },
-        },
-        */
-        computed: {
-        },
-        methods:{
-            addEventListeners: async function () {
-                let vm = this;
-                let el_fr = $(vm.$refs.datePicker);
-                let options = {
-                    format: "DD/MM/YYYY",
-                    showClear: true ,
-                    //useCurrent: false,
-                };
-
-                el_fr.datetimepicker(options);
-
-                el_fr.on("dp.change", function(e) {
-                    //let selected_date = null;
-                    if (e.date) {
-                        // Date selected
-                        vm.selectedDate = e.date.format('DD/MM/YYYY')  // e.date is moment object
-                        //vm.arrival.arrival_date = selected_date;
-                    } else {
-                        // Date not selected
-                        //vm.arrival.arrival_date = selected_date;
-                        vm.selectedDate = null;
-                    }
-                });
-                $("#dateField").on("blur", async function(e) {
-                    //console.log("watch date")
-                    vm.lookupEntities();
-                });
-            },
-            lookupEntities: async function() {
-                this.$nextTick(async () => {
-                    console.log("lookupEntities");
-                    this.dataLoading = true;
-                    let payload = {
-                        "selected_date": this.selectedDate,
-                    }
-                    // Approvals
-                    if (this.entity.type === "vessel") {
-                        const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_approvals.json`, payload);
-                        this.approvals = [];
-                        for (let approval of res.body) {
-                            this.approvals.push(approval);
-                        }
-                    } else if (this.entity.type === "mooring") {
-                        const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_approvals.json`, payload);
-                        this.approvals = [];
-                        for (let approval of res.body) {
-                            this.approvals.push(approval);
-                        }
-                    }
-                    // Bookings
-                    if (this.entity.type === "vessel") {
-                        console.log('vessel')
-                        const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
-                        this.bookings = [];
-                        console.log('res.body: ')
-                        console.log(res.body)
-                        for (let booking of res.body) {
-                            this.bookings.push(booking);
-                        }
-                    } else if (this.entity.type === "mooring") {
-                        console.log('mooring')
-                        const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_bookings.json`, payload);
-                        this.bookings = [];
-                        for (let booking of res.body) {
-                            this.bookings.push(booking);
-                        }
-                    }
-                    this.dataLoading = false;
-                });
-            },
-            removeAUPFromMooring: async function(mooring_id, approval_id) {
-                swal({
-                title: "Remove Authorised User Permit",
-                text: "Are you sure you want to Remove the Authorised User Permit?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Remove',
-                confirmButtonColor:'#dc3545'
-            }).then(()=>{
-                this.$nextTick(async () => {
-                    try {
-                        let payload = {
-                            "approval_id": approval_id,
-                        }
-                        const resp = await this.$http.post(`/api/mooring/${mooring_id}/removeAUPFromMooring/`, payload);
-                        if (resp.status === 200) { 
-                            this.approvals = this.approvals.filter(item => item.id !== approval_id);
-                            swal("Removed!", "The User Permit has been removed successfully.", "success")
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        swal("Error!", "Something went wrong.", "error")
-                    }
-                });
-            })
-            },
-
-        },
-        mounted: function () {
-            this.$nextTick(async () => {
-                let vm = this;
-                this.addEventListeners();
-                var dateNow = new Date();
-                let el_fr = $(vm.$refs.datePicker);
-                /*
-                console.log(el_fr);
-                console.log(el_fr.data("DateTimePicker"));
-                */
-                el_fr.data("DateTimePicker").date(dateNow);
+            });
+            $("#dateField").on("blur", async function(e) {
+                vm.lookupEntities();
             });
         },
-        created: async function() {
-            await this.lookupEntities()
+        lookupEntities: async function() {
+            this.$nextTick(async () => {
+                console.log("lookupEntities");
+                this.dataLoading = true;
+                let payload = {
+                    "selected_date": this.selectedDate,
+                }
+                // Approvals
+                if (this.entity.type === "vessel") {
+                    const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_approvals.json`, payload);
+                    this.approvals = [];
+                    for (let approval of res.body) {
+                        this.approvals.push(approval);
+                    }
+                } else if (this.entity.type === "mooring") {
+                    const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_approvals.json`, payload);
+                    this.approvals = [];
+                    for (let approval of res.body) {
+                        this.approvals.push(approval);
+                    }
+                }
+                // Bookings
+                if (this.entity.type === "vessel") {
+                    console.log('vessel')
+                    const res = await this.$http.post(`/api/vessel/${this.entity.id}/find_related_bookings.json`, payload);
+                    this.bookings = [];
+                    console.log('res.body: ')
+                    console.log(res.body)
+                    for (let booking of res.body) {
+                        this.bookings.push(booking);
+                    }
+                } else if (this.entity.type === "mooring") {
+                    console.log('mooring')
+                    const res = await this.$http.post(`/api/mooring/${this.entity.id}/find_related_bookings.json`, payload);
+                    this.bookings = [];
+                    for (let booking of res.body) {
+                        this.bookings.push(booking);
+                    }
+                }
+                this.dataLoading = false;
+            });
         },
-    }
+        removeAUPFromMooring: async function(mooring_id, approval_id) {
+            swal({
+            title: "Remove Authorised User Permit",
+            text: "Are you sure you want to Remove the Authorised User Permit?",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonText: 'Remove',
+            confirmButtonColor:'#dc3545'
+        }).then(()=>{
+            this.$nextTick(async () => {
+                try {
+                    let payload = {
+                        "approval_id": approval_id,
+                    }
+                    const resp = await this.$http.post(`/api/mooring/${mooring_id}/removeAUPFromMooring/`, payload);
+                    if (resp.status === 200) { 
+                        this.approvals = this.approvals.filter(item => item.id !== approval_id);
+                        swal("Removed!", "The User Permit has been removed successfully.", "success")
+                    }
+                } catch (error) {
+                    console.error(error);
+                    swal("Error!", "Something went wrong.", "error")
+                }
+            });
+        })
+        },
+
+    },
+    mounted: function () {
+        this.$nextTick(async () => {
+            let vm = this;
+            this.addEventListeners();
+            var dateNow = new Date();
+            let el_fr = $(vm.$refs.datePicker);
+            el_fr.data("DateTimePicker").date(dateNow);
+        });
+    },
+    created: async function() {
+        await this.lookupEntities()
+    },
+}
 </script>
 
 <style lang="css" scoped>

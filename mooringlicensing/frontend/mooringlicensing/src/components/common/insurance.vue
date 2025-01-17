@@ -36,8 +36,7 @@
 import FormSection from '@/components/forms/section_toggle.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
 import {
-  api_endpoints,
-  helpers
+  api_endpoints
 }
 from '@/utils/hooks'
     export default {
@@ -81,11 +80,6 @@ from '@/utils/hooks'
             insuranceCertificateDocumentUrl: function() {
                 let url = '';
                 if (this.proposal && this.proposal.id) {
-                    // url = helpers.add_endpoint_join(
-                    //     //'/api/proposal/',
-                    //     api_endpoints.proposal,
-                    //     this.proposal.id + '/process_insurance_certificate_document/?uuid=' + this.proposal.uuid
-                    // )
                     url = '/api/proposal/' + this.proposal.id + '/insurance_certificate_document/'
                 }
                 return url;
@@ -133,11 +127,5 @@ from '@/utils/hooks'
                 }
             });
         },
-        created: async function() {
-        },
     }
 </script>
-
-<style lang="css" scoped>
-</style>
-

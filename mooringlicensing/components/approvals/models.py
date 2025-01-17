@@ -1,4 +1,3 @@
-import math
 from dateutil.relativedelta import relativedelta
 
 import ledger_api_client.utils
@@ -1185,7 +1184,6 @@ class WaitingListAllocation(Approval):
     def processes_after_cancel(self):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
-        # self.wla_queue_date = None
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
@@ -2548,7 +2546,7 @@ class DcvAdmission(RevisionedMixin):
     date_created = models.DateTimeField(blank=True, null=True, auto_now_add=True)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
 
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
     
     @property
     def admin_group(self):
@@ -2659,7 +2657,7 @@ class DcvAdmission(RevisionedMixin):
         db_processes_after_success['datetime_for_calculating_fee'] = target_datetime.__str__()
 
         application_type = ApplicationType.objects.get(code=settings.APPLICATION_TYPE_DCV_ADMISSION['code'])
-        # vessel_length = 1  # any number greater than 0
+
         vessel_length = GlobalSettings.default_values[GlobalSettings.KEY_MINIMUM_VESSEL_LENGTH] + 1
         proposal_type = None
         oracle_code = application_type.get_oracle_code_by_date(target_date=target_date)
@@ -2767,7 +2765,7 @@ class AgeGroup(models.Model):
         (AGE_GROUP_ADULT, 'Adult'),
         (AGE_GROUP_CHILD, 'Child'),
     )
-    code = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0])
+    code = models.CharField(max_length=40, choices=NAME_CHOICES, default=NAME_CHOICES[0][0], unique=True)
 
     def __str__(self):
         for item in self.NAME_CHOICES:
@@ -2791,7 +2789,7 @@ class AdmissionType(models.Model):
         (ADMISSION_TYPE_WATER_BASED, 'Water based'),
         (ADMISSION_TYPE_APPROVED_EVENTS, 'Approved events'),
     )
-    code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    code = models.CharField(max_length=40, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0], unique=True)
 
     def __str__(self):
         for item in self.TYPE_CHOICES:
@@ -2853,7 +2851,7 @@ class DcvPermit(RevisionedMixin):
     postal_address_state = models.CharField(max_length=255, default='WA', blank=True, null=True)
     postal_address_country = CountryField(default='AU', blank=True, null=True)
     
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
     @property
     def submitter_obj(self):
@@ -3176,7 +3174,7 @@ class Sticker(models.Model):
     postal_address_country = CountryField(default='AU', null=True, blank=True)
     postal_address_postcode = models.CharField(max_length=10, null=True, blank=True)
 
-    invoice_property_cache = JSONField(null=True, blank=True, default={})
+    invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -3433,8 +3431,6 @@ reversion.register(DcvOrganisation, follow=['dcv_vessels', 'dcvpermit_set'])
 reversion.register(DcvVessel, follow=['dcv_admissions', 'dcv_permits'])
 reversion.register(DcvAdmission, follow=['dcv_admission_arrivals', 'dcv_admission_documents'])
 reversion.register(DcvAdmissionArrival, follow=['numberofpeople_set'])
-reversion.register(AgeGroup, follow=['numberofpeople_set'])
-reversion.register(AdmissionType, follow=['numberofpeople_set'])
 reversion.register(NumberOfPeople, follow=[])
 reversion.register(DcvPermit, follow=['dcv_permit_documents', 'stickers'])
 reversion.register(DcvAdmissionDocument, follow=[])

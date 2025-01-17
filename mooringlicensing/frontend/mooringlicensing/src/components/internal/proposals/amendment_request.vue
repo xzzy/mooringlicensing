@@ -33,9 +33,6 @@
                                 <div class="col-sm-offset-2 col-sm-8">
                                     <div class="form-group">
                                         <div class="input-group date" ref="add_attachments" style="width: 70%;">
-                                            <!--FileField ref="filefield" :uploaded_documents="amendment.amendment_request_documents" :delete_url="delete_url" :proposal_id="proposal_id" isRepeatable="true" name="amendment_request_file" @refreshFromResponse="refreshFromResponse"/-->
-                                            
-                                            <!-- false for now 17 May 2021 -->
                                             <FileField v-if="false"
                                                 ref="filefield"
                                                 :uploaded_documents="amendment.amendment_request_documents"
@@ -58,13 +55,12 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import Vue from 'vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import FileField from '@/components/forms/filefield_immediate.vue'
 
-import {helpers, api_endpoints} from "@/utils/hooks.js"
+import {helpers} from "@/utils/hooks.js"
 export default {
     name:'amendment-request',
     components:{
@@ -77,9 +73,6 @@ export default {
             type: Object,
             default: null,
         },
-        //proposal_id:{
-        //    type:Number,
-        //},
         is_apiary_proposal:{
             type: Boolean,
             default: false,
@@ -151,29 +144,9 @@ export default {
             console.log('in sendData')
             let vm = this;
             vm.errors = false;
-            //let amendment = JSON.parse(JSON.stringify(vm.amendment));
-            //let formData = new FormData()
-            //var files = vm.$refs.filefield.files;
-            //$.each(files, function (idx, v) {
-            //    var file = v['file'];
-            //    var filename = v['name'];
-            //    var name = 'file-' + idx;
-            //    formData.append(name, file, filename);
-            //});
-            //amendment.num_files = files.length;
-            //amendment.input_name = 'requirement_doc';
-            ////amendment.proposal_id = vm.proposal.id;
-            //amendment.proposal = vm.proposal
-            //amendment.update = true;
 
-            //formData.append('data', JSON.stringify(amendment));
-            // vm.$http.post('/api/amendment_request.json',JSON.stringify(amendment),{
-            //vm.$http.post('/api/amendment_request.json', formData, { emulateJSON: true, }).then(
-            console.log('vm.amendment')
-            console.log(vm.amendment)
             vm.$http.post('/api/amendment_request.json', vm.amendment).then(
                 response => {
-                    //vm.$parent.loading.splice('processing contact',1);
                     swal(
                          'Sent',
                          'An email has been sent to the applicant with the request to amend this application',
@@ -181,7 +154,6 @@ export default {
                     );
                     vm.amendingProposal = true;
                     vm.close();
-                    //vm.$emit('refreshFromResponse',response);
                     Vue.http.get(`/api/proposal/${vm.proposal.id}/internal_proposal.json`).then(
                         response => {
                             vm.$emit('refreshFromResponse', response);
@@ -228,7 +200,7 @@ export default {
                 }
             });
        },
-       eventListerners:function () {
+       eventListeners:function () {
             let vm = this;
 
             // Intialise select2
@@ -255,12 +227,8 @@ export default {
        vm.fetchAmendmentChoices();
        vm.addFormValidations();
        this.$nextTick(()=>{
-            vm.eventListerners();
+            vm.eventListeners();
         });
-    //console.log(validate);
    }
 }
 </script>
-
-<style lang="css">
-</style>

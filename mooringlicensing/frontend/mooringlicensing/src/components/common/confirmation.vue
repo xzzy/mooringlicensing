@@ -26,16 +26,10 @@
 <script>
     export default {
         name:'application_fee',
-        components:{
-        },
         props:{
             proposal:{
                 type: Object,
                 required:true
-            }
-        },
-        data:function () {
-            return {
             }
         },
         computed: {
@@ -43,13 +37,5 @@
                 return this.fee_paid ? this.proposal.fee_invoice_url : '';
             }
         },
-        methods:{
-        },
-        mounted:function () {
-        }
     }
 </script>
-
-<style lang="css" scoped>
-</style>
-

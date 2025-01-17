@@ -1,4 +1,3 @@
-import sys
 import json
 from django.core.exceptions import ImproperlyConfigured
 
@@ -141,6 +140,8 @@ CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 EMAIL_FROM = DEFAULT_FROM_EMAIL
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
+
+SYSTEM_EMAIL=env('SYSTEM_EMAIL','ledger@dbca.wa.gov.au')
 
 ADMIN_GROUP = env('ADMIN_GROUP', 'Mooring Licensing - Admin')
 
@@ -513,6 +514,7 @@ LEDGER_UI_ACCOUNTS_MANAGEMENT = [
     {'postal_same_as_residential' : {'options' : {'view': True, 'edit': True}}},
     {'address_details' : {'options' : {'billing_address': {'show': False}}}},
 ]
+LEDGER_UI_SYSTEM_ACCOUNTS_MANAGEMENT['address_details']['options']['billing_address']['show'] = False
 FILE_UPLOAD_PERMISSIONS = None
 MOORING_LICENSING_EXTERNAL_URL = env('MOORING_LICENSING_EXTERNAL_URL', 'External url not configured')
 PRIVATE_MEDIA_DIR_NAME = env('PRIVATE_MEDIA_DIR_NAME', 'private-media')
@@ -525,8 +527,7 @@ CANCELATION_POLICY_URL = env('CANCELATION_POLICY_URL', 'https://ria.wa.gov.au/bo
 AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED = env('AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED', False)  # RIA doesn't want any auto process triggered when the grace period expired.
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+PREVIOUS_PAYMENT_REASON = env('PREVIOUS_PAYMENT_REASON', "Previous payment made")
 
 CSRF_TRUSTED_ORIGINS_STRING = decouple.config("CSRF_TRUSTED_ORIGINS", default='[]')
 CSRF_TRUSTED_ORIGINS = json.loads(str(CSRF_TRUSTED_ORIGINS_STRING))
-
-#LEDGER_UI_SYSTEM_ACCOUNTS_MANAGEMENT['address_details']['options']['billing_address']['show'] = False

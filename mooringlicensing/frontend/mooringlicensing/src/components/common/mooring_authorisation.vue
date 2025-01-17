@@ -37,7 +37,6 @@
                             class="form-control" 
                             style="width: 40%"
                         />
-                        <!--input :readonly="readonly" class="form-control" type="text" placeholder="" id="mooring_site_id" v-model="mooringSiteId" required=""/-->
                     </div>
                 </div>
                 <div class="col-lg-2 pull-right" v-if="!readonly">
@@ -87,8 +86,7 @@
 import FormSection from '@/components/forms/section_toggle.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import {
-  api_endpoints,
-  helpers
+  api_endpoints
 }
 from '@/utils/hooks'
 import draggable from 'vuedraggable';
@@ -314,7 +312,6 @@ import draggable from 'vuedraggable';
                     pagination: true,
                     ajax: {
                         url: api_endpoints.mooring_lookup_by_site_licensee,
-                        //url: api_endpoints.vessel_rego_nos,
                         dataType: 'json',
                         data: function(params) {
                             var query = {

@@ -3,7 +3,6 @@
       <table class="hover table table-striped table-bordered dt-responsive nowrap" cellspacing="0" width="100%" :id="id">
             <thead>
                 <tr>
-                    <!-- <th :data-class="(i == 0 )? 'expand':null" v-for="(header,i) in dtHeaders"> {{ header }}</th> -->
                     <th :data-class="(i == 0 )? 'expand':null" v-for="(header,i) in dtHeaders"><div class="html-header" v-html="header"></div></th>
                 </tr>
             </thead>
@@ -55,9 +54,6 @@ module.exports = {
             $(vm.table).on('drawDatatable', function(){
                 vm.vmDataTable.draw();
             });
-           /*$(vm.table).resize(function (e) {
-               vm.vmDataTable.draw(true);
-           });*/
        }
    },
    mounted:function () {

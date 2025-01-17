@@ -33,9 +33,9 @@
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h3 class="panel-title">Compliance with Requirements
-                                        <a class="panelClicker" :href="'#'+pdBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pdBody">
-                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
-                                        </a>
+                            <a class="panelClicker" :href="'#'+pdBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pdBody">
+                                <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                            </a>
                         </h3>
                     </div>
                     <div class="panel-body panel-collapse in" :id="pdBody">
@@ -64,7 +64,6 @@
                                 </div>
 
                                 <div class="row">
-                                    <!--<div v-if="isFinalised && hasDocuments" class="form-group"> -->
                                     <div v-if="hasDocuments" class="form-group">
                                         <div class="col-sm-3 control-label pull-left" >  
                                             <label  for="Name">Documents:</label>
@@ -159,12 +158,11 @@ export default {
         hasDocuments: false,
         validation_form: null,
         files: [
-                {
-                    'file': null,
-                    'name': ''
-                }
-            ]
-     
+            {
+                'file': null,
+                'name': ''
+            }
+        ]
     }
   },
   watch: {   
@@ -258,12 +256,9 @@ export default {
             vm.validation_form = $(vm.form).validate({
                 rules: {
                     detail: "required"
-                    
-                     
                 },
                 messages: {              
-                    detail: "field is required",
-                                         
+                    detail: "field is required",                                         
                 },
                 showErrors: function(errorMap, errorList) {
                     $.each(this.validElements(), function(index, element) {
@@ -322,11 +317,6 @@ export default {
                 }).then((response)=>{
                     vm.addingCompliance = false;
                     vm.refreshFromResponse(response);                   
-                    /*swal(
-                     'Submit',
-                     'Your Compliance with Requirement has been submitted',
-                     'success'
-                    );*/
                     vm.compliance = response.body;
                     vm.$router.push({
                     name: 'submit_compliance',
@@ -363,11 +353,11 @@ export default {
             if (vm.compliance && vm.compliance.documents){ vm.hasDocuments = true}
 
             Vue.http.get(helpers.add_endpoint_json(api_endpoints.compliances,to.params.compliance_id+'/amendment_request')).then((res) => {                     
-                      vm.setAmendmentData(res.body);                  
-                },
-              err => {
-                        console.log(err);
-                  });
+                vm.setAmendmentData(res.body);                  
+            },
+            err => {
+                console.log(err);
+            });
         })
     },(error) => {
         console.log(error);

@@ -27,8 +27,7 @@
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
-import Vue from 'vue'
-import { api_endpoints, helpers }from '@/utils/hooks'
+import { api_endpoints }from '@/utils/hooks'
 export default {
     name: 'TableCompliances',
     props: {
@@ -154,7 +153,6 @@ export default {
                             console.log(full)
                             let dueDate = '';
                             if (full.due_date_display) {
-                                //dueDate = full.requirement.read_due_date;
                                 dueDate = full.due_date_display;
                             }
                             return dueDate;
@@ -185,10 +183,8 @@ export default {
                         visible: true,
                         'render': function(row, type, full){
                             console.log({full})
-                            //return 'not implemented'
                             let links = '';
                             if (!vm.is_external){
-                                //if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
                                 if (full.can_process && full.status !== 'Approved') {
                                     links +=  `<a href='/internal/compliance/${full.id}'>Process</a><br/>`;
                                 } else {
@@ -238,7 +234,6 @@ export default {
                     this.approvalTypeColumn,
                     this.licenceNumberColumn,
                     this.approvalHolderColumn,
-                    //this.conditionColumn,
                     this.statusColumn,
                     this.dueDateColumn,
                     this.assignedToNameColumn,
@@ -254,15 +249,9 @@ export default {
                 buttons = [
                     {
                         extend: 'excel',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                     {
                         extend: 'csv',
-                        exportOptions: {
-                            //columns: ':visible'
-                        }
                     },
                 ]
             }
@@ -296,9 +285,6 @@ export default {
                 buttons: buttons,
                 columns: vm.applicableColumns,
                 processing: true,
-                initComplete: function() {
-                    console.log('in initComplete')
-                },
             }
         },
 
@@ -315,21 +301,10 @@ export default {
                 }
             },(error) => {
             })
-            /*
-            // Statuses
-            vm.$http.get(api_endpoints.compliance_statuses_dict).then((response) => {
-                vm.compliance_statuses = response.body
-            },(error) => {
-                console.log(error);
-            })
-            */
         },
     },
     created: function(){
         this.fetchFilterLists()
     },
-    mounted: function(){
-
-    }
 }
 </script>

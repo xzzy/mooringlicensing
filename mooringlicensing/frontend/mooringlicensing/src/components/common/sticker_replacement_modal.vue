@@ -53,7 +53,6 @@
 <script>
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
-import { helpers, api_endpoints, constants } from "@/utils/hooks.js"
 
 export default {
     name:'ModalForSticker',
@@ -72,13 +71,8 @@ export default {
             sticker: {},
             details: vm.getDefaultDetails(),
             processing: false,
-
-            //form:null,
             errors: false,
-            //validation_form: null,
             errorString: '',
-            //successString: '',
-            //success:false,
             waive_the_fee: false,
         }
     },
@@ -167,8 +161,6 @@ export default {
             $('#lost_date_elem').val('')
             this.errors = false
             this.processing = false
-            //$('.has-error').removeClass('has-error');
-            //this.validation_form.resetForm();
         },
         addEventListeners: function () {
             let vm = this;
@@ -205,38 +197,6 @@ export default {
                 }
             });
         },
-        //addFormValidations: function() {
-        //    let vm = this;
-        //    vm.validation_form = $(vm.form).validate({
-        //        rules: {
-        //            reason:"required",
-        //        },
-        //        messages: {
-        //            arrival:"field is required",
-        //            departure:"field is required",
-        //            campground:"field is required",
-        //            campsite:"field is required"
-        //        },
-        //        showErrors: function(errorMap, errorList) {
-        //            $.each(this.validElements(), function(index, element) {
-        //                var $element = $(element);
-        //                $element.attr("data-original-title", "").parents('.form-group').removeClass('has-error');
-        //            });
-        //            // destroy tooltips on valid elements
-        //            $("." + this.settings.validClass).tooltip("destroy");
-        //            // add or update tooltips
-        //            for (var i = 0; i < errorList.length; i++) {
-        //                var error = errorList[i];
-        //                $(error.element)
-        //                    .tooltip({
-        //                        trigger: "focus"
-        //                    })
-        //                    .attr("data-original-title", error.message)
-        //                    .parents('.form-group').addClass('has-error');
-        //            }
-        //        }
-        //    });
-        //},
     },
     created:function () {
         this.$nextTick(() => {
@@ -245,6 +205,3 @@ export default {
     }
 }
 </script>
-
-<style lang="css">
-</style>

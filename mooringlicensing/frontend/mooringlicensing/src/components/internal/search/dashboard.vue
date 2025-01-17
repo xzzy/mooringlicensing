@@ -1,6 +1,5 @@
 <template>
     <div class="container" id="SearchDash">
-
         <SearchPerson />
         <SearchVessel />
         <SearchMooring />
@@ -17,21 +16,12 @@ import SearchPerson from "./search_person.vue"
 
 export default {
     name: 'InternalSearch',
-    data() {
-        let vm = this;
-        return {
-
-        }
-    },
     components:{
         FormSection,
         SearchMooring,
         SearchVessel,
         SearchSticker,
         SearchPerson,
-    },
-    methods: {
-
     },
 }
 </script>

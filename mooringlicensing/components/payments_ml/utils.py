@@ -18,6 +18,7 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
         'custom_basket': True,
         'tax_override': True,
         'booking_reference': booking_reference,
+        'booking_reference_link': booking_reference,
     }
 
     email_user_id = email_user.id if request.user.is_anonymous else request.user.id

@@ -28,43 +28,11 @@ class Payment(models.Model):
     confirmation_sent = models.BooleanField(default=False)
     created = models.DateTimeField(auto_now_add=True)
     expiry_time = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    payment_status = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         app_label = 'mooringlicensing'
         abstract = True
-
-    @property
-    def paid(self):
-        payment_status = self.__check_payment_status()
-        if payment_status == 'paid' or payment_status == 'over_paid':
-            return True
-        return False
-
-    @property
-    def unpaid(self):
-        payment_status = self.__check_payment_status()
-        if payment_status == 'unpaid':
-            return True
-        return False
-
-    @property
-    def amount_paid(self):
-        return self.__check_payment_amount()
-
-    def __check_payment_amount(self):
-        amount = Decimal('0.0')
-        if self.active_invoice:
-            return self.active_invoice.payment_amount
-        return amount
-
-    def __check_payment_status(self):
-        amount = Decimal('0.0')
-        invoice = Invoice.objects.filter(reference=self.invoice_reference)
-        if invoice:
-            invoice = invoice.first()
-            return invoice.payment_status
-        else:
-            return '---'
 
 
 class DcvAdmissionFee(Payment):
@@ -186,7 +154,7 @@ class StickerActionFee(Payment):
 class FeeItemApplicationFee(models.Model):
     fee_item = models.ForeignKey('FeeItem', on_delete=models.CASCADE)
     application_fee = models.ForeignKey('ApplicationFee', on_delete=models.CASCADE)
-    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True, on_delete=models.SET_NULL)
+    vessel_details = models.ForeignKey(VesselDetails, null=True, blank=True, on_delete=models.SET_NULL) 
     amount_to_be_paid = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
     amount_paid = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, default=None)
 
@@ -280,8 +248,6 @@ class FeeSeason(models.Model):
 
     @property
     def is_editable(self):
-        temp = self.fee_constructors
-        temp = self.fee_constructors.all()
         for fee_constructor in self.fee_constructors.all():
             if not fee_constructor.is_editable:
                 # This season has been used in the fee_constructor for payments at least once
@@ -574,7 +540,6 @@ class FeeConstructor(models.Model):
                             if (
                                     (vessel_size_category.null_vessel and self.application_type.code in [AnnualAdmissionApplication.code, AuthorisedUserApplication.code,]) or
                                     (not fee_period.is_first_period and proposal_type.code in [settings.PROPOSAL_TYPE_RENEWAL,])
-                                    # When null vessel and AnnualAdmissionApplication/AuthorisedUserApplication <== When renew the ML with null vessel, do we need nul vessel AA fee_item...???
                                     # When first period and renewal proposal
                             ):
                                 # No need to create fee_items

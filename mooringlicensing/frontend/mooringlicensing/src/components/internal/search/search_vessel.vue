@@ -18,20 +18,13 @@
                     />
                 </div>
         </div>
-
     </FormSection>
 </template>
 
 <script>
 import FormSection from '@/components/forms/section_toggle.vue'
-/*
-var select2 = require('select2');
-require("select2/dist/css/select2.min.css");
-require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
-*/
 import {
   api_endpoints,
-  helpers
 }
 from '@/utils/hooks'
     export default {
@@ -42,9 +35,7 @@ from '@/utils/hooks'
          data:function () {
             return {
                 selectedVessel: null,
-             }
-        },
-        computed: {
+            }
         },
         methods:{
             openVessel: function() {
@@ -94,20 +85,13 @@ from '@/utils/hooks'
                     },
                 }).
                 on("select2:select", function (e) {
-                    var selected = $(e.currentTarget);
-                    /*
-                    let data = e.params.data.id;
-                    vm.selectedVessel = data;
-                    */
                     let data = e.params.data;
                     vm.selectedVessel = Object.assign({}, data);
                 }).
                 on("select2:unselect",function (e) {
-                    var selected = $(e.currentTarget);
                     vm.selectedVessel = null;
                 }).
                 on("select2:open",function (e) {
-                    //const searchField = $(".select2-search__field")
                     const searchField = $('[aria-controls="select2-vessel_lookup-results"]')
                     // move focus to select2 field
                     searchField[0].focus();
@@ -118,8 +102,6 @@ from '@/utils/hooks'
             this.$nextTick(async () => {
                 this.initialiseVesselLookup();
             });
-        },
-        created: async function() {
         },
     }
 </script>

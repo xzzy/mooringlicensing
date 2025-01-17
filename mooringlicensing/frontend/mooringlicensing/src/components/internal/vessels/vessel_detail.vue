@@ -9,14 +9,9 @@
                     :comms_add_url="comms_add_url" 
                     :disable_add_entry="false"
                 />
-
             </div>
-
             <div class="col-md-1"></div>
-
             <div class="col-md-8">
-
-        <!--div-->
                 <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
                   <li class="nav-item">
                     <a class="nav-link active" id="pills-vessel-details-tab" data-toggle="pill" href="#pills-vessel-details" role="tab" aria-controls="pills-vessel-details" aria-selected="true">
@@ -65,14 +60,6 @@
                                     {{ vessel.vessel_details.vessel_length }}
                                 </div>
                             </div>
-                            <!--div class="row form-group">
-                                <div class="col-sm-3">
-                                    <label>Overall length of vessel:</label>
-                                </div>
-                                <div class="col-sm-6">
-                                    {{ vessel.vessel_details.vessel_overall_length }}
-                                </div>
-                            </div-->
                             <div class="row form-group">
                                 <div class="col-sm-3">
                                     <label>Displacement tonnage:</label>
@@ -97,7 +84,6 @@
                                     {{ vessel.vessel_details.vessel_type_display }}
                                 </div>
                             </div>
-
                         </FormSection>
                     </div>
                     <div class="tab-pane fade" id="pills-owners" role="tabpanel" aria-labelledby="pills-owners-tab">
@@ -180,29 +166,12 @@ from '@/utils/hooks'
                         processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                     },
                     responsive: true,
-                    //serverSide: true,
-
                     ajax: {
-                        //"url": `${api_endpoints.vessel}${vm.vessel.id}/lookup_vessel_ownership?format=datatables`,
                         "url": vm.ownersUrl,
                         "dataSrc": 'data',
-
-                        // adding extra GET params for Custom filtering
-                        "data": function ( d ) {
-                            console.log(d)
-                            // Add filters selected
-                            //filter_compliance_status = vm.filterComplianceStatus;
-                        }
                     },
                     dom: 'lBfrtip',
-                    buttons:[
-                        //{
-                        //    extend: 'csv',
-                        //    exportOptions: {
-                        //        columns: ':visible'
-                        //    }
-                        //},
-                    ],
+                    buttons:[],
                     columns: [
                         {
                             // 1. Name
@@ -212,7 +181,6 @@ from '@/utils/hooks'
                             visible: true,
                             'render': function(row, type, full){
                                 return full.owner_full_name;
-                                //return full.id;
                             }
                         },
                         {
@@ -228,11 +196,6 @@ from '@/utils/hooks'
                                 }
                                 return companyName;
                             }
-                            /*
-                            'render': function(row, type, full){
-                                return full.id;
-                            }
-                            */
                         },
                         {
                             // 3. Percentage
@@ -242,7 +205,6 @@ from '@/utils/hooks'
                             visible: true,
                             'render': function(row, type, full){
                                 return full.applicable_percentage;
-                                //return full.id;
                             }
                         },
                         {
@@ -262,9 +224,7 @@ from '@/utils/hooks'
                             searchable: true,
                             visible: true,
                             'render': function(row, type, full){
-                                //return full.start_date.toLocaleString();
                                 return full.start_date;
-                                //return '';
                             }
                         },
                         {
@@ -274,10 +234,7 @@ from '@/utils/hooks'
                             searchable: true,
                             visible: true,
                             'render': function(row, type, full){
-                                //return full.end_date.toLocaleString();
-                                //return full.end_date ? full.end_date : '';
                                 return full.end_date;
-                                //return '';
                             }
                         },
                         {
@@ -302,17 +259,13 @@ from '@/utils/hooks'
         methods:{
             setTabs:function(){
                 let vm = this;
-
                 /* set Applicant tab Active */
                 $('#pills-tab a[href="#pills-vessel-details"]').tab('show');
                 // ensure datatables in tabs are responsive
                 $('#pills-owners-tab').on('shown.bs.tab', function (e) {
                     vm.$refs.owners_datatable.vmDataTable.columns.adjust().responsive.recalc();
                 });
-
-
             },
-
         },
         mounted: function () {
             this.$nextTick(async () => {
@@ -324,15 +277,6 @@ from '@/utils/hooks'
             this.vessel = Object.assign({}, res.body);
 
         },
-        /*
-        beforeRouteEnter: async function(to, from, next) {
-            if (to.params.mooring_id) {
-                const res = await this.$http.get(`/api/mooring/${to.params.mooring_id}.json`);
-                this.mooring = Object.assign({}, res.body);
-            }
-        },
-        */
-
     }
 </script>
 

@@ -391,9 +391,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
                 for sticker in obj.stickers.filter(
                         status__in=['current', 'awaiting_printing', 'to_be_returned'],
                         vessel_ownership=vessel_ownership).order_by('-number'):
-                    # sticker_numbers += sticker.number + '<br>, '
                     sticker_numbers.append(sticker.number)
-                # sticker_numbers = sticker_numbers[0:-2]
                 sticker_numbers = '<br/>'.join(sticker_numbers)
 
                 vessel_details.append({

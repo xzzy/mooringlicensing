@@ -89,7 +89,7 @@ def save_proponent_data_aaa(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -110,14 +110,7 @@ def save_proponent_data_aaa(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
-    instance.refresh_from_db()
-    if action == 'submit':
-        if instance.invoice and get_invoice_payment_status(instance.id) in ['paid', 'over_paid'] and not instance.auto_approve:
-            # Save + Submit + Paid ==> We have to update the status
-            # Probably this is the case that assessor put back this application to external and then external submit this.
-            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
-            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            instance.save()     
+    instance.refresh_from_db()   
 
 
 def save_proponent_data_wla(instance, request, action):
@@ -128,7 +121,7 @@ def save_proponent_data_wla(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -149,13 +142,7 @@ def save_proponent_data_wla(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
-    if action == 'submit':
-        if instance.invoice and get_invoice_payment_status(instance.invoice.id) in ['paid', 'over_paid']:
-            # Save + Submit + Paid ==> We have to update the status
-            # Probably this is the case that assessor put back this application to external and then external submit this.
-            logger.info('Proposal {} has been submitted but already paid.  Update the status of it to {}'.format(instance.lodgement_number, Proposal.PROCESSING_STATUS_WITH_ASSESSOR))
-            instance.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-            instance.save()
+
 
 def save_proponent_data_mla(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
@@ -166,7 +153,7 @@ def save_proponent_data_mla(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -210,7 +197,7 @@ def save_proponent_data_aua(instance, request, action):
         if ((action == 'submit' or (
             instance.has_assessor_mode(request.user) and 
             instance.processing_status != Proposal.PROCESSING_STATUS_DRAFT))):
-            submit_vessel_data(instance, request, vessel_data)
+            submit_vessel_data(instance, request, vessel_data=vessel_data)
         else:
             save_vessel_data(instance, request, vessel_data)
     instance.refresh_from_db()
@@ -331,7 +318,36 @@ def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
         vessel_lookup_errors[vessel_data.get("rego_no")] = "The provided details do not match those recorded with the Department of Transport"
 
-def submit_vessel_data(instance, request, vessel_data):
+def submit_vessel_data(instance, request, vessel_data=None, approving=False):
+
+    #if vessel data not provided, get from instance
+    if not vessel_data:
+        vessel_data = {
+            "id": instance.vessel_id,
+            "rego_no": instance.rego_no,
+            "vessel_details": {
+                "berth_mooring": instance.berth_mooring,
+                "vessel_beam": instance.vessel_beam,
+                "vessel_draft": instance.vessel_draft,
+                "vessel_length": instance.vessel_length,
+                "vessel_name": instance.vessel_name,
+                "vessel_type": instance.vessel_type,
+                "vessel_weight": instance.vessel_weight,
+            },
+            "vessel_ownership": {
+                "individual_owner": instance.individual_owner,
+                "dot_name": instance.dot_name,
+            },
+        }
+
+        if instance.individual_owner:
+            vessel_data["vessel_ownership"]["percentage"] = instance.percentage
+        else:    
+            vessel_data["vessel_ownership"]["company_ownership"] = {
+                "company": {"name": instance.company_ownership_name},
+                "percentage": instance.company_ownership_percentage,
+            }
+
     logger.info(f'submit_vessel_data() is called with the vessel_data: {vessel_data}')
 
     # Dot vessel rego lookup
@@ -374,21 +390,21 @@ def submit_vessel_data(instance, request, vessel_data):
     # Update Proposal obj
     save_vessel_data(instance, request, vessel_data)
 
-    # Update VesselDetails obj
-    vessel, vessel_details = store_vessel_data(request, vessel_data)
+    if approving:
+        # Update VesselDetails obj
+        vessel, vessel_details = store_vessel_data(request, vessel_data)
+        # Associate the vessel_details with the proposal
+        instance.vessel_details = vessel_details
+        instance.save()
 
-    # Associate the vessel_details with the proposal
-    instance.vessel_details = vessel_details
-    instance.save()
-
-    # record ownership data
-    vessel_ownership = store_vessel_ownership(request, vessel, instance)
-    instance.vessel_ownership = vessel_ownership
-    instance.save()
+        # record ownership data
+        vessel_ownership = store_vessel_ownership(request, vessel, instance)
+        instance.vessel_ownership = vessel_ownership
+        instance.save()
 
     instance.validate_against_existing_proposals_and_approvals()
 
-    ownership_percentage_validation(vessel_ownership, instance)
+    ownership_percentage_validation(instance)
 
 
 def store_vessel_data(request, vessel_data):
@@ -435,7 +451,35 @@ def store_vessel_ownership(request, vessel, instance):
 
     ## Get Vessel
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
-    vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
+    if hasattr(request,'data') and request.data.get('vessel'):
+        vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
+    else:
+        vessel_data = {
+            "id": instance.vessel_id,
+            "rego_no": instance.rego_no,
+            "vessel_details": {
+                "berth_mooring": instance.berth_mooring,
+                "vessel_beam": instance.vessel_beam,
+                "vessel_draft": instance.vessel_draft,
+                "vessel_length": instance.vessel_length,
+                "vessel_name": instance.vessel_name,
+                "vessel_type": instance.vessel_type,
+                "vessel_weight": instance.vessel_weight,
+            },
+            "vessel_ownership": {
+                "individual_owner": instance.individual_owner,
+                "dot_name": instance.dot_name,
+            },
+        }
+        if instance.individual_owner:
+            vessel_data["vessel_ownership"]["percentage"] = instance.percentage
+        else:    
+            vessel_data["vessel_ownership"]["company_ownership"] = {
+                "company": {"name": instance.company_ownership_name},
+                "percentage": instance.company_ownership_percentage,
+            }
+        vessel_ownership_data = vessel_data["vessel_ownership"]
+
     if vessel_ownership_data.get('individual_owner') is None:
         raise serializers.ValidationError({"Missing information": "You must select a Vessel Owner"})
     elif (not vessel_ownership_data.get('individual_owner') and not 
@@ -489,10 +533,7 @@ def store_vessel_ownership(request, vessel, instance):
 
 
     ## add to vessel_ownership_data
-    # vessel_ownership_data['company_ownership'] = None
     if company_ownership and company_ownership.id:
-        # vessel_ownership_data['company_ownership'] = company_ownership.id
-        # vessel_ownership_data['company_ownerships'] = [company_ownership.id,]  # This line is doesn't work at all, due to through table???
         if instance:
             ## set blocking_proposal
             company_ownership.blocking_proposal = instance
@@ -625,14 +666,12 @@ def handle_vessel_registration_documents_in_limbo(proposal_id, vessel_ownership)
     for doc in documents_in_limbo:
         doc.vessel_ownership = vessel_ownership  # Link to the vessel_ownership
         doc.can_delete = False
-        # doc.proposal = None  # Unlink to the proposal.  This link is used when proposal is draft and vessel_ownership is unknown.
         doc.save()
 
         logger.info(f'VesselRegistrationFile: {doc} has had a link to the vessel_ownership: {vessel_ownership}')
 
 
 def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
-    print("handle document")
     temporary_document_collection_id = request_data.get('proposal', {}).get('temporary_document_collection_id')
     if temporary_document_collection_id:
         temp_doc_collection = None
@@ -643,41 +682,27 @@ def handle_document(instance, vessel_ownership, request_data, *args, **kwargs):
             instance.temporary_document_collection_id = None
             instance.save()
 
-def ownership_percentage_validation(vessel_ownership, proposal):
-    logger.info(f'Calculating the total vessel ownership percentage of the vessel: [{vessel_ownership.vessel}]...')
+def ownership_percentage_validation(proposal):
+    logger.info(f'Calculating the total vessel ownership percentage of the draft vessel: [{proposal.rego_no}]...')
 
-    individual_ownership_id = None
     company_ownership_id = None
     min_percent_fail = False
     vessel_ownership_percentage = 0
     ## First ensure applicable % >= 25
-    if vessel_ownership.company_ownerships.count():
-        company_ownership = vessel_ownership.company_ownerships.filter(
-            vessel=vessel_ownership.vessel, 
-            vesselownershipcompanyownership__status__in=[VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_APPROVED, VesselOwnershipCompanyOwnership.COMPANY_OWNERSHIP_STATUS_DRAFT,]
-        ).order_by('created').last()
-        if company_ownership:
-            company_ownership_id = company_ownership.id
-    if company_ownership_id:
-        if not company_ownership.percentage:
-            raise serializers.ValidationError({
-                "Ownership Percentage": "You must specify a percentage"
-                })
+    if not proposal.individual_owner and proposal.company_ownership_name and proposal.company_ownership_percentage:
+        if proposal.company_ownership_percentage < 25:
+            min_percent_fail = True
         else:
-            if company_ownership.percentage < 25:
-                min_percent_fail = True
-            else:
-                vessel_ownership_percentage = company_ownership.percentage    
-    elif not vessel_ownership.percentage:
+            vessel_ownership_percentage = proposal.company_ownership_percentage   
+    elif not proposal.percentage:
         raise serializers.ValidationError({
             "Ownership Percentage": "You must specify a percentage"
             })
     else:
-        individual_ownership_id = vessel_ownership.id
-        if vessel_ownership.percentage < 25:
+        if proposal.percentage < 25:
             min_percent_fail = True
         else:
-            vessel_ownership_percentage = vessel_ownership.percentage
+            vessel_ownership_percentage = proposal.percentage
     if min_percent_fail:
         raise serializers.ValidationError({
             "Ownership Percentage": "Minimum of 25 percent"
@@ -688,26 +713,29 @@ def ownership_percentage_validation(vessel_ownership, proposal):
     logger.info(f'Vessel ownerships to be excluded from the calculation: {previous_vessel_ownerships}')
 
     total_percent = vessel_ownership_percentage
-    vessel = vessel_ownership.vessel
+    vessel = Vessel.objects.filter(rego_no=proposal.rego_no).last()
 
-    for vo in vessel.filtered_vesselownership_set.distinct('owner'): 
-        if vo in previous_vessel_ownerships:
-            # We don't want to count the percentage in the previous vessel ownerships
-            continue
-        if vo.company_ownerships.count():
-            company_ownership = vo.get_latest_company_ownership()
-            if company_ownership:
-                if (company_ownership.id != company_ownership_id and 
-                        company_ownership.percentage and
-                        company_ownership.blocking_proposal
-                ):
-                    total_percent += company_ownership.percentage
-                    logger.info(f'Vessel ownership to be taken into account in the calculation: {company_ownership}')
-        elif vo.percentage and vo.id != individual_ownership_id:
-            total_percent += vo.percentage
-            logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
+    if vessel:
+        for vo in vessel.filtered_vesselownership_set.distinct('owner'):
+            if proposal.vessel_ownership and vo ==  proposal.vessel_ownership:
+                continue
+            if vo in previous_vessel_ownerships:
+                # We don't want to count the percentage in the previous vessel ownerships
+                continue
+            if vo.company_ownerships.count():
+                company_ownership = vo.get_latest_company_ownership()
+                if company_ownership:
+                    if (company_ownership.id != company_ownership_id and 
+                            company_ownership.percentage and
+                            company_ownership.blocking_proposal
+                    ):
+                        total_percent += company_ownership.percentage
+                        logger.info(f'Vessel ownership to be taken into account in the calculation: {company_ownership}')
+            elif vo.percentage:
+                total_percent += vo.percentage
+                logger.info(f'Vessel ownership to be taken into account in the calculation: {vo}')
 
-    logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}%')
+        logger.info(f'Total ownership percentage of the vessel: [{vessel}] is {total_percent}%')
 
     if total_percent > 100:
         raise serializers.ValidationError({

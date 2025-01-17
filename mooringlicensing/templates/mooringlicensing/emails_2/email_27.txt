@@ -10,16 +10,10 @@ Number of adults (12 and over):
 - Landing: {{ arrival.adult.landing }}
 - Extended stay: {{ arrival.adult.extended_stay }}
 - Not landing: {{ arrival.adult.water_based }}
-{% comment "Hide for now" %}
-- Approved events: {{ arrival.adult.approved_events }}
-{% endcomment %}
 Number of children (4-12)
 - Landing: {{ arrival.child.landing }}
 - Extended stay: {{ arrival.child.extended_stay }}
 - Not landing: {{ arrival.child.water_based }}
-{% comment "Hide for now" %}
-- Approved events: {{ arrival.child.approved_events }}
-{% endcomment %}
 {% endfor %}
 Please find attached the DCV permit and the invoice for the payment.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}

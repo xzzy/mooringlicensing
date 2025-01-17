@@ -51,7 +51,6 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
@@ -60,12 +59,6 @@ export default {
     components:{
         modal,
         alert
-    },
-    props:{
-        //approval_id: {
-        //    type: Number,
-        //    required: true
-        //},
     },
     data:function () {
         let vm = this;
@@ -186,7 +179,6 @@ export default {
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
-
             $(vm.$refs.surrender_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.surrender_date).on('dp.change', function(e){
                 if ($(vm.$refs.surrender_date).data('DateTimePicker').date()) {

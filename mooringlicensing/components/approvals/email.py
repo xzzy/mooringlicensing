@@ -1,25 +1,16 @@
-import datetime
 import logging
 import ledger_api_client
 import mimetypes
-import pytz
 import requests
 from dateutil.relativedelta import relativedelta
-from django.contrib.auth.models import Group
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_str
-# from django.core.urlresolvers import reverse
 from django.urls import reverse
 from django.conf import settings
-from datetime import timedelta
-# from ledger.payments.pdf import create_invoice_pdf_bytes
 from mooringlicensing import settings
 from mooringlicensing.components.emails.emails import TemplateEmailBase, _extract_email_headers
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 from mooringlicensing.components.emails.utils import get_user_as_email_user, get_public_url, make_http_https
-from mooringlicensing.components.users.models import EmailUserLogEntry
-# from mooringlicensing.components.main.utils import _log_user_email
-#from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 
 from mooringlicensing.components.users.utils import _log_user_email
@@ -36,8 +27,6 @@ SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
 class ApprovalExpireNotificationEmail(TemplateEmailBase):
     subject = 'Approval expired'  # This is default and should be overwitten
-    # html_template = 'mooringlicensing/emails/approval_expire_notification.html'
-    # txt_template = 'mooringlicensing/emails/approval_expire_notification.txt'
     html_template = 'mooringlicensing/emails_2/approval_expire_notification.html'
     txt_template = 'mooringlicensing/emails_2/approval_expire_notification.txt'
 
@@ -114,12 +103,6 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
 
 
 def send_approval_expire_email_notification(approval):
-    # if approval.is_lawful_authority:
-    #     email = FilmingLawfulAuthorityApprovalExpireNotificationEmail()
-    # if approval.is_filming_licence:
-    #     email = FilmingLicenceApprovalExpireNotificationEmail()
-    # else:
-    #     email = ApprovalExpireNotificationEmail()
     email = ApprovalExpireNotificationEmail(approval)
     proposal = approval.current_proposal
 
@@ -740,7 +723,7 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
     # email to annual admission permit holder upon automatic re-issue after date of sale is recorded (regardless of whether new vessel added at that time)
     proposal = approval.current_proposal
 
-    # Calculate new vessle nomination due date
+    # Calculate new vessel nomination due date
     sale_date = vessel_ownership.end_date
     six_months = relativedelta(months=6)
     due_date = sale_date + six_months
@@ -778,7 +761,6 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
 def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoice_reference):
     # 36
     # email to licence/permit holder when sticker replacement request has been submitted (with payment)
-    # approval = new_sticker.approval
     proposal = approval.current_proposal
     vessel_rego = proposal.vessel_ownership.vessel.rego_no
     email = TemplateEmailBase(

@@ -18,7 +18,6 @@
                                         <label class="control-label pull-left"  for="Name">Requirement</label>
                                     </div>
                                     <div class="col-sm-9" v-show="requirement.standard">
-                                        <!--div style="width:70% !important"-->
                                         <div>
                                             <select class="form-control" ref="standard_req" name="standard_requirement" v-model="requirement.standard_requirement" style="width:70%">
                                                 <option v-for="r in requirements" :value="r.id">{{r.code}}: {{r.text}}</option>
@@ -104,7 +103,6 @@
 </template>
 
 <script>
-//import $ from 'jquery'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
@@ -218,7 +216,6 @@ export default {
             this.errors = false;
             $('.has-error').removeClass('has-error');
             $(this.$refs.due_date).data('DateTimePicker').clear();
-            //$(this.$refs.due_date).clear();
             this.validation_form.resetForm();
         },
         fetchContact: function(id){
@@ -272,7 +269,6 @@ export default {
                         vm.addingRequirement = false;
                         vm.errorString = helpers.apiVueResourceError(error);
                     });
-                
             }
         },
         addFormValidations: function() {
@@ -341,11 +337,9 @@ export default {
              });
 
             // Intialise select2
-            // $(vm.$refs.standard_req).select2()
             $(vm.$refs.standard_req).select2({
                 "theme": "bootstrap",
                 allowClear: true,
-                // minimumInputLength: 2,
                 placeholder:"Select Requirement"
             }).
             on("select2:select",function (e) {
@@ -373,6 +367,3 @@ export default {
    }
 }
 </script>
-
-<style lang="css">
-</style>
