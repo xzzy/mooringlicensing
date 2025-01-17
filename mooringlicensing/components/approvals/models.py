@@ -650,6 +650,7 @@ class Approval(RevisionedMixin):
                 )
                 # When sticker is current status, it should be returned.
                 for sticker in current_stickers:
+                    sticker.status_before_cancelled = sticker.status
                     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
                     sticker.save()
                     logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker: [{sticker}] due to the status: [{self.status}] of the approval: [{self}].')
@@ -684,23 +685,19 @@ class Approval(RevisionedMixin):
 
     def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-
-        if self.current_proposal:
-            return self.current_proposal.is_assessor(user)
-        else:
-            logger.warning(f'Current proposal of the approval: [{self}] not found.')
-            return False
+            if self.current_proposal:
+                return self.current_proposal.is_assessor(user)
+            else:
+                logger.warning(f'Current proposal of the approval: [{self}] not found.')
+                return False
 
     def is_approver(self,user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-
-        if self.current_proposal:
-            return self.current_proposal.is_approver(user)
-        else:
-            logger.warning(f'Current proposal of the approval: [{self}] not found.')
-            return False
+            if self.current_proposal:
+                return self.current_proposal.is_approver(user)
+            else:
+                logger.warning(f'Current proposal of the approval: [{self}] not found.')
+                return False
 
     @property
     def can_action(self):
@@ -2583,7 +2580,7 @@ class DcvVessel(RevisionedMixin):
 
     def save(self, **kwargs):
         self.rego_no_uppercase()
-        super(Proposal, self).save(**kwargs)
+        super(DcvVessel, self).save(**kwargs)
 
     class Meta:
         app_label = 'mooringlicensing'

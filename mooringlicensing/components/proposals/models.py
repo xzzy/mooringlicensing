@@ -434,7 +434,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def withdraw(self, request, *args, **kwargs):
         #only an assessor should be able to withdraw
-        if self.is_assessor(request): 
+        if self.is_assessor(request.user): 
             self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
             self.save()
             logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
@@ -445,7 +445,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def destroy(self, request, *args, **kwargs):
         #only the applicant or an assessor should be able to discard while in draft
-        if self.processing_status == Proposal.PROCESSING_STATUS_DRAFT and ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request)):
+        if self.processing_status == Proposal.PROCESSING_STATUS_DRAFT and ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request.user)):
             self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
             self.save()
             logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
@@ -1122,14 +1122,12 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     #Check if the user is member of assessor group for the Proposal
     def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-        return self.child_obj.is_assessor(user)
+            return self.child_obj.is_assessor(user)
 
     #Check if the user is member of assessor group for the Proposal
     def is_approver(self, user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-        return self.child_obj.is_approver(user)
+            return self.child_obj.is_approver(user)
 
     def can_assess(self, user):
         if self.processing_status in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS,Proposal.PROCESSING_STATUS_DRAFT,Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT]:
@@ -1141,50 +1139,46 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def has_approver_mode(self,user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-
-        status_without_approver = [
-            Proposal.PROCESSING_STATUS_WITH_ASSESSOR, 
-            Proposal.PROCESSING_STATUS_APPROVED, 
-            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
-            Proposal.PROCESSING_STATUS_DECLINED, 
-            Proposal.PROCESSING_STATUS_DRAFT,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
-            Proposal.PROCESSING_STATUS_EXPIRED,
-        ]
-        if self.processing_status in status_without_approver:
-            return False
-        else:
-            if self.assigned_officer:
-                if self.assigned_officer == user:
-                    return self.child_obj.is_approver(user)
-                else:
-                    return False
+            status_without_approver = [
+                Proposal.PROCESSING_STATUS_WITH_ASSESSOR, 
+                Proposal.PROCESSING_STATUS_APPROVED, 
+                Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
+                Proposal.PROCESSING_STATUS_DECLINED, 
+                Proposal.PROCESSING_STATUS_DRAFT,
+                Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+                Proposal.PROCESSING_STATUS_EXPIRED,
+            ]
+            if self.processing_status in status_without_approver:
+                return False
             else:
-                return self.child_obj.is_approver(user)
+                if self.assigned_officer:
+                    if self.assigned_officer == user.id:
+                        return self.child_obj.is_approver(user)
+                    else:
+                        return False
+                else:
+                    return self.child_obj.is_approver(user)
 
     def has_assessor_mode(self,user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-
-        status_without_assessor = [
-            Proposal.PROCESSING_STATUS_WITH_APPROVER, 
-            Proposal.PROCESSING_STATUS_APPROVED, 
-            Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
-            Proposal.PROCESSING_STATUS_DECLINED,
-            Proposal.PROCESSING_STATUS_PRINTING_STICKER,
-            Proposal.PROCESSING_STATUS_EXPIRED,
-        ]
-        if self.processing_status in status_without_assessor:
-            return False
-        else:
-            if self.assigned_officer:
-                if self.assigned_officer == user:
-                    return self.child_obj.is_assessor(user)
-                else:
-                    return False
+            status_without_assessor = [
+                Proposal.PROCESSING_STATUS_WITH_APPROVER, 
+                Proposal.PROCESSING_STATUS_APPROVED, 
+                Proposal.PROCESSING_STATUS_AWAITING_PAYMENT, 
+                Proposal.PROCESSING_STATUS_DECLINED,
+                Proposal.PROCESSING_STATUS_PRINTING_STICKER,
+                Proposal.PROCESSING_STATUS_EXPIRED,
+            ]
+            if self.processing_status in status_without_assessor:
+                return False
             else:
-                return self.child_obj.is_assessor(user)
+                if self.assigned_officer:
+                    if self.assigned_officer == user.id:
+                        return self.child_obj.is_assessor(user)
+                    else:
+                        return False
+                else:
+                    return self.child_obj.is_assessor(user)
 
     def log_user_action(self, action, request=None):
         if request:
@@ -2775,14 +2769,14 @@ class WaitingListApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.assessor_group:
+            return belongs_to(user, self.assessor_group.name)
 
     def is_approver(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.assessor_group:
+            return belongs_to(user, self.assessor_group.name)
 
     def save(self, *args, **kwargs):
         super(WaitingListApplication, self).save(*args, **kwargs)
@@ -3031,14 +3025,14 @@ class AnnualAdmissionApplication(Proposal):
         return []
 
     def is_assessor(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.assessor_group:
+            return belongs_to(user, self.assessor_group.name)
 
     def is_approver(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.assessor_group:
+            return belongs_to(user, self.assessor_group.name)
 
     def save(self, *args, **kwargs):
         super(AnnualAdmissionApplication, self).save(*args,**kwargs)
@@ -3329,14 +3323,14 @@ class AuthorisedUserApplication(Proposal):
         return [retrieve_email_userro(i).email for i in self.approver_group.get_system_group_member_ids()]
 
     def is_assessor(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.assessor_group:
+            return belongs_to(user, self.assessor_group.name)
 
     def is_approver(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.approver_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.approver_group:
+            return belongs_to(user, self.approver_group.name)
 
     def save(self, *args, **kwargs):
         super(AuthorisedUserApplication, self).save(*args, **kwargs)
@@ -3877,14 +3871,14 @@ class MooringLicenceApplication(Proposal):
         return emails
 
     def is_assessor(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.assessor_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.assessor_group:
+            return belongs_to(user, self.assessor_group.name)
 
     def is_approver(self, user):
-        if isinstance(user, EmailUserRO):
-            user = user.id
-        return user in self.approver_group.get_system_group_member_ids()
+        from mooringlicensing.helpers import belongs_to
+        if isinstance(user, EmailUserRO) and self.approver_group:
+            return belongs_to(user, self.approver_group.name)
 
     def save(self, *args, **kwargs):
         super(MooringLicenceApplication, self).save(*args, **kwargs)
@@ -4385,12 +4379,11 @@ class MooringUserAction(UserAction):
     @classmethod
     def log_action(cls, mooring, action, user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-        return cls.objects.create(
-            mooring=mooring,
-            who=user if user else None,
-            what=str(action)
-        )
+            return cls.objects.create(
+                mooring=mooring,
+                who=user.id if user.id else None,
+                what=str(action)
+            )
 
     mooring = models.ForeignKey(Mooring, related_name='action_logs', on_delete=models.CASCADE)
 
@@ -4412,7 +4405,7 @@ class Vessel(RevisionedMixin):
 
     def save(self, **kwargs):
         self.rego_no_uppercase()
-        super(Proposal, self).save(**kwargs)
+        super(Vessel, self).save(**kwargs)
 
     def get_current_wlas(self, target_date):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation
