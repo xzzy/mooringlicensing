@@ -915,7 +915,10 @@ class Approval(RevisionedMixin):
                 
 
                 if self.status == Approval.APPROVAL_STATUS_CANCELLED:
-                    #validate based on other proposals TODO
+                    from mooringlicensing.components.proposals.utils import ownership_percentage_validation
+                    #validate based on other proposals
+                    self.current_proposal.validate_against_existing_proposals_and_approvals()
+                    ownership_percentage_validation(self.current_proposal)
 
                     self.cancellation_details =  ''
                     self.cancellation_date = None
@@ -923,7 +926,10 @@ class Approval(RevisionedMixin):
                     self.restore_stickers()
 
                 if self.status == Approval.APPROVAL_STATUS_SURRENDERED:
-                    #validate based on other proposals TODO
+                    
+                    #validate based on other proposals
+                    self.current_proposal.validate_against_existing_proposals_and_approvals()
+                    ownership_percentage_validation(self.current_proposal)
 
                     self.surrender_details = {}
 
@@ -2570,6 +2576,14 @@ class DcvVessel(RevisionedMixin):
 
     def __str__(self):
         return self.rego_no + f'(id: {self.id})'
+
+    def rego_no_uppercase(self):
+        if self.rego_no:
+            self.rego_no = self.rego_no.upper()
+
+    def save(self, **kwargs):
+        self.rego_no_uppercase()
+        super(Proposal, self).save(**kwargs)
 
     class Meta:
         app_label = 'mooringlicensing'

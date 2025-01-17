@@ -916,11 +916,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         }
         self.customer_status = matrix[self.processing_status]
 
+    def rego_no_uppercase(self):
+        if self.rego_no:
+            self.rego_no = self.rego_no.upper()
+
     def save(self, *args, **kwargs):
         kwargs.pop('version_user', None)
         kwargs.pop('version_comment', None)
         kwargs['no_revision'] = True
         self.update_customer_status()
+        self.rego_no_uppercase()
         if self.pk:
             self.update_invoice_property_cache(save=False)
         super(Proposal, self).save(**kwargs)
@@ -2578,7 +2583,7 @@ class WaitingListApplication(Proposal):
         
 
     def validate_against_existing_proposals_and_approvals(self):
-        from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, WaitingListAllocation, MooringLicence
+        from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
         vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
@@ -4400,6 +4405,14 @@ class Vessel(RevisionedMixin):
 
     def __str__(self):
         return self.rego_no
+
+    def rego_no_uppercase(self):
+        if self.rego_no:
+            self.rego_no = self.rego_no.upper()
+
+    def save(self, **kwargs):
+        self.rego_no_uppercase()
+        super(Proposal, self).save(**kwargs)
 
     def get_current_wlas(self, target_date):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation
