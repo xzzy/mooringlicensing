@@ -413,7 +413,7 @@ def store_vessel_data(request, vessel_data):
     if not vessel_data.get('rego_no'):
         raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
     rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
-    vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+    vessel, created = Vessel.objects.get_or_create(rego_no=rego_no.upper())
     if created:
         logger.info(f'New Vessel: [{vessel}] has been created.')
     
