@@ -923,7 +923,7 @@ class Approval(RevisionedMixin):
                     self.restore_stickers()
 
                 if self.status == Approval.APPROVAL_STATUS_SURRENDERED:
-                    
+                    from mooringlicensing.components.proposals.utils import ownership_percentage_validation
                     #validate based on other proposals
                     self.current_proposal.validate_against_existing_proposals_and_approvals()
                     ownership_percentage_validation(self.current_proposal)
