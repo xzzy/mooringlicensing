@@ -86,6 +86,7 @@
                   id="insurance"
                   ref="insurance"
                   :readonly="readonly"
+                  :keepCurrentVessel="keepCurrentVessel"
                   />
               </div>
               <div class="tab-pane fade" id="pills-mooring" role="tabpanel" aria-labelledby="pills-mooring-tab">
@@ -175,6 +176,10 @@
             readonly:{
                 type: Boolean,
                 default: true,
+            },
+            keepCurrentVessel:{
+                type: Boolean,
+                default: true, 
             },
         },
         data:function () {
@@ -322,7 +327,7 @@
                             this.$emit("updateSubmitText", "Submit");
                         } else {
                             this.showPaymentTab = false;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
                         }
                         if (this.proposal.null_vessel_on_create && this.$refs.vessels.vessel.rego_no){
@@ -340,7 +345,7 @@
                     this.$nextTick(() => {
                         if (this.proposal.vessel_on_proposal && this.keepCurrentVessel && !this.higherVesselCategory && !this.changeMooring) {
                             this.showPaymentTab = true;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Pay / Submit");
                         } else if (!this.keepCurrentVessel) {
                             this.showPaymentTab = false;
@@ -348,7 +353,7 @@
                             this.$emit("updateSubmitText", "Submit");
                         } else {
                             this.showPaymentTab = false;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
                         }
                         // auto approve

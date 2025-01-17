@@ -84,6 +84,7 @@
                     id="insurance"
                     ref="insurance"
                     :readonly="readonly"
+                    :keepCurrentVessel="keepCurrentVessel"
                   />
               </div>
               <div class="tab-pane fade" id="pills-documents" role="tabpanel" aria-labelledby="pills-documents-tab">
@@ -160,6 +161,10 @@
             readonly:{
                 type: Boolean,
                 default: true,
+            },
+            keepCurrentVessel:{
+                type: Boolean,
+                default: true, 
             },
             // add_vessel: {
             //     type: Boolean,
@@ -324,7 +329,7 @@
                             this.$emit("updateSubmitText", "Submit");
                         } else {
                             this.showPaymentTab = false;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
                         }
                         // auto approve
@@ -339,7 +344,7 @@
                         //if (this.keepCurrentVessel && !this.higherVesselCategory) {
                         if (this.proposal.vessel_on_proposal && this.keepCurrentVessel && !this.higherVesselCategory) {
                             this.showPaymentTab = true;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Pay / Submit");
                             this.$emit("updateAutoRenew", true);
                         } else if (!this.keepCurrentVessel) {
@@ -349,7 +354,7 @@
                             this.$emit("updateAutoRenew", false);
                         } else {
                             this.showPaymentTab = false;
-                            this.showInsuranceTab = false;
+                            // this.showInsuranceTab = false;
                             this.$emit("updateSubmitText", "Submit");
                             this.$emit("updateAutoRenew", false);
                         }

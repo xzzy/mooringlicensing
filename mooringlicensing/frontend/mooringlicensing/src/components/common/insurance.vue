@@ -24,6 +24,7 @@
                     :isRepeatable="true"
                     :documentActionUrl="insuranceCertificateDocumentUrl"
                     :replace_button_by_text="true"
+                    :keepCurrentVessel="keepCurrentVessel"
                 />
             </div>
         </div>
@@ -52,9 +53,24 @@ from '@/utils/hooks'
             },
             readonly:{
                 type: Boolean,
-                default: true,
+                default: true, 
+            },
+            keepCurrentVessel:{
+                type: Boolean,
+                default: true, 
             },
         },
+        watch: {
+            keepCurrentVessel: { 
+                handler: function() {
+                    if(!this.keepCurrentVessel){
+                        this.selectedOption = null;
+                        $('input[name="insuranceChoice"]').prop('checked', false).trigger('change');
+                    }
+                }
+            }
+        },
+
         data:function () {
             return {
                 selectedOption: null,
@@ -106,6 +122,12 @@ from '@/utils/hooks'
                 let vm = this;
                 if (this.proposal.insurance_choice) {
                     this.selectedOption = this.proposal.insurance_choice;
+                    let selected = $('#' + vm.selectedOption);
+                    selected.prop('checked', true).trigger('change');
+                }
+                //selecting insurance choice of previous application
+                else if (this.proposal.previous_application_id && this.keepCurrentVessel){
+                    this.selectedOption = this.proposal.previous_application_insurance_choice
                     let selected = $('#' + vm.selectedOption);
                     selected.prop('checked', true).trigger('change');
                 }

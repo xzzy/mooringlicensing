@@ -27,6 +27,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication,
     ProposalSiteLicenseeMooringRequest,
+    InsuranceCertificateDocument,
 )
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
@@ -137,6 +138,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     uuid = serializers.SerializerMethodField()
     amendment_requests = serializers.SerializerMethodField()
     site_licensee_moorings = serializers.SerializerMethodField()
+    previous_application_insurance_choice = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -193,6 +195,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'previous_application_id',
                 'previous_application_vessel_details_id',
                 'previous_application_preferred_bay_id',
+                'previous_application_insurance_choice',
                 'current_vessels_rego_list',
                 'approval_lodgement_number',
                 'approval_vessel_rego_no',
@@ -375,6 +378,10 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
                 return invoice_data
         return ''
+    
+    def get_previous_application_insurance_choice(self, obj):
+        if (obj.previous_application and obj.previous_application.insurance_choice):
+            return obj.previous_application.insurance_choice
 
 class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializer):
     

@@ -412,6 +412,16 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if link_item.enabled:
                 # Create link to the proposal only when the doc is not deleted.
                 ProposalSignedLicenceAgreementDocument.objects.create(proposal=proposal, signed_licence_agreement_document=doc)
+                
+    def copy_insurance_document(self, proposal):
+        old_insurance_doc = InsuranceCertificateDocument.objects.filter(proposal=self).last()
+        if old_insurance_doc:
+            new_insurance_doc = old_insurance_doc
+            new_insurance_doc.id = None
+            new_insurance_doc.proposal = proposal
+            new_insurance_doc.save()
+
+                
     def copy_vessel_registration_documents(self, proposal):
         doc_list = VesselRegistrationDocument.objects.filter(proposal=self)
         if doc_list.count() > 0:
@@ -1985,6 +1995,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.copy_mooring_report_documents(proposal)
                         self.copy_written_proof_documents(proposal)
                         self.copy_signed_licence_agreement_documents(proposal)
+                        self.copy_insurance_document(proposal)
 
                     req=self.requirements.all().exclude(is_deleted=True)
                     from copy import deepcopy
@@ -2038,6 +2049,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         self.copy_mooring_report_documents(proposal)
                         self.copy_written_proof_documents(proposal)
                         self.copy_signed_licence_agreement_documents(proposal)
+                        self.copy_insurance_document(proposal)
 
                     req=self.requirements.all().exclude(is_deleted=True)
                     from copy import deepcopy
