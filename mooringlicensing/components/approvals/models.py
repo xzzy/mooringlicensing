@@ -766,7 +766,6 @@ class Approval(RevisionedMixin):
 
     def generate_au_summary_doc(self, user):
         target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-
         if hasattr(self, 'mooring'):
             query = Q()
             query &= Q(mooring=self.mooring)
@@ -774,20 +773,21 @@ class Approval(RevisionedMixin):
             query &= Q(Q(end_date__gt=target_date) | Q(end_date__isnull=True))
             query &= Q(active=True)
             moa_set = MooringOnApproval.objects.filter(query)
-            if moa_set.count() > 0:
-                # Authorised User exists
-                contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
 
-                filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
-                document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
+            #if moa_set.count() > 0:
+            # Authorised User exists
+            contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
 
-                # Save the bytes to the disk
-                document._file.save(filename, ContentFile(contents_as_bytes), save=True)
-                logger.info(f'Authorised User Summary document: [{filename}] has been created.')
+            filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
+            document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
 
-                self.authorised_user_summary_document = document  # Update to the latest doc
-                self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
-                self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
+            # Save the bytes to the disk
+            document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+            logger.info(f'Authorised User Summary document: [{filename}] has been created.')
+
+            self.authorised_user_summary_document = document  # Update to the latest doc
+            self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
+            self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
 
     def generate_renewal_doc(self):
         self.renewal_document = create_renewal_doc(self, self.current_proposal)
@@ -854,8 +854,10 @@ class Approval(RevisionedMixin):
                     self.save()
                     logger.info(f'True has been set to the "set_to_cancel" attribute of the approval: [{self}]')
 
-                if type(self.child_obj) == WaitingListAllocation:
-                    self.child_obj.processes_after_cancel()
+                if (type(self.child_obj) == WaitingListAllocation or 
+                    type(self.child_obj) == MooringLicence or 
+                    type(self.child_obj) == AuthorisedUserPermit):
+                    self.child_obj.processes_after_cancel(request)
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_CANCEL_APPROVAL.format(self.current_proposal.id),request)
@@ -943,6 +945,17 @@ class Approval(RevisionedMixin):
                     wla.internal_status = Approval.INTERNAL_STATUS_WAITING
                     wla.save()
                     wla.set_wla_order()
+
+                if type(self.child_obj) == AuthorisedUserPermit:
+                    #update mooring license pdf
+                    for moa in MooringOnApproval.objects.filter(approval=self):
+                        if moa.mooring and moa.mooring.mooring_licence:
+
+                            moa.end_date = None
+                            moa.active = True
+                            moa.save()
+                            moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
+
                 send_approval_reinstate_email_notification(self, request)
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.id),request)
@@ -981,6 +994,9 @@ class Approval(RevisionedMixin):
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
                     self.child_obj.processes_after_surrender()
+                if (type(self.child_obj) == MooringLicence or 
+                    type(self.child_obj) == AuthorisedUserPermit):
+                    self.child_obj.processes_after_cancel(request)
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -1021,9 +1037,9 @@ class Approval(RevisionedMixin):
         # Update MooringOnApproval records
         moas = MooringOnApproval.objects.filter(sticker__in=stickers_updated)
         for moa in moas:
-            moa.sticker = None
+            moa.end_date = datetime.date.today()
+            moa.active = False
             moa.save()
-            logger.info(f'Sticker: None is set to the MooringOnApproval: {moa}')
         
         return stickers_to_be_returned
 
@@ -1236,7 +1252,7 @@ class WaitingListAllocation(Approval):
         self.refresh_from_db()
         return self
 
-    def processes_after_cancel(self):
+    def processes_after_cancel(self, request=None):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
         self.wla_order = None
@@ -1479,6 +1495,12 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def processes_after_cancel(self, request):
+        #iterate through moorings and update their au summary doc
+        for moa in MooringOnApproval.objects.filter(approval=self):
+            if moa.mooring and moa.mooring.mooring_licence:
+                moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
 
     def get_grace_period_end_date(self):
         # No grace period for the AUP
@@ -1837,6 +1859,23 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_CURRENT,
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
+
+    def processes_after_cancel(self, request):
+        #remove mooring from AUPs and set their stickers to be returned
+        moas = MooringOnApproval.objects.filter(mooring__mooring_licence=self)
+        for i in moas:
+            i.end_date = datetime.date.today()
+            i.active = False
+            i.save()
+            if i.sticker:
+                if i.sticker.status == Sticker.STICKER_STATUS_CURRENT:
+                    i.sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                elif i.sticker.status in [Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_AWAITING_PRINTING]:
+                    i.sticker.status = Sticker.STICKER_STATUS_CANCELLED                    
+                i.sticker.save()
+
+        #update aup pdf
+        self.generate_au_summary_doc(request.user)
 
     def _create_new_swap_moorings_application(self, request, new_mooring):
         new_proposal = self.current_proposal.clone_proposal_with_status_reset()
