@@ -181,6 +181,7 @@ class MooringOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
     mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
+    previous_sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL, related_name="previous_sticker")
     site_licensee = models.BooleanField()
     end_date = models.DateField(blank=True, null=True)
     active = models.BooleanField(default=True)
@@ -649,6 +650,7 @@ class Approval(RevisionedMixin):
                 )
                 # When sticker is current status, it should be returned.
                 for sticker in current_stickers:
+                    sticker.status_before_cancelled = sticker.status
                     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
                     sticker.save()
                     logger.info(f'Status: [{Sticker.STICKER_STATUS_TO_BE_RETURNED}] has been set to the sticker: [{sticker}] due to the status: [{self.status}] of the approval: [{self}].')
@@ -683,23 +685,19 @@ class Approval(RevisionedMixin):
 
     def is_assessor(self, user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-
-        if self.current_proposal:
-            return self.current_proposal.is_assessor(user)
-        else:
-            logger.warning(f'Current proposal of the approval: [{self}] not found.')
-            return False
+            if self.current_proposal:
+                return self.current_proposal.is_assessor(user)
+            else:
+                logger.warning(f'Current proposal of the approval: [{self}] not found.')
+                return False
 
     def is_approver(self,user):
         if isinstance(user, EmailUserRO):
-            user = user.id
-
-        if self.current_proposal:
-            return self.current_proposal.is_approver(user)
-        else:
-            logger.warning(f'Current proposal of the approval: [{self}] not found.')
-            return False
+            if self.current_proposal:
+                return self.current_proposal.is_approver(user)
+            else:
+                logger.warning(f'Current proposal of the approval: [{self}] not found.')
+                return False
 
     @property
     def can_action(self):
@@ -768,7 +766,6 @@ class Approval(RevisionedMixin):
 
     def generate_au_summary_doc(self, user):
         target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
-
         if hasattr(self, 'mooring'):
             query = Q()
             query &= Q(mooring=self.mooring)
@@ -776,20 +773,21 @@ class Approval(RevisionedMixin):
             query &= Q(Q(end_date__gt=target_date) | Q(end_date__isnull=True))
             query &= Q(active=True)
             moa_set = MooringOnApproval.objects.filter(query)
-            if moa_set.count() > 0:
-                # Authorised User exists
-                contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
 
-                filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
-                document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
+            #if moa_set.count() > 0:
+            # Authorised User exists
+            contents_as_bytes = create_authorised_user_summary_doc_bytes(self)
 
-                # Save the bytes to the disk
-                document._file.save(filename, ContentFile(contents_as_bytes), save=True)
-                logger.info(f'Authorised User Summary document: [{filename}] has been created.')
+            filename = 'authorised-user-summary-{}.pdf'.format(self.lodgement_number)
+            document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
 
-                self.authorised_user_summary_document = document  # Update to the latest doc
-                self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
-                self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
+            # Save the bytes to the disk
+            document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+            logger.info(f'Authorised User Summary document: [{filename}] has been created.')
+
+            self.authorised_user_summary_document = document  # Update to the latest doc
+            self.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
+            self.current_proposal.save(version_comment='Created Authorised User Summary PDF: {}'.format(self.authorised_user_summary_document.name))
 
     def generate_renewal_doc(self):
         self.renewal_document = create_renewal_doc(self, self.current_proposal)
@@ -839,6 +837,9 @@ class Approval(RevisionedMixin):
                 cancellation_date = datetime.datetime.strptime(cancellation_date,'%Y-%m-%d').date()
                 self.cancellation_date = cancellation_date
                 self.cancellation_details = details.get('cancellation_details')
+
+                self._process_stickers()
+
                 today = timezone.now().date()
                 if cancellation_date <= today:
                     if not self.status == Approval.APPROVAL_STATUS_CANCELLED:
@@ -853,8 +854,10 @@ class Approval(RevisionedMixin):
                     self.save()
                     logger.info(f'True has been set to the "set_to_cancel" attribute of the approval: [{self}]')
 
-                if type(self.child_obj) == WaitingListAllocation:
-                    self.child_obj.processes_after_cancel()
+                if (type(self.child_obj) == WaitingListAllocation or 
+                    type(self.child_obj) == MooringLicence or 
+                    type(self.child_obj) == AuthorisedUserPermit):
+                    self.child_obj.processes_after_cancel(request)
                 # Log proposal action
                 self.log_user_action(ApprovalUserAction.ACTION_CANCEL_APPROVAL.format(self.id),request)
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_CANCEL_APPROVAL.format(self.current_proposal.id),request)
@@ -908,13 +911,32 @@ class Approval(RevisionedMixin):
                 today = timezone.now().date()
                 if not self.can_reinstate and self.expiry_date>= today:
                     raise ValidationError('You cannot reinstate approval at this stage')
+                
+
                 if self.status == Approval.APPROVAL_STATUS_CANCELLED:
+                    from mooringlicensing.components.proposals.utils import ownership_percentage_validation
+                    #validate based on other proposals
+                    self.current_proposal.validate_against_existing_proposals_and_approvals()
+                    ownership_percentage_validation(self.current_proposal)
+
                     self.cancellation_details =  ''
                     self.cancellation_date = None
+
+                    self.restore_stickers()
+
                 if self.status == Approval.APPROVAL_STATUS_SURRENDERED:
+                    from mooringlicensing.components.proposals.utils import ownership_percentage_validation
+                    #validate based on other proposals
+                    self.current_proposal.validate_against_existing_proposals_and_approvals()
+                    ownership_percentage_validation(self.current_proposal)
+
                     self.surrender_details = {}
+
+                    self.restore_stickers()
+
                 if self.status == Approval.APPROVAL_STATUS_SUSPENDED:
                     self.suspension_details = {}
+
                 previous_status = self.status
                 self.status = Approval.APPROVAL_STATUS_CURRENT
                 self.save()
@@ -923,6 +945,17 @@ class Approval(RevisionedMixin):
                     wla.internal_status = Approval.INTERNAL_STATUS_WAITING
                     wla.save()
                     wla.set_wla_order()
+
+                if type(self.child_obj) == AuthorisedUserPermit:
+                    #update mooring license pdf
+                    for moa in MooringOnApproval.objects.filter(approval=self):
+                        if moa.mooring and moa.mooring.mooring_licence:
+
+                            moa.end_date = None
+                            moa.active = True
+                            moa.save()
+                            moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
+
                 send_approval_reinstate_email_notification(self, request)
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_REINSTATE_APPROVAL.format(self.id),request)
@@ -961,6 +994,9 @@ class Approval(RevisionedMixin):
                 self.save()
                 if type(self.child_obj) == WaitingListAllocation:
                     self.child_obj.processes_after_surrender()
+                if (type(self.child_obj) == MooringLicence or 
+                    type(self.child_obj) == AuthorisedUserPermit):
+                    self.child_obj.processes_after_cancel(request)
                 # Log approval action
                 self.log_user_action(ApprovalUserAction.ACTION_SURRENDER_APPROVAL.format(self.id),request)
                 # Log entry for proposal
@@ -974,8 +1010,16 @@ class Approval(RevisionedMixin):
         """
         stickers_to_be_returned = []
         stickers_updated = []
+
+        # There should only be one set of stickers that can be restored after cancellation/surrender
+        # So we set the status_before_cancelled of all stickers to None before assigning that status
+        for a_sticker in Sticker.objects.filter(approval = self).exclude(status_before_cancelled=None):
+            a_sticker.status_before_cancelled = None
+            a_sticker.save()
+
         # Handle stickers with status CURRENT and AWAITING_PRINTING
         for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
+            a_sticker.status_before_cancelled = a_sticker.status
             a_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
             a_sticker.save()
             stickers_to_be_returned.append(a_sticker)
@@ -984,6 +1028,7 @@ class Approval(RevisionedMixin):
         
         # Handle stickers with status READY and NOT_READY_YET
         for a_sticker in Sticker.objects.filter(approval = self, status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET]):
+            a_sticker.status_before_cancelled = a_sticker.status
             a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
             a_sticker.save()
             stickers_updated.append(a_sticker)
@@ -992,11 +1037,37 @@ class Approval(RevisionedMixin):
         # Update MooringOnApproval records
         moas = MooringOnApproval.objects.filter(sticker__in=stickers_updated)
         for moa in moas:
-            moa.sticker = None
+            moa.end_date = datetime.date.today()
+            moa.active = False
             moa.save()
-            logger.info(f'Sticker: None is set to the MooringOnApproval: {moa}')
         
         return stickers_to_be_returned
+
+    def restore_stickers(self):
+
+        #get stickers associated with approval
+        stickers = Sticker.objects.filter(approval=self)
+
+        #check if the status is cancelled, returned, or to be returned
+        stickers = stickers.filter(status__in=[Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_TO_BE_RETURNED])
+
+        #check if the previous status exists
+        #if the sticker has not got a previous state recorded, then it was probably cancelled via amendment/renewal
+        stickers = stickers.filter(status_before_cancelled__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
+
+        moas = MooringOnApproval.objects.filter(previous_sticker__id__in=stickers.values_list('id',flat=True))
+        #restore old sticker status, set status_before_cancelled to None
+        for i in stickers:
+            i.status = i.status_before_cancelled
+            i.status_before_cancelled = None
+            i.save()
+
+            #set moa stickers
+            moa = moas.filter(previous_sticker=i).first()
+            if moa:
+                moa.sticker = moa.previous_sticker
+                moa.previous_sticker = None
+                moa.save()
 
     @property
     def child_obj(self):
@@ -1181,7 +1252,7 @@ class WaitingListAllocation(Approval):
         self.refresh_from_db()
         return self
 
-    def processes_after_cancel(self):
+    def processes_after_cancel(self, request=None):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
         self.wla_order = None
@@ -1424,6 +1495,12 @@ class AuthorisedUserPermit(Approval):
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def processes_after_cancel(self, request):
+        #iterate through moorings and update their au summary doc
+        for moa in MooringOnApproval.objects.filter(approval=self):
+            if moa.mooring and moa.mooring.mooring_licence:
+                moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
 
     def get_grace_period_end_date(self):
         # No grace period for the AUP
@@ -1782,6 +1859,23 @@ class MooringLicence(Approval):
         Approval.APPROVAL_STATUS_CURRENT,
         Approval.APPROVAL_STATUS_SUSPENDED,
     ]
+
+    def processes_after_cancel(self, request):
+        #remove mooring from AUPs and set their stickers to be returned
+        moas = MooringOnApproval.objects.filter(mooring__mooring_licence=self)
+        for i in moas:
+            i.end_date = datetime.date.today()
+            i.active = False
+            i.save()
+            if i.sticker:
+                if i.sticker.status == Sticker.STICKER_STATUS_CURRENT:
+                    i.sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
+                elif i.sticker.status in [Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_AWAITING_PRINTING]:
+                    i.sticker.status = Sticker.STICKER_STATUS_CANCELLED                    
+                i.sticker.save()
+
+        #update aup pdf
+        self.generate_au_summary_doc(request.user)
 
     def _create_new_swap_moorings_application(self, request, new_mooring):
         new_proposal = self.current_proposal.clone_proposal_with_status_reset()
@@ -2519,6 +2613,14 @@ class DcvVessel(RevisionedMixin):
     def __str__(self):
         return self.rego_no + f'(id: {self.id})'
 
+    def rego_no_uppercase(self):
+        if self.rego_no:
+            self.rego_no = self.rego_no.upper()
+
+    def save(self, **kwargs):
+        self.rego_no_uppercase()
+        super(DcvVessel, self).save(**kwargs)
+
     class Meta:
         app_label = 'mooringlicensing'
 
@@ -3151,7 +3253,10 @@ class Sticker(models.Model):
         {'length': 1000, 'colour': 'White'},  # This is returned whenever any of the previous doesn't fit the requirement.
     ]
     number = models.CharField(max_length=9, blank=True, default='')
+    
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
+    status_before_cancelled = models.CharField(max_length=40, choices=STATUS_CHOICES, null=True, blank=True)
+
     sticker_printing_batch = models.ForeignKey(StickerPrintingBatch, blank=True, null=True, on_delete=models.SET_NULL)  # When None, most probably 'awaiting_
     sticker_printing_response = models.ForeignKey(StickerPrintingResponse, blank=True, null=True, on_delete=models.SET_NULL)
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='stickers', on_delete=models.SET_NULL)  # Sticker links to either approval or dcv_permit, never to both.

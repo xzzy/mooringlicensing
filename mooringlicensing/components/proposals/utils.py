@@ -413,7 +413,7 @@ def store_vessel_data(request, vessel_data):
     if not vessel_data.get('rego_no'):
         raise serializers.ValidationError({"Missing information": "You must supply a Vessel Registration Number"})
     rego_no = vessel_data.get('rego_no').replace(" ", "").strip().lower() # successfully avoiding dupes?
-    vessel, created = Vessel.objects.get_or_create(rego_no=rego_no)
+    vessel, created = Vessel.objects.get_or_create(rego_no=rego_no.upper())
     if created:
         logger.info(f'New Vessel: [{vessel}] has been created.')
     
@@ -713,10 +713,12 @@ def ownership_percentage_validation(proposal):
     logger.info(f'Vessel ownerships to be excluded from the calculation: {previous_vessel_ownerships}')
 
     total_percent = vessel_ownership_percentage
-    vessel = Vessel.objects.filter(rego_no=proposal.rego_no).last()
+    vessel = Vessel.objects.filter(rego_no__exact=proposal.rego_no).last()
 
     if vessel:
-        for vo in vessel.filtered_vesselownership_set.distinct('owner'):
+        for vo in vessel.filtered_vesselownership_set.exclude(
+                owner__emailuser=proposal.proposal_applicant.email_user_id
+            ).distinct('owner'):
             if proposal.vessel_ownership and vo ==  proposal.vessel_ownership:
                 continue
             if vo in previous_vessel_ownerships:

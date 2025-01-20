@@ -1163,6 +1163,8 @@ class MooringLicenceReader():
                 else:
                     ves_row = ves_row.squeeze()
 
+                #TODO additional vessels
+
                 postfix = 'Nominated Ves'
                 ves_name = ves_row['Name ' + postfix]
                 ves_type = ves_row['Type ' + postfix]
