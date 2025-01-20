@@ -4,7 +4,6 @@ import time
 import datetime
 import pandas as pd
 import numpy as np
-from dateutil.parser import parse
 from decimal import Decimal
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
@@ -457,7 +456,10 @@ class MooringLicenceReader():
             system_user = SystemUser.objects.get(ledger_id=user)
             names = get_user_name(system_user)
             if not system_user.legal_dob:
-                dob = parse(user_row.dob).date() if user_row.dob else None
+                try:
+                    dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
+                except:
+                    dob = None
             else:
                 dob = system_user.legal_dob
 
@@ -474,7 +476,10 @@ class MooringLicenceReader():
             print("error getting system user:",e)
             system_user = None
             names = {"first_name": user.first_name, "last_name": user.last_name}
-            dob = parse(user_row.dob).date() if user_row.dob else None
+            try:
+                dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
+            except:
+                dob = None
             phone = self.__get_phone_number(user_row)
             mobile = self.__get_mobile_number(user_row)
 
@@ -515,7 +520,10 @@ class MooringLicenceReader():
             system_user = SystemUser.objects.get(ledger_id=user)
             names = get_user_name(system_user)
             if not system_user.legal_dob:
-                dob = parse(user.dob).date() if user.dob else None
+                try:
+                    dob = datetime.datetime.strptime(user.dob,"%d/%m/%Y").date()
+                except:
+                    dob = None
             else:
                 dob = system_user.legal_dob
 
@@ -532,7 +540,10 @@ class MooringLicenceReader():
             print("error getting system user:",e)
             system_user = None
             names = {"first_name": user.first_name, "last_name": user.last_name}
-            dob = parse(user.dob).date() if user.dob else None
+            try:
+                dob = datetime.datetime.strptime(user.dob,"%d/%m/%Y").date()
+            except:
+                dob = None
             phone = self.__get_phone_number(user_row)
             mobile = self.__get_mobile_number(user_row)
 
@@ -670,7 +681,7 @@ class MooringLicenceReader():
                 last_name = user_row.last_name.lower().title().strip()
 
                 try:
-                    dob = parse(user_row.dob).date() if user_row.dob else None
+                    dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
                 except:
                     dob = None
 
@@ -688,7 +699,10 @@ class MooringLicenceReader():
                         self.user_existing.append(email)
                         #get or create system user
                         if not dob:
-                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
+                            try:
+                                dob = datetime.datetime.strptime(resp['data']['dob'],"%d/%m/%Y").date()
+                            except:
+                                dob = None
                         try:
                             system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
                         except Exception as e:
@@ -750,7 +764,10 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
                 try:
-                    dob = parse(user_row.dob).date() if user_row.dob else None
+                    try:
+                        dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
+                    except:
+                        dob = None
                 except:
                     dob = None
 
@@ -768,7 +785,10 @@ class MooringLicenceReader():
                         self.user_existing.append(email)
                         #get or create system user
                         if not dob:
-                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
+                            try:
+                                dob = datetime.datetime.strptime(resp['data']['dob'],"%d/%m/%Y").date()
+                            except:
+                                dob = None
                         try:
                             system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
                         except Exception as e:
