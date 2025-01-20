@@ -684,6 +684,9 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
 
+                phone = self.__get_phone_number(user_row)
+                mobile = self.__get_mobile_number(user_row)
+
                 try:
                     dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
                 except:
@@ -697,7 +700,7 @@ class MooringLicenceReader():
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
                         #create system user
-                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
@@ -708,7 +711,7 @@ class MooringLicenceReader():
                             except:
                                 dob = None
                         try:
-                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         except Exception as e:
                             print(e)
                             if str(e) != "Ledger Email User not Active":
@@ -767,6 +770,10 @@ class MooringLicenceReader():
 
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
+
+                phone = self.__get_phone_number(user_row)
+                mobile = self.__get_mobile_number(user_row)
+                
                 try:
                     try:
                         dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
@@ -783,7 +790,7 @@ class MooringLicenceReader():
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
                         #create system user
-                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
@@ -794,7 +801,7 @@ class MooringLicenceReader():
                             except:
                                 dob = None
                         try:
-                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         except Exception as e:
                             print(e)
                             if str(e) != "Ledger Email User not Active":
