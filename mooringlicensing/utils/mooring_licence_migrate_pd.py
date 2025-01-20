@@ -508,9 +508,11 @@ class MooringLicenceReader():
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
         if system_user:
-            get_or_create_system_user_address(system_user,residential_address_dict)
             if use_for_postal:
-                get_or_create_system_user_address(system_user,postal_address_dict,use_for_postal)
+                get_or_create_system_user_address(system_user,residential_address_dict,use_for_postal)
+            else:
+                get_or_create_system_user_address(system_user,residential_address_dict)
+                get_or_create_system_user_address(system_user,postal_address_dict,address_type='postal_address')
 
         return proposal_applicant
 
@@ -571,10 +573,12 @@ class MooringLicenceReader():
         )
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
-        if system_user:
-            get_or_create_system_user_address(system_user,residential_address_dict)
+        if system_user:  
             if use_for_postal:
-                get_or_create_system_user_address(system_user,postal_address_dict)
+                get_or_create_system_user_address(system_user,residential_address_dict,use_for_postal)
+            else:
+                get_or_create_system_user_address(system_user,residential_address_dict)
+                get_or_create_system_user_address(system_user,postal_address_dict,address_type='postal_address')
 
         return proposal_applicant
 

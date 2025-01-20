@@ -48,7 +48,7 @@ def create_system_user(email_user_id, email, first_name, last_name, dob, phone=N
     return system_user
 
 
-def get_or_create_system_user_address(system_user, system_address_dict, use_for_postal=False):
+def get_or_create_system_user_address(system_user, system_address_dict, use_for_postal=False, address_type='residential_address'):
     """
         takes SystemUser object and SystemUserAddress dict, 
         checks if a corresponding SystemUserAddress records exists, 
@@ -60,6 +60,7 @@ def get_or_create_system_user_address(system_user, system_address_dict, use_for_
  
     if not qs.exists():
         sua = SystemUserAddress(system_user=system_user, **system_address_dict, use_for_postal=use_for_postal)
+        sua.address_type = address_type
         sua.change_by_user_id=system_user_system_user.id
         sua.save()
     elif use_for_postal and not qs.filter(use_for_postal=use_for_postal):
