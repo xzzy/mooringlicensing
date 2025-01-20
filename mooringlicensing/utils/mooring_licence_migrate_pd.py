@@ -773,7 +773,7 @@ class MooringLicenceReader():
 
                 phone = self.__get_phone_number(user_row)
                 mobile = self.__get_mobile_number(user_row)
-                
+
                 try:
                     try:
                         dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
@@ -1188,13 +1188,16 @@ class MooringLicenceReader():
                     self.user_existing.append(email)
 
                 ves_row = self.df_ves[self.df_ves['Person No']==row.pers_no]
+                additional_ves_rows = []
                 if len(ves_row) > 1:
-                    self.ml_no_ves_rows.append((user_row.pers_no, len(ves_row)))
+                    self.ml_no_ves_rows.append((user_row.pers_no, len(ves_row))) 
+                    for i in range(1,len(ves_row)-1):
+                        additional_ves_rows.append(ves_row.iloc[i])
                     ves_row = ves_row.iloc[0]
                 else:
                     ves_row = ves_row.squeeze()
 
-                #TODO additional vessels
+                additional_ves_rows_details = []
 
                 postfix = 'Nominated Ves'
                 ves_name = ves_row['Name ' + postfix]
@@ -1202,6 +1205,16 @@ class MooringLicenceReader():
                 rego_no = ves_row['DoT Rego ' + postfix]
                 sticker_number = ves_row['Lic Sticker Number ' + postfix] 
                 sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] 
+
+                for i in range(len(additional_ves_rows)-1):
+                    postfix = 'Ad Ves ' + str(i+2)
+                    additional_vessel = {}
+                    additional_vessel['ves_name'] = additional_ves_rows[i]['Name ' + postfix]
+                    additional_vessel['ves_type'] = additional_ves_rows[i]['Type ' + postfix]
+                    additional_vessel['rego_no'] = additional_ves_rows[i]['DoT Rego ' + postfix]
+                    additional_vessel['sticker_number'] = additional_ves_rows[i]['Lic Sticker Number ' + postfix] 
+                    additional_vessel['sticker_sent'] = additional_ves_rows[i]['Licencee Sticker Sent ' + postfix] 
+                    additional_ves_rows_details.append(additional_vessel)
  
                 ves_type = VESSEL_TYPE_MAPPING.get(ves_type, 'other')
 
@@ -1219,12 +1232,26 @@ class MooringLicenceReader():
                 except Exception as e:
                     vessel_not_found.append(rego_no)
                     continue
+                
+                additional_vessels = []
+                for i in range(len(additional_ves_rows_details)-1):
+                    try:
+                        additional_vessel = Vessel.objects.get(rego_no=additional_vessel['rego_no'])
+                        additional_vessels.append(additional_vessel)
+                    except Exception as e:
+                        vessel_not_found.append(additional_vessel['rego_no'])
+                        continue
 
                 vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
                 if not vessel_ownership:
                     vessel_ownership_not_found.append(rego_no)
                     continue
                 
+                additional_vessel_ownerships = []
+                for i in additional_vessels:
+                    additional_vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=i).order_by("-created").first()
+                    additional_vessel_ownerships.append(additional_vessel_ownership)
+
                 try:
                     vessel_details = VesselDetails.objects.get(vessel=vessel)
                 except MultipleObjectsReturned:
@@ -1316,6 +1343,12 @@ class MooringLicenceReader():
                     vessel_ownership=vessel_ownership,
                 )
 
+                for i in additional_vessel_ownerships:
+                    VesselOwnershipOnApproval.objects.create(
+                        approval=approval,
+                        vessel_ownership=i,
+                    )
+
                 start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 approval_history = ApprovalHistory.objects.create(
@@ -1352,6 +1385,28 @@ class MooringLicenceReader():
 
                     approval_history.stickers.add(sticker.id)
 
+                for i in range(len(additional_ves_rows_details)-1):
+                    if i['sticker_number']:
+                        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel__rego_no=i['rego_no']).order_by("-created").first()
+                        if vessel_ownership:
+                            sticker = Sticker.objects.create(
+                            number=i['sticker_number'],
+                            status=Sticker.STICKER_STATUS_CURRENT,
+                            approval=approval,
+                            proposal_initiated=proposal,
+                            vessel_ownership=vessel_ownership,
+                            printing_date=None,
+                            mailing_date=mailing_date,
+                            sticker_printing_batch=None,
+                            sticker_printing_response=None,
+                            
+                            postal_address_line1=proposal_applicant.postal_address_line1,
+                            postal_address_locality=proposal_applicant.postal_address_locality,
+                            postal_address_state=proposal_applicant.postal_address_state,
+                            postal_address_country=proposal_applicant.postal_address_country,
+                            postal_address_postcode=proposal_applicant.postal_address_postcode,
+                        )
+                    
             except Exception as e:
                 logger.error(f'ERROR: {row.name}. {str(e)}')
                 self.user_errors.append(user_row.email)
