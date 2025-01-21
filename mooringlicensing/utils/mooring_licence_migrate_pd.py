@@ -1204,7 +1204,7 @@ class MooringLicenceReader():
                     wl_row = wl_row.squeeze()
 
                 try:
-                    issue_date = wl_row['date_allocated'].strftime('%d/%m/%Y')
+                    issue_date = datetime.datetime.strptime(wl_row['date_allocated'], '%d/%m/%Y')
                 except:
                     issue_date = start_date
 
@@ -1253,7 +1253,7 @@ class MooringLicenceReader():
                     continue
                 
                 additional_vessels = []
-                for i in range(len(additional_ves_rows_details)-1):
+                for i in range(len(additional_ves_rows_details)):
                     try:
                         additional_vessel = Vessel.objects.get(rego_no=additional_vessel['rego_no'])
                         additional_vessels.append(additional_vessel)
@@ -1404,7 +1404,7 @@ class MooringLicenceReader():
 
                     approval_history.stickers.add(sticker.id)
 
-                for i in range(len(additional_ves_rows_details)-1):
+                for i in range(len(additional_ves_rows_details)):
                     if i['sticker_number']:
                         vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel__rego_no=i['rego_no']).order_by("-created").first()
                         if vessel_ownership:
