@@ -230,7 +230,7 @@ class MooringLicenceReader():
         
     FROM shell_plus:
         from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
-        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt', 'annual_admissions_booking_report.csv')
+        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt')
 
         mlr.create_users()
         mlr.create_vessels()
@@ -285,7 +285,7 @@ class MooringLicenceReader():
 
     """
 
-    def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='/data/data/projects/mooringlicensing/tmp/clean/'):
+    def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa=None, path='/data/data/projects/mooringlicensing/tmp/clean/'):
         start_time = time.time()
         start_datetime = datetime.datetime.now()
         
@@ -294,14 +294,14 @@ class MooringLicenceReader():
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='-!-', dtype=str)
         self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='-!-', dtype=str)
         self.df_wl=pd.read_csv(path+fname_wl, delimiter='-!-', dtype=str)
-        self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
+        #self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
 
         self.df_user=self._read_users()
         self.df_ml=self._read_ml()
         self.df_ves=self._read_ves()
         self.df_authuser=self._read_au()
         self.df_wl=self._read_wl()
-        self.df_aa=self._read_aa()
+        #self.df_aa=self._read_aa()
         self.df_dcv=self._read_dcv()
 
         # create_users
@@ -336,16 +336,16 @@ class MooringLicenceReader():
         f.write("\nTime taken for initialisation: {}s".format(end_time-start_time))
         f.close()
 
-    def __get_phone_number(self, row):
-        if 'work_number' in row and row.work_number:
+    def _get_phone_number(self, row):
+        if 'work_number' in row and row.work_number.replace(' ', ''):
             row.work_number.replace(' ', '')
             return row.work_number
 
-        elif 'home_number' in row and row.home_number:
+        elif 'home_number' in row and row.home_number.replace(' ', ''):
             row.home_number.replace(' ', '')
             return row.home_number
 
-    def __get_mobile_number(self, row):
+    def _get_mobile_number(self, row):
         return row.mobile_number.replace(' ', '')
 
     def _read_users(self):
@@ -464,14 +464,16 @@ class MooringLicenceReader():
                 dob = system_user.legal_dob
 
             if not system_user.phone_number:
-                phone = system_user.phone_number
+                phone = self._get_phone_number(user_row)
             else:
-                phone = self.__get_phone_number(user_row)
+                phone = system_user.phone_number
+                
 
             if not system_user.mobile_number:
-                mobile = system_user.mobile_number
+                mobile = self._get_mobile_number(user_row)
             else:
-                mobile = self.__get_mobile_number(user_row)
+                mobile = system_user.mobile_number
+
         except Exception as e:
             print("error getting system user:",e)
             system_user = None
@@ -480,8 +482,8 @@ class MooringLicenceReader():
                 dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
             except:
                 dob = None
-            phone = self.__get_phone_number(user_row)
-            mobile = self.__get_mobile_number(user_row)
+            phone = self._get_phone_number(user_row)
+            mobile = self._get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
@@ -530,14 +532,15 @@ class MooringLicenceReader():
                 dob = system_user.legal_dob
 
             if not system_user.phone_number:
-                phone = system_user.phone_number
+                phone = self._get_phone_number(user_row)
             else:
-                phone = self.__get_phone_number(user_row)
+                phone = system_user.phone_number
 
             if not system_user.mobile_number:
-                mobile = system_user.mobile_number
+                mobile = self._get_mobile_number(user_row)
             else:
-                mobile = self.__get_mobile_number(user_row)
+                mobile = system_user.mobile_number
+                
         except Exception as e:
             print("error getting system user:",e)
             system_user = None
@@ -546,8 +549,8 @@ class MooringLicenceReader():
                 dob = datetime.datetime.strptime(user.dob,"%d/%m/%Y").date()
             except:
                 dob = None
-            phone = self.__get_phone_number(user_row)
-            mobile = self.__get_mobile_number(user_row)
+            phone = self._get_phone_number(user_row)
+            mobile = self._get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
@@ -628,8 +631,8 @@ class MooringLicenceReader():
         df = self.df_wl.groupby('pers_no').first()
         self._create_users_df(df)
 
-        logger.info('Creating AA users ...')
-        self._create_users_df_aa(self.df_aa)
+        #logger.info('Creating AA users ...')
+        #self._create_users_df_aa(self.df_aa)
 
         end_time = time.time()
         f = open(self.summary_file, "a")
@@ -684,8 +687,8 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
 
-                phone = self.__get_phone_number(user_row)
-                mobile = self.__get_mobile_number(user_row)
+                phone = self._get_phone_number(user_row)
+                mobile = self._get_mobile_number(user_row)
 
                 try:
                     dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
@@ -771,8 +774,8 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
 
-                phone = self.__get_phone_number(user_row)
-                mobile = self.__get_mobile_number(user_row)
+                phone = self._get_phone_number(user_row)
+                mobile = self._get_mobile_number(user_row)
 
                 try:
                     try:
