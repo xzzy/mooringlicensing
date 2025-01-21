@@ -28,13 +28,11 @@ class Command(BaseCommand):
         mlr.create_authuser_permits()
         mlr.create_waiting_list()
         mlr.create_dcv()
-        mlr.create_annual_admissions()
 
         mlr.create_pdf_ml()
         mlr.create_pdf_aup()
         mlr.create_pdf_wl()
         mlr.create_pdf_dcv()
-        mlr.create_pdf_aa()
 
         t_end = time.time()
         logger.info('TIME TAKEN: {}'.format(t_end - t_start))

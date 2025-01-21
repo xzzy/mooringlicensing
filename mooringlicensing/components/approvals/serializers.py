@@ -792,6 +792,17 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             Sticker.STICKER_STATUS_CURRENT,
             Sticker.STICKER_STATUS_AWAITING_PRINTING]
         )
+
+        if not stickers.exists() and type(obj.child_obj) != AuthorisedUserPermit:
+            stickers = obj.stickers.order_by('-id')[0:]
+        elif not stickers.exists() and type(obj.child_obj) == AuthorisedUserPermit:
+            moas = MooringOnApproval.objects.filter(approval=obj).order_by('mooring','-id').distinct('mooring')
+            sticker_ids = []
+            for moa in moas:
+                if moa.sticker:
+                    sticker_ids.append(moa.sticker.id)
+            stickers = Sticker.objects.filter(id__in=sticker_ids)
+
         serializers = StickerSerializerSimple(stickers, many=True)
         list_return = serializers.data
         return list_return

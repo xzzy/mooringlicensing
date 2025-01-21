@@ -4,7 +4,6 @@ import time
 import datetime
 import pandas as pd
 import numpy as np
-from dateutil.parser import parse
 from decimal import Decimal
 from ledger_api_client.managed_models import SystemUser
 from ledger_api_client.utils import get_or_create
@@ -60,6 +59,7 @@ EXPIRY_DATE = datetime.date(2025,8,31)
 START_DATE = datetime.date(2024,9,1)
 DATE_APPLIED = '2024-09-01'
 FEE_SEASON = '2024 - 2025'
+NUM_AD_VES = 6
 
 VESSEL_TYPE_MAPPING = {
     'A': 'Catamaran',
@@ -231,7 +231,7 @@ class MooringLicenceReader():
         
     FROM shell_plus:
         from mooringlicensing.utils.mooring_licence_migrate_pd import MooringLicenceReader
-        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt', 'annual_admissions_booking_report.csv')
+        mlr=MooringLicenceReader('PersonDets.txt', 'MooringDets.txt', 'VesselDets.txt', 'UserDets.txt', 'ApplicationDets.txt')
 
         mlr.create_users()
         mlr.create_vessels()
@@ -286,7 +286,7 @@ class MooringLicenceReader():
 
     """
 
-    def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa, path='/data/data/projects/mooringlicensing/tmp/clean/'):
+    def __init__(self, fname_user, fname_ml, fname_ves, fname_authuser, fname_wl, fname_aa=None, path='/data/data/projects/mooringlicensing/tmp/clean/'):
         start_time = time.time()
         start_datetime = datetime.datetime.now()
         
@@ -295,14 +295,14 @@ class MooringLicenceReader():
         self.df_ves=pd.read_csv(path+fname_ves, delimiter='-!-', dtype=str)
         self.df_authuser=pd.read_csv(path+fname_authuser, delimiter='-!-', dtype=str)
         self.df_wl=pd.read_csv(path+fname_wl, delimiter='-!-', dtype=str)
-        self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
+        #self.df_aa=pd.read_csv(path+fname_aa, delimiter=',', dtype=str)
 
         self.df_user=self._read_users()
         self.df_ml=self._read_ml()
         self.df_ves=self._read_ves()
         self.df_authuser=self._read_au()
-        self.df_wl=self._read_wl()
-        self.df_aa=self._read_aa()
+        self.df_wl, self.df_awl=self._read_wl()
+        #self.df_aa=self._read_aa()
         self.df_dcv=self._read_dcv()
 
         # create_users
@@ -337,16 +337,16 @@ class MooringLicenceReader():
         f.write("\nTime taken for initialisation: {}s".format(end_time-start_time))
         f.close()
 
-    def __get_phone_number(self, row):
-        if 'work_number' in row and row.work_number:
+    def _get_phone_number(self, row):
+        if 'work_number' in row and row.work_number.replace(' ', ''):
             row.work_number.replace(' ', '')
             return row.work_number
 
-        elif 'home_number' in row and row.home_number:
+        elif 'home_number' in row and row.home_number.replace(' ', ''):
             row.home_number.replace(' ', '')
             return row.home_number
 
-    def __get_mobile_number(self, row):
+    def _get_mobile_number(self, row):
         return row.mobile_number.replace(' ', '')
 
     def _read_users(self):
@@ -410,10 +410,11 @@ class MooringLicenceReader():
         df_wl.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
+        df_awl = df_wl[(df_wl['app_status']=='A')]
         df_wl = df_wl[(df_wl['app_status']=='W')]
         df_wl = df_wl.sort_values(['bay_pos_no'],ascending=True).groupby('bay').head(1000)
 
-        return df_wl
+        return df_wl, df_awl
 
     def _read_dcv(self):
         """ Read PersonDets file - for DCV Permits details """
@@ -457,26 +458,34 @@ class MooringLicenceReader():
             system_user = SystemUser.objects.get(ledger_id=user)
             names = get_user_name(system_user)
             if not system_user.legal_dob:
-                dob = parse(user_row.dob).date() if user_row.dob else None
+                try:
+                    dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
+                except:
+                    dob = None
             else:
                 dob = system_user.legal_dob
 
             if not system_user.phone_number:
-                phone = system_user.phone_number
+                phone = self._get_phone_number(user_row)
             else:
-                phone = self.__get_phone_number(user_row)
+                phone = system_user.phone_number
+                
 
             if not system_user.mobile_number:
-                mobile = system_user.mobile_number
+                mobile = self._get_mobile_number(user_row)
             else:
-                mobile = self.__get_mobile_number(user_row)
+                mobile = system_user.mobile_number
+
         except Exception as e:
             print("error getting system user:",e)
             system_user = None
             names = {"first_name": user.first_name, "last_name": user.last_name}
-            dob = parse(user_row.dob).date() if user_row.dob else None
-            phone = self.__get_phone_number(user_row)
-            mobile = self.__get_mobile_number(user_row)
+            try:
+                dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
+            except:
+                dob = None
+            phone = self._get_phone_number(user_row)
+            mobile = self._get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
@@ -503,9 +512,11 @@ class MooringLicenceReader():
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
         if system_user:
-            get_or_create_system_user_address(system_user,residential_address_dict)
             if use_for_postal:
-                get_or_create_system_user_address(system_user,postal_address_dict,use_for_postal)
+                get_or_create_system_user_address(system_user,residential_address_dict,use_for_postal)
+            else:
+                get_or_create_system_user_address(system_user,residential_address_dict)
+                get_or_create_system_user_address(system_user,postal_address_dict,address_type='postal_address')
 
         return proposal_applicant
 
@@ -515,26 +526,33 @@ class MooringLicenceReader():
             system_user = SystemUser.objects.get(ledger_id=user)
             names = get_user_name(system_user)
             if not system_user.legal_dob:
-                dob = parse(user.dob).date() if user.dob else None
+                try:
+                    dob = datetime.datetime.strptime(user.dob,"%d/%m/%Y").date()
+                except:
+                    dob = None
             else:
                 dob = system_user.legal_dob
 
             if not system_user.phone_number:
-                phone = system_user.phone_number
+                phone = self._get_phone_number(user_row)
             else:
-                phone = self.__get_phone_number(user_row)
+                phone = system_user.phone_number
 
             if not system_user.mobile_number:
-                mobile = system_user.mobile_number
+                mobile = self._get_mobile_number(user_row)
             else:
-                mobile = self.__get_mobile_number(user_row)
+                mobile = system_user.mobile_number
+                
         except Exception as e:
             print("error getting system user:",e)
             system_user = None
             names = {"first_name": user.first_name, "last_name": user.last_name}
-            dob = parse(user.dob).date() if user.dob else None
-            phone = self.__get_phone_number(user_row)
-            mobile = self.__get_mobile_number(user_row)
+            try:
+                dob = datetime.datetime.strptime(user.dob,"%d/%m/%Y").date()
+            except:
+                dob = None
+            phone = self._get_phone_number(user_row)
+            mobile = self._get_mobile_number(user_row)
 
         proposal_applicant = ProposalApplicant.objects.create(
            proposal=proposal,
@@ -560,10 +578,12 @@ class MooringLicenceReader():
         )
 
         residential_address_dict, postal_address_dict, use_for_postal = self.create_system_user_address_dict(proposal_applicant)
-        if system_user:
-            get_or_create_system_user_address(system_user,residential_address_dict)
+        if system_user:  
             if use_for_postal:
-                get_or_create_system_user_address(system_user,postal_address_dict)
+                get_or_create_system_user_address(system_user,residential_address_dict,use_for_postal)
+            else:
+                get_or_create_system_user_address(system_user,residential_address_dict)
+                get_or_create_system_user_address(system_user,postal_address_dict,address_type='postal_address')
 
         return proposal_applicant
 
@@ -613,8 +633,8 @@ class MooringLicenceReader():
         df = self.df_wl.groupby('pers_no').first()
         self._create_users_df(df)
 
-        logger.info('Creating AA users ...')
-        self._create_users_df_aa(self.df_aa)
+        #logger.info('Creating AA users ...')
+        #self._create_users_df_aa(self.df_aa)
 
         end_time = time.time()
         f = open(self.summary_file, "a")
@@ -669,8 +689,11 @@ class MooringLicenceReader():
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
 
+                phone = self._get_phone_number(user_row)
+                mobile = self._get_mobile_number(user_row)
+
                 try:
-                    dob = parse(user_row.dob).date() if user_row.dob else None
+                    dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
                 except:
                     dob = None
 
@@ -682,15 +705,18 @@ class MooringLicenceReader():
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
                         #create system user
-                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
                         #get or create system user
                         if not dob:
-                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
+                            try:
+                                dob = datetime.datetime.strptime(resp['data']['dob'],"%d/%m/%Y").date()
+                            except:
+                                dob = None
                         try:
-                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         except Exception as e:
                             print(e)
                             if str(e) != "Ledger Email User not Active":
@@ -749,8 +775,15 @@ class MooringLicenceReader():
 
                 first_name = user_row.first_name.lower().title().strip()
                 last_name = user_row.last_name.lower().title().strip()
+
+                phone = self._get_phone_number(user_row)
+                mobile = self._get_mobile_number(user_row)
+
                 try:
-                    dob = parse(user_row.dob).date() if user_row.dob else None
+                    try:
+                        dob = datetime.datetime.strptime(user_row.dob,"%d/%m/%Y").date()
+                    except:
+                        dob = None
                 except:
                     dob = None
 
@@ -762,15 +795,18 @@ class MooringLicenceReader():
                     if resp['data']['record_status'] == 'new' and email not in self.user_existing:
                         self.user_created.append(email)
                         #create system user
-                        system_user = create_system_user(user_id, email, first_name, last_name, dob)
+                        system_user = create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         self.system_user_created.append(email)
                     elif resp['data']['record_status'] == 'existing' and email not in self.user_existing:
                         self.user_existing.append(email)
                         #get or create system user
                         if not dob:
-                            dob = parse(resp['data']['dob']).date() if resp['data']['dob'] else None
+                            try:
+                                dob = datetime.datetime.strptime(resp['data']['dob'],"%d/%m/%Y").date()
+                            except:
+                                dob = None
                         try:
-                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob)
+                            system_user, created = get_or_create_system_user(user_id, email, first_name, last_name, dob, phone=phone, mobile=mobile)
                         except Exception as e:
                             print(e)
                             if str(e) != "Ledger Email User not Active":
@@ -1156,14 +1192,30 @@ class MooringLicenceReader():
                     user = users[0]
                     self.user_existing.append(email)
 
+                wl_row = self.df_awl[self.df_awl['pers_no']==row.pers_no]
+                if len(wl_row) > 1:
+                    for i in range(0,len(wl_row)):
+                        if wl_row.iloc[i]["date_allocated"]:
+                            wl_row = wl_row.iloc[i]
+                            break
+                        elif i == len(wl_row)-1:
+                            wl_row = wl_row.iloc[0]
+                else:
+                    wl_row = wl_row.squeeze()
+
+                try:
+                    issue_date = datetime.datetime.strptime(wl_row['date_allocated'], '%d/%m/%Y')
+                except:
+                    issue_date = start_date
+
                 ves_row = self.df_ves[self.df_ves['Person No']==row.pers_no]
                 if len(ves_row) > 1:
-                    self.ml_no_ves_rows.append((user_row.pers_no, len(ves_row)))
+                    self.ml_no_ves_rows.append((user_row.pers_no, len(ves_row))) 
                     ves_row = ves_row.iloc[0]
                 else:
                     ves_row = ves_row.squeeze()
 
-                #TODO additional vessels
+                additional_ves_rows_details = []
 
                 postfix = 'Nominated Ves'
                 ves_name = ves_row['Name ' + postfix]
@@ -1171,6 +1223,17 @@ class MooringLicenceReader():
                 rego_no = ves_row['DoT Rego ' + postfix]
                 sticker_number = ves_row['Lic Sticker Number ' + postfix] 
                 sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] 
+
+                for i in range(NUM_AD_VES):
+                    postfix = 'Ad Ves ' + str(i+2)
+                    if ves_row['Name ' + postfix]:
+                        additional_vessel = {}
+                        additional_vessel['ves_name'] = ves_row['Name ' + postfix]
+                        additional_vessel['ves_type'] = ves_row['Type ' + postfix]
+                        additional_vessel['rego_no'] = ves_row['DoT Rego ' + postfix]
+                        additional_vessel['sticker_number'] = ves_row['Lic Sticker Number ' + postfix] 
+                        additional_vessel['sticker_sent'] = ves_row['Licencee Sticker Sent ' + postfix] 
+                        additional_ves_rows_details.append(additional_vessel)
  
                 ves_type = VESSEL_TYPE_MAPPING.get(ves_type, 'other')
 
@@ -1188,12 +1251,26 @@ class MooringLicenceReader():
                 except Exception as e:
                     vessel_not_found.append(rego_no)
                     continue
+                
+                additional_vessels = []
+                for i in range(len(additional_ves_rows_details)):
+                    try:
+                        additional_vessel = Vessel.objects.get(rego_no=additional_vessel['rego_no'])
+                        additional_vessels.append(additional_vessel)
+                    except Exception as e:
+                        vessel_not_found.append(additional_vessel['rego_no'])
+                        continue
 
                 vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
                 if not vessel_ownership:
                     vessel_ownership_not_found.append(rego_no)
                     continue
                 
+                additional_vessel_ownerships = []
+                for i in additional_vessels:
+                    additional_vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=i).order_by("-created").first()
+                    additional_vessel_ownerships.append(additional_vessel_ownership)
+
                 try:
                     vessel_details = VesselDetails.objects.get(vessel=vessel)
                 except MultipleObjectsReturned:
@@ -1260,7 +1337,7 @@ class MooringLicenceReader():
                 approval = MooringLicence.objects.create(
                     status='current',
                     current_proposal=proposal,
-                    issue_date = datetime.datetime.now(datetime.timezone.utc),
+                    issue_date = issue_date,
                     start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
@@ -1284,6 +1361,12 @@ class MooringLicenceReader():
                     approval=approval,
                     vessel_ownership=vessel_ownership,
                 )
+
+                for i in additional_vessel_ownerships:
+                    VesselOwnershipOnApproval.objects.create(
+                        approval=approval,
+                        vessel_ownership=i,
+                    )
 
                 start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
@@ -1321,6 +1404,28 @@ class MooringLicenceReader():
 
                     approval_history.stickers.add(sticker.id)
 
+                for i in range(len(additional_ves_rows_details)):
+                    if i['sticker_number']:
+                        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel__rego_no=i['rego_no']).order_by("-created").first()
+                        if vessel_ownership:
+                            sticker = Sticker.objects.create(
+                            number=i['sticker_number'],
+                            status=Sticker.STICKER_STATUS_CURRENT,
+                            approval=approval,
+                            proposal_initiated=proposal,
+                            vessel_ownership=vessel_ownership,
+                            printing_date=None,
+                            mailing_date=mailing_date,
+                            sticker_printing_batch=None,
+                            sticker_printing_response=None,
+                            
+                            postal_address_line1=proposal_applicant.postal_address_line1,
+                            postal_address_locality=proposal_applicant.postal_address_locality,
+                            postal_address_state=proposal_applicant.postal_address_state,
+                            postal_address_country=proposal_applicant.postal_address_country,
+                            postal_address_postcode=proposal_applicant.postal_address_postcode,
+                        )
+                    
             except Exception as e:
                 logger.error(f'ERROR: {row.name}. {str(e)}')
                 self.user_errors.append(user_row.email)
@@ -1572,11 +1677,12 @@ class MooringLicenceReader():
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
+                    site_licensee = auth_user.licencee_approved == 'Y'
                     moa = MooringOnApproval.objects.create(
                         approval=approval,
                         mooring=mooring[0],
                         sticker=sticker,
-                        site_licensee=False,
+                        site_licensee=site_licensee,
                     )
 
             except Exception as e:
