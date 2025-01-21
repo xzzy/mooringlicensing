@@ -31,7 +31,7 @@ def create_system_user(email_user_id, email, first_name, last_name, dob, phone=N
 
     if email != settings.SYSTEM_EMAIL:
         system_user_system_user = get_or_create_system_user_system_user()
-        
+
     system_user = SystemUser(
         ledger_id_id=email_user_id,
         email=email,
@@ -63,7 +63,7 @@ def get_or_create_system_user_address(system_user, system_address_dict, use_for_
         sua.address_type = address_type
         sua.change_by_user_id=system_user_system_user.id
         sua.save()
-    elif use_for_postal and not qs.filter(use_for_postal=use_for_postal):
+    elif use_for_postal and not qs.filter(use_for_postal=use_for_postal).exists():
         for i in qs:
             i.use_for_postal=True
             i.change_by_user_id = system_user_system_user.id

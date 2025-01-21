@@ -59,6 +59,7 @@ EXPIRY_DATE = datetime.date(2025,8,31)
 START_DATE = datetime.date(2024,9,1)
 DATE_APPLIED = '2024-09-01'
 FEE_SEASON = '2024 - 2025'
+NUM_AD_VES = 6
 
 VESSEL_TYPE_MAPPING = {
     'A': 'Catamaran',
@@ -300,7 +301,7 @@ class MooringLicenceReader():
         self.df_ml=self._read_ml()
         self.df_ves=self._read_ves()
         self.df_authuser=self._read_au()
-        self.df_wl=self._read_wl()
+        self.df_wl, self.df_awl=self._read_wl()
         #self.df_aa=self._read_aa()
         self.df_dcv=self._read_dcv()
 
@@ -409,10 +410,11 @@ class MooringLicenceReader():
         df_wl.replace({np.nan: ''}, inplace=True)
 
         # filter cancelled and rows with no name
+        df_awl = df_wl[(df_wl['app_status']=='A')]
         df_wl = df_wl[(df_wl['app_status']=='W')]
         df_wl = df_wl.sort_values(['bay_pos_no'],ascending=True).groupby('bay').head(1000)
 
-        return df_wl
+        return df_wl, df_awl
 
     def _read_dcv(self):
         """ Read PersonDets file - for DCV Permits details """
@@ -1190,12 +1192,25 @@ class MooringLicenceReader():
                     user = users[0]
                     self.user_existing.append(email)
 
+                wl_row = self.df_awl[self.df_awl['pers_no']==row.pers_no]
+                if len(wl_row) > 1:
+                    for i in range(0,len(wl_row)):
+                        if wl_row.iloc[i]["date_allocated"]:
+                            wl_row = wl_row.iloc[i]
+                            break
+                        elif i == len(wl_row)-1:
+                            wl_row = wl_row.iloc[0]
+                else:
+                    wl_row = wl_row.squeeze()
+
+                try:
+                    issue_date = wl_row['date_allocated'].strftime('%d/%m/%Y')
+                except:
+                    issue_date = start_date
+
                 ves_row = self.df_ves[self.df_ves['Person No']==row.pers_no]
-                additional_ves_rows = []
                 if len(ves_row) > 1:
                     self.ml_no_ves_rows.append((user_row.pers_no, len(ves_row))) 
-                    for i in range(1,len(ves_row)-1):
-                        additional_ves_rows.append(ves_row.iloc[i])
                     ves_row = ves_row.iloc[0]
                 else:
                     ves_row = ves_row.squeeze()
@@ -1209,15 +1224,16 @@ class MooringLicenceReader():
                 sticker_number = ves_row['Lic Sticker Number ' + postfix] 
                 sticker_sent = ves_row['Licencee Sticker Sent ' + postfix] 
 
-                for i in range(len(additional_ves_rows)-1):
+                for i in range(NUM_AD_VES):
                     postfix = 'Ad Ves ' + str(i+2)
-                    additional_vessel = {}
-                    additional_vessel['ves_name'] = additional_ves_rows[i]['Name ' + postfix]
-                    additional_vessel['ves_type'] = additional_ves_rows[i]['Type ' + postfix]
-                    additional_vessel['rego_no'] = additional_ves_rows[i]['DoT Rego ' + postfix]
-                    additional_vessel['sticker_number'] = additional_ves_rows[i]['Lic Sticker Number ' + postfix] 
-                    additional_vessel['sticker_sent'] = additional_ves_rows[i]['Licencee Sticker Sent ' + postfix] 
-                    additional_ves_rows_details.append(additional_vessel)
+                    if ves_row['Name ' + postfix]:
+                        additional_vessel = {}
+                        additional_vessel['ves_name'] = ves_row['Name ' + postfix]
+                        additional_vessel['ves_type'] = ves_row['Type ' + postfix]
+                        additional_vessel['rego_no'] = ves_row['DoT Rego ' + postfix]
+                        additional_vessel['sticker_number'] = ves_row['Lic Sticker Number ' + postfix] 
+                        additional_vessel['sticker_sent'] = ves_row['Licencee Sticker Sent ' + postfix] 
+                        additional_ves_rows_details.append(additional_vessel)
  
                 ves_type = VESSEL_TYPE_MAPPING.get(ves_type, 'other')
 
@@ -1321,7 +1337,7 @@ class MooringLicenceReader():
                 approval = MooringLicence.objects.create(
                     status='current',
                     current_proposal=proposal,
-                    issue_date = datetime.datetime.now(datetime.timezone.utc),
+                    issue_date = issue_date,
                     start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
@@ -1661,11 +1677,12 @@ class MooringLicenceReader():
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
+                    site_licensee = auth_user.licencee_approved == 'Y'
                     moa = MooringOnApproval.objects.create(
                         approval=approval,
                         mooring=mooring[0],
                         sticker=sticker,
-                        site_licensee=False,
+                        site_licensee=site_licensee,
                     )
 
             except Exception as e:
