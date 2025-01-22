@@ -4,6 +4,7 @@ from mooringlicensing.components.proposals.models import ProposalApplicant
 from rest_framework import serializers
 from mooringlicensing.components.users.models import EmailUserLogEntry
 from django_countries.serializer_fields import CountryField
+from django.db.models import Q
 
 class UserForEndorserSerializer(serializers.ModelSerializer):
 
@@ -101,7 +102,6 @@ class UserSerializer(serializers.ModelSerializer):
     ledger_id = serializers.SerializerMethodField()
     residential_address_list = serializers.SerializerMethodField()
     postal_address_list = serializers.SerializerMethodField()
-    billing_address_list = serializers.SerializerMethodField()
 
     class Meta:
         model = SystemUser
@@ -120,7 +120,6 @@ class UserSerializer(serializers.ModelSerializer):
             "fax_number",
             "residential_address_list",
             "postal_address_list",
-            "billing_address_list",
         )
 
     def get_ledger_id(self, obj):
@@ -133,12 +132,8 @@ class UserSerializer(serializers.ModelSerializer):
         return UserAddressSerializer(residential_addresses, many=True).data
 
     def get_postal_address_list(self, obj):
-        postal_addresses = SystemUserAddress.objects.filter(address_type=SystemUserAddress.ADDRESS_TYPE[1][0],system_user=obj)
+        postal_addresses = SystemUserAddress.objects.filter(Q(address_type=SystemUserAddress.ADDRESS_TYPE[1][0])|Q(use_for_postal=True)).filter(system_user=obj)
         return UserAddressSerializer(postal_addresses, many=True).data
-
-    def get_billing_address_list(self, obj):
-        billing_addresses = SystemUserAddress.objects.filter(address_type=SystemUserAddress.ADDRESS_TYPE[2][0],system_user=obj)
-        return UserAddressSerializer(billing_addresses, many=True).data
     
 
 class EmailUserCommsSerializer(CommunicationLogEntrySerializer):
