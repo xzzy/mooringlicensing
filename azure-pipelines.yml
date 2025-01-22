@@ -31,8 +31,8 @@ stages:
         tags: |
               latest
               $(tagDate)
-        containerRegistry: DockerHub
-        repository: dbcawa/mooringlicensing
+        containerRegistry: DockerGitHub
+        repository: ghcr.io/dbca-wa/mooringlicensing
       env:
         DOCKER_BUILDKIT: 1
     - task: Docker@2
@@ -43,7 +43,7 @@ stages:
         tags: |
               mooringlicensing_dev_latest
               mooringlicensing_dev_$(tagDate)
-        containerRegistry: DockerHub
-        repository: dbcawa/docker_app_dev
+        containerRegistry: DockerGitHub
+        repository: ghcr.io/dbca-wa/docker_app_dev
       env:
         DOCKER_BUILDKIT: 1
