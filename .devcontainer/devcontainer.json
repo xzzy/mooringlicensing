@@ -1,6 +1,6 @@
 {
 	"name": "Mooring Licensing Development",
-	"image": "dbcawa/docker_app_dev:mooringlicensing_dev_latest",
+	"image": "ghcr.io/dbca-wa/docker_app_dev:mooringlicensing_dev_latest",
 	"remoteUser": "container",
 	"workspaceFolder": "/data/data/projects/mooringlicensing",
 	"mounts": ["type=bind,source=/data/,target=/data/",
