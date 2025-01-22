@@ -17,9 +17,9 @@
                         v-model="vessel.vessel_details.vessel_name" required />
                 </div>
             </div>
-            <div class="row form-group">
+            <div v-if="!readonly || vessel.vessel_ownership.individual_owner" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Registration vessel owner *</label>
-                <div class="col-sm-9">
+                <div v-if="!readonly" class="col-sm-9">
                     <div class="row">
                         <div class="col-sm-9">
                             <input 
@@ -49,6 +49,12 @@
                             />
                             <label for="registered_owner_company" class="control-label">Your company</label>
                         </div>
+                    </div>
+                </div>
+                <div v-else>
+                    <div class="col-sm-3">
+                        <input :readonly="readonly" type="text" class="form-control" id="vessel_name" placeholder=""
+                        v-model="vessel.vessel_ownership.owner_name" required />
                     </div>
                 </div>
             </div>

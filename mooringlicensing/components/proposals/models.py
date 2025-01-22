@@ -61,6 +61,8 @@ import copy
 from django.db.models import Q, Max
 from dirtyfields import DirtyFieldsMixin
 from rest_framework import serializers
+from ledger_api_client.managed_models import SystemUser
+from mooringlicensing.components.users.utils import get_user_name
 
 import logging
 
@@ -4880,7 +4882,10 @@ class Owner(RevisionedMixin):
             from mooringlicensing.ledger_api_utils import retrieve_email_userro
             emailuser = retrieve_email_userro(self.emailuser)
             if emailuser:
-                return emailuser.get_full_name()
+                try:
+                    return get_user_name(SystemUser.objects.get(ledger_id=emailuser))["full_name"]
+                except:
+                    return emailuser.get_full_name()
             else:
                 return ''
         else:

@@ -131,9 +131,9 @@ export default {
         user_header: function(){
             if (this.user) {
                 if (this.user.legal_dob){
-                    return this.user.first_name + ' ' + this.user.last_name + '(DOB: ' + this.user.legal_dob + ')'
+                    return this.user.legal_first_name + ' ' + this.user.legal_last_name + '(DOB: ' + this.user.legal_dob + ')'
                 } else {
-                    return this.user.first_name + ' ' + this.user.last_name
+                    return this.user.legal_first_name + ' ' + this.user.legal_last_name
                 }
             }
             return ''

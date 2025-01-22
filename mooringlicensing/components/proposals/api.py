@@ -2103,6 +2103,15 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
         vessel_ownership_serializer = VesselOwnershipSerializer(vo)
         vessel_ownership_data = deepcopy(vessel_ownership_serializer.data)
         vessel_ownership_data["individual_owner"] = True if vo.individual_owner else False
+
+        try:
+            if vessel_ownership_data["individual_owner"] and vessel_ownership_data["owner"]:
+                vessel_ownership_data["owner_name"] = Owner.objects.get(id=vessel_ownership_data["owner"]).__str__()
+            else:
+                vessel_ownership_data["owner_name"] = ""
+        except:
+            vessel_ownership_data["owner_name"] = ""
+
         vessel_data["vessel_ownership"] = vessel_ownership_data
         return Response(vessel_data)
 
