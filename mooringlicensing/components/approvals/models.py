@@ -1410,6 +1410,10 @@ class AnnualAdmissionPermit(Approval):
         existing_sticker_to_be_returned = None
         existing_sticker_to_be_expired = None
 
+        #TODO handle if reissued
+        #need to determine what the previous vessel ownership state was 
+        #works the same as, but mutually exclusive to, amendments
+
         # Check if a new sticker needs to be created
         create_new_sticker = True
         if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
@@ -1664,7 +1668,7 @@ class AuthorisedUserPermit(Approval):
             _stickers_to_be_replaced.append(moa.sticker)
 
         # 3. Find all the moas to be replaced and update stickers_to_be_replaced
-        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL: #TODO and not reissue
             # When Renewal/reissuedRenewal, (vessel changed, null vessel)
             # When renewal, all the current/awaiting_printing stickers to be replaced
             # All the sticker gets 'expired' status once payment made
@@ -1690,7 +1694,7 @@ class AuthorisedUserPermit(Approval):
             stickers_to_be_returned.append(sticker)
 
         #all stickers to be returned will instead be replaced and expired if the proposal is a renewal
-        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL: #TODO and not reissue
             _stickers_to_be_replaced_for_renewal = list(set(_stickers_to_be_replaced_for_renewal + stickers_to_be_returned))
 
         # Finally, assign mooring(s) to new sticker(s)
@@ -1700,7 +1704,7 @@ class AuthorisedUserPermit(Approval):
         self._update_status_of_sticker_to_be_removed(stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
         #stickers are never to be returned for renewals
 
-        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL: #TODO and not reissue
             return list(set(moas_to_be_reallocated)), []
 
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
@@ -1754,6 +1758,7 @@ class AuthorisedUserPermit(Approval):
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
     def update_lists_due_to_vessel_changes(self, moas_to_be_reallocated, stickers_to_be_replaced, proposal):
+        #TODO check if reissue and use former vessel ownerhip data
         if proposal and proposal.previous_application:
             # Check the sticker colour changes due to the vessel length change
             next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
@@ -2124,14 +2129,16 @@ class MooringLicence(Approval):
     def manage_stickers(self, proposal):
         logger.info(f'Managing stickers for the MooringSiteLicence: [{self}]...')
 
+        #TODO remove and replace with code similar to amendment
         if proposal.approval and proposal.approval.reissued:
-            # Can only change the conditions, so goes to Approved
-            proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            proposal.save()
-            proposal.save(f'Processing status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{proposal}]')
+            pass
+        #    # Can only change the conditions, so goes to Approved
+        #    proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+        #    proposal.save()
+        #    proposal.save(f'Processing status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{proposal}]')
             return [], []
 
-        if proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New sticker created with status Ready
             new_sticker = self._create_new_sticker_by_proposal(proposal)
             logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}]')

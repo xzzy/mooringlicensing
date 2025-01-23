@@ -277,6 +277,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
+    reissue_vessel_properties = JSONField(null=True, blank=True, default=dict) #store vessel and vessel ownership details for a reissued approval to compare to on re-approval
+
     customer_status = models.CharField('Customer Status', 
         max_length=40, choices=CUSTOMER_STATUS_CHOICES,
         default=CUSTOMER_STATUS_CHOICES[0][0])
@@ -370,6 +372,39 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         verbose_name = "Application"
         verbose_name_plural = "Applications"
     
+    def populate_reissue_vessel_properties(self):
+
+        #get vessel ownership and vessel details of proposal and save them to reissue_vessel_properties
+        #these values can then be compared to the new values on approval
+        try:
+            self.reissue_vessel_properties = {
+                "vessel_ownership": {
+                    "owner": self.vessel_ownership.owner.id,
+                    "vessel": self.vessel_ownership.vessel.id,
+                    "percentage": self.vessel_ownership.percentage,
+                    "start_date": self.vessel_ownership.start_date.strftime('%d/%m/%Y') if self.vessel_ownership.start_date != None else None,
+                    "end_date": self.vessel_ownership.end_date.strftime('%d/%m/%Y') if self.vessel_ownership.end_date != None else None,
+                    "created": self.vessel_ownership.created.strftime('%d/%m/%Y') if self.vessel_ownership.created != None else None,
+                    "updated": self.vessel_ownership.updated.strftime('%d/%m/%Y') if self.vessel_ownership.updated != None else None,
+                    "dot_name": self.vessel_ownership.dot_name,
+                    "company_ownerships": list(self.vessel_ownership.company_ownerships.values_list('id',flat=True))
+                },
+                "vessel_details": {
+                    "vessel_type": self.vessel_details.vessel_type,
+                    "vessel": self.vessel_details.vessel.id,
+                    "berth_mooring": self.vessel_details.berth_mooring,
+                    "vessel_beam": str(self.vessel_details.vessel_beam),
+                    "vessel_draft": str(self.vessel_details.vessel_draft),
+                    "vessel_length": str(self.vessel_details.vessel_length),
+                    "vessel_name": self.vessel_details.vessel_name,
+                    "vessel_weight": str(self.vessel_details.vessel_weight),
+                }
+            }
+            self.save()
+        except Exception as e:
+            print(e)
+            self.reissue_vessel_properties = {}
+
     def get_latest_vessel_ownership_by_vessel(self, vessel):
         if self.previous_application:
             if self.previous_application.vessel_ownership:
@@ -822,6 +857,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def vessel_removed(self):
+        #TODO handle if reissued
         # for AUP, AAP manage_stickers
         if type(self) is Proposal:
             if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
@@ -841,6 +877,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def vessel_swapped(self):
+        #TODO handle if reissued
         # for AUP, AAP manage_stickers
         if type(self) is Proposal:
             if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
@@ -863,6 +900,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def vessel_null_to_new(self):
+        #TODO handle if reissued
         # for AUP, AAP manage_stickers
         if type(self) is Proposal:
             if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
