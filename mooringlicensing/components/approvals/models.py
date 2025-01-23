@@ -1410,13 +1410,18 @@ class AnnualAdmissionPermit(Approval):
         existing_sticker_to_be_returned = None
         existing_sticker_to_be_expired = None
 
-        #TODO handle if reissued
-        #need to determine what the previous vessel ownership state was 
-        #works the same as, but mutually exclusive to, amendments
-
         # Check if a new sticker needs to be created
         create_new_sticker = True
-        if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+        if proposal.approval and proposal.approval.reissued:
+            if ("vessel_ownership" in proposal.reissue_vessel_properties and 
+                "vessel" in proposal.reissue_vessel_properties["vessel_ownership"] and
+                "id" in proposal.reissue_vessel_properties["vessel_ownership"] and
+                proposal.vessel_ownership.id != proposal.reissue_vessel_properties["vessel_ownership"]["id"]):
+                if proposal.vessel_ownership.vessel.id == proposal.reissue_vessel_properties["vessel_ownership"]["vessel"]:
+                    create_new_sticker = False
+            else:
+                create_new_sticker = False
+        elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
             if proposal.vessel_ownership != proposal.previous_application.vessel_ownership:
                 if proposal.vessel_ownership.vessel == proposal.previous_application.vessel_ownership.vessel:
                     create_new_sticker = False
@@ -1439,7 +1444,19 @@ class AnnualAdmissionPermit(Approval):
             existing_sticker = None
             if existing_stickers:
                 existing_sticker = existing_stickers.order_by('number').last()  # There should be just one existing sticker
-                if proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+                if proposal.approval and proposal.approval.reissued:
+                    # There is an existing sticker to be replaced
+                    if ("vessel_ownership" in proposal.reissue_vessel_properties and 
+                        "id" in proposal.reissue_vessel_properties["vessel_ownership"] and
+                        proposal.vessel_ownership.id == proposal.reissue_vessel_properties["vessel_ownership"]["id"]
+                    ):
+                        # Same vessel_ownership means the same vessel.  In the case no other vessel related, existing sticker does not need to be returned.
+                        existing_sticker_to_be_expired = existing_sticker
+                    else:
+                        # Different vessel related.  In this case, existing sticker needs to be returned.
+                        existing_sticker_to_be_returned = existing_sticker
+                        new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
+                elif proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
                     # There is an existing sticker to be replaced
                     if proposal.vessel_ownership == proposal.previous_application.vessel_ownership:
                         # Same vessel_ownership means the same vessel.  In the case no other vessel related, existing sticker does not need to be returned.

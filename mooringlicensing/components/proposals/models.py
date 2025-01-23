@@ -379,6 +379,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         try:
             self.reissue_vessel_properties = {
                 "vessel_ownership": {
+                    "id": self.vessel_ownership.id,
                     "owner": self.vessel_ownership.owner.id,
                     "vessel": self.vessel_ownership.vessel.id,
                     "percentage": self.vessel_ownership.percentage,
@@ -1375,6 +1376,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             elif proposals:
                 raise ValidationError('Error message: there is an application in status other than (Discarded, Sticker To Be Returned, Printing Sticker, Approved, or Declined)')
             elif self.approval and self.approval.can_reissue and self.is_approver(request.user):
+                self.populate_reissue_vessel_properties()
                 # update vessel details
                 vessel_details = self.vessel_details.vessel.latest_vessel_details
                 self.vessel_type = vessel_details.vessel_type if vessel_details else ''
@@ -1388,6 +1390,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                 self.proposed_issuance_approval = {}
                 self.save()
+                
                 self.approval.reissued=True
                 self.approval.save()
                 # Create a log entry for the proposal
