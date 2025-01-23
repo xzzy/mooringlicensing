@@ -2156,14 +2156,148 @@ class MooringLicence(Approval):
     def manage_stickers(self, proposal):
         logger.info(f'Managing stickers for the MooringSiteLicence: [{self}]...')
 
-        #TODO remove and replace with code similar to amendment
         if proposal.approval and proposal.approval.reissued:
-            pass
-        #    # Can only change the conditions, so goes to Approved
-        #    proposal.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-        #    proposal.save()
-        #    proposal.save(f'Processing status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{proposal}]')
-            return [], []
+            stickers_to_be_kept = []  # Store all the stickers we want to keep
+            new_sticker_created = False
+            new_sticker_status = Sticker.STICKER_STATUS_READY  # Default to 'ready'
+
+            # Check if there are stickers to be returned due to the vessel sale
+            stickers_to_be_returned_by_vessel_sold = self.stickers.filter(
+                status__in=[
+                    Sticker.STICKER_STATUS_TO_BE_RETURNED,
+                ],
+                vessel_ownership__end_date__isnull=False,  # This line means the vessel was sold before.
+            )
+            if stickers_to_be_returned_by_vessel_sold:
+                new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
+
+            #(potentially) new vessel ownership as of this amendment
+            if proposal.vessel_ownership:
+                stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                if stickers_not_exported:
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                
+                #check to ensure this not a vessel(_ownership) with a sticker already
+                stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CURRENT,
+                        Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,
+                    ],
+                    vessel_ownership=proposal.vessel_ownership,
+                )
+                if not stickers_for_this_vessel:
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=proposal.vessel_ownership,
+                        fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
+                        fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                        new_sticker.save()
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+
+            #established vessel ownerships on approval (not inclusive of new vessels via new proposal)
+            for vessel_ownership in self.vessel_ownership_list:
+                # Loop through all the current(active) vessel_ownerships of this mooring site licence
+                # Check if the proposal makes changes on the existing vessel and which requires the sticker colour to be changed
+                sticker_colour_to_be_changed = False
+                # The proposal currently being processed can make changes only on the latest vessel added to this mooring licence.
+                if ("vessel_ownership" in proposal.reissue_vessel_properties and 
+                    "vessel_details" in proposal.reissue_vessel_properties and
+                    "vessel_length" in proposal.reissue_vessel_properties["vessel_details"]):
+                    if ("id" in proposal.reissue_vessel_properties["vessel_ownership"] 
+                        and proposal.reissue_vessel_properties["vessel_ownership"]["id"] == vessel_ownership.id == proposal.vessel_ownership.id):
+                        # This vessel_ownership is shared by both proposal currently being processed and the one before.
+                        # Which means the vessel is not changed.  However, there is still the case where the existing sticker
+                        # should be replaced by a new one due to the sticker colour changes.
+                        next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
+                        current_colour = Sticker.get_vessel_size_colour_by_length(proposal.reissue_vessel_properties["vessel_details"]["vessel_length"])
+                        if next_colour != current_colour:
+                            logger.info(f'Sticker colour: [{next_colour}] for the proposal: [{proposal}] is different from the sticker colour: [{current_colour}].')
+                            # Same vessel but sticker colour must be changed
+                            sticker_colour_to_be_changed = True
+
+                # Look for the sticker for the vessel
+                stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CURRENT,
+                        Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                        Sticker.STICKER_STATUS_NOT_READY_YET,
+                        Sticker.STICKER_STATUS_READY,
+                    ],
+                    vessel_ownership=vessel_ownership,
+                )
+                if (not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created:
+                    # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
+                    # A new sticker should be created
+
+                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                    if stickers_not_exported:
+                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+            
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=proposal.vessel_ownership,
+                        fee_constructor=proposal.fee_constructor,
+                        proposal_initiated=proposal,
+                        fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                        new_sticker.save()
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                else:
+                    sticker = stickers_for_this_vessel.order_by('number').last()
+                    stickers_to_be_kept.append(sticker)
+            
+            # Calculate the stickers which are no longer needed.
+            stickers_current = self.stickers.filter(
+                status__in=[
+                    Sticker.STICKER_STATUS_CURRENT,
+                    Sticker.STICKER_STATUS_AWAITING_PRINTING,
+                ]
+            )
+
+            # CurrentStickers - StickersToBeKept = StickersToBeReturned
+            stickers_to_be_returned = [sticker for sticker in stickers_current if sticker not in stickers_to_be_kept]
+
+            # Update sticker status
+            self._update_status_of_sticker_to_be_removed(stickers_to_be_returned)
+
+            new_proposal_status = Proposal.PROCESSING_STATUS_APPROVED  # Default to 'approved'
+            if stickers_to_be_returned_by_vessel_sold:
+                new_proposal_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
+            elif new_sticker_created:
+                new_proposal_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+            proposal.processing_status = new_proposal_status
+            proposal.save()
+            logger.info(f'Status: [{new_proposal_status}] has been set to the proposal: [{proposal}]')
+
+            return [], stickers_to_be_returned
 
         elif proposal.proposal_type.code == PROPOSAL_TYPE_NEW:
             # New sticker created with status Ready
