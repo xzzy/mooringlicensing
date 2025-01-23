@@ -1685,7 +1685,7 @@ class AuthorisedUserPermit(Approval):
             _stickers_to_be_replaced.append(moa.sticker)
 
         # 3. Find all the moas to be replaced and update stickers_to_be_replaced
-        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL: #TODO and not reissue
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and not (proposal.approval and proposal.approval.reissued):
             # When Renewal/reissuedRenewal, (vessel changed, null vessel)
             # When renewal, all the current/awaiting_printing stickers to be replaced
             # All the sticker gets 'expired' status once payment made
@@ -1711,7 +1711,7 @@ class AuthorisedUserPermit(Approval):
             stickers_to_be_returned.append(sticker)
 
         #all stickers to be returned will instead be replaced and expired if the proposal is a renewal
-        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL: #TODO and not reissue
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and not (proposal.approval and proposal.approval.reissued):
             _stickers_to_be_replaced_for_renewal = list(set(_stickers_to_be_replaced_for_renewal + stickers_to_be_returned))
 
         # Finally, assign mooring(s) to new sticker(s)
@@ -1721,7 +1721,7 @@ class AuthorisedUserPermit(Approval):
         self._update_status_of_sticker_to_be_removed(stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
         #stickers are never to be returned for renewals
 
-        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL: #TODO and not reissue
+        if proposal and proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and not (proposal.approval and proposal.approval.reissued):
             return list(set(moas_to_be_reallocated)), []
 
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
@@ -1775,8 +1775,18 @@ class AuthorisedUserPermit(Approval):
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
     def update_lists_due_to_vessel_changes(self, moas_to_be_reallocated, stickers_to_be_replaced, proposal):
-        #TODO check if reissue and use former vessel ownerhip data
-        if proposal and proposal.previous_application:
+
+        if proposal and proposal.approval and proposal.approval.reissued:
+            if "vessel_details" in proposal.reissue_vessel_properties and "vessel_length" in proposal.reissue_vessel_properties["vessel_details"]:
+                next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
+                current_colour = Sticker.get_vessel_size_colour_by_length(proposal.reissue_vessel_properties["vessel_details"]["vessel_length"])
+                if next_colour != current_colour:
+                    # Due to the vessel length change, the colour of the existing sticker needs to be changed
+                    moas_current = MooringOnApproval.get_current_moas_by_approval(self)
+                    for moa in moas_current:
+                        stickers_to_be_replaced.append(moa.sticker)
+
+        elif proposal and proposal.previous_application:
             # Check the sticker colour changes due to the vessel length change
             next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
             current_colour = Sticker.get_vessel_size_colour_by_length(proposal.previous_application.vessel_length)

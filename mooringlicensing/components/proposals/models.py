@@ -858,7 +858,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def vessel_removed(self):
-        #TODO handle if reissued
         # for AUP, AAP manage_stickers
         if type(self) is Proposal:
             if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
@@ -867,7 +866,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if type(self) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
                 raise ValidationError("Only for AUP, AAA")
         removed = False
-        if (
+        if self.approval and self.approval.reissued and (
+            "vessel_ownership" in self.reissue_vessel_properties and
+            "end_date" in self.reissue_vessel_properties["vessel_ownership"] and
+            not self.reissue_vessel_properties["vessel_ownership"]["end_date"] and
+            (not self.vessel_ownership or self.vessel_ownership.end_date)
+        ):
+            removed = True
+        elif (
                 self.previous_application and
                 self.previous_application.vessel_ownership and
                 not self.previous_application.vessel_ownership.end_date and  # There was a vessel in the previous application and not sold
@@ -878,7 +884,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def vessel_swapped(self):
-        #TODO handle if reissued
         # for AUP, AAP manage_stickers
         if type(self) is Proposal:
             if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
@@ -888,7 +893,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise ValidationError("Only for AUP, AAA")
 
         changed = False
-        if (
+        if self.approval and self.approval.reissued and (
+            "vessel_ownership" in self.reissue_vessel_properties and
+            "end_date" in self.reissue_vessel_properties["vessel_ownership"] and
+            "vessel_details" in self.reissue_vessel_properties and
+            "rego_no" in self.reissue_vessel_properties["vessel_details"] and
+            not self.reissue_vessel_properties["vessel_ownership"]["end_date"] and
+            self.vessel_ownership and
+            not self.vessel_ownership.end_date and  # Not sold yet
+            self.vessel_ownership.vessel.rego_no != self.reissue_vessel_properties["vessel_details"]["rego_no"]
+        ):
+            changed = True
+        elif (
                 self.previous_application and
                 self.previous_application.vessel_ownership and
                 not self.previous_application.vessel_ownership.end_date and  # Not sold yet
@@ -901,7 +917,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     @property
     def vessel_null_to_new(self):
-        #TODO handle if reissued
         # for AUP, AAP manage_stickers
         if type(self) is Proposal:
             if type(self.child_obj) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
@@ -911,7 +926,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise ValidationError("Only for AUP, AAA")
 
         new = False
-        if (
+        if self.approval and self.approval.reissued and (
+            (
+                not "vessel_ownership" in self.reissue_vessel_properties or 
+                ("end_date" in self.reissue_vessel_properties["vessel_ownership"] and 
+                self.reissue_vessel_properties["vessel_ownership"]["end_date"])
+            ) and
+            self.vessel_ownership and
+            not self.vessel_ownership.end_date
+        ):
+            new = True
+        elif (
                 self.previous_application and
                 (not self.previous_application.vessel_ownership or self.previous_application.vessel_ownership.end_date) and
                 self.vessel_ownership and
