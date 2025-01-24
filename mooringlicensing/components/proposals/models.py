@@ -277,6 +277,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     invoice_property_cache = JSONField(null=True, blank=True, default=dict)
 
+    reissue_vessel_properties = JSONField(null=True, blank=True, default=dict) #store vessel and vessel ownership details for a reissued approval to compare to on re-approval
+
     customer_status = models.CharField('Customer Status', 
         max_length=40, choices=CUSTOMER_STATUS_CHOICES,
         default=CUSTOMER_STATUS_CHOICES[0][0])
@@ -370,6 +372,40 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         verbose_name = "Application"
         verbose_name_plural = "Applications"
     
+    def populate_reissue_vessel_properties(self):
+
+        #get vessel ownership and vessel details of proposal and save them to reissue_vessel_properties
+        #these values can then be compared to the new values on approval
+        try:
+            self.reissue_vessel_properties = {
+                "vessel_ownership": {
+                    "id": self.vessel_ownership.id,
+                    "owner": self.vessel_ownership.owner.id,
+                    "vessel": self.vessel_ownership.vessel.id,
+                    "percentage": self.vessel_ownership.percentage,
+                    "start_date": self.vessel_ownership.start_date.strftime('%d/%m/%Y') if self.vessel_ownership.start_date != None else None,
+                    "end_date": self.vessel_ownership.end_date.strftime('%d/%m/%Y') if self.vessel_ownership.end_date != None else None,
+                    "created": self.vessel_ownership.created.strftime('%d/%m/%Y') if self.vessel_ownership.created != None else None,
+                    "updated": self.vessel_ownership.updated.strftime('%d/%m/%Y') if self.vessel_ownership.updated != None else None,
+                    "dot_name": self.vessel_ownership.dot_name,
+                    "company_ownerships": list(self.vessel_ownership.company_ownerships.values_list('id',flat=True))
+                },
+                "vessel_details": {
+                    "vessel_type": self.vessel_details.vessel_type,
+                    "vessel": self.vessel_details.vessel.id,
+                    "berth_mooring": self.vessel_details.berth_mooring,
+                    "vessel_beam": str(self.vessel_details.vessel_beam),
+                    "vessel_draft": str(self.vessel_details.vessel_draft),
+                    "vessel_length": str(self.vessel_details.vessel_length),
+                    "vessel_name": self.vessel_details.vessel_name,
+                    "vessel_weight": str(self.vessel_details.vessel_weight),
+                }
+            }
+            self.save()
+        except Exception as e:
+            print(e)
+            self.reissue_vessel_properties = {}
+
     def get_latest_vessel_ownership_by_vessel(self, vessel):
         if self.previous_application:
             if self.previous_application.vessel_ownership:
@@ -830,7 +866,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if type(self) not in [AuthorisedUserApplication, AnnualAdmissionApplication]:
                 raise ValidationError("Only for AUP, AAA")
         removed = False
-        if (
+        if self.approval and self.approval.reissued and (
+            "vessel_ownership" in self.reissue_vessel_properties and
+            "end_date" in self.reissue_vessel_properties["vessel_ownership"] and
+            not self.reissue_vessel_properties["vessel_ownership"]["end_date"] and
+            (not self.vessel_ownership or self.vessel_ownership.end_date)
+        ):
+            removed = True
+        elif (
                 self.previous_application and
                 self.previous_application.vessel_ownership and
                 not self.previous_application.vessel_ownership.end_date and  # There was a vessel in the previous application and not sold
@@ -850,7 +893,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise ValidationError("Only for AUP, AAA")
 
         changed = False
-        if (
+        if self.approval and self.approval.reissued and (
+            "vessel_ownership" in self.reissue_vessel_properties and
+            "end_date" in self.reissue_vessel_properties["vessel_ownership"] and
+            "vessel_details" in self.reissue_vessel_properties and
+            "rego_no" in self.reissue_vessel_properties["vessel_details"] and
+            not self.reissue_vessel_properties["vessel_ownership"]["end_date"] and
+            self.vessel_ownership and
+            not self.vessel_ownership.end_date and  # Not sold yet
+            self.vessel_ownership.vessel.rego_no != self.reissue_vessel_properties["vessel_details"]["rego_no"]
+        ):
+            changed = True
+        elif (
                 self.previous_application and
                 self.previous_application.vessel_ownership and
                 not self.previous_application.vessel_ownership.end_date and  # Not sold yet
@@ -872,7 +926,17 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise ValidationError("Only for AUP, AAA")
 
         new = False
-        if (
+        if self.approval and self.approval.reissued and (
+            (
+                not "vessel_ownership" in self.reissue_vessel_properties or 
+                ("end_date" in self.reissue_vessel_properties["vessel_ownership"] and 
+                self.reissue_vessel_properties["vessel_ownership"]["end_date"])
+            ) and
+            self.vessel_ownership and
+            not self.vessel_ownership.end_date
+        ):
+            new = True
+        elif (
                 self.previous_application and
                 (not self.previous_application.vessel_ownership or self.previous_application.vessel_ownership.end_date) and
                 self.vessel_ownership and
@@ -1337,6 +1401,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             elif proposals:
                 raise ValidationError('Error message: there is an application in status other than (Discarded, Sticker To Be Returned, Printing Sticker, Approved, or Declined)')
             elif self.approval and self.approval.can_reissue and self.is_approver(request.user):
+                self.populate_reissue_vessel_properties()
                 # update vessel details
                 vessel_details = self.vessel_details.vessel.latest_vessel_details
                 self.vessel_type = vessel_details.vessel_type if vessel_details else ''
@@ -1350,6 +1415,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                 self.proposed_issuance_approval = {}
                 self.save()
+                
                 self.approval.reissued=True
                 self.approval.save()
                 # Create a log entry for the proposal
@@ -1401,6 +1467,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if self.processing_status != Proposal.PROCESSING_STATUS_WITH_APPROVER:
                         # For AuA or MLA, approver can final decline
                         raise ValidationError('You cannot decline if it is not with approver')
+
+                if self.approval and self.approval.reissued:
+                    #if the approval was reissued, revert the proposal to what it was before reissue
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.approval.reissued = False
+                    self.save()
+                    return
 
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,

@@ -30,7 +30,7 @@ from mooringlicensing.components.proposals.models import (
     InsuranceCertificateDocument,
 )
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
-from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval
+from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval, VesselOwnershipOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
 from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
 from ledger_api_client.managed_models import SystemUser
@@ -302,6 +302,11 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         if obj.approval and type(obj.approval.child_obj) is MooringLicence:
             vessels_str = ''
             vessels_str += ', '.join([vo.vessel.rego_no for vo in obj.listed_vessels.filter(end_date__isnull=True)])
+
+            if not vessels_str and obj.approval and obj.approval.reissued:
+                voas = VesselOwnershipOnApproval.objects.filter(approval=obj.approval,end_date__isnull=True).distinct("vessel_ownership__vessel__rego_no")
+                vessels_str += ', '.join([voa.vessel_ownership.vessel.rego_no for voa in voas])
+
             return vessels_str
 
     def get_previous_application_preferred_bay_id(self, obj):
@@ -1097,6 +1102,11 @@ class InternalProposalSerializer(BaseProposalSerializer):
         if obj.approval and type(obj.approval.child_obj) is MooringLicence:
             vessels_str = ''
             vessels_str += ', '.join([vo.vessel.rego_no for vo in obj.listed_vessels.filter(end_date__isnull=True)])
+
+            if not vessels_str and obj.approval and obj.approval.reissued:
+                voas = VesselOwnershipOnApproval.objects.filter(approval=obj.approval,end_date__isnull=True).distinct("vessel_ownership__vessel__rego_no")
+                vessels_str += ', '.join([voa.vessel_ownership.vessel.rego_no for voa in voas])
+
             return vessels_str
 
     def get_reissued(self, obj):
