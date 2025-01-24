@@ -17,7 +17,7 @@
                         v-model="vessel.vessel_details.vessel_name" required />
                 </div>
             </div>
-            <div v-if="!readonly || vessel.vessel_ownership.individual_owner" class="row form-group">
+            <div v-if="!readonly || (vessel.vessel_ownership.individual_owner && vessel.vessel_ownership.owner_name)" class="row form-group">
                 <label for="" class="col-sm-3 control-label">Registration vessel owner *</label>
                 <div v-if="!readonly" class="col-sm-9">
                     <div class="row">
