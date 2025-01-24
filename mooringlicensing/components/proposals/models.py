@@ -1468,6 +1468,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         # For AuA or MLA, approver can final decline
                         raise ValidationError('You cannot decline if it is not with approver')
 
+                if self.approval and self.approval.reissued:
+                    #if the approval was reissued, revert the proposal to what it was before reissue
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.approval.reissued = False
+                    self.save()
+                    return
+
                 proposal_decline, success = ProposalDeclinedDetails.objects.update_or_create(
                     proposal=self,
                     defaults={
