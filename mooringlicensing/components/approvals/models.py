@@ -1777,9 +1777,14 @@ class AuthorisedUserPermit(Approval):
     def update_lists_due_to_vessel_changes(self, moas_to_be_reallocated, stickers_to_be_replaced, proposal):
 
         if proposal and proposal.approval and proposal.approval.reissued:
-            if "vessel_details" in proposal.reissue_vessel_properties and "vessel_length" in proposal.reissue_vessel_properties["vessel_details"]:
+            if ("vessel_details" in proposal.reissue_vessel_properties and 
+                "vessel_length" in proposal.reissue_vessel_properties["vessel_details"] and
+                proposal.reissue_vessel_properties["vessel_details"]["vessel_length"]):
                 next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
-                current_colour = Sticker.get_vessel_size_colour_by_length(proposal.reissue_vessel_properties["vessel_details"]["vessel_length"])
+                try:
+                    current_colour = Sticker.get_vessel_size_colour_by_length(float(proposal.reissue_vessel_properties["vessel_details"]["vessel_length"]))
+                except:
+                    current_colour = None
                 if next_colour != current_colour:
                     # Due to the vessel length change, the colour of the existing sticker needs to be changed
                     moas_current = MooringOnApproval.get_current_moas_by_approval(self)
@@ -2218,14 +2223,18 @@ class MooringLicence(Approval):
                 # The proposal currently being processed can make changes only on the latest vessel added to this mooring licence.
                 if ("vessel_ownership" in proposal.reissue_vessel_properties and 
                     "vessel_details" in proposal.reissue_vessel_properties and
-                    "vessel_length" in proposal.reissue_vessel_properties["vessel_details"]):
+                    "vessel_length" in proposal.reissue_vessel_properties["vessel_details"] and
+                    proposal.reissue_vessel_properties["vessel_details"]["vessel_length"]):
                     if ("id" in proposal.reissue_vessel_properties["vessel_ownership"] 
                         and proposal.reissue_vessel_properties["vessel_ownership"]["id"] == vessel_ownership.id == proposal.vessel_ownership.id):
                         # This vessel_ownership is shared by both proposal currently being processed and the one before.
                         # Which means the vessel is not changed.  However, there is still the case where the existing sticker
                         # should be replaced by a new one due to the sticker colour changes.
                         next_colour = Sticker.get_vessel_size_colour_by_length(proposal.vessel_length)
-                        current_colour = Sticker.get_vessel_size_colour_by_length(proposal.reissue_vessel_properties["vessel_details"]["vessel_length"])
+                        try:
+                            current_colour = Sticker.get_vessel_size_colour_by_length(float(proposal.reissue_vessel_properties["vessel_details"]["vessel_length"]))
+                        except:
+                            current_colour = None
                         if next_colour != current_colour:
                             logger.info(f'Sticker colour: [{next_colour}] for the proposal: [{proposal}] is different from the sticker colour: [{current_colour}].')
                             # Same vessel but sticker colour must be changed
