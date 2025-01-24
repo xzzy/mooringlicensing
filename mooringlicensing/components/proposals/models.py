@@ -146,6 +146,9 @@ MOORING_AUTH_PREFERENCES = (
         ('ria', 'By Rottnest Island Authority for a mooring allocated by the Authority'),
         )
 
+class ProposalTypeManager(models.Manager):
+    def get_by_natural_key(self, code):
+        return self.get(code=code)
 
 class ProposalType(models.Model):
     code = models.CharField(max_length=30, blank=True, null=True, unique=True)
@@ -153,9 +156,14 @@ class ProposalType(models.Model):
 
     def __str__(self):
         return self.description if self.description else ''
+    
+    objects = ProposalTypeManager()
 
     class Meta:
         app_label = 'mooringlicensing'
+
+    def natural_key(self):
+        return (self.code,)
 
 
 class ProposalProofOfIdentityDocument(models.Model):
