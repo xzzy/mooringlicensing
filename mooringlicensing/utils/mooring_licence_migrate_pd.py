@@ -1378,53 +1378,53 @@ class MooringLicenceReader():
                     start_date = start_date, #TODO get actual
                 )
 
-                try:
-                    mailing_date = datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None
-                except:
-                    mailing_date = None
+                #try:
+                #    mailing_date = datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None
+                #except:
+                #    mailing_date = None
 
-                if sticker_number:
-                    sticker = Sticker.objects.create(
-                        number=sticker_number,
-                        status=Sticker.STICKER_STATUS_CURRENT,
-                        approval=approval,
-                        proposal_initiated=proposal,
-                        vessel_ownership=vessel_ownership,
-                        printing_date=None,
-                        mailing_date=mailing_date,
-                        sticker_printing_batch=None,
-                        sticker_printing_response=None,
-                        
-                        postal_address_line1=proposal_applicant.postal_address_line1,
-                        postal_address_locality=proposal_applicant.postal_address_locality,
-                        postal_address_state=proposal_applicant.postal_address_state,
-                        postal_address_country=proposal_applicant.postal_address_country,
-                        postal_address_postcode=proposal_applicant.postal_address_postcode,
-                    )
+                #if sticker_number:
+                #    sticker = Sticker.objects.create(
+                #        number=sticker_number,
+                #        status=Sticker.STICKER_STATUS_CURRENT,
+                #        approval=approval,
+                #        proposal_initiated=proposal,
+                #        vessel_ownership=vessel_ownership,
+                #        printing_date=None,
+                #        mailing_date=mailing_date,
+                #        sticker_printing_batch=None,
+                #        sticker_printing_response=None,
+                #        
+                #        postal_address_line1=proposal_applicant.postal_address_line1,
+                #        postal_address_locality=proposal_applicant.postal_address_locality,
+                #        postal_address_state=proposal_applicant.postal_address_state,
+                #        postal_address_country=proposal_applicant.postal_address_country,
+                #        postal_address_postcode=proposal_applicant.postal_address_postcode,
+                #    )
 
-                    approval_history.stickers.add(sticker.id)
+                #    approval_history.stickers.add(sticker.id)
 
-                for i in range(len(additional_ves_rows_details)):
-                    if i['sticker_number']:
-                        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel__rego_no=i['rego_no']).order_by("-created").first()
-                        if vessel_ownership:
-                            sticker = Sticker.objects.create(
-                            number=i['sticker_number'],
-                            status=Sticker.STICKER_STATUS_CURRENT,
-                            approval=approval,
-                            proposal_initiated=proposal,
-                            vessel_ownership=vessel_ownership,
-                            printing_date=None,
-                            mailing_date=mailing_date,
-                            sticker_printing_batch=None,
-                            sticker_printing_response=None,
-                            
-                            postal_address_line1=proposal_applicant.postal_address_line1,
-                            postal_address_locality=proposal_applicant.postal_address_locality,
-                            postal_address_state=proposal_applicant.postal_address_state,
-                            postal_address_country=proposal_applicant.postal_address_country,
-                            postal_address_postcode=proposal_applicant.postal_address_postcode,
-                        )
+                #for i in range(len(additional_ves_rows_details)):
+                #    if i['sticker_number']:
+                #        vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel__rego_no=i['rego_no']).order_by("-created").first()
+                #        if vessel_ownership:
+                #            sticker = Sticker.objects.create(
+                #            number=i['sticker_number'],
+                #            status=Sticker.STICKER_STATUS_CURRENT,
+                #            approval=approval,
+                #            proposal_initiated=proposal,
+                #            vessel_ownership=vessel_ownership,
+                #            printing_date=None,
+                #            mailing_date=mailing_date,
+                #            sticker_printing_batch=None,
+                #            sticker_printing_response=None,
+                #            
+                #            postal_address_line1=proposal_applicant.postal_address_line1,
+                #            postal_address_locality=proposal_applicant.postal_address_locality,
+                #            postal_address_state=proposal_applicant.postal_address_state,
+                #            postal_address_country=proposal_applicant.postal_address_country,
+                #            postal_address_postcode=proposal_applicant.postal_address_postcode,
+                #        )
                     
             except Exception as e:
                 logger.error(f'ERROR: {row.name}. {str(e)}')
@@ -1654,25 +1654,25 @@ class MooringLicenceReader():
                     start_date = start_date,
                 )
 
-                sticker = None
-                if sticker_number:
-                    sticker = Sticker.objects.create(
-                        number=sticker_number,
-                        status=Sticker.STICKER_STATUS_CURRENT, # 'current'
-                        approval=approval,
-                        proposal_initiated=proposal,
-                        vessel_ownership=vessel_ownership,
-                        printing_date=None, #TODAY,
-                        mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
-                        sticker_printing_batch=None,
-                        sticker_printing_response=None,
-                        
-                        postal_address_line1=proposal_applicant.postal_address_line1,
-                        postal_address_locality=proposal_applicant.postal_address_locality,
-                        postal_address_state=proposal_applicant.postal_address_state,
-                        postal_address_country=proposal_applicant.postal_address_country,
-                        postal_address_postcode=proposal_applicant.postal_address_postcode,
-                    )
+                #sticker = None
+                #if sticker_number:
+                #    sticker = Sticker.objects.create(
+                #        number=sticker_number,
+                #        status=Sticker.STICKER_STATUS_CURRENT, # 'current'
+                #        approval=approval,
+                #        proposal_initiated=proposal,
+                #        vessel_ownership=vessel_ownership,
+                #        printing_date=None, #TODAY,
+                #        mailing_date=datetime.datetime.strptime(sticker_sent, '%d/%m/%Y').date() if sticker_sent else None,
+                #        sticker_printing_batch=None,
+                #        sticker_printing_response=None,
+                #        
+                #        postal_address_line1=proposal_applicant.postal_address_line1,
+                #        postal_address_locality=proposal_applicant.postal_address_locality,
+                #        postal_address_state=proposal_applicant.postal_address_state,
+                #        postal_address_country=proposal_applicant.postal_address_country,
+                #        postal_address_postcode=proposal_applicant.postal_address_postcode,
+                #    )
 
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
                 for idx, auth_user in auth_user_moorings.iterrows():
@@ -1681,7 +1681,7 @@ class MooringLicenceReader():
                     moa = MooringOnApproval.objects.create(
                         approval=approval,
                         mooring=mooring[0],
-                        sticker=sticker,
+                        #sticker=sticker,
                         site_licensee=site_licensee,
                     )
 
@@ -1969,19 +1969,19 @@ class MooringLicenceReader():
                         status=DcvPermit.DCV_PERMIT_STATUS_CURRENT,
                     )
 
-                    if sticker_no:
-                        sticker = Sticker.objects.create(
-                            number=sticker_no,
-                            status=Sticker.STICKER_STATUS_CURRENT, # 'current'
-                            dcv_permit=dcv_permit,
-                            mailing_date=TODAY,
-                            
-                            postal_address_line1=dcv_permit.postal_address_line1,
-                            postal_address_locality=dcv_permit.postal_address_suburb,
-                            postal_address_state=dcv_permit.postal_address_state,
-                            postal_address_country=dcv_permit.postal_address_country,
-                            postal_address_postcode=dcv_permit.postal_address_postcode,
-                        )
+                    #if sticker_no:
+                    #    sticker = Sticker.objects.create(
+                    #        number=sticker_no,
+                    #        status=Sticker.STICKER_STATUS_CURRENT, # 'current'
+                    #        dcv_permit=dcv_permit,
+                    #        mailing_date=TODAY,
+                    #        
+                    #        postal_address_line1=dcv_permit.postal_address_line1,
+                    #        postal_address_locality=dcv_permit.postal_address_suburb,
+                    #        postal_address_state=dcv_permit.postal_address_state,
+                    #        postal_address_country=dcv_permit.postal_address_country,
+                    #        postal_address_postcode=dcv_permit.postal_address_postcode,
+                    #    )
                     dcv_created.append(dcv_permit.id)
 
             except Exception as e:
@@ -2151,8 +2151,8 @@ class MooringLicenceReader():
                     lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
 
                 status = 'approved'
-                if not sticker_no:
-                    status = 'printing_sticker'
+                #if not sticker_no:
+                #    status = 'printing_sticker'
 
                 proposal=AnnualAdmissionApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
@@ -2218,35 +2218,35 @@ class MooringLicenceReader():
                     start_date = start_date,
                 )
 
-                if sticker_no:
-                    sticker = Sticker.objects.create(
-                        number=sticker_no,
-                        status=Sticker.STICKER_STATUS_CURRENT,
-                        approval=approval,
-                        proposal_initiated=proposal,
-                        vessel_ownership=vessel_ownership,
-                        printing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
-                        mailing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
-                        sticker_printing_batch=None,
-                        sticker_printing_response=None,
-                        postal_address_line1=proposal_applicant.postal_address_line1,
-                        postal_address_locality=proposal_applicant.postal_address_locality,
-                        postal_address_state=proposal_applicant.postal_address_state,
-                        postal_address_country=proposal_applicant.postal_address_country,
-                        postal_address_postcode=proposal_applicant.postal_address_postcode,
-                    )
-                else:
-                    #create non-exported sticker record
-                    sticker = Sticker.objects.create(
-                        approval=approval,
-                        proposal_initiated=proposal,
-                        vessel_ownership=vessel_ownership,
-                        postal_address_line1=proposal_applicant.postal_address_line1,
-                        postal_address_locality=proposal_applicant.postal_address_locality,
-                        postal_address_state=proposal_applicant.postal_address_state,
-                        postal_address_country=proposal_applicant.postal_address_country,
-                        postal_address_postcode=proposal_applicant.postal_address_postcode,
-                    )
+                #if sticker_no:
+                #    sticker = Sticker.objects.create(
+                #        number=sticker_no,
+                #        status=Sticker.STICKER_STATUS_CURRENT,
+                #        approval=approval,
+                #        proposal_initiated=proposal,
+                #        vessel_ownership=vessel_ownership,
+                #        printing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
+                #        mailing_date=datetime.datetime.strptime(date_created.split(' ')[0], '%d/%m/%Y').date() if date_created else None,
+                #        sticker_printing_batch=None,
+                #        sticker_printing_response=None,
+                #        postal_address_line1=proposal_applicant.postal_address_line1,
+                #        postal_address_locality=proposal_applicant.postal_address_locality,
+                #        postal_address_state=proposal_applicant.postal_address_state,
+                #        postal_address_country=proposal_applicant.postal_address_country,
+                #        postal_address_postcode=proposal_applicant.postal_address_postcode,
+                #    )
+                #else:
+                #    #create non-exported sticker record
+                #    sticker = Sticker.objects.create(
+                #        approval=approval,
+                #        proposal_initiated=proposal,
+                #        vessel_ownership=vessel_ownership,
+                #        postal_address_line1=proposal_applicant.postal_address_line1,
+                #        postal_address_locality=proposal_applicant.postal_address_locality,
+                #        postal_address_state=proposal_applicant.postal_address_state,
+                #        postal_address_country=proposal_applicant.postal_address_country,
+                #        postal_address_postcode=proposal_applicant.postal_address_postcode,
+                #    )
 
             except Exception as e:
                 if user:
