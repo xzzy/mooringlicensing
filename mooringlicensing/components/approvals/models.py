@@ -666,6 +666,18 @@ class Approval(RevisionedMixin):
 
     @property
     def can_reissue(self):
+
+        #check if there are any active amendment/renewal/swap applications
+        if Proposal.objects.filter(previous_application=self.current_proposal).exclude(
+            processing_status__in=[
+                Proposal.PROCESSING_STATUS_APPROVED, 
+                Proposal.PROCESSING_STATUS_DECLINED, 
+                Proposal.PROCESSING_STATUS_DISCARDED, 
+                Proposal.PROCESSING_STATUS_EXPIRED,
+            ]
+        ).exists():
+            return False
+
         return self.status == Approval.APPROVAL_STATUS_CURRENT or self.status == Approval.APPROVAL_STATUS_SUSPENDED
 
     @property
