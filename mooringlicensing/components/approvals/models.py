@@ -1670,7 +1670,7 @@ class AuthorisedUserPermit(Approval):
             # All the sticker gets 'expired' status once payment made
             moas_current = MooringOnApproval.get_current_moas_by_approval(self)
             for moa in moas_current:
-                if moa.sticker not in _stickers_to_be_replaced:
+                if moa.sticker and moa.sticker not in _stickers_to_be_replaced:
                     _stickers_to_be_replaced.append(moa.sticker)
                     _stickers_to_be_replaced_for_renewal.append(moa.sticker)
 
@@ -1706,6 +1706,7 @@ class AuthorisedUserPermit(Approval):
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
     def update_lists_due_to_stickers_to_be_replaced(self, _stickers_to_be_replaced, moas_to_be_reallocated, moas_to_be_removed, stickers_to_be_returned):
+        print(_stickers_to_be_replaced)
         for sticker in _stickers_to_be_replaced:
             stickers_to_be_returned.append(sticker)
             for moa in sticker.mooringonapproval_set.all():
@@ -1762,7 +1763,8 @@ class AuthorisedUserPermit(Approval):
                 # Due to the vessel length change, the colour of the existing sticker needs to be changed
                 moas_current = MooringOnApproval.get_current_moas_by_approval(self)
                 for moa in moas_current:
-                    stickers_to_be_replaced.append(moa.sticker)
+                    if moa.sticker:
+                        stickers_to_be_replaced.append(moa.sticker)
 
         # Handle vessel changes
         if self.approval.current_proposal.vessel_removed:
@@ -1770,14 +1772,16 @@ class AuthorisedUserPermit(Approval):
             # A vessel --> No vessels
             moas_current = MooringOnApproval.get_current_moas_by_approval(self)
             for moa in moas_current:
-                stickers_to_be_replaced.append(moa.sticker)
+                if moa.sticker:
+                    stickers_to_be_replaced.append(moa.sticker)
 
         if self.approval.current_proposal.vessel_swapped:
             # All the stickers to be removed and all the mooring on them to be reallocated
             # A vessel --> Another vessel
             moas_current = MooringOnApproval.get_current_moas_by_approval(self)
             for moa in moas_current:
-                stickers_to_be_replaced.append(moa.sticker)
+                if moa.sticker:
+                    stickers_to_be_replaced.append(moa.sticker)
 
         if self.approval.current_proposal.vessel_null_to_new:
             # --> Create new sticker
