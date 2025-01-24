@@ -210,7 +210,7 @@ class MooringOnApproval(RevisionedMixin):
     def get_current_moas_by_approval(approval):
         no_end_date = Q(end_date__isnull=True)
         ml_is_current = Q(mooring__mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)
-        sticker_is_current = Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT)
+        sticker_is_current = Q(Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT) | Q(approval__migrated=True)) #or approval is migrated
         is_active = Q(active=True)
         moas = approval.mooringonapproval_set.filter((no_end_date & ml_is_current) & sticker_is_current & is_active)  
         return moas
