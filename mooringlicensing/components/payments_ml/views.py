@@ -333,8 +333,8 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
                             # Create replacement sticker
                             new_sticker = Sticker.objects.create(
                                 approval=sticker_action_detail.approval,
-                                vessel_ownership=sticker_action_detail.approval.proposal.vessel_ownership,
-                                fee_constructor=sticker_action_detail.approval.proposal.fee_constructor,
+                                vessel_ownership=sticker_action_detail.approval.current_proposal.vessel_ownership,
+                                fee_constructor=sticker_action_detail.approval.current_proposal.fee_constructor,
                                 fee_season=sticker_action_detail.approval.latest_applied_season,
                                 postal_address_line1 = sticker_action_detail.new_postal_address_line1,
                                 postal_address_line2 = sticker_action_detail.new_postal_address_line2,
