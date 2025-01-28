@@ -561,7 +561,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             sticker_action_details = []
             
             #only allow this if there are no sticker records associated with the approval
-            if Sticker.objects.filter(approval=obj).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED]).exists():
+            if Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED]).exists():
                 raise serializers.ValidationError("This approval already has an active sticker record.")
 
             data = {}
