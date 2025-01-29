@@ -1478,7 +1478,7 @@ class MooringLicenceReader():
         bay_preferences_numbered = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
         vessel_type = 'other'
 
-        df_authuser = self.df_authuser[(self.df_authuser['vessel_rego']!='0')].groupby('vessel_rego').first()
+        df_authuser = self.df_authuser[(self.df_authuser['vessel_rego']!='0') & (self.df_authuser['user_type']!='L')].groupby('vessel_rego').first()
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
             try:
                 user = None
