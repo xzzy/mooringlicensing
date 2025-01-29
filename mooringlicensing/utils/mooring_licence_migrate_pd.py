@@ -950,7 +950,7 @@ class MooringLicenceReader():
                             
                             if pct_interest < 25:
                                 self.pct_interest_errors.append((pers_no, rego_no, pct_interest))
-                                pct_interest = 100
+                                pct_interest = None
                             vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=pct_interest)
 
                         try:
@@ -2030,7 +2030,7 @@ class MooringLicenceReader():
         if not vessel_ownership:
             pct_interest = int(round(float(try_except(pct_interest)),0))
             if pct_interest < 25:
-                pct_interest = 100
+                pct_interest = None
             vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=pct_interest)
 
         try:
