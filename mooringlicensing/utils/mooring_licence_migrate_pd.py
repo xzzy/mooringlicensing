@@ -1811,9 +1811,9 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    date_applied = datetime.datetime.strptime(row['date_applied'], '%d/%m/%Y')
+                    date_applied = datetime.datetime.strptime(row['date_applied'].split(" ")[0], '%d/%m/%Y')
                 except Exception as e:
-                    errors.append("date_applied substituted with general start date: " + str(e))
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": date_applied substituted with general start date: " + str(e))
                     date_applied = start_date
 
                 approval = WaitingListAllocation.objects.create(
