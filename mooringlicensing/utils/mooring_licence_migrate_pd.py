@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 NL = '\n'
 
-TODAY = datetime.datetime.now(datetime.timezone.utc).date()
+TODAY = datetime.datetime.now().date()
 EXPIRY_DATE = datetime.date(2025,8,31)
 START_DATE = datetime.date(2024,9,1)
 DATE_APPLIED = '2024-09-01'
@@ -1287,7 +1287,7 @@ class MooringLicenceReader():
                 proposal=MooringLicenceApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=datetime.datetime.now().astimezone(), #TODO get actual
+                    lodgement_date=TODAY, #TODO get actual
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1368,7 +1368,7 @@ class MooringLicenceReader():
                         vessel_ownership=i,
                     )
 
-                start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+                start_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d')
 
                 approval_history = ApprovalHistory.objects.create(
                     reason='new',
@@ -1468,7 +1468,6 @@ class MooringLicenceReader():
         start_time = time.time()
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED
 
         errors = []
         vessel_not_found = []
@@ -1532,7 +1531,6 @@ class MooringLicenceReader():
                     no_au_stickers.append(rego_no)
                 else:
                     au_stickers.append(rego_no)
-
                 
                 try:
                     vessel = Vessel.objects.get(rego_no=rego_no)
@@ -1722,7 +1720,6 @@ class MooringLicenceReader():
         start_time = time.time()
         expiry_date = EXPIRY_DATE
         start_date = START_DATE
-        date_applied = DATE_APPLIED
 
         errors = []
         vessel_not_found = []
@@ -1762,15 +1759,10 @@ class MooringLicenceReader():
                 else:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": Vessel has no recorded details") 
 
-                try:
-                    lodgement_date = datetime.datetime.strptime(row.date_applied, '%d/%m/%Y').astimezone(datetime.timezone.utc)
-                except:
-                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
-
                 proposal=WaitingListApplication.objects.create(
                     proposal_type_id=ProposalType.objects.get(code='new').id, # new application
                     submitter=user.id,
-                    lodgement_date=lodgement_date,
+                    lodgement_date=TODAY, #TODO get actual
                     migrated=True,
                     vessel_details=vessel_details,
                     vessel_ownership=vessel_ownership,
@@ -1819,16 +1811,16 @@ class MooringLicenceReader():
                 )
 
                 try:
-                    date_allocated = datetime.datetime.strptime(row['date_allocated'], '%d/%m/%Y').astimezone(datetime.timezone.utc)
+                    date_applied = datetime.datetime.strptime(row['date_applied'], '%d/%m/%Y')
                 except Exception as e:
-                    errors.append("date_allocated substituted with general start date: " + str(e))
-                    date_allocated = start_date
+                    errors.append("date_applied substituted with general start date: " + str(e))
+                    date_applied = start_date
 
                 approval = WaitingListAllocation.objects.create(
                     status=Approval.APPROVAL_STATUS_CURRENT,
                     internal_status=Approval.INTERNAL_STATUS_WAITING,
                     current_proposal=proposal,
-                    issue_date = date_allocated,
+                    issue_date = date_applied,
                     start_date = start_date, #TODO get actual
                     expiry_date = expiry_date,
                     submitter=user.id,
@@ -1954,7 +1946,7 @@ class MooringLicenceReader():
                     dcv_permit = DcvPermit.objects.create(
                         submitter = user.id,
                         applicant = user.id,
-                        lodgement_datetime = datetime.datetime.now(datetime.timezone.utc), #TODO get actual
+                        lodgement_datetime = TODAY, #TODO get actual
                         fee_season = fee_season,
                         start_date = start_date, #TODO get actual
                         end_date = expiry_date,
@@ -2145,10 +2137,10 @@ class MooringLicenceReader():
                 total_aa_created.append(rego_no)
 
                 try:
-                    lodgement_date = datetime.datetime.strptime(date_created, '%d/%m/%Y %H:%M %p').astimezone(datetime.timezone.utc)
+                    lodgement_date = datetime.datetime.strptime(date_created, '%d/%m/%Y %H:%M %p')
                 except Exception as e:
                     errors.append("lodgement_date substituted with general start date: " + str(e))
-                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d').astimezone(datetime.timezone.utc)
+                    lodgement_date = datetime.datetime.strptime(date_applied, '%Y-%m-%d')
 
                 status = 'approved'
                 #if not sticker_no:
