@@ -398,7 +398,7 @@ class MooringLicenceReader():
         return df_authuser
 
     def _read_wl(self):
-        """ Read Auth User file """
+        """ Read Waiting List App file """
 
         # Rename the cols from Spreadsheet headers to Model fields names
         df_wl = self.df_wl.rename(columns=WL_COLUMN_MAPPING)
@@ -1483,7 +1483,7 @@ class MooringLicenceReader():
             try:
                 user = None
                 rego_no = row.name
-                
+
                 mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
                 mooring_qs = Mooring.objects.filter(name=row['mooring_no'])
                 if mooring_qs.exists():
@@ -1672,7 +1672,7 @@ class MooringLicenceReader():
                 #        postal_address_postcode=proposal_applicant.postal_address_postcode,
                 #    )
 
-                auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no)].drop_duplicates(subset=['mooring_no','vessel_rego'])
+                auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no) & (self.df_authuser['user_type']!="L")].drop_duplicates(subset=['mooring_no','vessel_rego'])
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
                     site_licensee = auth_user.licencee_approved == 'Y'
