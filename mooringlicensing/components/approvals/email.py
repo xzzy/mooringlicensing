@@ -58,7 +58,7 @@ class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails_2/auth_user_no_moorings_notification.txt'
 
     def __init__(self, approval):
-        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+        self.subject = 'Amended: {} {} - {}.'.format(approval.child_obj.description, approval.child_obj.lodgement_number, settings.RIA_NAME)
 
 
 class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
@@ -67,7 +67,7 @@ class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
     txt_template = 'mooringlicensing/emails_2/auth_user_mooring_removed_notification.txt'
 
     def __init__(self, approval):
-        self.subject = '{} - {} expired.'.format(settings.RIA_NAME, approval.child_obj.description)
+        self.subject = 'Amended: {} {} - {}.'.format(approval.child_obj.description, approval.child_obj.lodgement_number, settings.RIA_NAME)
 
 
 def send_auth_user_mooring_removed_notification(approval, mooring_licence):
