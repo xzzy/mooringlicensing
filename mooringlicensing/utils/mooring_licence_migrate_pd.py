@@ -846,6 +846,7 @@ class MooringLicenceReader():
     def create_vessels(self):
         start_time = time.time()
         self._create_vessels()
+        self.create_vessels_dict()
         self._create_vessels_wl()
 
         end_time = time.time()
@@ -1049,8 +1050,15 @@ class MooringLicenceReader():
                 except ObjectDoesNotExist:
                     owner = Owner.objects.create(emailuser=user.id)
 
+                try:
+                    vessel_row = self.vessels_dict[rego_no] 
+                    ownership_percent = round(float(vessel_row["percentage"]))
+                except Exception as e:
+                    self.vessels_errors.append((row.pers_no, str(e), "percentage set to None"))
+                    ownership_percent = None
+
                 ves_type = 'other'
-                vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=100)
+                vessel_ownership = VesselOwnership.objects.create(owner=owner, vessel=vessel, percentage=ownership_percent)
                 if rego_no in self.dummy_vessels:
                     vessel_ownership.end_date = TODAY
 
@@ -2096,7 +2104,7 @@ class MooringLicenceReader():
                         draft=Decimal(0.0), 
                         beam=Decimal(0.0), 
                         weight=Decimal(0.0), 
-                        pct_interest=100, 
+                        pct_interest=None, 
                     )
                     rego_aa_created.append(rego_no)
                 else:
@@ -2114,7 +2122,7 @@ class MooringLicenceReader():
                                 draft=Decimal(0.0), 
                                 beam=Decimal(0.0), 
                                 weight=Decimal(0.0), 
-                                pct_interest=100, 
+                                pct_interest=None, 
                             )
                     except Exception as e:
                         vessel, vessel_details, vessel_ownership = self._create_single_vessel(
@@ -2126,7 +2134,7 @@ class MooringLicenceReader():
                             draft=Decimal(0.0), 
                             beam=Decimal(0.0), 
                             weight=Decimal(0.0), 
-                            pct_interest=100, 
+                            pct_interest=None, 
                         )
 
                 # update length from AA Spreadsheet file
