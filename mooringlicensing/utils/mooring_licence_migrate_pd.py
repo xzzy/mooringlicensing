@@ -1051,7 +1051,7 @@ class MooringLicenceReader():
                     owner = Owner.objects.create(emailuser=user.id)
 
                 try:
-                    vessel_row = self.vessels_dict[rego_no] 
+                    vessel_row = self.vessels_dict[rego_no+"_"+row.pers_no] 
                     ownership_percent = round(float(vessel_row["percentage"]))
                 except Exception as e:
                     self.vessels_errors.append((row.pers_no, str(e), "percentage set to None"))
@@ -1110,10 +1110,15 @@ class MooringLicenceReader():
 
             ves_list = ves_fields(row)
 
+            person_no = row['Person No']
+            user_row = self.df_user[self.df_user['pers_no']==person_no] 
+            if user_row.empty:
+                continue
+
             au_vessels = {}
             c_vessels = []
             for i, ves in enumerate(ves_list):
-                try:
+                try:       
                     ves_name=ves['Name ' + postfix[i]]
                     ves_type=ves['Type ' + postfix[i]]
                     rego_no=ves['DoT Rego ' + postfix[i]]
@@ -1126,9 +1131,13 @@ class MooringLicenceReader():
                     au_sticker=ves['Au Sticker No ' + postfix[i]]
                     c_sticker=ves['C Sticker No ' + postfix[i]]
                     au_sticker_date=ves['Date Au Sticker Sent ' + postfix[i]]
-
-                    self.vessels_dict.update({rego_no:
+                    rego_expiry=ves['Rego Expiry ' + postfix[i]]
+                    rego_owner=ves['Reg Owners ' + postfix[i]]
+                        
+                    self.vessels_dict.update({rego_no+"_"+person_no:
                         {
+                            'rego_no': rego_no,
+                            'person_no': person_no,
                             'length':        tot_length,
                             'draft':         draft,
                             'beam':          beam,
@@ -1140,6 +1149,8 @@ class MooringLicenceReader():
                             'au_sticker':    au_sticker,
                             'c_sticker':     c_sticker,
                             'au_sticker_date': au_sticker_date,
+                            'rego_expiry': rego_expiry,
+                            'rego_owner': rego_owner,
                         }
                     })
 
@@ -2093,6 +2104,7 @@ class MooringLicenceReader():
                     errors.append("User with email " + str(email.lower()) + " does not exist") 
                     continue
 
+                #NOTE if Annual Admissions ever need to be migrated, this key will NOT work (key is a combination of rego_no and person_no)
                 vessel_dict = self.vessels_dict.get(rego_no)
                 if vessel_dict is None:
                     vessel, vessel_details, vessel_ownership = self._create_single_vessel(
