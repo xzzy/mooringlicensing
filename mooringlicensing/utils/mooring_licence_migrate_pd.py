@@ -1758,7 +1758,7 @@ class MooringLicenceReader():
                 try:
                     user = EmailUser.objects.filter(email__iexact=email.lower(), is_active=True).order_by('-id').first()
                 except Exception as e:
-                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
+                    errors.append("User with email " + str(email.lower()) + " does not exist") 
                     continue
 
                 rego_no = row['vessel_rego']
@@ -1867,7 +1867,8 @@ class MooringLicenceReader():
                 )
 
             except Exception as e:
-                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                if rego_no and user:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
