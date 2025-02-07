@@ -1,4 +1,5 @@
 30 2 * * * python manage_ml.py cron_tasks >> logs/run_cron_tasks.log 2>&1
+10 * * * * python manage_ml.py import_mooring_bookings_data >> logs/run_import_mooring_bookings_data_cron_task.log 2>&1
 */10 * * * * python manage_ml.py export_to_mooring_booking_cron_task >> logs/run_export_to_mooring_booking_cron_task.log 2>&1
 */5 * * * * python manage_ml.py runcrons >> logs/runcrons.log 2>&1
 30 3 * * 4 python manage_ml.py clearsessions >> logs/clearsessions.log 2>&1

@@ -662,6 +662,7 @@ class MooringLicenceReader():
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
+                user_row = None
                 if not row.name :
                     continue
 
@@ -737,8 +738,9 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
-                self.user_errors.append(user_row.email)
+                if not user_row.empty and hasattr(user_row,"email"):
+                    self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
+                    self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
         print(f'users created:  {len(self.user_created)}')
@@ -757,6 +759,7 @@ class MooringLicenceReader():
         # Iterate through the dataframe and create non-existent users
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
+                user_row = None
                 user_row = self.df_user[self.df_user['email']==row.email]
                 if user_row.empty:
                     user_row = row.copy()
@@ -826,7 +829,7 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                if hasattr(user_row, "email"):
+                if not user_row.empty and hasattr(user_row, "email"):
                     self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
                     self.user_errors.append(user_row.email)
                 else:
@@ -1082,7 +1085,8 @@ class MooringLicenceReader():
                     )
 
             except Exception as e:
-                self.vessels_errors.append((row.pers_no, str(e)))
+                if hasattr(row, "pers_no"):
+                    self.vessels_errors.append((row.pers_no, str(e)))
                 continue
 
         print(f'vessels created:  {len(self.vessels_created)}')
@@ -1178,6 +1182,7 @@ class MooringLicenceReader():
         df = self.df_ml.groupby('mooring_no').first()
         for index, row in tqdm(df.iterrows(), total=df.shape[0]):
             try:
+                user_row = None
                 if not row.name:
                     continue
 
@@ -1446,8 +1451,10 @@ class MooringLicenceReader():
                 #        )
                     
             except Exception as e:
-                logger.error(f'ERROR: {row.name}. {str(e)}')
-                self.user_errors.append(user_row.email)
+                if hasattr(row,"name"):
+                    logger.error(f'ERROR: {row.name}. {str(e)}')
+                if not user_row.empty and hasattr(user_row,"email"):
+                    self.user_errors.append(user_row.email)
 
         print(f'ml_user_not_found:  {self.ml_user_not_found}')
         print(f'Duplicate Pers_No in ves_row:  {self.ml_no_ves_rows}')
@@ -1501,6 +1508,7 @@ class MooringLicenceReader():
         for index, row in tqdm(df_authuser.iterrows(), total=df_authuser.shape[0]):
             try:
                 user = None
+                rego_no = None
                 rego_no = row.name
 
                 mooring_authorisation_preference = 'site_licensee' if row['licencee_approved']=='Y' else 'ria'
@@ -1704,7 +1712,7 @@ class MooringLicenceReader():
 
             except Exception as e:
                 print(e)
-                if user:
+                if user and hasattr(user,"id") and rego_no:
                     errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
                 else:
                     errors.append("Rego No " + str(rego_no) + ":" + str(e))
@@ -1749,6 +1757,8 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_wl.iterrows(), total=self.df_wl.shape[0]):
             try:
+                user = None
+                rego_no = None
                 pers_no = row['pers_no']
                 mooring_bay = MooringBay.objects.get(code=row['bay'])
 
@@ -1758,7 +1768,7 @@ class MooringLicenceReader():
                 try:
                     user = EmailUser.objects.filter(email__iexact=email.lower(), is_active=True).order_by('-id').first()
                 except Exception as e:
-                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ": User with email " + str(email.lower()) + " does not exist") 
+                    errors.append("User with email " + str(email.lower()) + " does not exist") 
                     continue
 
                 rego_no = row['vessel_rego']
@@ -1867,7 +1877,10 @@ class MooringLicenceReader():
                 )
 
             except Exception as e:
-                errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                if user and hasattr(user,"id") and rego_no:
+                    errors.append("Rego No " + str(rego_no) + " - User Id " + str(user.id) + ":" + str(e))
+                else:
+                    errors.append("Rego No " + str(rego_no) + ":" + str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
@@ -1908,7 +1921,7 @@ class MooringLicenceReader():
 
         for index, row in tqdm(self.df_dcv.iterrows(), total=self.df_dcv.shape[0]):
             try:
-
+                user = None
                 pers_no = row['pers_no']
                 email = row['email']
                 org_name = row['company']
@@ -1996,8 +2009,9 @@ class MooringLicenceReader():
                     dcv_created.append(dcv_permit.id)
 
             except Exception as e:
-                errors.append("User Id " + str(user.id) + ": " + str(e)) 
-                errors.append(str(e))
+                if user and hasattr(user,"id"):
+                    errors.append("User Id " + str(user.id) + ": " + str(e)) 
+                    errors.append(str(e))
 
         print(f'vessel_not_found: {vessel_not_found}')
         print(f'vessel_not_found: {len(vessel_not_found)}')
