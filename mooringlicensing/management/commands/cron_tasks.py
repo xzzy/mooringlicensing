@@ -36,7 +36,7 @@ class Command(BaseCommand):
         subprocess.call('python manage_ml.py expire_mooring_licence_application_due_to_no_submit', shell=True)
         subprocess.call('python manage_ml.py update_approval_status', shell=True)
         subprocess.call('python manage_ml.py approval_renewal_notices', shell=True)
-        subprocess.call('python manage_ml.py import_mooring_bookings_data', shell=True)
+        #subprocess.call('python manage_ml.py import_mooring_bookings_data', shell=True)
         subprocess.call('python manage_ml.py export_and_email_sticker_data', shell=True)
         subprocess.call('python manage_ml.py import_sticker_data', shell=True)
         subprocess.call('python manage_ml.py send_mooring_licence_application_submit_due_reminder', shell=True)
