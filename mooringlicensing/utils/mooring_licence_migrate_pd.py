@@ -738,7 +738,7 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                if user_row and hasattr(user_row,"email"):
+                if not user_row.empty and hasattr(user_row,"email"):
                     self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
                     self.user_errors.append(user_row.email)
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
@@ -829,7 +829,7 @@ class MooringLicenceReader():
                 self.pers_ids.append((user_id, row.name))
 
             except Exception as e:
-                if user_row and hasattr(user_row, "email"):
+                if not user_row.empty and hasattr(user_row, "email"):
                     self.user_error_details.append(str(row.name) + " - " + str(user_row.email) + " : "+str(e))
                     self.user_errors.append(user_row.email)
                 else:
@@ -1453,7 +1453,7 @@ class MooringLicenceReader():
             except Exception as e:
                 if hasattr(row,"name"):
                     logger.error(f'ERROR: {row.name}. {str(e)}')
-                if user_row and hasattr(user_row,"email"):
+                if not user_row.empty and hasattr(user_row,"email"):
                     self.user_errors.append(user_row.email)
 
         print(f'ml_user_not_found:  {self.ml_user_not_found}')
