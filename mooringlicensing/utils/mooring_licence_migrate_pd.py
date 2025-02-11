@@ -214,6 +214,18 @@ AA_COLUMN_MAPPING = {
     'Country':                          'country',
 }
 
+MOORING_BAY_CODES = {
+    "SB": "Stark Bay",
+    "PB": "Porpoise Bay",
+    "NN": "Narrow Neck",
+    "MB": "Marjorie Bay",
+    "CB": "Catherine Bay",
+    "GB": "Geordie Bay",
+    "LR": "Longreach Bay",
+    "TB": "Thomson Bay",
+    "RI": "Rottnest Island",
+}
+
 class MooringLicenceReader():
     """
     First need to run clean().
@@ -1760,7 +1772,7 @@ class MooringLicenceReader():
                 user = None
                 rego_no = None
                 pers_no = row['pers_no']
-                mooring_bay = MooringBay.objects.get(code=row['bay'])
+                mooring_bay = MooringBay.objects.filter(name=MOORING_BAY_CODES[row['bay']]).first()
 
                 email = self.df_user[(self.df_user['pers_no']==pers_no) & (self.df_user['email']!='')].iloc[0]['email'].strip()
                 first_name = row.first_name.lower().title().strip()
