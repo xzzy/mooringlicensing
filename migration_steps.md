@@ -30,15 +30,19 @@ vi venv/lib/python3.12/site-packages/reversion/migrations/0001_squashed_0004_aut
 
 ## Step 4 Apply Fixutures
 ```
-./manage_ml.py loaddata mooringlicensing/fixtures/mooring_mooring_bay.json
+./manage_ml.py loaddata mooringlicensing/fixtures/ml_fixtures.json
  ```
 
 ## Step 5 Get moorings from mooring bookings
 
 Add environment variables
+
 MOORING_BOOKINGS_API_KEY= Mooring booking external API key
+
 MOORING_BOOKINGS_API_URL= Mooring booking url
+
 MOORING_GROUP_ID=1
+
 ```
 ./manage_ml.py import_mooring_bookings_data
 ```
