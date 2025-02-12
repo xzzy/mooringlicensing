@@ -12,7 +12,9 @@
                 <div class="col-sm-12">
                     <button v-if="hasAssessorMode" @click.prevent="addRequirement()" style="margin-bottom:10px;" class="btn btn-primary pull-right">Add Condition</button>
                 </div>
+                <div class="col-sm-12">
                 <datatable ref="requirements_datatable" :id="'requirements-datatable-'+_uid" :dtOptions="requirement_options" :dtHeaders="requirement_headers"/>
+                </div>
             </form>
         </div>
         <RequirementDetail

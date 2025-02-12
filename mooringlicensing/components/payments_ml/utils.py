@@ -60,6 +60,8 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
     if not vessel_rego_no and instance.vessel_details and instance.vessel_details.vessel:
         vessel_rego_no = instance.vessel_details.vessel.rego_no
     if not vessel_rego_no:
+        vessel_rego_no = instance.rego_no
+    if not vessel_rego_no:
         # We want to show something rather than empty string
         vessel_rego_no = 'no vessel'
 

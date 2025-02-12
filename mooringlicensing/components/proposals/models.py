@@ -1608,6 +1608,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     
                 if not mooring_id and not check_mooring_ids and self.application_type.code == "aua":
                     raise serializers.ValidationError("No mooring provided")
+                
+                if self.application_type.code == "mla":
+                    mooring = self.allocated_mooring
+                    if (self.vessel_length > mooring.vessel_size_limit or
+                        self.vessel_draft > mooring.vessel_draft_limit or
+                        (self.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
+                        raise serializers.ValidationError("Proposed vessel dimensions are not compatible with the mooring")
 
                 self.proposed_issuance_approval = {
                     'current_date': current_date.strftime('%d/%m/%Y'), 

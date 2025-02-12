@@ -83,7 +83,7 @@
                         required=""
                     />
                 </div>
-                <div v-else class="col-sm-2">
+                <div v-if="companyOwner" class="col-sm-2">
                     <input
                         :readonly="readonly"
                         type="number"
@@ -98,7 +98,6 @@
                         required="" 
                     />
                 </div>
-
             </div>
             <div class="row form-group">
                 <label for="" class="col-sm-3 control-label">Name as shown on DoT registration papers</label>
@@ -383,7 +382,6 @@ export default {
             }
             else if (this.vesselOwnership.proposal_id){
                 url = '/api/proposal/' + this.vesselOwnership.proposal_id + '/hull_identification_number_document/'
-                console.log(url)
             }
             return url
         },
@@ -407,13 +405,11 @@ export default {
     },
     methods: {
         emitVesselLength: function () {
-            console.log('in emitVesselLength')
             this.$nextTick(() => {
                 this.$emit("updateVesselLength", this.vesselLength)
             });
         },
         vesselChanged: async function () {
-            console.log('in vesselChanged')
             let vesselChanged = false
             let vesselOwnershipChanged = false
 
@@ -488,7 +484,6 @@ export default {
             if (this.individualOwner && this.vessel.id) {
                 const url = api_endpoints.lookupIndividualOwnership(this.vessel.id);
                 const res = await this.$http.post(url);
-                console.log({ res })
                 if (res.body) {
                     let vesselOwnership = Object.assign({}, res.body);
                     vesselOwnership.individual_owner = true;
@@ -582,7 +577,6 @@ export default {
             vm.readCompanyName();
         },
         readCompanyName: function () {
-            console.log('in readCompanyName()')
             this.$nextTick(() => {
                 let vm = this;
                 if (vm.vessel.vessel_ownership && vm.vessel.vessel_ownership.company_ownership && vm.vessel.vessel_ownership.company_ownership.company) {
@@ -606,7 +600,6 @@ export default {
                 placeholder: "",
                 tags: allow_add_new_vessel,
                 createTag: function (tag) {
-                    console.log({tag})
                     return {
                         id: tag.term,  
                         text: tag.term,
@@ -627,31 +620,26 @@ export default {
                     },
                     processResults: function(data, params){  // This function is called after the results are returned.
                                                              // Mainly used for modifying the items before being displayed.
-                        console.log({data})
                         return {
                             results: data.results,  // This is the array of items to be displayed
                         }
                     }
                 },
                 templateSelection: function (data) {
-                    console.log("in templateSelection()");
                     return vm.validateRegoNo(data.text);
                 },
             }).
                 on("select2:select", function (e) {
-                    console.log("in select2:select handler");
                     if (!e.params.data.selected) {
                         e.preventDefault();
                         e.stopPropagation();
                         return false;
                     }
                     let data = e.params.data;
-                    console.log({ data })
                     vm.$nextTick(async () => {
                         let max_length = 0
                         if (!data.tag) {
                             var error_status = null;
-                            console.log("fetch existing vessel");
                             // fetch draft/approved vessel
                             try {
                                 await vm.lookupVessel(data.id);
@@ -678,13 +666,10 @@ export default {
                                 await vm.parseVesselOwnershipList(res);
 
                                 const res_for_length = await vm.$http.get(`${api_endpoints.proposal}${vm.proposal.id}/get_max_vessel_length_for_aa_component?vid=${data.id}`);
-                                console.log('aa component')
-                                console.log(res_for_length.body.max_length)
                                 vm.max_vessel_length_for_aa_component = res_for_length.body.max_length
                                 
                             }
                         } else {
-                            console.log("new vessel");
                             const validatedRego = vm.validateRegoNo(data.id);
 
                             vm.vessel = Object.assign({},
@@ -704,7 +689,6 @@ export default {
                     });
                 }).
                 on("select2:unselect", function (e) {
-                    console.log("in select2:unselect handler");
                     var selected = $(e.currentTarget);
                     vm.vessel.rego_no = '';
                     vm.vessel = Object.assign({},
@@ -718,7 +702,6 @@ export default {
                         });
                 }).
                 on("select2:open", function (e) {
-                    console.log("in select2:open handler");
                     const searchField = $(".select2-search__field")
                     // move focus to select2 field
                     searchField[0].focus();
@@ -735,7 +718,6 @@ export default {
             vm.readRegoNo();
         },
         parseVesselOwnershipList: async function (res) {
-            console.log('in parseVesselOwnershipList()')
             let vm = this;
             let individualOwner = false;
             let companyOwner = false;
@@ -769,24 +751,19 @@ export default {
             });
         },
         readRegoNo: function () {
-            console.log('in readRegoNo()')
             let vm = this;
-            console.log('%cvm.vessel.rego_no: ' + vm.vessel.rego_no, 'color: #993300')
             if (vm.vessel.rego_no) {
                 var option = new Option(vm.vessel.rego_no, vm.vessel.rego_no, true, true);
                 $(vm.$refs.vessel_rego_nos).append(option).trigger('change');
-                console.log('%coption appended', 'color: #993300')
             }
         },
         fetchVesselTypes: async function () {
-            console.log('in fetchVesselTypes()')
             const response = await this.$http.get(api_endpoints.vessel_types_dict);
             for (let vessel_type of response.body) {
                 this.vesselTypes.push(vessel_type)
             }
         },
         lookupCompanyOwnership: async function (id) {
-            console.log('in lookupCompanyOwnership()')
             const url = api_endpoints.lookupCompanyOwnership(id);
             const payload = {
                 "vessel_id": this.vessel.id,
@@ -800,12 +777,11 @@ export default {
         },
 
         lookupVessel: async function (id) {
-            console.log('in looupVessel()')
             const url = api_endpoints.lookupVessel(id);
             await this.fetchReadonlyVesselCommon(url);
         },
         fetchDraftData: function () {
-            console.log('in fetchDraftData()')
+            console.log('fetchDraftData');
             this.vessel.rego_no = this.proposal.rego_no;
             this.vessel.id = this.proposal.vessel_id;
             let vessel_details = {};
@@ -820,7 +796,6 @@ export default {
             this.readOwnershipFromProposal();
         },
         readOwnershipFromProposal: function () {
-            console.log('in readOwnershipFromProposal()')
             let vessel_ownership = {};
             vessel_ownership.percentage = this.proposal.percentage;
             vessel_ownership.individual_owner = this.proposal.individual_owner;
@@ -838,8 +813,6 @@ export default {
             }
         },
         fetchReadonlyVesselCommon: async function (url) {
-            console.log('in fetchReadonlyVesselCommon()')
-            console.log({ url })
             const res = await this.$http.get(url);
             const vesselData = res.body;
             // read in vessel ownership data from Proposal if in Draft status
@@ -865,17 +838,12 @@ export default {
     mounted: function () {
         let consoleColour = 'color: #000099'
         this.$nextTick(async () => {
-            console.log('in mounted nextTick()')
             await this.fetchVesselTypes();
             
             if (this.proposal){
-                console.log('%cPerform fetchDraftData', consoleColour)
-
                 // fetches vessel data from proposal (saved as draft)
                 await this.fetchDraftData();
             } else if (!this.proposal) {
-                console.log('%cPerform fetchReadonlyVesselCommon', consoleColour)
-
                 // route.params.vessel_id in this case is a vesselownership id
                 const url = api_endpoints.lookupVesselOwnership(this.$route.params.vessel_id);
                 this.fetchReadonlyVesselCommon(url);
@@ -918,14 +886,40 @@ export default {
 
                 if (!this.proposal.rego_no && res && res.body && !res.body.vessel_ownership.end_date) {
                     try {
-                        Object.assign(this.vessel, res.body);
-                        console.log('res.body has been assigned to the this.vessel.')
+                        this.vessel.id = res.body.id;
+                        this.vessel.rego_no = res.body.rego_no;
+                        console.log(res.body)
+                        this.vessel.vessel_ownership.percentage = res.body.vessel_ownership.percentage;
+                        this.vessel.vessel_ownership.created = res.body.vessel_ownership.created;
+                        this.vessel.vessel_ownership.dot_name = res.body.vessel_ownership.dot_name;
+                        this.vessel.vessel_ownership.end_name = res.body.vessel_ownership.end_name;
+                        this.vessel.vessel_ownership.id = res.body.vessel_ownership.id;
+                        this.vessel.vessel_ownership.start_date = res.body.vessel_ownership.start_date;
+                        this.vessel.vessel_ownership.updated = res.body.vessel_ownership.updated;
+                        this.vessel.vessel_ownership.vessel = res.body.vessel_ownership.vessel;
+                        this.vessel.vessel_ownership.individual_owner = res.body.vessel_ownership.individual_owner;
+                        this.vessel.vessel_ownership.owner = res.body.vessel_ownership.owner;
+                        this.vessel.vessel_ownership.proposal_id = res.body.vessel_ownership.proposal_id;
+                        
+                        this.vessel.vessel_details.berth_mooring = res.body.vessel_details.berth_mooring;
+                        this.vessel.vessel_details.created = res.body.vessel_details.created;
+                        this.vessel.vessel_details.id = res.body.vessel_details.id;
+                        this.vessel.vessel_details.read_only = res.body.vessel_details.read_only;
+                        this.vessel.vessel_details.updated = res.body.vessel_details.updated;
+                        this.vessel.vessel_details.vessel = res.body.vessel_details.vessel;
+                        this.vessel.vessel_details.vessel_beam = res.body.vessel_details.vessel_beam;
+                        this.vessel.vessel_details.vessel_draft = res.body.vessel_details.vessel_draft;
+                        this.vessel.vessel_details.vessel_length = res.body.vessel_details.vessel_length;
+                        this.vessel.vessel_details.vessel_name = res.body.vessel_details.vessel_name;
+                        this.vessel.vessel_details.vessel_type = res.body.vessel_details.vessel_type;
+                        this.vessel.vessel_details.vessel_type_display = res.body.vessel_details.vessel_type_display;
+                        this.vessel.vessel_details.vessel_weight = res.body.vessel_details.vessel_weight;
+                        
                         const payload = {
                             id: this.vessel.id,
                             tag: false,
                             selected: true,
                         }
-                        console.log('trigger select2:select.')
                         $(vm.$refs.vessel_rego_nos).trigger({
                             type: 'select2:select',
                             params: {
