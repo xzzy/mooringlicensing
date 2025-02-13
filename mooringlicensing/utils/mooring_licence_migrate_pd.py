@@ -1291,8 +1291,8 @@ class MooringLicenceReader():
                 additional_vessels = []
                 for i in range(len(additional_ves_rows_details)):
                     try:
-                        additional_vessel = Vessel.objects.get(rego_no=additional_vessel['rego_no'])
-                        additional_vessels.append(additional_vessel)
+                        additional_vessel_row = Vessel.objects.get(rego_no=additional_vessel['rego_no'])
+                        additional_vessels.append(additional_vessel_row)
                     except Exception as e:
                         vessel_not_found.append(additional_vessel['rego_no'])
                         continue
@@ -1714,13 +1714,16 @@ class MooringLicenceReader():
                 auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no) & (self.df_authuser['user_type']!="L")].drop_duplicates(subset=['mooring_no','vessel_rego'])
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
-                    site_licensee = auth_user.licencee_approved == 'Y'
-                    moa = MooringOnApproval.objects.create(
-                        approval=approval,
-                        mooring=mooring[0],
-                        #sticker=sticker,
-                        site_licensee=site_licensee,
-                    )
+
+                    #ensure the mooring is licensed
+                    if mooring.mooring_licence:
+                        site_licensee = auth_user.licencee_approved == 'Y'
+                        moa = MooringOnApproval.objects.create(
+                            approval=approval,
+                            mooring=mooring[0],
+                            #sticker=sticker,
+                            site_licensee=site_licensee,
+                        )
 
             except Exception as e:
                 print(e)
