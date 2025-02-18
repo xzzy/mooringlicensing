@@ -2380,15 +2380,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             previous_rego_no = None
             if (self.previous_application and 
-                self.previous_application and 
                 self.previous_application.vessel_details and
                 self.previous_application.vessel_details.vessel and
                 self.previous_application.vessel_ownership and
                 not self.previous_application.vessel_ownership.end_date): #end_date means sold
                 previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
 
-            if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
-                previous_rego_no == self.vessel_details.vessel.rego_no):
+            if(previous_rego_no and
+                previous_rego_no == self.rego_no):
                 return True
         
         return False
