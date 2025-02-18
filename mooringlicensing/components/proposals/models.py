@@ -2365,7 +2365,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #however, no such check is required to determine if the vessel is being kept or not - 
         # we just need to check if the proposal's vessel registration is the same or not
 
-        if self.code == 'mla':
+        if self.application_type_code == 'mla':
             from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval            
             #account for multiple vessel ownerships
             previous_ownerships = None
@@ -2380,15 +2380,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         else:
             previous_rego_no = None
             if (self.previous_application and 
-                self.previous_application and 
                 self.previous_application.vessel_details and
                 self.previous_application.vessel_details.vessel and
                 self.previous_application.vessel_ownership and
                 not self.previous_application.vessel_ownership.end_date): #end_date means sold
                 previous_rego_no = self.previous_application.vessel_details.vessel.rego_no
 
-            if(previous_rego_no and self.vessel_details and self.vessel_details.vessel and
-                previous_rego_no == self.vessel_details.vessel.rego_no):
+            if(previous_rego_no and
+                previous_rego_no == self.rego_no):
                 return True
         
         return False
@@ -2397,7 +2396,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
         previous_ownership = None
 
-        if self.code == 'mla':
+        if self.application_type_code == 'mla':
             from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval
             #account for multiple vessel ownerships
             previous_ownerships = None
@@ -2660,11 +2659,11 @@ class WaitingListApplication(Proposal):
             self.proposal_applicant.email_user_id == request.user.id)
             ):
 
-            if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.vessel_details: 
+            if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.rego_no: 
                 self.auto_approve = True
                 self.save()
             elif (
-                (not self.vessel_on_proposal() and self.vessel_details and self.vessel_details.vessel) or 
+                (not self.vessel_on_proposal() and self.rego_no) or 
                 self.mooring_preference_changed() or 
                 self.has_higher_vessel_category() or
                 not self.vessel_moorings_compatible() or
