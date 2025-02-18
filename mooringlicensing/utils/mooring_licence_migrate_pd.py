@@ -1716,7 +1716,7 @@ class MooringLicenceReader():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
 
                     #ensure the mooring is licensed
-                    if mooring.first().mooring_licence:
+                    if mooring.exists() and mooring.first().mooring_licence:
                         site_licensee = auth_user.licencee_approved == 'Y'
                         moa = MooringOnApproval.objects.create(
                             approval=approval,
