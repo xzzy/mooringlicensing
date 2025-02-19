@@ -18,6 +18,7 @@ DISABLE_EMAIL = env('DISABLE_EMAIL', False)
 SHOW_TESTS_URL = env('SHOW_TESTS_URL', False)
 SHOW_DEBUG_TOOLBAR = env('SHOW_DEBUG_TOOLBAR', False)
 SHOW_API_ROOT = env('SHOW_API_ROOT', False)
+MAX_RENEWAL_NOTICES_PER_RUN = env('MAX_RENEWAL_NOTICES_PER_RUN', 5)
 
 #Settings for rounding application fee items
 ROUND_FEE_ITEMS = env('ROUND_FEE_ITEMS', False)
