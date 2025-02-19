@@ -23,6 +23,7 @@ from mooringlicensing.settings import (
     CODE_DAYS_FOR_RENEWAL_AUP,
     CODE_DAYS_FOR_RENEWAL_ML,
     CODE_DAYS_FOR_RENEWAL_DCVP,
+    MAX_RENEWAL_NOTICES_PER_RUN,
 )
 
 logger = logging.getLogger('cron_tasks')
@@ -32,7 +33,7 @@ cron_email = logging.getLogger('cron_email')
 class Command(BaseCommand):
     help = 'Send Approval renewal notice when approval is due to expire in X days'
 
-    def perform_per_type(self, number_of_days_code, approval_class, updates, errors):
+    def perform_per_type(self, number_of_days_code, approval_class, updates, errors, max_renewal_notices):
         today = timezone.localtime(timezone.now()).date()
 
         # Retrieve the number of days before expiry date of the approvals to email
@@ -59,7 +60,7 @@ class Command(BaseCommand):
             queries &= Q(renewal_sent=False)
             queries &= Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
-        approvals = approval_class.objects.filter(queries)
+        approvals = approval_class.objects.filter(queries).order_by('issue_date')[:max_renewal_notices]
         for a in approvals:
             try:
                 if not approval_class == DcvPermit:
@@ -89,10 +90,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         updates, errors = [], []
 
-        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_WLA, WaitingListAllocation, updates, errors)
-        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_AAP, AnnualAdmissionPermit, updates, errors)
-        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_AUP, AuthorisedUserPermit, updates, errors)
-        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_ML, MooringLicence, updates, errors)
+        max_renewal_notices = int(MAX_RENEWAL_NOTICES_PER_RUN)
+
+        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_WLA, WaitingListAllocation, updates, errors, max_renewal_notices)
+        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_AAP, AnnualAdmissionPermit, updates, errors, max_renewal_notices)
+        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_AUP, AuthorisedUserPermit, updates, errors, max_renewal_notices)
+        self.perform_per_type(CODE_DAYS_FOR_RENEWAL_ML, MooringLicence, updates, errors, max_renewal_notices)
 
         cmd_name = __name__.split('.')[-1].replace('_', ' ').upper()
         msg = construct_email_message(cmd_name, errors, updates)
