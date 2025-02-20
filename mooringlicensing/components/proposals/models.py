@@ -1601,6 +1601,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if not i.mooring:
                         raise serializers.ValidationError("Mooring does not exist")
                     
+                    if not self.vessel_length or not self.vessel_draft or not self.vessel_weight:
+                        raise serializers.ValidationError("One or more vessel dimensions are not specified")
+
                     if (self.vessel_length > i.mooring.vessel_size_limit or
                         self.vessel_draft > i.mooring.vessel_draft_limit or
                         (self.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
