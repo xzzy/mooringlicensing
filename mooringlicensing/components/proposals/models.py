@@ -2719,7 +2719,7 @@ class WaitingListApplication(Proposal):
         # Get blocking approvals
         approvals = Approval.objects.filter(
             (
-                Q(current_proposal__vessel_ownership__vessel=vessel) | 
+                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
                 Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
             ) &
             (
