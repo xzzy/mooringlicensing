@@ -1601,6 +1601,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if not i.mooring:
                         raise serializers.ValidationError("Mooring does not exist")
                     
+                    if not self.vessel_length or not self.vessel_draft or not self.vessel_weight:
+                        raise serializers.ValidationError("One or more vessel dimensions are not specified")
+
                     if (self.vessel_length > i.mooring.vessel_size_limit or
                         self.vessel_draft > i.mooring.vessel_draft_limit or
                         (self.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
@@ -2331,6 +2334,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
     
     def vessel_mooring_compatible(self, mooring):
+        if not self.vessel_length or not self.vessel_draft or not self.vessel_weight:
+            return False
         if (self.vessel_length > mooring.vessel_size_limit or
             self.vessel_draft > mooring.vessel_draft_limit or
             (mooring.vessel_weight_limit and self.vessel_weight > mooring.vessel_weight_limit)):
@@ -2714,7 +2719,7 @@ class WaitingListApplication(Proposal):
         # Get blocking approvals
         approvals = Approval.objects.filter(
             (
-                Q(current_proposal__vessel_ownership__vessel=vessel) | 
+                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
                 Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
             ) &
             (
