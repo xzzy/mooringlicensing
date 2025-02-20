@@ -2412,11 +2412,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 if previous_ownerships.exists():
                     previous_ownerships = previous_ownerships.filter(end_date=None)
 
-            if previous_ownerships and self.vessel_ownership and self.vessel_ownership.vessel:
+            if previous_ownerships:
                 #check if vo rego_no in previous_ownerships, if not return True
-                if previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_ownership.vessel.rego_no).exists:
+                if previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.rego_no).exists:
                     #otherwise set previous_owernship to the vo with the corresponding rego_no
-                    previous_ownership = previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_ownership.vessel.rego_no).last().vessel_ownership
+                    previous_ownership = previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.rego_no).last().vessel_ownership
                 else:
                     return True
 
@@ -2424,23 +2424,23 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if self.previous_application:
                 previous_ownership = self.previous_application.vessel_ownership
             
-        if previous_ownership and self.vessel_ownership:
+        if previous_ownership:
             previous_company_ownership = previous_ownership.get_latest_company_ownership()
-            company_ownership = self.vessel_ownership.get_latest_company_ownership()
+            company_name = self.company_ownership_name
+            company_percentage = self.company_ownership_percentage
+
             if previous_company_ownership:
-                if self.vessel_ownership.individual_owner:
+                if self.individual_owner:
                     return True
-                elif company_ownership:
-                    if (previous_company_ownership.company and company_ownership.company and
-                        previous_company_ownership.company.name.strip() != company_ownership.company.name.strip()
-                    ):
+                elif company_name and company_percentage:
+                    if (previous_company_ownership.company.name.strip() != company_name.strip()):
                         return True
-                    if (previous_company_ownership.percentage and company_ownership.percentage and
-                        previous_company_ownership.percentage != company_ownership.percentage
+                    if (previous_company_ownership.percentage and company_percentage and
+                        previous_company_ownership.percentage != company_percentage
                     ):
                         return True
             else: #no previous company ownership
-                if not self.vessel_ownership.individual_owner: #company ownership
+                if not self.individual_owner: #company ownership
                     return True
                 
         return False
