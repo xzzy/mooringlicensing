@@ -476,9 +476,8 @@ class FeeConstructor(models.Model):
         try:
             fee_constructor = None
             fee_constructor_qs = cls.objects.filter(application_type=application_type,)\
-                .annotate(s_date=Min("fee_season__fee_periods__start_date"))\
-                .filter(s_date__lte=target_date, enabled=True).order_by('s_date')
-
+                .filter(fee_season__fee_periods__start_date__lte=target_date, enabled=True).order_by('fee_season__fee_periods__start_date')
+            
             # Validation
             if not fee_constructor_qs:
                 raise Exception('No fees are configured for the application type: {} on the date: {}'.format(application_type, target_date))
