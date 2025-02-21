@@ -2296,6 +2296,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             vessel_exists = (True if
                 self.approval and self.approval.current_proposal and 
                 self.approval.current_proposal.vessel_details and
+                self.approval.current_proposal.vessel_ownership and
                 not self.approval.current_proposal.vessel_ownership.end_date #end_date means sold
                 else False)
         else:
