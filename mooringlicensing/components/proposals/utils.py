@@ -271,7 +271,7 @@ def save_vessel_data(instance, request, vessel_data):
     vessel_details_data = {}
     vessel_id = vessel_data.get('id')
     vessel_details_data = vessel_data.get("vessel_details")
-
+    
     # update vessel details to vessel_data
     for key in vessel_details_data.keys():
         vessel_data.update({key: vessel_details_data.get(key)})
@@ -292,7 +292,11 @@ def save_vessel_data(instance, request, vessel_data):
         vessel_data.update({key: vessel_ownership_data.get(key)})
 
     # overwrite vessel_data.id with correct value
-    if not (type(instance.child_obj) == MooringLicenceApplication and vessel_data.get('readonly')): 
+    obj = instance
+    if type(instance) == Proposal:
+        obj = instance.child_obj
+
+    if not (type(obj) == MooringLicenceApplication and vessel_data.get('readonly')): 
         serializer = SaveDraftProposalVesselSerializer(instance, vessel_data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -399,7 +403,7 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
 
         # record ownership data
         vessel_ownership = store_vessel_ownership(request, vessel, instance)
-        instance.vessel_ownership = vessel_ownership
+        instance.vessel_ownership = vessel_ownership #TODO investigate why this would ever be None
         instance.save()
 
     instance.validate_against_existing_proposals_and_approvals()

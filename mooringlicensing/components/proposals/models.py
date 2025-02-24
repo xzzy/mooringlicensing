@@ -2296,6 +2296,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             vessel_exists = (True if
                 self.approval and self.approval.current_proposal and 
                 self.approval.current_proposal.vessel_details and
+                self.approval.current_proposal.vessel_ownership and
                 not self.approval.current_proposal.vessel_ownership.end_date #end_date means sold
                 else False)
         else:
@@ -3506,6 +3507,7 @@ class AuthorisedUserApplication(Proposal):
                     send_notification_email_upon_submit_to_assessor(request, self)
 
     def update_or_create_approval(self, current_datetime, request=None):
+        from mooringlicensing.components.proposals.utils import submit_vessel_data
         logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
         # This function is called after payment success for new/amendment/renewal application
         # Manage approval
@@ -3530,6 +3532,10 @@ class AuthorisedUserApplication(Proposal):
                 self.save()
 
         elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+            if self.auto_approve and request:
+                submit_vessel_data(self, request, approving=True)
+                self.refresh_from_db()
+
             # When amendment application
             approval = self.approval.child_obj
             approval.current_proposal = self
@@ -3539,6 +3545,10 @@ class AuthorisedUserApplication(Proposal):
             approval.submitter = self.submitter
             approval.save()
         elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+            if self.auto_approve and request:
+                submit_vessel_data(self, request, approving=True)
+                self.refresh_from_db()
+
             # When renewal application
             approval = self.approval.child_obj
             approval.current_proposal = self
@@ -4063,6 +4073,7 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'Status: [{self.processing_status}] has been set to the proposal: [{self}].')
 
     def update_or_create_approval(self, current_datetime, request=None):
+        from mooringlicensing.components.proposals.utils import submit_vessel_data
         logger.info(f'Updating/Creating Mooring Site Licence from the application: [{self}]...')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
@@ -4084,6 +4095,11 @@ class MooringLicenceApplication(Proposal):
                 approval.current_proposal=self
                 approval.issue_date = current_datetime
                 approval.start_date = current_datetime.date()
+
+                if self.auto_approve and request:
+                    submit_vessel_data(self, request, approving=True)
+                    self.refresh_from_db()
+
                 if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                     # When renewal, we have to update the expiry_date of the approval
                     approval.expiry_date = self.end_date
