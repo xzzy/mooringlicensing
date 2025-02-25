@@ -1291,10 +1291,10 @@ class MooringLicenceReader():
                 additional_vessels = []
                 for i in range(len(additional_ves_rows_details)):
                     try:
-                        additional_vessel_row = Vessel.objects.get(rego_no=additional_vessel['rego_no'])
+                        additional_vessel_row = Vessel.objects.get(rego_no=additional_ves_rows_details[i]['rego_no'])
                         additional_vessels.append(additional_vessel_row)
                     except Exception as e:
-                        vessel_not_found.append(additional_vessel['rego_no'])
+                        vessel_not_found.append(additional_vessel[i]['rego_no'])
                         continue
 
                 vessel_ownership = VesselOwnership.objects.filter(owner=owner, vessel=vessel).order_by("-created").first()
