@@ -25,6 +25,7 @@ from mooringlicensing.components.approvals.models import (
     WaitingListAllocation,
     Sticker,
     MooringLicence,
+    AnnualAdmissionPermit,
     AuthorisedUserPermit, StickerActionDetail, 
     ApprovalHistory, MooringOnApproval,
 )
@@ -808,6 +809,10 @@ class ListApprovalSerializer(serializers.ModelSerializer):
                 if moa.sticker:
                     sticker_ids.append(moa.sticker.id)
             stickers = Sticker.objects.filter(id__in=sticker_ids)
+        
+        if stickers.exists() and type(obj.child_obj) == AnnualAdmissionPermit:
+            #Annual Admissions can only have one sticker at a time, if multiple returned present only the last
+            stickers = stickers.order_by('-id')[:1]
 
         serializers = StickerSerializerSimple(stickers, many=True)
         list_return = serializers.data
