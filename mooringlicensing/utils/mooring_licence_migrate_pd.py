@@ -1543,7 +1543,7 @@ class MooringLicenceReader():
                     errors.append("Rego No " + str(rego_no) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
 
-                if not (row['first_name_u']):
+                if not (row['first_name_u']) or row['pers_no_l'] == row['pers_no_u']:
                     # This record represents Mooring Licence Holder - No need for an Auth User Permit
                     continue
                 
