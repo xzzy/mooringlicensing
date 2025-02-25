@@ -1543,7 +1543,7 @@ class MooringLicenceReader():
                     errors.append("Rego No " + str(rego_no) + ": Licensee with email " + str(email_l.lower()) + " does not exist") 
                     continue
 
-                if not (row['first_name_u']) or row['pers_no_l'] == row['pers_no_u']:
+                if not (row['first_name_u']):
                     # This record represents Mooring Licence Holder - No need for an Auth User Permit
                     continue
                 
@@ -1711,7 +1711,7 @@ class MooringLicenceReader():
                 #        postal_address_postcode=proposal_applicant.postal_address_postcode,
                 #    )
 
-                auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no) & (self.df_authuser['user_type']!="L")].drop_duplicates(subset=['mooring_no','vessel_rego'])
+                auth_user_moorings = self.df_authuser[(self.df_authuser['vessel_rego']==rego_no) & (self.df_authuser['user_type']!="L") & (self.df_authuser['pers_no_l']!=self.df_authuser['pers_no_u'])].drop_duplicates(subset=['mooring_no','vessel_rego'])
                 for idx, auth_user in auth_user_moorings.iterrows():
                     mooring = Mooring.objects.filter(name=auth_user.mooring_no)
 
