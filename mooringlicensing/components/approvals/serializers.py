@@ -1081,7 +1081,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
             raise
 
     def get_submitter_phone_number(self, obj):
-        return obj.submitter_obj.mobile_number if obj.submitter_obj.mobile_number else obj.submitter_obj.phone_number
+        return obj.proposal_applicant.mobile_number if obj.proposal_applicant.mobile_number else obj.proposal_applicant.phone_number
 
     def get_vessel_data(self, obj):
         vessel_data = []
