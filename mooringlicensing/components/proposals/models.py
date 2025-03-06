@@ -3884,9 +3884,11 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'FeeConstructor (for main component(ML)): [{fee_constructor_for_ml}] has been retrieved for calculation.')
         logger.info(f'FeeConstructor (for AA component): [{fee_constructor_for_aa}] has been retrieved for calculation.')
 
-        vessel_detais_list_to_be_processed = [self.vessel_details,]
+        vessel_detais_list_to_be_processed = []
         vessel_details_largest = self.vessel_details  # As a default value
         
+        #TODO determine why largest vessel not being used for fee line
+
         if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # Only when 'Renewal' application, we are interested in the existing vessels
             vessel_list = self.approval.child_obj.vessel_list_for_payment
@@ -3903,7 +3905,10 @@ class MooringLicenceApplication(Proposal):
 
         # For Mooring Licence component
         if self.vessel_length:
-            vessel_length = self.vessel_length
+            if self.vessel_length > vessel_details_largest.vessel_applicable_length:
+                vessel_length = self.vessel_length
+            else:
+                vessel_length = vessel_details_largest.vessel_applicable_length
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
