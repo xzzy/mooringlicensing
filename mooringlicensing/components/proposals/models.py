@@ -2371,19 +2371,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #however, no such check is required to determine if the vessel is being kept or not - 
         # we just need to check if the proposal's vessel registration is the same or not
 
-        if self.application_type_code == 'mla':
-            from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval            
-            #account for multiple vessel ownerships
-            previous_ownerships = None
-            approval = None
-            if self.previous_application:
-                approval = self.previous_application.approval
-                previous_ownerships = VesselOwnershipOnApproval.objects.filter(approval=approval).order_by('vessel_ownership__vessel','vessel_ownership__created','vessel_ownership__id').distinct('vessel_ownership__vessel')
-                if previous_ownerships.exists():
-                    previous_ownerships = previous_ownerships.filter(end_date=None)
-                if self.vessel_details and self.vessel_details.vessel and self.vessel_details.vessel.rego_no and previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.vessel_details.vessel.rego_no).exists():
-                    return True
-        else:
+        if self.application_type_code != 'mla':
             previous_rego_no = None
             if (self.previous_application and 
                 self.previous_application.vessel_details and
@@ -2415,7 +2403,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
             if previous_ownerships:
                 #check if vo rego_no in previous_ownerships, if not return True
-                if previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.rego_no).exists:
+                if not self.rego_no: #if no rego no has been provided, then no vessel has changed
+                    return False
+                if previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.rego_no).exists():
                     #otherwise set previous_owernship to the vo with the corresponding rego_no
                     previous_ownership = previous_ownerships.filter(vessel_ownership__vessel__rego_no=self.rego_no).last().vessel_ownership
                 else:
@@ -3885,18 +3875,18 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'FeeConstructor (for AA component): [{fee_constructor_for_aa}] has been retrieved for calculation.')
 
         vessel_detais_list_to_be_processed = []
-        vessel_details_largest = self.vessel_details  # As a default value
+        vessel_details_largest = None  # As a default value
         
-        #TODO determine why largest vessel not being used for fee line
-
         if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # Only when 'Renewal' application, we are interested in the existing vessels
             vessel_list = self.approval.child_obj.vessel_list_for_payment
             for vessel in vessel_list:
-                if vessel != self.vessel_details.vessel:
-                    vessel_detais_list_to_be_processed.append(vessel.latest_vessel_details)
+                vessel_detais_list_to_be_processed.append(vessel.latest_vessel_details)
+                if vessel_details_largest:
                     if vessel_details_largest.vessel_applicable_length < vessel.latest_vessel_details.vessel_applicable_length:
                         vessel_details_largest = vessel.latest_vessel_details
+                else:
+                    vessel_details_largest = vessel.latest_vessel_details
 
         line_items = []  # Store all the line items
         fee_items_to_store = []  # Store all the fee_items
@@ -4041,7 +4031,6 @@ class MooringLicenceApplication(Proposal):
                 if (not self.vessel_on_proposal() or
                     not self.vessel_moorings_compatible(request) or
                     self.has_higher_vessel_category() or
-                    not self.keeping_current_vessel() or
                     self.vessel_ownership_changed()
                     ):
                     self.auto_approve = False
