@@ -3895,10 +3895,13 @@ class MooringLicenceApplication(Proposal):
 
         # For Mooring Licence component
         if self.vessel_length:
-            if self.vessel_length > vessel_details_largest.vessel_applicable_length:
-                vessel_length = self.vessel_length
+            if vessel_details_largest:
+                if self.vessel_length > vessel_details_largest.vessel_applicable_length:
+                    vessel_length = self.vessel_length
+                else:
+                    vessel_length = vessel_details_largest.vessel_applicable_length
             else:
-                vessel_length = vessel_details_largest.vessel_applicable_length
+                vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
@@ -3920,12 +3923,20 @@ class MooringLicenceApplication(Proposal):
         fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
         logger.info(f'Fee amount adjusted (for main component(ML)) to be paid: ${fee_amount_adjusted}')
 
-        fee_items_to_store.append({
-            'fee_item_id': fee_item.id,
-            'vessel_details_id': vessel_details_largest.id if vessel_details_largest else '',
-            'fee_amount_adjusted': str(fee_amount_adjusted),
-        })
-        line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime, vessel_details_largest.vessel.rego_no))
+        if vessel_details_largest:
+            fee_items_to_store.append({
+                'fee_item_id': fee_item.id,
+                'vessel_details_id': vessel_details_largest.id if vessel_details_largest else '',
+                'fee_amount_adjusted': str(fee_amount_adjusted),
+            })
+            line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime, vessel_details_largest.vessel.rego_no))
+        else: #if there is no vessel_details_largest then use the provided proposal details
+            fee_items_to_store.append({
+                'fee_item_id': fee_item.id,
+                'vessel_details_id': '',
+                'fee_amount_adjusted': str(fee_amount_adjusted),
+            })
+            line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime, self.rego_no))
 
         # For Annual Admission component
         for vessel_details in vessel_detais_list_to_be_processed:
