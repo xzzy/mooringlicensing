@@ -1920,7 +1920,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             for item in fee_items_to_store:
                                 fee_item = FeeItem.objects.get(id=item['fee_item_id'])
                                 vessel_details_id = item['vessel_details_id']  # This could be '' when null vessel application
-                                vessel_details = VesselDetails.objects.get(id=vessel_details_id) if vessel_details_id else None
+                                vessel_details = None
+                                if vessel_details_id:
+                                    vessel_details = VesselDetails.objects.get(id=vessel_details_id)
                                 amount_to_be_paid = item['fee_amount_adjusted']
                                 fiaf = FeeItemApplicationFee.objects.create(
                                     fee_item=fee_item,
@@ -3960,7 +3962,7 @@ class MooringLicenceApplication(Proposal):
                 })
                 line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
         else: #only one vessel to process on the application, not a renewal
-            vessel_details_qs = Vessel.objects.filter(rego_no=self.rego_no).order_by('id')
+            vessel_details_qs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no).order_by('id')
             vessel_details = None
             if vessel_details_qs.exists():
                 vessel_details = vessel_details_qs.last()
@@ -3979,9 +3981,10 @@ class MooringLicenceApplication(Proposal):
                 'vessel_details_id': vessel_details.id if vessel_details else '',
                 'fee_amount_adjusted': str(fee_amount_adjusted_additional),
             })
-            line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
+            line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
 
         logger.info(f'line_items calculated: {line_items}')
+        logger.info(f'fee_items_to_store: {fee_items_to_store}')
 
         self.fee_season = fee_constructor_for_ml.fee_season
         self.save()
