@@ -294,7 +294,7 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
                 q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__current_proposal__submitter__in=system_user_ids))
-                q_set.annotate(lodgement_number="lodgement_number")
+                
                 queryset = super_queryset.union(q_set)
 
             total_count = queryset.count()
