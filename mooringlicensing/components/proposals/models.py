@@ -3565,8 +3565,9 @@ class AuthorisedUserApplication(Proposal):
                 approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
             else:
                 for moa in self.proposed_issuance_approval.get('requested_mooring_on_approval'):
-                    requested_mooring = Mooring.objects.get(id=moa.get("id"))
-                    approval.add_mooring(mooring=requested_mooring, site_licensee=True)
+                    if moa.get("checked"):
+                        requested_mooring = Mooring.objects.get(id=moa.get("id"))
+                        approval.add_mooring(mooring=requested_mooring, site_licensee=True)
             # updating checkboxes
             for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
                 for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
