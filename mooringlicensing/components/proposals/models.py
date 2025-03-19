@@ -4955,18 +4955,6 @@ class VesselOwnership(RevisionedMixin):
         if existing_record:
             prev_end_date = VesselOwnership.objects.get(id=self.id).end_date
         super(VesselOwnership, self).save(*args,**kwargs)
-        ## Reissue associated ML and AUPs if end-dated
-        if existing_record and not prev_end_date and self.end_date:
-            aup_set = AuthorisedUserPermit.objects.filter(current_proposal__vessel_ownership=self)
-            for aup in aup_set:
-                if aup.status == 'current':
-                    aup.internal_reissue()
-            ## ML
-            proposal_set = self.proposal_set.all()
-            for proposal in proposal_set:
-                if proposal.approval and type(proposal.approval) == MooringLicence and proposal.approval.status == 'current':
-                    proposal.approval.internal_reissue()
-
 
 class VesselRegistrationDocument(Document):
     @staticmethod
