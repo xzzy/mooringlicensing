@@ -957,6 +957,13 @@ def get_file_content_http_response(file_path):
         response['Content-Disposition'] = 'inline;filename={}'.format(f_name)
         return response
     
+def get_vessel_length_category(target_date, vessel_length, proposal_type, application_type):
+    from mooringlicensing.components.payments_ml.models import FeeConstructor
+    
+    fee_constructor = FeeConstructor.get_fee_constructor_by_application_type_and_date(application_type, target_date)
+    fee_item = fee_constructor.get_fee_item(vessel_length, proposal_type, target_date)
+
+    return fee_item.id
 
 def get_max_vessel_length_for_main_component(proposal):
     #get the max vessel allowed before payment change is required

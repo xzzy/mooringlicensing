@@ -2123,10 +2123,7 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
             sale_date = request.data.get('sale_date')
 
             logger.info(f'Recording vessel sale of the vessel_ownership: [{instance}] with the sale_date: {sale_date}')
-            print("\n\n\n\n\n",instance)
             if sale_date:
-                print(sale_date)
-                print(instance.end_date)
                 if not instance.end_date:
                     # proposals with instance copied to listed_vessels
                     for proposal in instance.listed_on_proposals.all():
@@ -2140,8 +2137,6 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                                     "You cannot record the sale of this vessel at this time as application {} that lists this vessel is still in progress.".format(proposal.lodgement_number)
                                     )
 
-                print("\n\n\n???\n\n")
-
                 ## setting the end_date "removes" the vessel from current Approval records
                 serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
                 serializer.is_valid(raise_exception=True)
@@ -2149,7 +2144,6 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                 logger.info(f'Vessel sold: VesselOwnership: [{instance}] has been updated with the end_date: [{sale_date}].')
 
                 instance.refresh_from_db()
-                print("???\n\n\n\n",instance.end_date)
 
                 ## collect impacted Approvals
                 approval_list = []
