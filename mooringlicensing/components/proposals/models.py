@@ -2335,7 +2335,37 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 not max_vessel_length_with_no_payment[1])):
                 return True
         return False
-    
+
+    #check if the provided vessel on the proposal (by rego no) is in different length category (for the application) to an existing instance of that same vessel
+    def has_different_vessel_category(self):
+        from mooringlicensing.components.proposals.utils import get_vessel_length_category
+
+        if not self.rego_no:
+            return False
+        
+        vdqs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no)
+        if not vdqs.exists():
+            return False
+        else:
+            vessel_details = vdqs.last()
+            if vessel_details.vessel_length == self.vessel_length:
+                return False
+            current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+            current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
+            target_date = self.get_target_date(current_datetime.date())
+            #category of application
+            print(self.does_accept_null_vessel)
+            new_category = get_vessel_length_category(target_date, self.vessel_length, self.proposal_type, self.application_type)
+            #category of existing vessel (using params of application aside from the actual vessel_length)
+            #we use the category of the current application because different applications types have their own ranges - we want to check the classification of the length of each vessel on the same terms
+            #(different dates and proposal types should have consistent length ranges anyway, which is what we are concerned with)
+            old_category = get_vessel_length_category(target_date, vessel_details.vessel_length, self.proposal_type, self.application_type)
+            
+            if old_category != new_category:
+                return True
+            else:
+                return False
+
     def vessel_mooring_compatible(self, mooring):
         if not self.vessel_length or not self.vessel_draft or not self.vessel_weight:
             return False
@@ -2664,6 +2694,7 @@ class WaitingListApplication(Proposal):
                 (not self.vessel_on_proposal() and self.rego_no) or 
                 self.mooring_preference_changed() or 
                 self.has_higher_vessel_category() or
+                self.has_different_vessel_category() or
                 not self.vessel_moorings_compatible() or
                 not self.keeping_current_vessel() or
                 self.vessel_ownership_changed()
@@ -3464,6 +3495,7 @@ class AuthorisedUserApplication(Proposal):
                     self.mooring_changed(request) or
                     not self.vessel_moorings_compatible(request) or
                     self.has_higher_vessel_category() or
+                    self.has_different_vessel_category() or
                     not self.keeping_current_vessel() or
                     self.vessel_ownership_changed()
                     ):
@@ -4068,6 +4100,7 @@ class MooringLicenceApplication(Proposal):
                 if (not self.vessel_on_proposal() or
                     not self.vessel_moorings_compatible(request) or
                     self.has_higher_vessel_category() or
+                    self.has_different_vessel_category() or
                     self.vessel_ownership_changed()
                     ):
                     self.auto_approve = False
