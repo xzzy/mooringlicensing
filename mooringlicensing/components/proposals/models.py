@@ -2354,7 +2354,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
             target_date = self.get_target_date(current_datetime.date())
             #category of application
-            print(self.does_accept_null_vessel)
             new_category = get_vessel_length_category(target_date, self.vessel_length, self.proposal_type, self.application_type)
             #category of existing vessel (using params of application aside from the actual vessel_length)
             #we use the category of the current application because different applications types have their own ranges - we want to check the classification of the length of each vessel on the same terms
