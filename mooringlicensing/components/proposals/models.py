@@ -3974,11 +3974,15 @@ class MooringLicenceApplication(Proposal):
 
         # For Annual Admission component
         if vessel_detais_list_to_be_processed:
+            submitted_vessel_processed = False
             for vessel_details in vessel_detais_list_to_be_processed:
                 # Annual admission fee is applied to each vessel.
                 if not vessel_details:
                     continue  # When the application was submitted with null-vessel and there are no existing vessels, process reaches this line.
                 vessel_length = vessel_details.vessel_applicable_length
+                if self.rego_no == vessel_details.vessel.rego_no:
+                    submitted_vessel_processed = True
+                    vessel_length = self.vessel_length
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
                 logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
                 # Check if there is already an AA component paid for this vessel
@@ -3993,6 +3997,19 @@ class MooringLicenceApplication(Proposal):
                     'fee_amount_adjusted': str(fee_amount_adjusted_additional),
                 })
                 line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
+            #for when a new vessel is submitted on a renewal
+            if not submitted_vessel_processed:
+                vessel_length = self.vessel_length
+                fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
+                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, 0)
+                fee_items_to_store.append({
+                    'fee_item_id': fee_item_for_aa.id,
+                    'vessel_details_id': '',
+                    'fee_amount_adjusted': str(fee_amount_adjusted_additional),
+                })
+                line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
+
         else: #only one vessel to process on the application, not a renewal
             vessel_details_qs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no).order_by('id')
             vessel_details = None
