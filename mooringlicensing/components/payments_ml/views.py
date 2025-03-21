@@ -451,7 +451,7 @@ class ApplicationFeeView(TemplateView):
         try:
             with transaction.atomic():
                 try:
-                    lines, db_processes_after_success = proposal.child_obj.create_fee_lines()  # Accessed by WL and AA
+                    lines, db_processes_after_success = proposal.child_obj.create_fee_lines()  # Accessed by WL and AA (and auto-approved MLs)
                 except Exception as e:
                     self.template_name = 'mooringlicensing/payments_ml/fee_calculation_error.html'
                     context = {

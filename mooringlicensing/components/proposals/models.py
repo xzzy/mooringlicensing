@@ -1614,9 +1614,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 
                 if self.application_type.code == "mla":
                     mooring = self.allocated_mooring
-                    if (self.vessel_length > mooring.vessel_size_limit or
-                        self.vessel_draft > mooring.vessel_draft_limit or
-                        (self.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
+                    if ((self.vessel_length and self.vessel_length > mooring.vessel_size_limit) or
+                        (self.vessel_draft and self.vessel_draft > mooring.vessel_draft_limit) or
+                        (self.vessel_weight and self.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Proposed vessel dimensions are not compatible with the mooring")
 
                 self.proposed_issuance_approval = {
@@ -3360,30 +3360,39 @@ class AuthorisedUserApplication(Proposal):
 
         # There is also annual admission fee component for the AUA/MLA if needed.
         ml_exists_for_this_vessel = False
-        application_has_vessel = True if self.vessel_details else False
+        application_has_vessel = True if self.vessel_details or self.rego_no else False
+
+        vessel_details = self.vessel_details if self.vessel_details else None
+
+        if not vessel_details:
+            vd_qs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no).order_by('-id')
+            if vd_qs.exists():
+                vessel_details = vd_qs.first()
+                vessel_details.vessel_length = self.vessel_length
 
         if application_has_vessel:
-            # When there is a vessel in this application
-            current_approvals_dict = self.vessel_details.vessel.get_current_approvals(target_date)
-            for key, approvals in current_approvals_dict.items():
-                if key == 'mls' and approvals.count():
-                    ml_exists_for_this_vessel = True
+            print("\n\n\nvessel_details",vessel_details)
+            if vessel_details:
+                # When there is a vessel in this application
+                current_approvals_dict = vessel_details.vessel.get_current_approvals(target_date)
+                for key, approvals in current_approvals_dict.items():
+                    if key == 'mls' and approvals.count():
+                        ml_exists_for_this_vessel = True
 
-            if ml_exists_for_this_vessel:
-                logger.info(f'ML for the vessel: {self.vessel_details.vessel} exists. No charges for the AUP: {self}')
+                if ml_exists_for_this_vessel:
+                    logger.info(f'ML for the vessel: {vessel_details.vessel} exists. No charges for the AUP: {self}')
 
-                # When there is 'current' ML, no charge for the AUP
-                # But before leaving here, we want to store the fee_season under this application the user is applying for.
-                self.fee_season = fee_constructor.fee_season
-                self.save()
+                    # When there is 'current' ML, no charge for the AUP
+                    # But before leaving here, we want to store the fee_season under this application the user is applying for.
+                    self.fee_season = fee_constructor.fee_season
+                    self.save()
 
-                logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
-                fee_lines = [generate_line_item(self.application_type, 0, fee_constructor, self, current_datetime),]
+                    logger.info(f'FeeSeason: {fee_constructor.fee_season} is saved under the proposal: {self}')
+                    fee_lines = [generate_line_item(self.application_type, 0, fee_constructor, self, current_datetime),]
 
-                return fee_lines, {}  # no line items, no db process
-            else:
-                logger.info(f'ML for the vessel: {self.vessel_details.vessel} does not exist.')
-
+                    return fee_lines, {}  # no line items, no db process
+                else:
+                    logger.info(f'ML for the vessel: {vessel_details.vessel} does not exist.')
         else:
             # Null vessel application
             logger.info(f'This is null vessel application')
@@ -3401,26 +3410,39 @@ class AuthorisedUserApplication(Proposal):
 
         fee_items_to_store.append({
             'fee_item_id': fee_item.id,
-            'vessel_details_id': self.vessel_details.id if self.vessel_details else '',
+            'vessel_details_id': vessel_details.id if vessel_details else '',
             'fee_amount_adjusted': str(fee_amount_adjusted),
         })
         line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor, self, current_datetime))
 
         if application_has_vessel:
-            # When the application has a vessel, user have to pay for the AA component, too.
-            max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, self.vessel_details.vessel)
-            logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
-            fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
-            logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-            fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
-            logger.info(f'Fee amount adjusted (for AA component) to be paid: ${fee_amount_adjusted_additional}')
+            if vessel_details:
+                # When the application has a vessel, user have to pay for the AA component, too.
+                max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
+                logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
+                fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
+                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+                logger.info(f'Fee amount adjusted (for AA component) to be paid: ${fee_amount_adjusted_additional}')
 
-            fee_items_to_store.append({
-                'fee_item_id': fee_item_for_aa.id,
-                'vessel_details_id': self.vessel_details.id if self.vessel_details else '',
-                'fee_amount_adjusted': str(fee_amount_adjusted_additional),
-            })
-            line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime))
+                fee_items_to_store.append({
+                    'fee_item_id': fee_item_for_aa.id,
+                    'vessel_details_id': vessel_details.id if vessel_details else '',
+                    'fee_amount_adjusted': str(fee_amount_adjusted_additional),
+                })
+                line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime))
+            else:
+                fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
+                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, 0)
+                logger.info(f'Fee amount adjusted (for AA component) to be paid: ${fee_amount_adjusted_additional}')
+
+                fee_items_to_store.append({
+                    'fee_item_id': fee_item_for_aa.id,
+                    'vessel_details_id': '',
+                    'fee_amount_adjusted': str(fee_amount_adjusted_additional),
+                })
+                line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime))
 
         logger.info(f'line_items calculated: {line_items}')
 
@@ -3974,11 +3996,15 @@ class MooringLicenceApplication(Proposal):
 
         # For Annual Admission component
         if vessel_detais_list_to_be_processed:
+            submitted_vessel_processed = False
             for vessel_details in vessel_detais_list_to_be_processed:
                 # Annual admission fee is applied to each vessel.
                 if not vessel_details:
                     continue  # When the application was submitted with null-vessel and there are no existing vessels, process reaches this line.
                 vessel_length = vessel_details.vessel_applicable_length
+                if self.rego_no == vessel_details.vessel.rego_no:
+                    submitted_vessel_processed = True
+                    vessel_length = self.vessel_length
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
                 logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
                 # Check if there is already an AA component paid for this vessel
@@ -3993,6 +4019,19 @@ class MooringLicenceApplication(Proposal):
                     'fee_amount_adjusted': str(fee_amount_adjusted_additional),
                 })
                 line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
+            #for when a new vessel is submitted on a renewal
+            if not submitted_vessel_processed:
+                vessel_length = self.vessel_length
+                fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
+                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, 0)
+                fee_items_to_store.append({
+                    'fee_item_id': fee_item_for_aa.id,
+                    'vessel_details_id': '',
+                    'fee_amount_adjusted': str(fee_amount_adjusted_additional),
+                })
+                line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
+
         else: #only one vessel to process on the application, not a renewal
             vessel_details_qs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no).order_by('id')
             vessel_details = None
@@ -4003,17 +4042,18 @@ class MooringLicenceApplication(Proposal):
                 max_amount_paid = 0
             logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
             # Check if there is already an AA component paid for this vessel
-            fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
-            logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-            fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
-            logger.info(f'Fee amount adjusted (for AA component): ${fee_amount_adjusted_additional}')
+            if vessel_length > 0:
+                fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
+                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+                logger.info(f'Fee amount adjusted (for AA component): ${fee_amount_adjusted_additional}')
 
-            fee_items_to_store.append({
-                'fee_item_id': fee_item_for_aa.id,
-                'vessel_details_id': vessel_details.id if vessel_details else '',
-                'fee_amount_adjusted': str(fee_amount_adjusted_additional),
-            })
-            line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
+                fee_items_to_store.append({
+                    'fee_item_id': fee_item_for_aa.id,
+                    'vessel_details_id': vessel_details.id if vessel_details else '',
+                    'fee_amount_adjusted': str(fee_amount_adjusted_additional),
+                })
+                line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
 
         logger.info(f'line_items calculated: {line_items}')
         logger.info(f'fee_items_to_store: {fee_items_to_store}')
