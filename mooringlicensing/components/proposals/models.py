@@ -1614,9 +1614,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 
                 if self.application_type.code == "mla":
                     mooring = self.allocated_mooring
-                    if (self.vessel_length > mooring.vessel_size_limit or
-                        self.vessel_draft > mooring.vessel_draft_limit or
-                        (self.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
+                    if ((self.vessel_length and self.vessel_length > mooring.vessel_size_limit) or
+                        (self.vessel_draft and self.vessel_draft > mooring.vessel_draft_limit) or
+                        (self.vessel_weight and self.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Proposed vessel dimensions are not compatible with the mooring")
 
                 self.proposed_issuance_approval = {
@@ -4020,17 +4020,18 @@ class MooringLicenceApplication(Proposal):
                 max_amount_paid = 0
             logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
             # Check if there is already an AA component paid for this vessel
-            fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
-            logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-            fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
-            logger.info(f'Fee amount adjusted (for AA component): ${fee_amount_adjusted_additional}')
+            if vessel_length > 0:
+                fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
+                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+                logger.info(f'Fee amount adjusted (for AA component): ${fee_amount_adjusted_additional}')
 
-            fee_items_to_store.append({
-                'fee_item_id': fee_item_for_aa.id,
-                'vessel_details_id': vessel_details.id if vessel_details else '',
-                'fee_amount_adjusted': str(fee_amount_adjusted_additional),
-            })
-            line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
+                fee_items_to_store.append({
+                    'fee_item_id': fee_item_for_aa.id,
+                    'vessel_details_id': vessel_details.id if vessel_details else '',
+                    'fee_amount_adjusted': str(fee_amount_adjusted_additional),
+                })
+                line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, self.rego_no))
 
         logger.info(f'line_items calculated: {line_items}')
         logger.info(f'fee_items_to_store: {fee_items_to_store}')
