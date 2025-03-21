@@ -1226,6 +1226,24 @@ class WaitingListAllocation(Approval):
         end_date = None
         if self.current_proposal and self.current_proposal.vessel_ownership and self.current_proposal.vessel_ownership.end_date:
             end_date = self.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
+        elif not self.current_proposal.vessel_ownership:
+            #if the current proposal does not have a vessel ownership, get previous applications
+            checking = True
+            current_proposal = self.current_proposal
+            checked_ids = [] #just in case there is a circular relation
+            while checking:
+                if current_proposal.vessel_ownership or not current_proposal.previous_application:
+                    if not current_proposal.vessel_ownership:
+                        return None
+                    checking = False
+                if checking:
+                    checked_ids.append(current_proposal.id)
+                    current_proposal = current_proposal.previous_application
+                    if current_proposal.id in checked_ids:
+                        break
+                    if current_proposal.vessel_ownership and current_proposal.vessel_ownership.end_date:
+                        end_date = current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
+
         return end_date
 
     def get_context_for_licence_permit(self):
