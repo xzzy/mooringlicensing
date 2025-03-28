@@ -660,44 +660,13 @@ class FeeItem(models.Model):
             logger.info(f'Absolute amount calculated: $[{self.amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
             return self.amount
         else:
-            # This self.amount is the incremental amount.  Therefore the absolute amount must be calculated based on the fee_item of one smaller vessel size category
+            # This self.amount is the incremental amount.
             vessel_size = float(vessel_size)
-            smaller_vessel_size_category = self.vessel_size_category.get_one_smaller_category()
-            if smaller_vessel_size_category:
-                # There is a smaller vessel size category of this incremental fee item.
-                # Absolute amount of this fee item is calculated by adding the incremental amount per meter to the absolute amount of the previous fee item.
-                if not self.fee_constructor:
-                    raise Exception('FeeConstructor for FeeItem for fee_period: {}, vessel_size_category: {}, proposal_type: {} not found.'.format(self.fee_period, self.vessel_size_category, self.proposal_type))
+            number_of_increment = ceil(vessel_size - 0.00)
 
-                smaller_fee_item = self.fee_constructor.feeitem_set.filter(fee_period=self.fee_period, proposal_type=self.proposal_type, vessel_size_category=smaller_vessel_size_category)
-                if smaller_fee_item.count() == 1:
-                    smaller_fee_item = smaller_fee_item.first()
-                    diff = vessel_size - float(self.vessel_size_category.start_size)
-                    number_of_increment = ceil(diff)
-                    if diff.is_integer() and self.vessel_size_category.include_start_size:
-                        # In this case, 'vessel_size' is at the first step of this fee_item object.
-                        number_of_increment += 1
-                    absolute_amount = smaller_fee_item.get_absolute_amount(self.vessel_size_category.start_size) + number_of_increment * self.amount
-                    logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
-                    return absolute_amount
-                else:
-                    # Should not reach here
-                    raise Exception('FeeItem object not found in the FeeConstructor: {} for {}, {} and {}'.format(self.fee_constructor, self.fee_period, self.proposal_type, smaller_vessel_size_category))
-            else:
-                # This fee_item is for the smallest vessel size category and also incremental fee item
-                # Because of this is the smallest fee item, absolute amount is calculated from the size 0 meter, not the start size of this item.
-
-                calculate_from_zero_meter = True
-                if calculate_from_zero_meter:
-                    # Calculate from 0.00 meter
-                    number_of_increment = ceil(vessel_size - 0.00)
-                else:
-                    # Calculate from the start size of this fee item
-                    number_of_increment = ceil(vessel_size - float(self.vessel_size_category.start_size))
-
-                absolute_amount = self.amount * number_of_increment
-                logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
-                return absolute_amount
+            absolute_amount = self.amount * number_of_increment
+            logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
+            return absolute_amount
 
     @property
     def is_editable(self):
