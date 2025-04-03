@@ -16,6 +16,20 @@ private_storage = FileSystemStorage(  # We want to store files in secure place (
     base_url=settings.PRIVATE_MEDIA_BASE_URL,
 )
 
+class SanitiseMixin(models.Model):
+    """
+    Sanitise models fields
+    """
+
+    def save(self, **kwargs):
+        from mooringlicensing.components.main.utils import sanitise_fields
+        #sanitise
+        self = sanitise_fields(self)
+        super(SanitiseMixin, self).save(**kwargs)
+
+    class Meta:
+        abstract = True
+
 class UserAction(models.Model):
     who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
@@ -36,7 +50,7 @@ class UserAction(models.Model):
         app_label = 'mooringlicensing'
 
 
-class CommunicationsLogEntry(models.Model):
+class CommunicationsLogEntry(SanitiseMixin):
     TYPE_CHOICES = [
         ('email', 'Email'),
         ('phone', 'Phone Call'),
@@ -68,7 +82,7 @@ class CommunicationsLogEntry(models.Model):
         app_label = 'mooringlicensing'
 
 
-class Document(models.Model):
+class Document(SanitiseMixin):
     name = models.CharField(max_length=255, blank=True, verbose_name='name', help_text='')
     description = models.TextField(blank=True, verbose_name='description', help_text='')
     uploaded_date = models.DateTimeField(auto_now_add=True)
@@ -212,7 +226,7 @@ def update_electoral_roll_doc_filename(instance, filename):
     return '{}/emailusers/{}/documents/{}'.format(settings.MEDIA_APP_DIR, instance.emailuser.id,filename)
 
 
-class RevisionedMixin(models.Model):
+class RevisionedMixin(SanitiseMixin):
     """
     A model tracked by reversion through the save method.
     """

@@ -4,6 +4,7 @@ from io import BytesIO
 from ledger_api_client.settings_base import TIME_ZONE
 from django.utils import timezone
 from confy import env
+import re
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -633,3 +634,18 @@ def reorder_wla(target_bay):
         w.save()
         logger.info(f'Allocation order: [{w.wla_order}] has been set to the WaitingListAllocation: [{w}].')
         place += 1
+
+def remove_html_tags(text):
+    HTML_TAGS_WRAPPED = re.compile(r'<[^>]+>.+</[^>]+>')
+    HTML_TAGS_NO_WRAPPED = re.compile(r'<[^>]+>')
+
+    text = HTML_TAGS_WRAPPED.sub('', text)
+    text = HTML_TAGS_NO_WRAPPED.sub('', text)
+    return text
+
+def sanitise_fields(instance, exclude=[]):
+    for i in instance.__dict__:
+        #remove html tags for all string fields not in the exclude list
+        if isinstance(instance.__dict__[i], str) and not instance.__dict__[i] in exclude:
+            setattr(instance, i, remove_html_tags(instance.__dict__[i]))
+    return instance

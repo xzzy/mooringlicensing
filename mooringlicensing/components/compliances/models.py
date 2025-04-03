@@ -9,7 +9,7 @@ from mooringlicensing.helpers import is_internal
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
-    Document, RevisionedMixin
+    Document, RevisionedMixin, SanitiseMixin
 )
 from django.core.files.storage import FileSystemStorage
 from mooringlicensing.components.proposals.models import ProposalRequirement
@@ -329,7 +329,7 @@ class ComplianceAmendmentReason(models.Model):
         return self.reason
 
 
-class ComplianceAmendmentRequest(models.Model):
+class ComplianceAmendmentRequest(SanitiseMixin):
     STATUS_CHOICES = (('requested', 'Requested'), ('amended', 'Amended'))
 
     compliance = models.ForeignKey(Compliance, on_delete=models.CASCADE)
