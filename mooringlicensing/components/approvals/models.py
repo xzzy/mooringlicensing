@@ -35,7 +35,7 @@ from mooringlicensing.components.proposals.models import (
 )
 from mooringlicensing.components.main.models import (
     CommunicationsLogEntry, UserAction, Document,
-    GlobalSettings, RevisionedMixin, ApplicationType
+    GlobalSettings, RevisionedMixin, ApplicationType, SanitiseMixin
 )
 from mooringlicensing.components.approvals.email import (
     send_approval_expire_email_notification,
@@ -3717,7 +3717,7 @@ class Sticker(models.Model):
         raise ValueError('Vessel size not found for the sticker: {}'.format(self))
 
 
-class StickerActionDetail(models.Model):
+class StickerActionDetail(SanitiseMixin):
     approval = models.ForeignKey(Approval, blank=True, null=True, related_name='sticker_action_approval', on_delete=models.SET_NULL)
     sticker = models.ForeignKey(Sticker, blank=True, null=True, related_name='sticker_action_details', on_delete=models.SET_NULL)
     reason = models.TextField(blank=True)

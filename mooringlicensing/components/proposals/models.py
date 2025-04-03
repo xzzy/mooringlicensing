@@ -40,7 +40,7 @@ from mooringlicensing.components.main.models import (
     CommunicationsLogEntry,
     GlobalSettings,
     UserAction,
-    Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin,
+    Document, ApplicationType, NumberOfDaysType, NumberOfDaysSetting, RevisionedMixin, SanitiseMixin
 )
 
 import requests
@@ -5347,7 +5347,7 @@ class AmendmentRequest(ProposalRequest):
                 raise
 
 
-class ProposalDeclinedDetails(models.Model):
+class ProposalDeclinedDetails(SanitiseMixin):
     proposal = models.OneToOneField(Proposal, null=True, on_delete=models.SET_NULL)
     officer = models.IntegerField(null=True, blank=True)
     reason = models.TextField(blank=True)
