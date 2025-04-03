@@ -219,6 +219,10 @@ class RevisionedMixin(models.Model):
 
     def save(self, **kwargs):
         from reversion import revisions
+        from mooringlicensing.components.main.utils import sanitise_fields
+
+        #sanitise
+        self = sanitise_fields(self)
 
         if kwargs.pop("no_revision", False):
             super(RevisionedMixin, self).save(**kwargs)
