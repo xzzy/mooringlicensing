@@ -24,7 +24,9 @@ class SanitiseMixin(models.Model):
     def save(self, **kwargs):
         from mooringlicensing.components.main.utils import sanitise_fields
         #sanitise
-        self = sanitise_fields(self)
+        exclude = kwargs.pop("exclude_sanitise", []) #fields that should not be subject to full tag removal
+        error_on_change = kwargs.pop("error_on_sanitise", []) #fields that should not be modified through tag removal (and should throw and error if they are)
+        self = sanitise_fields(self, exclude, error_on_change)
         super(SanitiseMixin, self).save(**kwargs)
 
     class Meta:
