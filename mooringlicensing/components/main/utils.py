@@ -665,13 +665,14 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
         if isinstance(instance.__dict__[i], str) and not instance.__dict__[i] in exclude:
             check = instance.__dict__[i]
             setattr(instance, i, remove_html_tags(instance.__dict__[i]))
-            print(check,instance.__dict__[i],check != instance.__dict__[i])
             if i in error_on_change and check != instance.__dict__[i]:
+                #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
                 raise serializers.ValidationError("html tags included in field")
         elif isinstance(instance.__dict__[i], str) and instance.__dict__[i] in exclude:
             #even though excluded, we still check to remove script tags
             setattr(instance, i, remove_script_tags(instance.__dict__[i]))
             if i in error_on_change and check != instance.__dict__[i]:
-                raise serializers.ValidationError("html tags included in field")
+                #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
+                raise serializers.ValidationError("script tags included in field")
 
     return instance
