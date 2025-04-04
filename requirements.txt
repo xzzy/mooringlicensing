@@ -1,4 +1,4 @@
-Django~=5.0.7
+Django~=5.2.0
 ipython==8.26.0
 psycopg2==2.9.9
 jedi==0.19.1
@@ -15,7 +15,7 @@ django-reversion~=5.0.12
 django-reversion-compare~=0.17.0
 git+https://github.com/xzzy/django-preserialize.git#egg=django-preserialize
 django-countries~=7.6.1
-django-cron==0.6.0
+git+https://github.com/jorenham/django-cron.git@cec74656a6cada4c40fec43f46594bf332268ab1
 django-dynamic-fixture~=4.0.1
 openpyxl~=3.1.5
 datapackage~=1.15.4

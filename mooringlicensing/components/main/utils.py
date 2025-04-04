@@ -652,8 +652,8 @@ def remove_script_tags(text):
     if text is None:
         return None
 
-    SCRIPT_TAGS_WRAPPED = re.compile(r'<script+>.+</script+>')
-    SCRIPT_TAGS_NO_WRAPPED = re.compile(r'<script+>')
+    SCRIPT_TAGS_WRAPPED = re.compile(r'(?i)<script+>.+</script+>')
+    SCRIPT_TAGS_NO_WRAPPED = re.compile(r'(?i)<script+>')
 
     text = SCRIPT_TAGS_WRAPPED.sub('', text)
     text = SCRIPT_TAGS_NO_WRAPPED.sub('', text)
