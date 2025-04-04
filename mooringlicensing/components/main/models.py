@@ -24,7 +24,8 @@ class SanitiseMixin(models.Model):
     def save(self, **kwargs):
         from mooringlicensing.components.main.utils import sanitise_fields
         #sanitise
-        self = sanitise_fields(self)
+        exclude = kwargs.pop("exclude_sanitise", [])
+        self = sanitise_fields(self, exclude)
         super(SanitiseMixin, self).save(**kwargs)
 
     class Meta:
