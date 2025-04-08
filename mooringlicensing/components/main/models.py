@@ -371,7 +371,7 @@ def _post_delete_vsc(sender, instance, **kwargs):
             fee_constructor.reconstruct_fees()
 
 
-class NumberOfDaysType(models.Model):
+class NumberOfDaysType(SanitiseMixin):
     code = models.CharField(max_length=100, blank=True, null=True, unique=True)
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True, verbose_name='description', help_text='')

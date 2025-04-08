@@ -2623,7 +2623,7 @@ class StickerPrintingBatch(Document):
         app_label = 'mooringlicensing'
 
 
-class StickerPrintingResponseEmail(models.Model):
+class StickerPrintingResponseEmail(SanitiseMixin):
     email_subject = models.CharField(max_length=255, blank=True, null=True)
     email_body = models.TextField(null=True, blank=True)
     email_date = models.CharField(max_length=255, blank=True, null=True)
@@ -5282,7 +5282,7 @@ class ProofOfIdentityDocument(Document):
         verbose_name = "Proof Of Identity"
 
 
-class ProposalRequest(models.Model):
+class ProposalRequest(SanitiseMixin):
     proposal = models.ForeignKey(Proposal, related_name='proposalrequest_set', on_delete=models.CASCADE)
     subject = models.CharField(max_length=200, blank=True)
     text = models.TextField(blank=True)
@@ -5304,7 +5304,7 @@ class ComplianceRequest(ProposalRequest):
         app_label = 'mooringlicensing'
 
 
-class AmendmentReason(models.Model):
+class AmendmentReason(SanitiseMixin):
     reason = models.CharField('Reason', max_length=125)
 
     class Meta:

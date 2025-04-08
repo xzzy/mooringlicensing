@@ -659,20 +659,97 @@ def remove_script_tags(text):
     text = SCRIPT_TAGS_NO_WRAPPED.sub('', text)
     return text
 
-def sanitise_fields(instance, exclude=[], error_on_change=[]):
-    for i in instance.__dict__:
-        #remove html tags for all string fields not in the exclude list
-        if isinstance(instance.__dict__[i], str) and not instance.__dict__[i] in exclude:
-            check = instance.__dict__[i]
-            setattr(instance, i, remove_html_tags(instance.__dict__[i]))
-            if i in error_on_change and check != instance.__dict__[i]:
-                #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
-                raise serializers.ValidationError("html tags included in field")
-        elif isinstance(instance.__dict__[i], str) and instance.__dict__[i] in exclude:
-            #even though excluded, we still check to remove script tags
-            setattr(instance, i, remove_script_tags(instance.__dict__[i]))
-            if i in error_on_change and check != instance.__dict__[i]:
-                #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
-                raise serializers.ValidationError("script tags included in field")
+def remove_html_tags(text):
 
+    if text is None:
+        return None
+
+    HTML_TAGS_WRAPPED = re.compile(r'<[^>]+>.+</[^>]+>')
+    HTML_TAGS_NO_WRAPPED = re.compile(r'<[^>]+>')
+
+    text = HTML_TAGS_WRAPPED.sub('', text)
+    text = HTML_TAGS_NO_WRAPPED.sub('', text)
+    return text
+
+def remove_script_tags(text):
+
+    if text is None:
+        return None
+
+    SCRIPT_TAGS_WRAPPED = re.compile(r'(?i)<script+>.+</script+>')
+    SCRIPT_TAGS_NO_WRAPPED = re.compile(r'(?i)<script+>')
+
+    text = SCRIPT_TAGS_WRAPPED.sub('', text)
+    text = SCRIPT_TAGS_NO_WRAPPED.sub('', text)
+    return text
+
+def is_json(value):
+    try:
+        json.loads(value)
+    except:
+        return False
+    return True
+
+def sanitise_fields(instance, exclude=[], error_on_change=[]):
+    if hasattr(instance,"__dict__"):
+        for i in instance.__dict__:
+            #remove html tags for all string fields not in the exclude list
+            if not i in exclude and (isinstance(instance.__dict__[i], dict)):
+                sanitise_fields(instance.__dict__[i])
+            
+            elif isinstance(instance.__dict__[i], list):
+                for j in range(0, len(instance.__dict__[i])):
+                    if isinstance(instance.__dict__[i][j],str):
+                        instance.__dict__[i][j] = remove_html_tags(instance.__dict__[i][j])
+                    else:
+                        sanitise_fields(instance.__dict__[i][j])
+            
+            elif isinstance(instance.__dict__[i], str) and not i in exclude:
+                check = instance.__dict__[i]
+                setattr(instance, i, remove_html_tags(instance.__dict__[i]))
+                if i in error_on_change and check != instance.__dict__[i]:
+                    #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
+                    raise serializers.ValidationError("html tags included in field")
+            elif isinstance(instance.__dict__[i], str) and i in exclude:
+                #even though excluded, we still check to remove script tags
+                setattr(instance, i, remove_script_tags(instance.__dict__[i]))
+                if i in error_on_change and check != instance.__dict__[i]:
+                    #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
+                    raise serializers.ValidationError("script tags included in field")
+    else:
+        remove_keys = []
+        for i in instance:
+            #for dicts we also check the keys - they are removed completely if not sanitary (should not change keys)
+            original_key = i
+            sanitised_key = remove_html_tags(i)
+            if original_key != sanitised_key:
+                remove_keys.append(original_key)
+                continue
+            #remove html tags for all string fields not in the exclude list
+            if not i in exclude and (isinstance(instance[i], dict)):
+                sanitise_fields(instance[i])
+
+            elif isinstance(instance[i], list):
+                for j in range(0, len(instance[i])):
+                    if isinstance(instance[i][j],str):
+                        instance[i][j] = remove_html_tags(instance[i][j])
+                    else:
+                        sanitise_fields(instance[i][j])
+
+            else:
+                if isinstance(instance[i], str) and not i in exclude:
+                    check = instance[i]
+                    instance[i] = remove_html_tags(instance[i])
+                    if i in error_on_change and check != instance[i]:
+                        #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
+                        raise serializers.ValidationError("html tags included in field")
+                elif isinstance(instance[i], str) and i in exclude:
+                    #even though excluded, we still check to remove script tags
+                    instance[i] = remove_script_tags(instance[i])
+                    if i in error_on_change and check != instance[i]:
+                        #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
+                        raise serializers.ValidationError("script tags included in field")
+                    
+        for i in remove_keys:
+            del instance[i]
     return instance

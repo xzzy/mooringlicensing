@@ -319,7 +319,7 @@ class ComplianceLogDocument(Document):
         app_label = 'mooringlicensing'
 
 
-class ComplianceAmendmentReason(models.Model):
+class ComplianceAmendmentReason(SanitiseMixin):
     reason = models.CharField('Reason', max_length=125)
 
     class Meta:

@@ -3,7 +3,7 @@ from django.db import models
 from django.db.models import Max, Min, F
 from django.utils.translation import gettext as _
 import six
-
+from mooringlicensing.components.main.models import SanitiseMixin
 
 """
 Convert a string containing module.submodule.classname to a Class.
@@ -17,7 +17,7 @@ def _order_model_get_class( classpath ):
     return m
 
 
-class OrderedModelBase(models.Model):
+class OrderedModelBase(SanitiseMixin):
     """
     An abstract model that allows objects to be ordered relative to each other.
     Usage (See ``OrderedModel``):
