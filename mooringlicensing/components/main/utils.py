@@ -721,10 +721,11 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
         for i in instance:
             #for dicts we also check the keys - they are removed completely if not sanitary (should not change keys)
             original_key = i
-            sanitised_key = remove_html_tags(i)
-            if original_key != sanitised_key:
-                remove_keys.append(original_key)
-                continue
+            if isinstance(original_key, str):
+                sanitised_key = remove_html_tags(i)
+                if original_key != sanitised_key:
+                    remove_keys.append(original_key)
+                    continue
             #remove html tags for all string fields not in the exclude list
             if not i in exclude and (isinstance(instance[i], dict)):
                 sanitise_fields(instance[i])
