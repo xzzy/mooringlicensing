@@ -717,7 +717,14 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
                     #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
                     raise serializers.ValidationError("script tags included in field")
     else:
+        remove_keys = []
         for i in instance:
+            #for dicts we also check the keys - they are removed completely if not sanitary (should not change keys)
+            original_key = i
+            sanitised_key = remove_html_tags(i)
+            if original_key != sanitised_key:
+                remove_keys.append(original_key)
+                continue
             #remove html tags for all string fields not in the exclude list
             if not i in exclude and (isinstance(instance[i], dict)):
                 sanitise_fields(instance[i])
@@ -742,4 +749,7 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
                     if i in error_on_change and check != instance[i]:
                         #only fields that cannot be allowed to change through sanitisation just before saving will throw an error
                         raise serializers.ValidationError("script tags included in field")
+                    
+        for i in remove_keys:
+            del instance[i]
     return instance
