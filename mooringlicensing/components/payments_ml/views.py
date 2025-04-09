@@ -99,7 +99,8 @@ class DcvAdmissionFeeView(TemplateView):
             logger.error('Error Creating DcvAdmission Fee: {}'.format(e))
             if dcv_admission_fee:
                 dcv_admission_fee.delete()
-            raise
+            err_msg = 'Failed to create invoice'
+            raise serializers.ValidationError(err_msg)
 
 
 class DcvPermitFeeView(TemplateView):
@@ -144,7 +145,8 @@ class DcvPermitFeeView(TemplateView):
                 logger.error('Error Creating DcvPermit Fee: {}'.format(e))
                 if dcv_permit_fee:
                     dcv_permit_fee.delete()
-                raise
+                err_msg = 'Failed to create invoice'
+                raise serializers.ValidationError(err_msg)
         else:
             raise serializers.ValidationError("User not authorised to access DCV Permit")        
 
@@ -288,7 +290,8 @@ class StickerReplacementFeeView(TemplateView):
             logger.error('Error handling StickerActionFee: {}'.format(e))
             if sticker_action_fee:
                 sticker_action_fee.delete()
-            raise
+            err_msg = 'Failed to create invoice'
+            raise serializers.ValidationError(err_msg)
 
 
 class StickerReplacementFeeSuccessViewPreload(APIView):
@@ -510,7 +513,8 @@ class ApplicationFeeView(TemplateView):
             if application_fee:
                 application_fee.delete()
                 logger.info('ApplicationFee: {} has been deleted'.format(application_fee))
-            raise
+            err_msg = 'Failed to go to checkout'
+            raise serializers.ValidationError(err_msg)
 
 
 class DcvAdmissionFeeSuccessView(TemplateView):

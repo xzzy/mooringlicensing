@@ -1941,6 +1941,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         except Exception as e:
                             err_msg = 'Failed to create invoice'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
+                            raise serializers.ValidationError(err_msg)
 
                 # Reset flag
                 if self.approval:
