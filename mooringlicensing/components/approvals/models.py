@@ -3029,7 +3029,7 @@ class DcvAdmission(RevisionedMixin):
                 total_amount = round(float(total_amount))
                 total_amount_excl_tax = round(float(calculate_excl_gst(total_amount))) if fee_constructor.incur_gst else round(float(total_amount))
             else:
-                total_amount_excl_tax = calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount
+                total_amount_excl_tax = float(calculate_excl_gst(total_amount) if fee_constructor.incur_gst else total_amount)
 
             line_item = {
                 'ledger_description': '{} Fee: {} (Arrival: {}, Private: {}, {})'.format(
@@ -3245,7 +3245,7 @@ class DcvPermit(RevisionedMixin):
             total_amount_excl_tax = round(float(ledger_api_client.utils.calculate_excl_gst(fee_item.amount))) if fee_constructor.incur_gst else round(float(fee_item.amount))
         else:
             total_amount = fee_item.amount
-            total_amount_excl_tax = ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount
+            total_amount_excl_tax = float(ledger_api_client.utils.calculate_excl_gst(fee_item.amount) if fee_constructor.incur_gst else fee_item.amount)
 
         line_items = [
             {
