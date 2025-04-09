@@ -3911,7 +3911,7 @@ class MooringLicenceApplication(Proposal):
                 total_amount = round(float(total_amount))
                 total_amount_excl_tax = round(float(calculate_excl_gst(total_amount))) if incur_gst else round(float(total_amount))
             else:
-                total_amount_excl_tax = calculate_excl_gst(total_amount) if incur_gst else total_amount
+                total_amount_excl_tax = float(calculate_excl_gst(total_amount) if incur_gst else total_amount)
 
             # When this proposal is for Swap-Moorings, it's easy.
             return [{
