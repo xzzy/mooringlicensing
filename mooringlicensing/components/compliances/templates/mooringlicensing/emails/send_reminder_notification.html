@@ -4,7 +4,8 @@
 {% include "mooringlicensing/emails_2/salutation.html" %}
 <p>Please be aware that the following is overdue:</p>
 <p>{{ compliance.reference }} - {{compliance.requirement.requirement}}</p>
-<p>To complete the licence requirement please login to your account <a href="{{url}}">here</a>.</p>
-<p>It is a condition of your licence that you complete all requirements. Failure to do so may result in cancellation or suspension of the licence.</p>
+<p>Please be aware that you have a compliance requirement that is overdue.</p>
+<p>It is a condition of your licence/permit that you complete all requirements. Failure to do so may result in cancellation or suspension of the licence/permit.</p>
+<p>Please login to your account <a href="{{login_url}}">here</a>.</p>
 {% include "mooringlicensing/emails/signature-rottnest.html" %}
 {%  endblock %}

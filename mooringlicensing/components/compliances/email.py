@@ -17,7 +17,7 @@ SYSTEM_NAME = settings.SYSTEM_NAME_SHORT + ' Automated Message'
 
 
 class ComplianceExternalSubmitSendNotificationEmail(TemplateEmailBase):
-    subject = 'Licence/Permit requirement'
+    subject = 'Compliance Requirement Submission - Rottnest Island Authority'
     html_template = 'mooringlicensing/emails/send_external_submit_notification.html'
     txt_template = 'mooringlicensing/emails/send_external_submit_notification.txt'
 
@@ -29,7 +29,7 @@ class ComplianceSubmitSendNotificationEmail(TemplateEmailBase):
 
 
 class ComplianceAcceptNotificationEmail(TemplateEmailBase):
-    subject = 'Confirmation - Licence/Permit requirement completed.'
+    subject = 'Approved: Compliance Requirement Submission - Rottnest Island Authority'
     html_template = 'mooringlicensing/emails/compliance_accept_notification.html'
     txt_template = 'mooringlicensing/emails/compliance_accept_notification.txt'
 
@@ -41,7 +41,7 @@ class ComplianceAmendmentRequestSendNotificationEmail(TemplateEmailBase):
 
 
 class ComplianceReminderNotificationEmail(TemplateEmailBase):
-    subject = 'Licence/Permit requirement overdue.'
+    subject = 'Compliance Requirement Overdue - Rottnest Island Authority'
     html_template = 'mooringlicensing/emails/send_reminder_notification.html'
     txt_template = 'mooringlicensing/emails/send_reminder_notification.txt'
 
@@ -53,7 +53,7 @@ class ComplianceInternalReminderNotificationEmail(TemplateEmailBase):
 
 
 class ComplianceDueNotificationEmail(TemplateEmailBase):
-    subject = 'Licence/Permit requirement due'
+    subject = 'Compliance Requirement Due - Rottnest Island Authority'
     html_template = 'mooringlicensing/emails/send_due_notification.html'
     txt_template = 'mooringlicensing/emails/send_due_notification.txt'
 
@@ -98,11 +98,17 @@ def send_reminder_email_notification(compliance, is_test=False):
     url+=reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id})
     login_url=settings.SITE_URL if settings.SITE_URL else ''
     login_url+=reverse('external')
+
+    recipient = None
+    if compliance.proposal and compliance.proposal.applicant_obj:
+        recipient = compliance.proposal.applicant_obj
+
     context = {
         'compliance': compliance,
         'url': make_http_https(url),
         'login_url': login_url,
         'public_url': get_public_url(),
+        'recipient': recipient,
     }
 
     holder = compliance.holder_obj.email if compliance.holder_obj and compliance.holder_obj.email else compliance.proposal.applicant_obj.email

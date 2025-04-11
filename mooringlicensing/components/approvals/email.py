@@ -547,7 +547,7 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
 
 def send_swap_moorings_application_created_notification(mooring_licence, request):
     email = TemplateEmailBase(
-        subject=f'Swap moorings application created',
+        subject=f'Submission Received: Mooring Site Licence Swap - Rottnest Island Authority',
         html_template='mooringlicensing/emails_2/swap_moorings_application_created.html',
         txt_template='mooringlicensing/emails_2/swap_moorings_application_created.txt',
     )
