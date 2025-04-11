@@ -2,9 +2,10 @@
 
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
-Please be aware that the following is overdue:
-{{ compliance.reference }} - {{compliance.requirement.requirement}}
-To complete the licence requirement please login to your account here: {{url}}
-It is a condition of your licence that you complete all requirements. Failure to do so may result in cancellation or suspension of the licence.
+Please be aware that you have a compliance requirement that is overdue.
+
+It is a condition of your licence/permit that you complete all requirements. Failure to do so may result in cancellation or suspension of the licence/permit.
+
+Please login to your account here.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {%  endblock %}
