@@ -701,7 +701,7 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
                 for j in range(0, len(instance.__dict__[i])):
                     if isinstance(instance.__dict__[i][j],str):
                         instance.__dict__[i][j] = remove_html_tags(instance.__dict__[i][j])
-                    else:
+                    elif isinstance(instance.__dict__[i][j], list) or isinstance(instance.__dict__[i][j], dict):
                         sanitise_fields(instance.__dict__[i][j])
             
             elif isinstance(instance.__dict__[i], str) and not i in exclude:
@@ -734,7 +734,7 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
                 for j in range(0, len(instance[i])):
                     if isinstance(instance[i][j],str):
                         instance[i][j] = remove_html_tags(instance[i][j])
-                    else:
+                    elif isinstance(instance[i][j], list) or isinstance(instance[i][j], dict):
                         sanitise_fields(instance[i][j])
 
             else:
