@@ -45,7 +45,7 @@ If Mooring Bookings is not up to date with all required moorings, those moorings
 ./manage_mo.py import_private_moorings --path /tmp/moorings.csv'
 ```
 
-The added/updated moorings should then be added to the ottnest Island Authority Mooring Group via Django Admin on the Mooring Bookings web application
+The added/updated moorings should then be added to the Rottnest Island Authority Mooring Group via Django Admin on the Mooring Bookings web application
 
 ### 5b Import Moorings to Mooring Licensing
 
