@@ -35,6 +35,20 @@ vi venv/lib/python3.12/site-packages/reversion/migrations/0001_squashed_0004_aut
 
 ## Step 5 Get moorings from mooring bookings
 
+### 5a Ensure Mooring Bookings is up to date
+
+Ensure that all moorings are available and up to date on Mooring Bookings, and that all required moorings are assigned to the Rottnest Island Authority Mooring Group
+
+If Mooring Bookings is not up to date with all required moorings, those moorings will have to be imported using the import private moorings command
+
+```
+./manage_mo.py import_private_moorings --path /tmp/moorings.csv'
+```
+
+The added/updated moorings should then be added to the ottnest Island Authority Mooring Group via Django Admin on the Mooring Bookings web application
+
+### 5b Import Moorings to Mooring Licensing
+
 Add environment variables
 
 MOORING_BOOKINGS_API_KEY= Mooring booking external API key
