@@ -419,7 +419,7 @@ def sticker_export():
 
             batch_obj = StickerPrintingBatch.objects.create()
             filename = 'RIA-{}.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d'))
-            batch_obj._file.save(filename, virtual_workbook)
+            batch_obj._file.save(filename, virtual_workbook, save=False)
             batch_obj.name = filename
             batch_obj.save()
             logger.info('Sticker printing batch file {} generated successfully.'.format(batch_obj.name))
@@ -808,9 +808,6 @@ def sanitise_fields(instance, exclude=[], error_on_change=[]):
     return instance
 
 def file_extension_valid(file, whitelist, model):
-
-    logger.info("Uploaded File: " + file + " For Model: " + model)
-
     _, extension = os.path.splitext(file)
     extension = extension.replace(".", "").lower()
 
@@ -818,11 +815,6 @@ def file_extension_valid(file, whitelist, model):
         Q(model="all") | Q(model__iexact=model)
     )
     valid = check.exists()
-
-    if not valid:
-        logger.warning(
-            "Uploaded File: " + file + " For Model: " + model + " to be Rejected"
-        )
 
     return valid
 

@@ -208,7 +208,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             path_format_string = 'approval/{}/waiting_list_offer_documents/'
 
         path_to_file = path_format_string.format(instance.id)
-        file_content = ContentFile(_file.read())
+        file_content = _file
 
     # comms_log doc store save
     elif comms_instance and 'filename' in request.data:
@@ -219,7 +219,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             name=filename)[0]
         path_to_file = '{}/{}/communications/{}/documents/'.format(
             instance._meta.model_name, instance.id, comms_instance.id)
-        file_content = ContentFile(_file.read())
+        file_content = _file
 
     # default doc store save
     elif 'filename' in request.data:
@@ -230,7 +230,7 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             name=filename)[0]
         path_to_file = '{}/{}/documents/'.format(
             instance._meta.model_name, instance.id, comms_instance.id)
-        file_content = ContentFile(_file.read())
+        file_content = _file
 
     if document and path_to_file:
         document.save(path_to_file=path_to_file,file_content=file_content,storage=private_storage)

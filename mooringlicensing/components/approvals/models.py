@@ -818,7 +818,8 @@ class Approval(RevisionedMixin):
             document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
 
             # Save the bytes to the disk
-            document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+            document._file.save(filename, ContentFile(contents_as_bytes), save=False)
+            document.save()
             logger.info(f'Authorised User Summary document: [{filename}] has been created.')
 
             self.authorised_user_summary_document = document  # Update to the latest doc

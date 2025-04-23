@@ -1292,7 +1292,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     original_file_name=original_file_name,
                     original_file_ext=original_file_ext,
                 )
-                document._file.save(new_filename, ContentFile(_file.read()))
+                document._file.save(new_filename, ContentFile(_file.read()), save=False)
+                document.save()
 
                 logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
 
@@ -1341,7 +1342,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     proposal=instance,
                     name=filepath.stem + filepath.suffix
                 )
-                document._file.save(new_filename, ContentFile(_file.read()))
+                document._file.save(new_filename, ContentFile(_file.read()), save=False)
+                document.save()
 
                 logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
 
@@ -1394,7 +1396,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     name=filepath.stem + filepath.suffix
                 )
 
-                document._file.save(new_filename, ContentFile(_file.read()))
+                document._file.save(new_filename, ContentFile(_file.read()), save=False)
+                document.save()
 
                 logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
 
@@ -1442,7 +1445,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     proposal=instance,
                     name=filepath.stem + filepath.suffix
                 )
-                document._file.save(new_filename, ContentFile(_file.read()))
+                document._file.save(new_filename, ContentFile(_file.read()), save=False)
+                document.save()
 
                 logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
 

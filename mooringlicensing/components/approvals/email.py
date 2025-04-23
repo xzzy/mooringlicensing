@@ -253,8 +253,9 @@ def _log_approval_email(email_message, approval, sender=None, attachments=[]):
 
     for attachment in attachments:
         path_to_file = '{}/approvals/{}/communications'.format(settings.MEDIA_APP_DIR, approval.id)
-        email_entry_document = email_entry.documents.create(name=attachment[0])
-        email_entry_document.save(path_to_file=path_to_file, file_content=ContentFile(attachment[1]), storage=private_storage)
+        email_entry_document = email_entry.documents.create(name="{}.pdf".format(attachment[0]))
+        email_entry_document._file.save("{}.pdf".format(attachment[0]), ContentFile(attachment[1]), save=False)
+        email_entry_document.save()
 
     return email_entry
 
