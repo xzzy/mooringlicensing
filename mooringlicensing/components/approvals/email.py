@@ -252,9 +252,9 @@ def _log_approval_email(email_message, approval, sender=None, attachments=[]):
     email_entry = ApprovalLogEntry.objects.create(**kwargs)
 
     for attachment in attachments:
-        path_to_file = '{}/approvals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, approval.id, attachment[0])
-        path = private_storage.save(path_to_file, ContentFile(attachment[1]))
-        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
+        path_to_file = '{}/approvals/{}/communications'.format(settings.MEDIA_APP_DIR, approval.id)
+        email_entry_document = email_entry.documents.create(name=attachment[0])
+        email_entry_document.save(path_to_file=path_to_file, file_content=ContentFile(attachment[1]), storage=private_storage)
 
     return email_entry
 

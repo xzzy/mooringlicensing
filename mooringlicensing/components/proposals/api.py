@@ -1052,22 +1052,14 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
             elif action == 'save':
                 filename = request.data.get('filename')
                 _file = request.data.get('_file')
-
                 filepath = pathlib.Path(filename)
-
-                # Calculate a new unique filename
-                if MAKE_PRIVATE_MEDIA_FILENAME_NON_GUESSABLE:
-                    unique_id = uuid.uuid4()
-                    new_filename = unique_id.hex + filepath.suffix
-                else:
-                    new_filename = filepath.stem + filepath.suffix
-
                 document = MooringReportDocument.objects.create(
                     name=filepath.stem + filepath.suffix
                 )
                 instance.mooring_report_documents.add(document)
-                document._file.save(new_filename, ContentFile(_file.read()))
-
+                document._file = _file
+                document.save()
+                
                 logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
 
         docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
