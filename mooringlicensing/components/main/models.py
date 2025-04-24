@@ -8,8 +8,14 @@ from datetime import datetime
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
 from mooringlicensing import settings
+from django.apps import apps
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from django.core.files.storage import FileSystemStorage
+from django.core.cache import cache
+from django.core.files.base import ContentFile
+from dirtyfields import DirtyFieldsMixin
+
+import uuid
 
 private_storage = FileSystemStorage(  # We want to store files in secure place (outside of the media folder)
     location=settings.PRIVATE_MEDIA_STORAGE_LOCATION,
@@ -31,6 +37,56 @@ class SanitiseMixin(models.Model):
 
     class Meta:
         abstract = True
+
+class SanitiseFileMixin(SanitiseMixin, DirtyFieldsMixin):
+    """
+    Sanitise file extensions and names
+    """
+    def auto_generate_file_name(self, extension):
+        return "{}_{}_{}.{}".format(self._meta.model_name,uuid.uuid4(),int(datetime.now().timestamp()*100000), extension)
+
+    def save(self, **kwargs):
+        from mooringlicensing.components.main.utils import check_file
+
+        path_to_file = kwargs.pop("path_to_file",None)
+        file_content = kwargs.pop("file_content",None)
+        storage = kwargs.pop("storage",None)
+
+        if not path_to_file:
+            try:
+                #we specify an empty string here so we can substitute our own (NOTE: may be worth changing how this works to just return the path)
+                path_to_file = self._meta.get_field('_file').upload_to(self,'')
+            except Exception as e:
+                print(e)
+                path_to_file = None
+
+        if not storage:
+            storage = self._meta.get_field('_file').storage
+
+        if not file_content:
+            file_content = self._file
+
+        if path_to_file and file_content and storage:
+            #check file extension
+            check_file(file_content, self._meta.model_name)
+
+            #check file size
+            if file_content.size > settings.FILE_SIZE_LIMIT_BYTES:
+                raise ValidationError(format("File size too large: Max {}MB",settings.FILE_SIZE_LIMIT_BYTES/1000000))
+
+            #auto-gen file name
+            _, extension = os.path.splitext(str(file_content))
+            generated_file_name = self.auto_generate_file_name(extension.replace(".",""))
+            self._file = storage.save('{}/{}'.format(path_to_file,generated_file_name), ContentFile(file_content.read()))
+        elif '_file' in self.get_dirty_fields() and self.get_dirty_fields()['_file']:
+            raise ValidationError("Cannot change file")
+
+        #proceed with general sanitisation and save
+        super(SanitiseMixin, self).save(**kwargs)
+    
+    class Meta:
+        abstract = True
+
 
 class UserAction(models.Model):
     who = models.IntegerField(null=True, blank=True)
@@ -84,7 +140,42 @@ class CommunicationsLogEntry(SanitiseMixin):
         app_label = 'mooringlicensing'
 
 
-class Document(SanitiseMixin):
+class FileExtensionWhitelist(models.Model):
+
+    name = models.CharField(
+        max_length=16,
+        help_text="The file extension without the dot, e.g. jpg, pdf, docx, etc",
+    )
+    model = models.CharField(max_length=255, default="all")
+
+    class Meta:
+        app_label = "mooringlicensing"
+        unique_together = ("name", "model")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._meta.get_field("model").choices = (
+            (
+                "all",
+                "all",
+            ),
+        ) + tuple(
+            map(
+                lambda m: (m, m),
+                filter(
+                    lambda m: Document
+                    in apps.get_app_config("mooringlicensing").models[m].__bases__,
+                    apps.get_app_config("mooringlicensing").models,
+                ),
+            )
+        )
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache.delete(settings.CACHE_KEY_FILE_EXTENSION_WHITELIST)
+
+
+class Document(SanitiseFileMixin):
     name = models.CharField(max_length=255, blank=True, verbose_name='name', help_text='')
     description = models.TextField(blank=True, verbose_name='description', help_text='')
     uploaded_date = models.DateTimeField(auto_now_add=True)

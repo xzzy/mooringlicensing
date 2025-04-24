@@ -17,7 +17,8 @@ def create_dcv_permit_document(dcv_permit):
     document = DcvPermitDocument.objects.create(dcv_permit=dcv_permit, name=filename)
 
     # Save the bytes to the disk
-    document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+    document._file.save(filename, ContentFile(contents_as_bytes), save=False)
+    document.save()
 
     return document
 
@@ -31,7 +32,8 @@ def create_dcv_admission_document(dcv_admission_arrival):
     document = DcvAdmissionDocument.objects.create(dcv_admission=dcv_admission_arrival.dcv_admission, name=filename)
 
     # Save the bytes to the disk
-    document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+    document._file.save(filename, ContentFile(contents_as_bytes), save=False)
+    document.save()
 
     return document
 
@@ -47,8 +49,8 @@ def create_approval_doc(approval):
     document = ApprovalDocument.objects.create(approval=approval, name=filename)
 
     # Save the bytes to the disk
-    document._file.save(filename, ContentFile(contents_as_bytes), save=True)
-
+    document._file.save(filename, ContentFile(contents_as_bytes), save=False)
+    document.save()
     return document
 
 
@@ -61,6 +63,7 @@ def create_renewal_doc(approval, proposal):
     document = RenewalDocument.objects.create(approval=approval, name=filename,)
 
     # Save the bytes to the disk
-    document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+    document._file.save(filename, ContentFile(contents_as_bytes), save=False)
+    document.save()
     return document
 

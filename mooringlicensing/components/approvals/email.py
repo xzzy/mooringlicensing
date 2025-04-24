@@ -12,6 +12,7 @@ from mooringlicensing.components.emails.emails import TemplateEmailBase, _extrac
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser, EmailUserRO
 from mooringlicensing.components.emails.utils import get_user_as_email_user, get_public_url, make_http_https
 from django.core.files.base import ContentFile
+import os
 
 from mooringlicensing.components.users.utils import _log_user_email
 
@@ -252,9 +253,9 @@ def _log_approval_email(email_message, approval, sender=None, attachments=[]):
     email_entry = ApprovalLogEntry.objects.create(**kwargs)
 
     for attachment in attachments:
-        path_to_file = '{}/approvals/{}/communications/{}'.format(settings.MEDIA_APP_DIR, approval.id, attachment[0])
-        path = private_storage.save(path_to_file, ContentFile(attachment[1]))
-        email_entry.documents.get_or_create(_file=path_to_file, name=attachment[0])
+        email_entry_document = email_entry.documents.create(name=attachment[0])
+        email_entry_document._file.save(attachment[0], ContentFile(attachment[1]), save=False)
+        email_entry_document.save()
 
     return email_entry
 

@@ -59,7 +59,6 @@ from mooringlicensing.components.proposals.email import (
 from mooringlicensing.ordered_model import OrderedModel
 import copy
 from django.db.models import Q, Max
-from dirtyfields import DirtyFieldsMixin
 from rest_framework import serializers
 from ledger_api_client.managed_models import SystemUser
 from mooringlicensing.components.users.utils import get_user_name
@@ -201,7 +200,7 @@ class ProposalSignedLicenceAgreementDocument(models.Model):
     class Meta:
         app_label = 'mooringlicensing'
 
-class Proposal(DirtyFieldsMixin, RevisionedMixin):
+class Proposal(RevisionedMixin):
 
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
@@ -3372,7 +3371,6 @@ class AuthorisedUserApplication(Proposal):
                 vessel_details.vessel_length = self.vessel_length
 
         if application_has_vessel:
-            print("\n\n\nvessel_details",vessel_details)
             if vessel_details:
                 # When there is a vessel in this application
                 current_approvals_dict = vessel_details.vessel.get_current_approvals(target_date)

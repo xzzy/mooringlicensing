@@ -818,7 +818,8 @@ class Approval(RevisionedMixin):
             document = AuthorisedUserSummaryDocument.objects.create(approval=self, name=filename)
 
             # Save the bytes to the disk
-            document._file.save(filename, ContentFile(contents_as_bytes), save=True)
+            document._file.save(filename, ContentFile(contents_as_bytes), save=False)
+            document.save()
             logger.info(f'Authorised User Summary document: [{filename}] has been created.')
 
             self.authorised_user_summary_document = document  # Update to the latest doc
@@ -1962,12 +1963,6 @@ class MooringLicence(Approval):
             i.end_date = datetime.date.today()
             i.active = False
             i.save()
-            if i.sticker:
-                if i.sticker.status == Sticker.STICKER_STATUS_CURRENT:
-                    i.sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
-                elif i.sticker.status in [Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_AWAITING_PRINTING]:
-                    i.sticker.status = Sticker.STICKER_STATUS_CANCELLED                    
-                i.sticker.save()
 
         #update aup pdf
         self.generate_au_summary_doc(request.user)

@@ -2,10 +2,10 @@ from django import forms
 from django.contrib import admin
 
 from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
-    NumberOfDaysSetting, NumberOfDaysType
+    NumberOfDaysSetting, NumberOfDaysType, Document, FileExtensionWhitelist
 from mooringlicensing.components.payments_ml.models import OracleCodeItem
 from django.utils.html import mark_safe
-
+from django.apps import apps
 
 class VesselSizeCategoryForm(forms.ModelForm):
 
@@ -175,3 +175,33 @@ class NumberOfDaysTypeAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+class ModelForm(forms.ModelForm):
+    choices = (
+        (
+            "all",
+            "all",
+        ),
+    ) + tuple(
+        map(
+            lambda m: (m, m),
+            filter(
+                lambda m: Document
+                in apps.get_app_config("mooringlicensing").models[m].__bases__,
+                apps.get_app_config("mooringlicensing").models,
+            ),
+        )
+    )
+
+    model = forms.ChoiceField(choices=choices)
+
+@admin.register(FileExtensionWhitelist)
+class FileExtensionWhitelistAdmin(admin.ModelAdmin):
+    fields = (
+        "name",
+        "model",
+    )
+    list_display = (
+        "name",
+        "model",
+    )
+    form = ModelForm

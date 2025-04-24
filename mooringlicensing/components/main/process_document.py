@@ -180,6 +180,8 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
     document = None
     proposal_document = None
     path = ''
+    path_to_file = None
+    file_content = None
 
     if 'filename' in request.data and input_name:
         filename = request.data.get('filename')
@@ -188,24 +190,25 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
         if document_type == 'mooring_report_document':
             document = instance.mooring_report_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalMooringReportDocument.objects.filter(mooring_report_document=document).first()
-            path_format_string = 'proposal/{}/mooring_report_documents/{}'
+            path_format_string = 'proposal/{}/mooring_report_documents/'
         elif document_type == 'written_proof_document':
             document = instance.written_proof_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalWrittenProofDocument.objects.filter(written_proof_document=document).first()
-            path_format_string = 'proposal/{}/written_proof_documents/{}'
+            path_format_string = 'proposal/{}/written_proof_documents/'
         elif document_type == 'signed_licence_agreement_document':
             document = instance.signed_licence_agreement_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalSignedLicenceAgreementDocument.objects.filter(signed_licence_agreement_document=document).first()            
-            path_format_string = 'proposal/{}/signed_licence_agreement_documents/{}'
+            path_format_string = 'proposal/{}/signed_licence_agreement_documents/'
         elif document_type == 'proof_of_identity_document':
             document = instance.proof_of_identity_documents.get_or_create(input_name=input_name, name=filename)[0]
             proposal_document = ProposalProofOfIdentityDocument.objects.filter(proof_of_identity_document=document).first()
-            path_format_string = 'proposal/{}/proof_of_identity_documents/{}'
+            path_format_string = 'proposal/{}/proof_of_identity_documents/'
         elif document_type == 'waiting_list_offer_document':
             document = instance.waiting_list_offer_documents.get_or_create(input_name=input_name, name=filename)[0]
-            path_format_string = 'approval/{}/waiting_list_offer_documents/{}'
+            path_format_string = 'approval/{}/waiting_list_offer_documents/'
 
-        path = private_storage.save(path_format_string.format(instance.id, filename), ContentFile(_file.read()))
+        path_to_file = path_format_string.format(instance.id)
+        file_content = _file
 
     # comms_log doc store save
     elif comms_instance and 'filename' in request.data:
@@ -214,10 +217,9 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
         document = comms_instance.documents.get_or_create(
             name=filename)[0]
-        path = private_storage.save(
-            '{}/{}/communications/{}/documents/{}'.format(
-                instance._meta.model_name, instance.id, comms_instance.id, filename), ContentFile(
-                _file.read()))
+        path_to_file = '{}/{}/communications/{}/documents/'.format(
+            instance._meta.model_name, instance.id, comms_instance.id)
+        file_content = _file
 
     # default doc store save
     elif 'filename' in request.data:
@@ -226,14 +228,12 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 
         document = instance.documents.get_or_create(
             name=filename)[0]
-        path = private_storage.save(
-            '{}/{}/documents/{}'.format(
-                instance._meta.model_name, instance.id, filename), ContentFile(
-                _file.read()))
+        path_to_file = '{}/{}/documents/'.format(
+            instance._meta.model_name, instance.id, comms_instance.id)
+        file_content = _file
 
-    if document and path:
-        document._file = path
-        document.save()
+    if document and path_to_file:
+        document.save(path_to_file=path_to_file,file_content=file_content,storage=private_storage)
         if proposal_document:
             proposal_document.enabled = True
             proposal_document.save()
@@ -243,31 +243,22 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
 def save_default_document_obj(instance, temp_document):
     document = instance.documents.get_or_create(
         name=temp_document.name)[0]
-    path = private_storage.save(
-        '{}/{}/documents/{}'.format(
-            instance._meta.model_name, 
-            instance.id, 
-            temp_document.name
-            ), 
-            temp_document._file
-        )
-
-    document._file = path
-    document.save()
+    path_to_file = '{}/{}/documents/'.format(
+        instance._meta.model_name, 
+        instance.id, 
+    )
+    file_content = temp_document._file
+    document.save(path_to_file=path_to_file,file_content=file_content,storage=private_storage)
 
 def save_vessel_registration_document_obj(instance, temp_document):
     document = instance.vessel_registration_documents.get_or_create(
             input_name="vessel_registration_document",
             name=temp_document.name)[0]
-    path = private_storage.save(
-        '{}/{}/documents/{}'.format(
-            instance._meta.model_name, 
-            instance.id, 
-            temp_document.name,
-            ), 
-            temp_document._file
-        )
 
-    document._file = path
-    document.save()
+    path_to_file = '{}/{}/documents/'.format(
+        instance._meta.model_name, 
+        instance.id, 
+    )
+    file_content = temp_document._file
+    document.save(path_to_file=path_to_file,file_content=file_content,storage=private_storage)
 

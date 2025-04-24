@@ -68,7 +68,8 @@ class DefaultDataManager(object):
                 if created:
                     if item[0] in GlobalSettings.keys_for_file:
                         with open(GlobalSettings.default_values[item[0]], 'rb') as doc_file:
-                            obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=True)
+                            obj._file.save(os.path.basename(GlobalSettings.default_values[item[0]]), File(doc_file), save=False)
+                            obj.save()
                         obj.save()
                     else:
                         obj.value = GlobalSettings.default_values[item[0]]

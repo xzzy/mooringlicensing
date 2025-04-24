@@ -115,7 +115,8 @@ class Command(BaseCommand):
                             content_file = ContentFile(my_bytes)
 
                             # Save file
-                            sticker_printing_response._file.save(fileName, content_file)
+                            sticker_printing_response._file.save(fileName, content_file, save=False)
+                            sticker_printing_response.save()
                     except Exception as e:
                         logger.exception('Exception has been raised when importing .xlsx file')
                         continue
