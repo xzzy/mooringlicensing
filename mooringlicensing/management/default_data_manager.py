@@ -82,7 +82,7 @@ class DefaultDataManager(object):
         try:
             tos = StickerPrintingContact.objects.filter(type=StickerPrintingContact.TYPE_EMIAL_TO, enabled=True)
             if not tos:
-                contact, created = StickerPrintingContact.objects.create(type=StickerPrintingContact.TYPE_EMIAL_TO, email='printing_company@mail.com')
+                contact, created = StickerPrintingContact.objects.create(type=StickerPrintingContact.TYPE_EMIAL_TO, email='no-reply@dbca.wa.gov.au')
                 if created:
                     logger.info("Created {}".format(contact))
         except Exception as e:

@@ -1931,13 +1931,14 @@ class Proposal(RevisionedMixin):
                                 )
                                 logger.info(f'FeeItemApplicationFee: [{fiaf}] has been created.')
                   
-                            if not self.payment_required():
+                            if not self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS and not self.payment_required():
                                 self.approval.generate_doc()
                             
                             send_application_approved_or_declined_email(self, 'approved', request)
                             self.log_user_action(ProposalUserAction.ACTION_APPROVE_APPLICATION.format(self.lodgement_number), request)
 
                         except Exception as e:
+                            print(e)
                             err_msg = 'Failed to create invoice'
                             logger.error('{}\n{}'.format(err_msg, str(e)))
                             raise serializers.ValidationError(err_msg)
