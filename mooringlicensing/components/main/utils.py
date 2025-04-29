@@ -670,8 +670,8 @@ def remove_script_tags(text):
         'ontoggle','onmouseout','onoffline','onloadstart','ondragenter']
     ATTR_BLACKLIST_STR=('|').join(ATTR_BLACKLIST)
 
-    HTML_TAGS_WITH_ATTR_WRAPPED = re.compile(r'(?i)<[^>]+('+ATTR_BLACKLIST_STR+')[\s]*=[^>]+>.+</[^>]+>')
-    HTML_TAGS_WITH_ATTR_NO_WRAPPED = re.compile(r'(?i)<[^>]+('+ATTR_BLACKLIST_STR+')[\s]*=[^>]+>')
+    HTML_TAGS_WITH_ATTR_WRAPPED = re.compile(r'(?i)<[^>]+('+ATTR_BLACKLIST_STR+')[\\s]*=[^>]+>.+</[^>]+>')
+    HTML_TAGS_WITH_ATTR_NO_WRAPPED = re.compile(r'(?i)<[^>]+('+ATTR_BLACKLIST_STR+')[\\s]*=[^>]+>')
 
     text = HTML_TAGS_WITH_ATTR_WRAPPED.sub('', text)
     text = HTML_TAGS_WITH_ATTR_NO_WRAPPED.sub('', text)
