@@ -188,9 +188,5 @@
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}
-
-        {% block custom_js %}
-        <script src="/static/common/js/jquery.min.js?ver={{ GIT_COMMIT_HASH }}"></script>
-        {% endblock %}
     </body>
 </html>
