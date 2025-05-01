@@ -35,7 +35,8 @@ from mooringlicensing.components.approvals.email import (
 from mooringlicensing.components.payments_ml.models import (
     ApplicationFee, DcvPermitFee, 
     DcvAdmissionFee, FeeItem, StickerActionFee, 
-    FeeItemStickerReplacement, FeeItemApplicationFee, FeeCalculation
+    FeeItemStickerReplacement, FeeItemApplicationFee, FeeCalculation,
+    OracleCodeItem
 )
 from mooringlicensing.components.payments_ml.utils import (
     checkout
@@ -479,14 +480,19 @@ class ApplicationFeeView(TemplateView):
                     total_amount = 0 - float(fee_amount)
                     total_amount_excl_tax = 0 - float(fee_amount)
 
+                oracle_code = proposal.application_type.get_oracle_code_by_date(current_datetime.date())
+                if proposal.application_type.code == 'mla' and proposal.proposal_type.code == 'swap_moorings':
+                    target_date = datetime.now(pytz.timezone(settings.TIME_ZONE))
+                    oracle_code = OracleCodeItem.objects.filter(date_of_enforcement__lte=target_date, application_type__code='mooring_swap').last().value
+                
                 if total_amount != 0:
                     lines.append({
                         'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
-                        'oracle_code': proposal.application_type.get_oracle_code_by_date(current_datetime.date()),
+                        'oracle_code': oracle_code,
                         'price_incl_tax': total_amount,
                         'price_excl_tax': total_amount_excl_tax,
                         'quantity': 1,
-                    })
+                    })             
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
