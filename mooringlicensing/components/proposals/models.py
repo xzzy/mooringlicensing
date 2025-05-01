@@ -3903,6 +3903,7 @@ class MooringLicenceApplication(Proposal):
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)  # Used for AUA / MLA
 
         if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+            from mooringlicensing.components.payments_ml.models import OracleCodeItem
             total_amount = float(GlobalSettings.objects.get(key=GlobalSettings.KEY_FEE_AMOUNT_OF_SWAP_MOORINGS).value)
             incur_gst = True if GlobalSettings.objects.get(key=GlobalSettings.KEY_SWAP_MOORINGS_INCLUDES_GST).value.lower() in ['true', 't', 'yes', 'y'] else False
             if settings.ROUND_FEE_ITEMS:
@@ -3912,10 +3913,11 @@ class MooringLicenceApplication(Proposal):
             else:
                 total_amount_excl_tax = float(calculate_excl_gst(total_amount) if incur_gst else total_amount)
 
+            oracle_code = OracleCodeItem.objects.filter(date_of_enforcement__lte=target_date, application_type__code='mooring_swap').last().value
             # When this proposal is for Swap-Moorings, it's easy.
             return [{
                 'ledger_description': 'Mooring Swap',
-                'oracle_code': self.application_type.get_oracle_code_by_date(target_date),
+                'oracle_code': oracle_code,
                 'price_incl_tax': total_amount, 
                 'price_excl_tax': total_amount_excl_tax,
                 'quantity': 1,

@@ -1,5 +1,6 @@
 import logging
 import decimal
+import datetime
 
 import pytz
 from django.http import HttpResponse
@@ -7,6 +8,7 @@ from django.urls import reverse
 from ledger_api_client.utils import create_basket_session, create_checkout_session, calculate_excl_gst
 from ledger_api_client.settings_base import *
 from mooringlicensing import settings
+from mooringlicensing.components.payments_ml.models import OracleCodeItem
 
 logger = logging.getLogger(__name__)
 
@@ -95,9 +97,13 @@ def generate_line_item(application_type, fee_amount_adjusted, fee_constructor, i
         total_amount = float(fee_amount_adjusted)
         total_amount_excl_tax = float(calculate_excl_gst(fee_amount_adjusted)) if fee_constructor.incur_gst else float(fee_amount_adjusted)
 
+    oracle_code = application_type.get_oracle_code_by_date(target_datetime.date())
+    if application_type.code == 'mla' and instance.proposal_type.code == 'swap_moorings':
+        oracle_code = OracleCodeItem.objects.filter(date_of_enforcement__lte=target_datetime.date(), application_type__code='mooring_swap').last().value
+
     return {
         'ledger_description': ledger_description,
-        'oracle_code': application_type.get_oracle_code_by_date(target_datetime.date()),
+        'oracle_code': oracle_code,
         'price_incl_tax': total_amount,
         'price_excl_tax': total_amount_excl_tax,
         'quantity': 1,
