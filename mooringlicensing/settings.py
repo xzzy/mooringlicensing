@@ -499,6 +499,13 @@ APPROVED_OPERATIONAL_STATUS = ['current', ]
 # Use git commit hash for purging cache in browser for deployment changes
 GIT_COMMIT_HASH = ''
 GIT_COMMIT_DATE = ''
+if  os.path.isdir(BASE_DIR+'/.git/') is True:
+    GIT_COMMIT_DATE = os.popen('cd '+BASE_DIR+' ; git log -1 --format=%cd').read()
+    GIT_COMMIT_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+if len(GIT_COMMIT_HASH) == 0:
+    GIT_COMMIT_HASH = os.popen('cat /app/git_hash').read()
+    if len(GIT_COMMIT_HASH) == 0:
+       print ("ERROR: No git hash provided")
 LEDGER_TEMPLATE = 'bootstrap5'
 
 # Change to file session backend to improve web application speed
