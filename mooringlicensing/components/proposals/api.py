@@ -358,7 +358,11 @@ class GetMooringPerBay(views.APIView):
 
             data_transform = []
             for mooring in data:
+                ml_qs = MooringLicence.objects.none()
                 if 'mooring_licence' in mooring and mooring['mooring_licence']:
+                    ml_qs = MooringLicence.objects.filter(id=mooring['mooring_licence'], internal_status=MooringLicence.INTERNAL_STATUS_APPROVED)
+
+                if ml_qs.exists():
                     data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (licensed)'
                     , "vessel_size_limit":mooring['vessel_size_limit']
                     , "vessel_draft_limit":mooring['vessel_draft_limit']
