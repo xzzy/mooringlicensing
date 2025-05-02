@@ -82,8 +82,12 @@ def _log_proposal_email(email_message, proposal, sender=None, file_bytes=None, f
     email_entry = ProposalLogEntry.objects.create(**kwargs)
 
     for attachment in attachments:
-        email_entry_document= email_entry.documents.create(name=attachment[0])
-        email_entry_document._file.save(attachment[0], ContentFile(attachment[1]), save=False)
+        check = attachment[0].split(".")
+        filename = attachment[0]
+        if len(check) < 2 or check[len(check)-1] != "pdf":
+            filename = attachment[0] + ".pdf"
+        email_entry_document = email_entry.documents.create(name=filename)
+        email_entry_document._file.save(filename, ContentFile(attachment[1]), save=False)
         email_entry_document.save()
 
     return email_entry
