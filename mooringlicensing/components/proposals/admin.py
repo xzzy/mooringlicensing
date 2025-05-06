@@ -48,6 +48,7 @@ class VesselRegistrationDocumentAdmin(admin.ModelAdmin):
 class VesselOwnershipAdmin(admin.ModelAdmin):
     list_display = ['id', 'owner', 'vessel', 'percentage', 'start_date', 'end_date', 'dot_name',]
     readonly_fields = ['owner','vessel']
+    search_fields = ['vessel__rego_no']
 
 
 @admin.register(models.VesselDetails)
