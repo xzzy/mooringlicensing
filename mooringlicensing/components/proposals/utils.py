@@ -699,11 +699,12 @@ def ownership_percentage_validation(proposal):
         else:
             vessel_ownership_percentage = proposal.company_ownership_percentage   
     elif not proposal.percentage:
-        raise serializers.ValidationError({
-            "Ownership Percentage": "You must specify a percentage"
+        if not proposal.migrated: #we make an exception for migrated proposals as old data does not always have the percentage available
+            raise serializers.ValidationError({
+                "Ownership Percentage": "You must specify a percentage"
             })
     else:
-        if proposal.percentage < 25:
+        if proposal.percentage < 25 and not proposal.migrated:
             min_percent_fail = True
         else:
             vessel_ownership_percentage = proposal.percentage
