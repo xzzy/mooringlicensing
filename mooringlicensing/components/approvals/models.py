@@ -800,7 +800,7 @@ class Approval(RevisionedMixin):
             self.approval.licence_document = self.licence_document
             self.approval.save()
 
-    def generate_au_summary_doc(self, user):
+    def generate_au_summary_doc(self):
         target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
         if hasattr(self, 'mooring'):
             query = Q()
@@ -1965,7 +1965,7 @@ class MooringLicence(Approval):
             i.save()
 
         #update aup pdf
-        self.generate_au_summary_doc(request.user)
+        self.generate_au_summary_doc()
 
     def _create_new_swap_moorings_application(self, request, new_mooring):
         new_proposal = self.current_proposal.clone_proposal_with_status_reset()

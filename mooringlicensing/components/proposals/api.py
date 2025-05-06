@@ -357,19 +357,20 @@ class GetMooringPerBay(views.APIView):
                     data = []
 
             data_transform = []
+            ml_qs = MooringLicence.objects
             for mooring in data:
-                ml_qs = MooringLicence.objects.none()
+                qs = ml_qs.none()
+                print( mooring['mooring_licence'])
                 if 'mooring_licence' in mooring and mooring['mooring_licence']:
-                    ml_qs = MooringLicence.objects.filter(id=mooring['mooring_licence'], internal_status=MooringLicence.INTERNAL_STATUS_APPROVED)
+                    qs = MooringLicence.objects.filter(id=mooring['mooring_licence'], status="current")
 
-                if ml_qs.exists():
+                if qs.exists() and not available_moorings:
                     data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (licensed)'
                     , "vessel_size_limit":mooring['vessel_size_limit']
                     , "vessel_draft_limit":mooring['vessel_draft_limit']
                     , "vessel_weight_limit":mooring['vessel_weight_limit']
                     })
-                else:
-                    # Should not reach here.  An unlicensed mooring would never be allocated to an AU permit.
+                elif available_moorings:
                     data_transform.append({'id': mooring['id'], 'text': mooring['name'] + ' (unlicensed)'
                     , "vessel_size_limit":mooring['vessel_size_limit']
                     , "vessel_draft_limit":mooring['vessel_draft_limit']
