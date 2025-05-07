@@ -28,6 +28,7 @@ from mooringlicensing.components.proposals.views import (
 from mooringlicensing.components.users import api as users_api
 from mooringlicensing.components.main import api as main_api
 from ledger_api_client.urls import urlpatterns as ledger_patterns
+from django_media_serv.urls import urlpatterns as media_serv_patterns
 
 # API patterns
 from mooringlicensing.management.default_data_manager import DefaultDataManager
@@ -162,7 +163,7 @@ urlpatterns = [
     re_path(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
 
     re_path(r'^private-media/', views.getPrivateFile, name='view_private_file'),
-] + ledger_patterns 
+] + ledger_patterns + media_serv_patterns
 
 
 
