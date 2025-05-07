@@ -16,7 +16,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="sticker in stickers" :key="sticker.id">
+                            <tr v-for="sticker in stickers" :key="sticker.id" v-if="sticker.status.code == 'current'">
                                 <td><input v-if="sticker.status.code == 'current'" type="checkbox" v-model="sticker.checked" /></td>
                                 <td v-if="sticker.number">{{ sticker.number }}</td>
                                 <td v-else>Not Assigned</td>
@@ -41,35 +41,35 @@
                 <div class="row form-group">
                     <label class="col-sm-5 control-label" for="change_sticker_address">Change Sticker Address</label>
                     <div class="col-md-6">
-                        <input type="checkbox" v-model="change_sticker_address" />
+                        <input :disabled="!formEnabled" type="checkbox" v-model="change_sticker_address" />
                     </div>
                 </div>
                 <div v-if="change_sticker_address" class="row form-group">
                     <label for="" class="col-sm-3 control-label">Street</label>
                     <div class="col-sm-6">
-                        <input type="text" class="form-control" name="street" placeholder="" v-model="new_postal_address_line1">
+                        <input :disabled="!formEnabled" type="text" class="form-control" name="street" placeholder="" v-model="new_postal_address_line1">
                     </div>
                 </div>
                 <div v-if="change_sticker_address" class="row form-group">
                     <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                     <div class="col-sm-6">
-                        <input type="text" class="form-control" name="surburb" placeholder="" v-model="new_postal_address_locality">
+                        <input :disabled="!formEnabled" type="text" class="form-control" name="surburb" placeholder="" v-model="new_postal_address_locality">
                     </div>
                 </div>
                 <div v-if="change_sticker_address" class="row form-group">
                     <label for="" class="col-sm-3 control-label">State</label>
                     <div class="col-sm-2">
-                        <input type="text" class="form-control" name="state" placeholder="" v-model="new_postal_address_state">
+                        <input :disabled="!formEnabled" type="text" class="form-control" name="state" placeholder="" v-model="new_postal_address_state">
                     </div>
                     <label for="" class="col-sm-2 control-label">Postcode</label>
                     <div class="col-sm-2">
-                        <input type="text" class="form-control" name="postcode" placeholder="" v-model="new_postal_address_postcode">
+                        <input :disabled="!formEnabled" type="text" class="form-control" name="postcode" placeholder="" v-model="new_postal_address_postcode">
                     </div>
                 </div>
                 <div v-if="change_sticker_address" class="row form-group">
                     <label for="" class="col-sm-3 control-label" >Country</label>
                     <div class="col-sm-4">
-                        <select v-model="new_postal_address_country" class="form-control" name="country">
+                        <select :disabled="!formEnabled" v-model="new_postal_address_country" class="form-control" name="country">
                             <option selected></option>
                             <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                         </select>
@@ -78,7 +78,7 @@
                 <div class="row form-group">
                     <label class="col-sm-2 control-label" for="reason">Reason</label>
                     <div class="col-sm-9">
-                        <textarea class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
+                        <textarea :disabled="!formEnabled" class="col-sm-9 form-control" name="reason" v-model="details.reason"></textarea>
                     </div>
                 </div>
             </div>
@@ -159,6 +159,14 @@ export default {
         }
     },
     computed: {
+        formEnabled: function(){
+            for (let sticker of this.stickers){
+                if (sticker.checked === true){
+                    return true
+                }
+            }
+            return false
+        },
         okButtonEnabled: function(){
             if (this.details.reason){
                 for (let sticker of this.stickers){

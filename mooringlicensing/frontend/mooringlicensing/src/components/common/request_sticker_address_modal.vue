@@ -16,7 +16,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="sticker in stickers" :key="sticker.id">
+                            <tr v-for="sticker in stickers" :key="sticker.id"  v-if="sticker.status.code == 'ready' || sticker.status.code == 'not_yet_ready'">
                                 <td><input v-if="sticker.status.code == 'ready' || sticker.status.code == 'not_yet_ready'" type="checkbox" v-model="sticker.checked" /></td>
                                 <td v-if="sticker.number">{{ sticker.number }}</td>
                                 <td v-else>Not Assigned</td>
@@ -41,29 +41,29 @@
                 <div class="row form-group">
                     <label for="" class="col-sm-3 control-label">Street</label>
                     <div class="col-sm-6">
-                        <input type="text" class="form-control" name="street" placeholder="" v-model="new_postal_address_line1">
+                        <input :disabled="!okButtonEnabled" type="text" class="form-control" name="street" placeholder="" v-model="new_postal_address_line1">
                     </div>
                 </div>
                 <div class="row form-group">
                     <label for="" class="col-sm-3 control-label" >Town/Suburb</label>
                     <div class="col-sm-6">
-                        <input type="text" class="form-control" name="surburb" placeholder="" v-model="new_postal_address_locality">
+                        <input :disabled="!okButtonEnabled" type="text" class="form-control" name="surburb" placeholder="" v-model="new_postal_address_locality">
                     </div>
                 </div>
                 <div class="row form-group">
                     <label for="" class="col-sm-3 control-label">State</label>
                     <div class="col-sm-2">
-                        <input type="text" class="form-control" name="state" placeholder="" v-model="new_postal_address_state">
+                        <input :disabled="!okButtonEnabled" type="text" class="form-control" name="state" placeholder="" v-model="new_postal_address_state">
                     </div>
                     <label for="" class="col-sm-2 control-label">Postcode</label>
                     <div class="col-sm-2">
-                        <input type="text" class="form-control" name="postcode" placeholder="" v-model="new_postal_address_postcode">
+                        <input :disabled="!okButtonEnabled" type="text" class="form-control" name="postcode" placeholder="" v-model="new_postal_address_postcode">
                     </div>
                 </div>
                 <div class="row form-group">
                     <label for="" class="col-sm-3 control-label" >Country</label>
                     <div class="col-sm-4">
-                        <select v-model="new_postal_address_country" class="form-control" name="country">
+                        <select :disabled="!okButtonEnabled" v-model="new_postal_address_country" class="form-control" name="country">
                             <option selected></option>
                             <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                         </select>
