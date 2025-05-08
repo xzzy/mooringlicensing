@@ -12,11 +12,12 @@ from mooringlicensing.forms import *
 from mooringlicensing.components.approvals.models import Approval, DcvAdmission, DcvPermit
 from mooringlicensing.components.proposals.models import Proposal
 from mooringlicensing.components.compliances.models import Compliance
+from mooringlicensing.components.main.models import JobQueue
 from django.core.management import call_command
 from django.db.models import Q
 import os
 import mimetypes
-
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,19 @@ class EmailExportsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
 
     def post(self, request):
         data = {}
+        export_model = request.POST.get('export_model', None)
+        filters = request.POST.get('filters', None)
+
+        if export_model:
+            parameters = {"model":export_model, "filters":filters}
+            JobQueue.objects.create(
+                job_cmd="email_exports",
+                status=0,
+                parameters_json=json.dumps(parameters),
+                user=request.user.id
+            )
+
+            data.update({"email_export": 'true'})
         return render(request, self.template_name, data)
 
 def is_authorised_to_access_proposal_document(request,document_id):

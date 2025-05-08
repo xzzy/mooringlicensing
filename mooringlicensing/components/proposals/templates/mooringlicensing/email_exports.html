@@ -12,7 +12,19 @@
         }
     </style>
     <div class="container">
-
+        <form action="" method="POST">
+            {% csrf_token %}
+            <div class="row">
+                <button 
+                    id="export_proposal" 
+                    type="submit" 
+                    name="export_model" 
+                    value="proposal" 
+                    title="Export Proposals">
+                    Export Proposals
+                </button>
+            </div>
+        </form>
     </div>
 {% endblock %}
 
