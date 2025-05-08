@@ -130,6 +130,7 @@ urlpatterns = [
     re_path(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     re_path(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
     re_path(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
+    re_path(r'^email-exports/$', views.EmailExportsView.as_view(), name='email-exports'),
     re_path(r'^login-success/$', views.LoginSuccess.as_view(), name='login-success'),
 
     # payment related urls

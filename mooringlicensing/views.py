@@ -132,6 +132,20 @@ class ManagementCommandsView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
 
         return render(request, self.template_name, data)
 
+class EmailExportsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    template_name = 'mooringlicensing/email_exports.html'
+
+    def test_func(self):
+        return is_internal(self.request)
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(**kwargs)
+        return self.render_to_response(context)
+
+    def post(self, request):
+        data = {}
+        return render(request, self.template_name, data)
+
 def is_authorised_to_access_proposal_document(request,document_id):
     if is_internal(request):
         return True
