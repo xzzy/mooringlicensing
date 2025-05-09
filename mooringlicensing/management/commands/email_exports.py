@@ -47,8 +47,8 @@ class Command(BaseCommand):
                     filters = params["filters"]
 
                 #get records
-                export_data = exportModelData(model, format, filters, num_records)
-
+                export_data = exportModelData(model, filters, num_records)
+                print(export_data.count())
                 #email to user
 
             else:

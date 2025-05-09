@@ -877,9 +877,7 @@ def getProposalExport(filters, num):
             if "status" in filters and filters["status"]:
                 qs = qs.filter(processing_status=filters["status"])
 
-        if not num:
-            num = MAX_NUM_ROWS_MODEL_EXPORT
-        return qs[:num]
+    return qs[:num]
     
 def getApprovalExport(filters, num):
 
@@ -914,9 +912,7 @@ def getApprovalExport(filters, num):
             if "status" in filters and filters["status"]:
                 qs = qs.filter(status=filters["status"])
 
-        if not num:
-            num = MAX_NUM_ROWS_MODEL_EXPORT
-        return qs[:num]
+    return qs[:num]
     
 def getComplianceExport(filters, num):
 
@@ -933,9 +929,7 @@ def getComplianceExport(filters, num):
         if "status" in filters and filters["status"]:
             qs = qs.filter(processing_status=filters["status"])
 
-        if not num:
-            num = MAX_NUM_ROWS_MODEL_EXPORT
-        return qs[:num]
+    return qs[:num]
     
 def getWaitingListExport(filters, num):
 
@@ -961,7 +955,7 @@ def getWaitingListExport(filters, num):
         if "max_vessel_draft" in filters and filters["max_vessel_draft"]:
             qs = qs.filter(current_proposal__vessel_details__vessel_draft__lte=float(filters["max_vessel_draft"]))
         
-        return qs[:num]
+    return qs[:num]
     
 def getMooringExport(filters, num):
 
@@ -1044,6 +1038,64 @@ def exportModelData(model, filters, num_records):
     elif model == "dcv_admission":
         return getDcvAdmissionExport(filters, num_records)
     elif model == "sticker":
-        getPrintExport(filters, num_records)
+        return getPrintExport(filters, num_records)
     else:
         return
+
+def csvExportData(header, columns):
+    pass
+
+def excelExportData(header, columns):
+    pass
+
+def getProposalExportFields(data):
+    header = ["Lodgement Number", "Type" , "Applicant", "Status", "Lodged On", "Payment Status"]
+    columns = list(data.values_list()) #TODO figure out type...
+    return header, columns
+
+def getApprovalExportFields(data):
+    pass
+
+def getComplianceExportFields(data):
+    pass
+
+def getWaitingListExportFields(data):
+    pass
+
+def getMooringExportFields(data):
+    pass
+
+def getDcvPermitExportFields(data):
+    pass
+
+def getDcvAdmissionExportFields(data):
+    pass
+
+def getStickerExportFields(data):
+    pass
+
+def formatExportData(model, data, format):
+
+    if model == "proposal":
+        header, columns = getProposalExportFields(data)
+    elif model == "approval": #exclude waiting list
+        header, columns = getApprovalExportFields(data)
+    elif model == "compliance":
+        header, columns = getComplianceExportFields(data)
+    elif model == "waiting_list":
+        header, columns = getWaitingListExportFields(data)
+    elif model == "mooring":
+        header, columns = getMooringExportFields(data)
+    elif model == "dcv_permit":
+        header, columns = getDcvPermitExportFields(data)
+    elif model == "dcv_admission":
+        header, columns = getDcvAdmissionExportFields(data)
+    elif model == "sticker":
+        header, columns = getStickerExportFields(data)
+    else:
+        return
+
+    if format == "excel":
+        return excelExportData(header, columns)
+    else:
+        return csvExportData(header, columns)
