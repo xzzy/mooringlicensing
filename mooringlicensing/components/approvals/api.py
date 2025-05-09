@@ -257,8 +257,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         # max vessel length
         max_vessel_length = request.data.get('max_vessel_length')
         if max_vessel_length:
-            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
-            filter_query &= Q(id__in=filtered_ids)
+            filter_query &= Q(current_proposal__vessel_details__vessel_length__lte=float(max_vessel_length))
 
         # max vessel draft
         max_vessel_draft = request.data.get('max_vessel_draft')

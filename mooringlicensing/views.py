@@ -147,17 +147,27 @@ class EmailExportsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         data = {}
         export_model = request.POST.get('export_model', None)
         filters = request.POST.get('filters', None)
+        format = request.POST.get('format', 'csv')
+        num_records = request.POST.get('num_records', settings.MAX_NUM_ROWS_MODEL_EXPORT)
+
+        num_records = min(num_records, settings.MAX_NUM_ROWS_MODEL_EXPORT)
 
         if export_model:
-            parameters = {"model":export_model, "filters":filters}
-            JobQueue.objects.create(
-                job_cmd="email_exports",
-                status=0,
-                parameters_json=json.dumps(parameters),
-                user=request.user.id
-            )
-
-            data.update({"email_export": 'true'})
+            parameters = {"model":export_model, "filters":filters, "format":format, "num_records": num_records}
+            parameters_json = parameters
+            #check if job with same params that is not completed/failed already exists - prevent needless duplicates
+            if not JobQueue.objects.filter(job_cmd="email_exports", status__lt=2, parameters_json=parameters_json, user=request.user.id):
+                JobQueue.objects.create(
+                    job_cmd="email_exports",
+                    status=0,
+                    parameters_json=parameters_json,
+                    user=request.user.id
+                )
+                data.update({"message": "{} data export shall be emailed to {} when ready.".format(export_model,request.user.email).capitalize()})
+            else:
+                data.update({"message": "{} data export for {} already in progress.".format(export_model,request.user.email).capitalize()})
+        else:
+            data.update({"message": "Export request failed."})
         return render(request, self.template_name, data)
 
 def is_authorised_to_access_proposal_document(request,document_id):

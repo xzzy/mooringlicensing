@@ -523,7 +523,7 @@ class JobQueue(models.Model):
     job_cmd = models.CharField(max_length=1000, null=True, blank=True)
     system_id = models.CharField(max_length=4, null=True, blank=True)
     status = models.SmallIntegerField(choices=STATUS, default=0) 
-    parameters_json = models.TextField(null=True, blank=True)
+    parameters_json = models.JSONField(null=True, blank=True)
     processed_dt = models.DateTimeField(default=None,null=True, blank=True )
     user = models.IntegerField(blank=True, null=True)
     created = models.DateTimeField(auto_now_add=True)

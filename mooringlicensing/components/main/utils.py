@@ -16,19 +16,22 @@ from django.db import connection, transaction
 from django.db.models import Q
 from mooringlicensing.components.approvals.models import (
     Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, DcvPermitDocument,
-    MooringLicence, Approval, WaitingListAllocation, ApprovalHistory, DcvPermit, Approval
+    MooringLicence, Approval, WaitingListAllocation,
+    ApprovalHistory, DcvPermit, DcvAdmission, Approval
 )
+from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
 from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
     StickerPrintingBatch,
-    Proposal,
+    Proposal, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication, WaitingListApplication
 )
 from rest_framework import serializers
 from openpyxl import Workbook
 from copy import deepcopy
 import logging
+from mooringlicensing.settings import MAX_NUM_ROWS_MODEL_EXPORT
 
 logger = logging.getLogger(__name__)
 
@@ -832,3 +835,215 @@ def check_file(file, model_name):
 
     if not valid:
         raise serializers.ValidationError("File type/extension not supported")
+    
+def getProposalExport(filters, num):
+
+    qs = Proposal.objects.order_by("-lodgement_date")
+
+    if filters:
+        #type
+        if "type" in filters and filters["type"] and not filters["type"].lower() == 'all':
+            if filters["type"].lower() == 'mla':
+                qs = MooringLicenceApplication.objects.order_by("-lodgement_date")
+            if filters["type"].lower() == 'aua':
+                qs = AuthorisedUserApplication.objects.order_by("-lodgement_date")
+            if filters["type"].lower() == 'aaa':
+                qs = AnnualAdmissionApplication.objects.order_by("-lodgement_date")
+            if filters["type"].lower() == 'wla':
+                qs = WaitingListApplication.objects.order_by("-lodgement_date")
+            #lodged_on_from
+            if "lodged_on_from" in filters and filters["lodged_on_from"]:
+                qs = qs.filter(proposal__lodgement_date__gte=filters["lodged_on_from"])
+            #lodged_on_to
+            if "lodged_on_to" in filters and filters["lodged_on_to"]:
+                qs = qs.filter(proposal__lodgement_date__lte=filters["lodged_on_to"])
+            #category
+            if "category" in filters and filters["category"]:
+                qs = qs.filter(proposal__proposal_type__code=filters["category"])
+            #status
+            if "status" in filters and filters["status"]:
+                qs = qs.filter(proposal__processing_status=filters["status"])
+        else:
+            #lodged_on_from
+            if "lodged_on_from" in filters and filters["lodged_on_from"]:
+                qs = qs.filter(lodgement_date__gte=filters["lodged_on_from"])
+            #lodged_on_to
+            if "lodged_on_to" in filters and filters["lodged_on_to"]:
+                qs = qs.filter(lodgement_date__lte=filters["lodged_on_to"])
+            #category
+            if "category" in filters and filters["category"]:
+                qs = qs.filter(proposal_type__code=filters["category"])
+            #status
+            if "status" in filters and filters["status"]:
+                qs = qs.filter(processing_status=filters["status"])
+
+        if not num:
+            num = MAX_NUM_ROWS_MODEL_EXPORT
+        return qs[:num]
+    
+def getApprovalExport(filters, num):
+
+    qs = Approval.objects.order_by("-issue_date")
+
+    if filters:
+        #type
+        if "type" in filters and filters["type"] and not filters["type"].lower() == 'all':
+            if filters["type"].lower() == 'ml':
+                qs = MooringLicence.objects.order_by("-issue_date")
+            if filters["type"].lower() == 'aup':
+                qs = AuthorisedUserPermit.objects.order_by("-issue_date")
+            if filters["type"].lower() == 'aap':
+                qs = AnnualAdmissionPermit.objects.order_by("-issue_date")
+            #issued_from
+            if "issued_from" in filters and filters["issued_from"]:
+                qs = qs.filter(approval__issue_date__gte=filters["issued_from"])
+            #issued_to
+            if "issued_to" in filters and filters["issued_to"]:
+                qs = qs.filter(approval__issue_date__lte=filters["issued_to"])
+            #status
+            if "status" in filters and filters["status"]:
+                qs = qs.filter(approval__status=filters["status"])
+        else:
+            #issued_from
+            if "issued_from" in filters and filters["issued_from"]:
+                qs = qs.filter(issue_date__gte=filters["issued_from"])
+            #issued_to
+            if "issued_to" in filters and filters["issued_to"]:
+                qs = qs.filter(issue_date__lte=filters["issued_to"])
+            #status
+            if "status" in filters and filters["status"]:
+                qs = qs.filter(status=filters["status"])
+
+        if not num:
+            num = MAX_NUM_ROWS_MODEL_EXPORT
+        return qs[:num]
+    
+def getComplianceExport(filters, num):
+
+    qs = Compliance.objects.order_by("-lodgement_date")
+
+    if filters:
+        #lodged_on_from
+        if "lodged_on_from" in filters and filters["lodged_on_from"]:
+            qs = qs.filter(lodgement_date__gte=filters["lodged_on_from"])
+        #lodged_on_to
+        if "lodged_on_to" in filters and filters["lodged_on_to"]:
+            qs = qs.filter(lodgement_date__lte=filters["lodged_on_to"])
+        #status
+        if "status" in filters and filters["status"]:
+            qs = qs.filter(processing_status=filters["status"])
+
+        if not num:
+            num = MAX_NUM_ROWS_MODEL_EXPORT
+        return qs[:num]
+    
+def getWaitingListExport(filters, num):
+
+    qs = WaitingListAllocation.objects.order_by("-issue_date")
+
+    if filters:
+        #issued_from
+        if "issued_from" in filters and filters["issued_from"]:
+            qs = qs.filter(issue_date__gte=filters["issued_from"])
+        #issued_to
+        if "issued_to" in filters and filters["issued_to"]:
+            qs = qs.filter(issue_date__lte=filters["issued_to"])
+        #status
+        if "status" in filters and filters["status"]:
+            qs = qs.filter(approval__status=filters["status"])
+        #bay
+        if "bay" in filters and filters["bay"]:
+            qs = qs.filter(current_proposal__preferred_bay__id=filters["bay"])
+        #max_vessel_length
+        if "max_vessel_length" in filters and filters["max_vessel_length"]:
+            qs = qs.filter(current_proposal__vessel_details__vessel_length__lte=float(filters["max_vessel_length"]))
+        #max_vessel_draft
+        if "max_vessel_draft" in filters and filters["max_vessel_draft"]:
+            qs = qs.filter(current_proposal__vessel_details__vessel_draft__lte=float(filters["max_vessel_draft"]))
+        
+        return qs[:num]
+    
+def getMooringExport(filters, num):
+
+    qs = Mooring.objects.order_by("-id")
+
+    if filters:
+        #status
+        if "status" in filters and filters["status"]:
+            if filters["status"] == 'Licensed':
+                qs = qs.filter(mooring_licence__approval__status__in=['current','suspended'])
+            elif filters["status"] == 'Licence Application':
+                qs = qs.filter(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded'])
+            elif filters["status"] == 'Unlicensed':
+                qs = qs.exclude(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded'], mooring_licence__approval__status__in=['current','suspended'])
+        #bay
+        if "bay" in filters and filters["bay"]:
+            qs = qs.filter(mooring_bay__id=filters["bay"])
+
+    return qs[:num]
+
+def getDcvPermitExport(filters, num):
+
+    qs = DcvPermit.objects.order_by("-date_created")
+
+    if filters:
+        if "season" in filters and filters["season"]:
+            qs = qs.filter(fee_season__id=filters["season"])
+        if "organisatiom" in filters and filters["organisatiom"]:
+            qs = qs.filter(dcv_organisation__name__iexact=filters["season"])
+
+    return qs[:num]
+
+def getDcvAdmissionExport(filters, num):
+
+    qs = DcvAdmission.objects.order_by("-date_created")
+
+    if filters:
+        if "organisatiom" in filters and filters["organisatiom"]:
+            qs = qs.filter(dcv_organisation__name__iexact=filters["season"])
+        #lodged_on_from
+        if "lodged_on_from" in filters and filters["lodged_on_from"]:
+            qs = qs.filter(proposal__lodgement_datetime__gte=filters["lodged_on_from"])
+        #lodged_on_to
+        if "lodged_on_to" in filters and filters["lodged_on_to"]:
+            qs = qs.filter(proposal__lodgement_datetime__lte=filters["lodged_on_to"])
+
+    return qs[:num]
+
+def getPrintExport(filters, num):
+
+    qs = Sticker.objects.order_by("-date_created")
+
+    if filters:        
+        if "season" in filters and filters["season"]:
+            qs = qs.filter(fee_season__id=filters["season"])
+        if "status" in filters and filters["status"]:
+            qs = qs.filter(status=filters["status"])
+
+    return qs[:num]
+
+def exportModelData(model, filters, num_records):
+
+    if not num_records:
+        num_records = MAX_NUM_ROWS_MODEL_EXPORT
+    else:
+        num_records = min(num_records, MAX_NUM_ROWS_MODEL_EXPORT)
+
+    if model == "proposal":
+        return getProposalExport(filters, num_records)
+    elif model == "approval": #exclude waiting list
+        return getApprovalExport(filters, num_records)
+    elif model == "compliance":
+        return getComplianceExport(filters, num_records)
+    elif model == "waiting_list":
+        return getWaitingListExport(filters, num_records)
+    elif model == "mooring":
+        return getMooringExport(filters, num_records)
+    elif model == "dcv_permit":
+        return getDcvPermitExport(filters, num_records)
+    elif model == "dcv_admission":
+        return getDcvAdmissionExport(filters, num_records)
+    elif model == "sticker":
+        getPrintExport(filters, num_records)
+    else:
+        return
