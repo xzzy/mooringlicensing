@@ -4,7 +4,7 @@ import json
 from ledger_api_client.ledger_models import EmailUserRO
 from mooringlicensing.helpers import is_internal_user
 from mooringlicensing.management.commands.utils import construct_email_message
-from mooringlicensing.components.main.utils import exportModelData
+from mooringlicensing.components.main.utils import exportModelData, formatExportData
 from mooringlicensing import settings
 
 logger = logging.getLogger('cron_tasks')
@@ -49,6 +49,8 @@ class Command(BaseCommand):
                 #get records
                 export_data = exportModelData(model, filters, num_records)
                 print(export_data.count())
+                file = formatExportData(model, export_data, format)
+                print(file)
                 #email to user
 
             else:

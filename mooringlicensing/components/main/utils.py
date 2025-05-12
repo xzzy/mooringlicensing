@@ -32,6 +32,12 @@ from openpyxl import Workbook
 from copy import deepcopy
 import logging
 from mooringlicensing.settings import MAX_NUM_ROWS_MODEL_EXPORT
+from django.db.models import Case, Value, When, CharField
+from django.db.models.functions import Concat, Cast
+import csv
+import datetime
+import uuid
+from django.contrib.postgres.aggregates import ArrayAgg
 
 logger = logging.getLogger(__name__)
 
@@ -844,73 +850,50 @@ def getProposalExport(filters, num):
         #type
         if "type" in filters and filters["type"] and not filters["type"].lower() == 'all':
             if filters["type"].lower() == 'mla':
-                qs = MooringLicenceApplication.objects.order_by("-lodgement_date")
+                qs = qs.filter(lodgement_number__startswith="ML")
             if filters["type"].lower() == 'aua':
-                qs = AuthorisedUserApplication.objects.order_by("-lodgement_date")
+                qs = qs.filter(lodgement_number__startswith="AU")
             if filters["type"].lower() == 'aaa':
-                qs = AnnualAdmissionApplication.objects.order_by("-lodgement_date")
+                qs = qs.filter(lodgement_number__startswith="AA")
             if filters["type"].lower() == 'wla':
-                qs = WaitingListApplication.objects.order_by("-lodgement_date")
-            #lodged_on_from
-            if "lodged_on_from" in filters and filters["lodged_on_from"]:
-                qs = qs.filter(proposal__lodgement_date__gte=filters["lodged_on_from"])
-            #lodged_on_to
-            if "lodged_on_to" in filters and filters["lodged_on_to"]:
-                qs = qs.filter(proposal__lodgement_date__lte=filters["lodged_on_to"])
-            #category
-            if "category" in filters and filters["category"]:
-                qs = qs.filter(proposal__proposal_type__code=filters["category"])
-            #status
-            if "status" in filters and filters["status"]:
-                qs = qs.filter(proposal__processing_status=filters["status"])
-        else:
-            #lodged_on_from
-            if "lodged_on_from" in filters and filters["lodged_on_from"]:
-                qs = qs.filter(lodgement_date__gte=filters["lodged_on_from"])
-            #lodged_on_to
-            if "lodged_on_to" in filters and filters["lodged_on_to"]:
-                qs = qs.filter(lodgement_date__lte=filters["lodged_on_to"])
-            #category
-            if "category" in filters and filters["category"]:
-                qs = qs.filter(proposal_type__code=filters["category"])
-            #status
-            if "status" in filters and filters["status"]:
-                qs = qs.filter(processing_status=filters["status"])
+                qs = qs.filter(lodgement_number__startswith="WL")
+        #lodged_on_from
+        if "lodged_on_from" in filters and filters["lodged_on_from"]:
+            qs = qs.filter(lodgement_date__gte=filters["lodged_on_from"])
+        #lodged_on_to
+        if "lodged_on_to" in filters and filters["lodged_on_to"]:
+            qs = qs.filter(lodgement_date__lte=filters["lodged_on_to"])
+        #category
+        if "category" in filters and filters["category"]:
+            qs = qs.filter(proposal_type__code=filters["category"])
+        #status
+        if "status" in filters and filters["status"]:
+            qs = qs.filter(processing_status=filters["status"])
 
     return qs[:num]
     
 def getApprovalExport(filters, num):
 
-    qs = Approval.objects.order_by("-issue_date")
+    qs = Approval.objects.order_by("-issue_date").exclude(lodgement_number__startswith='WLA')
 
     if filters:
         #type
         if "type" in filters and filters["type"] and not filters["type"].lower() == 'all':
             if filters["type"].lower() == 'ml':
-                qs = MooringLicence.objects.order_by("-issue_date")
+                qs = qs.filter(lodgement_number__startswith="MOL")
             if filters["type"].lower() == 'aup':
-                qs = AuthorisedUserPermit.objects.order_by("-issue_date")
+                qs = qs.filter(lodgement_number__startswith="AUP")
             if filters["type"].lower() == 'aap':
-                qs = AnnualAdmissionPermit.objects.order_by("-issue_date")
-            #issued_from
-            if "issued_from" in filters and filters["issued_from"]:
-                qs = qs.filter(approval__issue_date__gte=filters["issued_from"])
-            #issued_to
-            if "issued_to" in filters and filters["issued_to"]:
-                qs = qs.filter(approval__issue_date__lte=filters["issued_to"])
-            #status
-            if "status" in filters and filters["status"]:
-                qs = qs.filter(approval__status=filters["status"])
-        else:
-            #issued_from
-            if "issued_from" in filters and filters["issued_from"]:
-                qs = qs.filter(issue_date__gte=filters["issued_from"])
-            #issued_to
-            if "issued_to" in filters and filters["issued_to"]:
-                qs = qs.filter(issue_date__lte=filters["issued_to"])
-            #status
-            if "status" in filters and filters["status"]:
-                qs = qs.filter(status=filters["status"])
+                qs = qs.filter(lodgement_number__startswith="AAP")
+        #issued_from
+        if "issued_from" in filters and filters["issued_from"]:
+            qs = qs.filter(issue_date__gte=filters["issued_from"])
+        #issued_to
+        if "issued_to" in filters and filters["issued_to"]:
+            qs = qs.filter(issue_date__lte=filters["issued_to"])
+        #status
+        if "status" in filters and filters["status"]:
+            qs = qs.filter(status=filters["status"])
 
     return qs[:num]
     
@@ -1042,37 +1025,279 @@ def exportModelData(model, filters, num_records):
     else:
         return
 
-def csvExportData(header, columns):
-    pass
+def csvExportData(model, header, columns):
+    
+    csv_file = str(settings.BASE_DIR)+'/tmp/{}_{}_{}.csv'.format(model,uuid.uuid4(),int(datetime.datetime.now().timestamp()*100000))
+    with open(csv_file, 'w', newline='') as new_file:
+        writer = csv.writer(new_file)
+        writer.writerow(header)
+        for i in columns:
+            writer.writerow(i)
+    print(csv_file)
+    return csv_file
 
-def excelExportData(header, columns):
+def excelExportData(model, header, columns):
     pass
 
 def getProposalExportFields(data):
-    header = ["Lodgement Number", "Type" , "Applicant", "Status", "Lodged On", "Payment Status"]
-    columns = list(data.values_list()) #TODO figure out type...
+    header = ["Lodgement Number", "Type", "Category" , "Applicant", "Status", "Lodged On", "Invoice Properties"]
+
+    columns = list(data.annotate(type=
+        Case(
+            When(
+                lodgement_number__startswith='ML',
+                then=Value("Mooring Site Licence Application")
+            ),
+            When(
+                lodgement_number__startswith='WL',
+                then=Value("Waiting List Application")
+            ),
+            When(
+                lodgement_number__startswith='AA',
+                then=Value("Annual Admission Application")
+            ),
+            When(
+                lodgement_number__startswith='AU',
+                then=Value("Authorised User Application")
+            ),
+            default=Value(''),
+            output_field=CharField(),     
+        )
+    ).annotate(
+        applicant=Concat(
+            'proposal_applicant__first_name',
+            Value(" "),
+            'proposal_applicant__last_name'
+            ),
+    ).values_list(
+        "lodgement_number",
+        "type",
+        "proposal_type__description",
+        "applicant",
+        "processing_status",
+        "lodgement_date",
+        "invoice_property_cache",
+        )
+    )
+    
     return header, columns
 
 def getApprovalExportFields(data):
-    pass
+    header = ["Lodgement Number", "Type", "Sticker Number/s" , "Sticker Mailed Date/s", "Holder", "Status", "Mooring", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
+
+    columns = list(data.annotate(type=
+        Case(
+            When(
+                lodgement_number__startswith='MOL',
+                then=Value("Mooring Site Licence")
+            ),
+            When(
+                lodgement_number__startswith='AAP',
+                then=Value("Annual Admission Permit")
+            ),
+            When(
+                lodgement_number__startswith='AUP',
+                then=Value("Authorised User Permit")
+            ),
+            default=Value(''),
+            output_field=CharField(),     
+        )
+    ).annotate(
+        holder=Concat(
+            'proposal__proposal_applicant__first_name',
+            Value(" "),
+            'proposal__proposal_applicant__last_name'
+            ),
+    ).annotate(
+        sticker_numbers=ArrayAgg(
+            'stickers__number', 
+            filter=(
+                Q(stickers__status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING])
+            ),
+            distinct=True
+        ),      
+    ).annotate(
+        sticker_mailing_date=ArrayAgg(
+            Cast('stickers__mailing_date', CharField()),
+            filter=(
+                Q(stickers__status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING])
+                & ~Q(stickers__mailing_date=None)
+                ),
+            distinct=True
+        ), 
+    ).annotate(
+        mooring_number=ArrayAgg(
+            'moorings__name',
+            filter=(
+                ~Q(moorings__name=None)
+            ),
+            distinct=True
+        ), 
+    ).values_list(
+        "lodgement_number",
+        "type",
+        "sticker_numbers",
+        "sticker_mailing_date",
+        "holder",
+        "status",
+        "mooring_number",
+        "issue_date",
+        "start_date",
+        "expiry_date",
+        "current_proposal__rego_no"
+        )
+    )
+    
+    return header, columns
 
 def getComplianceExportFields(data):
-    pass
+    header = ["Lodgement Number", "Type", "Approval Number", "Holder", "Status", "Due Date"]
+
+    columns = list(data.annotate(type=
+        Case(
+            When(
+                approval__lodgement_number__startswith='MOL',
+                then=Value("Mooring Site Licence")
+            ),
+            When(
+                approval__lodgement_number__startswith='AAP',
+                then=Value("Annual Admission Permit")
+            ),
+            When(
+                approval__lodgement_number__startswith='AUP',
+                then=Value("Authorised User Permit")
+            ),
+            default=Value(''),
+            output_field=CharField(),     
+        )
+    ).annotate(
+        holder=Concat(
+            'proposal__proposal_applicant__first_name',
+            Value(" "),
+            'proposal__proposal_applicant__last_name'
+            ),
+    ).values_list(
+        "lodgement_number",
+        "type",
+        "approval__lodgement_number",
+        "holder",
+        "processing_status",
+        "due_date",
+        )
+    )
+
+    return header, columns
 
 def getWaitingListExportFields(data):
-    pass
+    header = ["Lodgement Number", "Holder", "Status", "Bay", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
+
+    columns = list(data.annotate(
+        holder=Concat(
+            'proposal__proposal_applicant__first_name',
+            Value(" "),
+            'proposal__proposal_applicant__last_name'
+            ),
+    ).values_list(
+        "lodgement_number",
+        "holder",
+        "status",
+        "current_proposal__preferred_bay__name",
+        "issue_date",
+        "start_date",
+        "expiry_date",
+        "current_proposal__rego_no",
+        )
+    )
+
+    return header, columns
 
 def getMooringExportFields(data):
-    pass
+    header = ["Mooring", "Bay", "Status", "Holder", "Authorised User Permits (RIA/LIC)", "Max Vessel Length (M)", "Max Vessel Draft (M)"]
+
+    columns = list(data.annotate(
+        holder=Concat(
+            'mooring_licence__proposal__proposal_applicant__first_name',
+            Value(" "),
+            'mooring_licence__proposal__proposal_applicant__last_name'
+            ),
+    ).values_list(
+        "name",
+        "mooring_bay__name",
+        "",
+        "holder",
+        "",
+        "vessel_size_limit",
+        "vessel_draft_limit",
+        )
+    )
+
+    return header, columns
 
 def getDcvPermitExportFields(data):
-    pass
+    header = ["Lodgement Number", "Organisation", "Status", "Invoice Properties", "Season", "Sticker", "Vessel Registration"]
+
+    columns = list(data.annotate(
+        sticker_numbers=ArrayAgg(
+            'stickers__number', 
+            filter=(
+                Q(stickers__status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING])
+            ),
+            distinct=True
+        ),      
+    ).values_list(
+        "lodgement_number",
+        "dcv_organisation__name",
+        "status",
+        "invoice_property_cache",
+        "fee_season__name",
+        "sticker_numbers",
+        "dcv_vessel__rego_no",
+        )
+    )
+
+    return header, columns
 
 def getDcvAdmissionExportFields(data):
-    pass
+    header = ["Lodgement Number", "Invoice Properties", "Arrival Dates", "Lodgement Date"]
+
+    columns = list(data.annotate(
+        arrival_dates=ArrayAgg(
+            Cast('dcv_admission_arrivals__arrival_date', CharField()),
+            distinct=True
+        ),      
+    ).values_list(
+        "lodgement_number",
+        "invoice_property_cache",
+        "arrival_dates",
+        "lodgement_datetime",
+        )
+    )
+
+    return header, columns
 
 def getStickerExportFields(data):
-    pass
+    header = ["Sticker Number", "Permit or Licence", "Vessel Registration", "Holder", "Date Sent", "Date Printed", "Date Mailed", "Season", "Invoice Properties" ]
+
+    columns = list(data.annotate(
+        holder=Concat(
+            'approval__proposal__proposal_applicant__first_name',
+            Value(" "),
+            'approval__proposal__proposal_applicant__last_name'
+            ),
+    ).values_list(
+        "number",
+        "approval__lodgement_number",
+        "approval__current_proposal__rego_no",
+        "holder",
+        "sticker_printing_batch__emailed_datetime",
+        "printing_date",
+        "mailing_date",
+        "fee_season__name",
+        "invoice_property_cache",
+        )
+    )
+
+    return header, columns
 
 def formatExportData(model, data, format):
 
@@ -1095,7 +1320,10 @@ def formatExportData(model, data, format):
     else:
         return
 
+    if os.path.isdir(str(settings.BASE_DIR)+'/tmp/') is False:
+        os.makedirs(str(settings.BASE_DIR)+'/tmp/')
+
     if format == "excel":
-        return excelExportData(header, columns)
+        return excelExportData(model, header, columns)
     else:
-        return csvExportData(header, columns)
+        return csvExportData(model, header, columns)
