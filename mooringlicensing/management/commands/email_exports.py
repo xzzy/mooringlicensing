@@ -44,13 +44,11 @@ class Command(BaseCommand):
                 if not ("filters" in params and params["filters"]):
                     filters = {}
                 else:
-                    filters = params["filters"]
+                    filters = json.loads(params["filters"])
 
                 #get records
                 export_data = exportModelData(model, filters, num_records)
-                print(export_data.count())
                 file = formatExportData(model, export_data, format)
-                print(file)
                 #email to user
 
             else:

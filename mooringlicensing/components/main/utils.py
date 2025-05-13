@@ -846,7 +846,6 @@ def check_file(file, model_name):
 def getProposalExport(filters, num):
 
     qs = Proposal.objects.order_by("-lodgement_date")
-
     if filters:
         #type
         if "type" in filters and filters["type"] and not filters["type"].lower() == 'all':
@@ -865,10 +864,10 @@ def getProposalExport(filters, num):
         if "lodged_on_to" in filters and filters["lodged_on_to"]:
             qs = qs.filter(lodgement_date__lte=filters["lodged_on_to"])
         #category
-        if "category" in filters and filters["category"]:
+        if "category" in filters and filters["category"] and not filters["category"].lower() == 'all':
             qs = qs.filter(proposal_type__code=filters["category"])
         #status
-        if "status" in filters and filters["status"]:
+        if "status" in filters and filters["status"] and not filters["status"].lower() == 'all':
             qs = qs.filter(processing_status=filters["status"])
 
     return qs[:num]
@@ -893,7 +892,7 @@ def getApprovalExport(filters, num):
         if "issued_to" in filters and filters["issued_to"]:
             qs = qs.filter(issue_date__lte=filters["issued_to"])
         #status
-        if "status" in filters and filters["status"]:
+        if "status" in filters and filters["status"] and not filters["status"].lower() == 'all':
             qs = qs.filter(status=filters["status"])
 
     return qs[:num]
@@ -910,7 +909,7 @@ def getComplianceExport(filters, num):
         if "lodged_on_to" in filters and filters["lodged_on_to"]:
             qs = qs.filter(lodgement_date__lte=filters["lodged_on_to"])
         #status
-        if "status" in filters and filters["status"]:
+        if "status" in filters and filters["status"] and not filters["status"].lower() == 'all':
             qs = qs.filter(processing_status=filters["status"])
 
     return qs[:num]
@@ -927,10 +926,10 @@ def getWaitingListExport(filters, num):
         if "issued_to" in filters and filters["issued_to"]:
             qs = qs.filter(issue_date__lte=filters["issued_to"])
         #status
-        if "status" in filters and filters["status"]:
+        if "status" in filters and filters["status"] and not filters["status"].lower() == 'all':
             qs = qs.filter(approval__status=filters["status"])
         #bay
-        if "bay" in filters and filters["bay"]:
+        if "bay" in filters and filters["bay"] and not filters["bay"].lower() == 'all':
             qs = qs.filter(current_proposal__preferred_bay__id=filters["bay"])
         #max_vessel_length
         if "max_vessel_length" in filters and filters["max_vessel_length"]:
@@ -947,7 +946,7 @@ def getMooringExport(filters, num):
 
     if filters:
         #status
-        if "status" in filters and filters["status"]:
+        if "status" in filters and filters["status"] and not filters["status"].lower() == 'all':
             if filters["status"] == 'Licensed':
                 qs = qs.filter(mooring_licence__approval__status__in=['current','suspended'])
             elif filters["status"] == 'Licence Application':
@@ -955,7 +954,7 @@ def getMooringExport(filters, num):
             elif filters["status"] == 'Unlicensed':
                 qs = qs.exclude(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded'], mooring_licence__approval__status__in=['current','suspended'])
         #bay
-        if "bay" in filters and filters["bay"]:
+        if "bay" in filters and filters["bay"] and not filters["bay"].lower() == 'all':
             qs = qs.filter(mooring_bay__id=filters["bay"])
 
     return qs[:num]
@@ -965,9 +964,9 @@ def getDcvPermitExport(filters, num):
     qs = DcvPermit.objects.order_by("-date_created")
 
     if filters:
-        if "season" in filters and filters["season"]:
+        if "season" in filters and filters["season"] and not filters["season"].lower() == 'all':
             qs = qs.filter(fee_season__id=filters["season"])
-        if "organisatiom" in filters and filters["organisatiom"]:
+        if "organisation" in filters and filters["organisation"]:
             qs = qs.filter(dcv_organisation__name__iexact=filters["season"])
 
     return qs[:num]
@@ -977,7 +976,7 @@ def getDcvAdmissionExport(filters, num):
     qs = DcvAdmission.objects.order_by("-date_created")
 
     if filters:
-        if "organisatiom" in filters and filters["organisatiom"]:
+        if "organisation" in filters and filters["organisation"]:
             qs = qs.filter(dcv_organisation__name__iexact=filters["season"])
         #lodged_on_from
         if "lodged_on_from" in filters and filters["lodged_on_from"]:
@@ -993,9 +992,9 @@ def getPrintExport(filters, num):
     qs = Sticker.objects.order_by("-date_created")
 
     if filters:        
-        if "season" in filters and filters["season"]:
-            qs = qs.filter(fee_season__id=filters["season"])
-        if "status" in filters and filters["status"]:
+        if "season" in filters and filters["season"] and not filters["season"].lower() == 'all':
+            qs = qs.filter(fee_season__name=filters["season"])
+        if "status" in filters and filters["status"] and not filters["status"].lower() == 'all':
             qs = qs.filter(status=filters["status"])
 
     return qs[:num]
