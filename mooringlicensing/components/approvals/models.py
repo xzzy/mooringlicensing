@@ -179,7 +179,7 @@ class MooringOnApproval(RevisionedMixin):
     This class is used only for AUP, because an AUP can have multiple moorings.
     """
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
-    mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
+    mooring = models.ForeignKey(Mooring, related_name="mooring_on_approval",on_delete=models.CASCADE)
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
     previous_sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL, related_name="previous_sticker")
     site_licensee = models.BooleanField()

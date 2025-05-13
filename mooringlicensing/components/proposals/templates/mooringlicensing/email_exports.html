@@ -12,8 +12,23 @@
         }
     </style>
     <div class="container">
+        <h1>Reports</h1>
+        </br>
         {{message}}
-        <form action="" method="POST">
+        </br>
+        <div class="row">
+            <label>Format</label>
+            <select id="format_select" name="format" >
+                <option value="csv">CSV</option>
+                <option value="excel">Excel</option>
+            </select>
+        </div>
+        <div class="row">
+            <label># Records for Report</label>
+            <input id="num_records" name="num_records" type="number" value=100000 max=100000 min=1>
+        </div>
+        </br>
+        <form id="proposal_report" method="POST" onsubmit="submitReport('proposal_report')"> 
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -27,7 +42,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="approval_report" method="POST" onsubmit="submitReport('approval_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -41,7 +56,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="compliance_report" method="POST" onsubmit="submitReport('compliance_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -55,7 +70,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="waiting_list_report" method="POST" onsubmit="submitReport('waiting_list_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -69,7 +84,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="mooring_report" method="POST" onsubmit="submitReport('mooring_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -83,7 +98,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="dcv_permit_report" method="POST" onsubmit="submitReport('dcv_permit_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -97,7 +112,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="dcv_admission_report" method="POST" onsubmit="submitReport('dcv_admission_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -111,7 +126,7 @@
             </div>
         </form>
 
-        <form action="" method="POST">
+        <form id="sticker_report" method="POST" onsubmit="submitReport('sticker_report')">
             {% csrf_token %}
             <div class="row">
                 <button 
@@ -125,5 +140,18 @@
             </div>
         </form>
     </div>
+    
+    <script>
+        function submitReport(form_id) {
+            var form = document.getElementById(form_id);
+            var format = document.getElementById('format_select');
+            format.setAttribute("hidden", true);
+            var num_records = document.getElementById('num_records');
+            num_records.setAttribute("hidden", true);
+            form.appendChild(format);
+            form.appendChild(num_records);
+        };
+    </script>
+
 {% endblock %}
 

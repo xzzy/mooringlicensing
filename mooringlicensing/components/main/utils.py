@@ -32,9 +32,10 @@ from openpyxl import Workbook
 from copy import deepcopy
 import logging
 from mooringlicensing.settings import MAX_NUM_ROWS_MODEL_EXPORT
-from django.db.models import Case, Value, When, CharField
+from django.db.models import Case, Value, When, CharField, Count
 from django.db.models.functions import Concat, Cast
 import csv
+import xlsxwriter
 import datetime
 import uuid
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -1037,7 +1038,37 @@ def csvExportData(model, header, columns):
     return csv_file
 
 def excelExportData(model, header, columns):
-    pass
+    excel_file = str(settings.BASE_DIR)+'/tmp/{}_{}_{}.xlsx'.format(model,uuid.uuid4(),int(datetime.datetime.now().timestamp()*100000))
+    workbook = xlsxwriter.Workbook(excel_file) 
+    worksheet = workbook.add_worksheet("{} Report".format(model.capitalize()))
+    format = workbook.add_format()
+    format.set_bold()
+
+    col = 0 
+    row = 0
+
+    col_lens = [0]*len(header)
+
+    for i in header:
+        worksheet.write(row, col, str(i), format)
+        col_lens[col] = len(str(i))+2
+        worksheet.set_column(col, col, col_lens[col])
+        col += 1
+    col = 0 
+    row += 1
+    for i in columns:
+        for j in i:
+            worksheet.write(row, col, str(j), format)
+            if len(str(j)) > col_lens[col]:
+                col_lens[col] = len(str(j))+2
+                worksheet.set_column(col, col, col_lens[col])
+            col += 1
+        col = 0
+        row += 1
+
+    workbook.close() 
+
+    return workbook
 
 def getProposalExportFields(data):
     header = ["Lodgement Number", "Type", "Category" , "Applicant", "Status", "Lodged On", "Invoice Properties"]
@@ -1212,7 +1243,7 @@ def getWaitingListExportFields(data):
     return header, columns
 
 def getMooringExportFields(data):
-    header = ["Mooring", "Bay", "Status", "Holder", "Authorised User Permits (RIA/LIC)", "Max Vessel Length (M)", "Max Vessel Draft (M)"]
+    header = ["Mooring", "Bay", "Status", "Holder", "Authorised User Permits (RIA)", "Authorised User Permits (LIC)", "Max Vessel Length (M)", "Max Vessel Draft (M)"]
 
     columns = list(data.annotate(
         holder=Concat(
@@ -1220,12 +1251,42 @@ def getMooringExportFields(data):
             Value(" "),
             'mooring_licence__proposal__proposal_applicant__last_name'
             ),
+    ).annotate(
+        status=Case(
+            When(
+                mooring_licence__status__in=['current', 'suspended'],
+                then=Value("Licensed")
+            ),
+            When(
+                ~Q(ria_generated_proposal__processing_status__in=['current', 'suspended']),
+                then=Value("Licensed")
+            ),
+            default=Value('Unlicensed'),
+            output_field=CharField(),     
+        )
+    ).annotate(
+        preference_count_ria=Count(
+            Q(mooring_on_approval__approval__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+            &
+            Q(mooring_on_approval__end_date__gt=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()) | Q(mooring_on_approval__end_date__isnull=True)
+            &
+            Q(mooring_on_approval__site_licensee=False) & Q(mooring_on_approval__active=True)
+        )
+    ).annotate(
+        preference_count_site_licensee=Count(
+            Q(mooring_on_approval__approval__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+            &
+            Q(mooring_on_approval__end_date__gt=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()) | Q(mooring_on_approval__end_date__isnull=True)
+            &
+            Q(mooring_on_approval__site_licensee=False) & Q(mooring_on_approval__active=True)
+        )
     ).values_list(
         "name",
         "mooring_bay__name",
-        "",
+        "status",
         "holder",
-        "",
+        "preference_count_ria",
+        "preference_count_site_licensee",
         "vessel_size_limit",
         "vessel_draft_limit",
         )

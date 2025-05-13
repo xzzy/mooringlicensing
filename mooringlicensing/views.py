@@ -150,7 +150,10 @@ class EmailExportsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         format = request.POST.get('format', 'csv')
         num_records = request.POST.get('num_records', settings.MAX_NUM_ROWS_MODEL_EXPORT)
 
-        num_records = min(num_records, settings.MAX_NUM_ROWS_MODEL_EXPORT)
+        try:
+            num_records = min(int(num_records), settings.MAX_NUM_ROWS_MODEL_EXPORT)
+        except:
+            num_records = settings.MAX_NUM_ROWS_MODEL_EXPORT
 
         if export_model:
             parameters = {"model":export_model, "filters":filters, "format":format, "num_records": num_records}
