@@ -3,9 +3,9 @@ import logging
 import json
 from ledger_api_client.ledger_models import EmailUserRO
 from mooringlicensing.helpers import is_internal_user
-from mooringlicensing.management.commands.utils import construct_email_message
 from mooringlicensing.components.main.utils import exportModelData, formatExportData
 from mooringlicensing import settings
+from mooringlicensing.components.emails.emails import TemplateEmailBase
 
 logger = logging.getLogger('cron_tasks')
 cron_email = logging.getLogger('cron_email')
@@ -49,7 +49,17 @@ class Command(BaseCommand):
                 #get records
                 export_data = exportModelData(model, filters, num_records)
                 file = formatExportData(model, export_data, format)
+                attachments = []
+                attachments.append(file)
                 #email to user
+                email = TemplateEmailBase(
+                    subject='Attached: Mooring Licensing - {} Report'.format(model.capitalize()), 
+                    html_template='mooringlicensing/emails/base_email-rottnest.html',
+                    txt_template='mooringlicensing/emails/base_email-rottnest.txt',
+                )
+                to_address = user.email
+                # Send email
+                email.send(to_address, attachments=attachments,)
 
             else:
                 print("User not authorised to receive exports")

@@ -1067,7 +1067,7 @@ def excelExportData(model, header, columns):
 
     workbook.close() 
 
-    return workbook
+    return excel_file
 
 def getProposalExportFields(data):
     header = ["Lodgement Number", "Type", "Category" , "Applicant", "Status", "Lodged On", "Invoice Properties"]
@@ -1384,6 +1384,14 @@ def formatExportData(model, data, format):
         os.makedirs(str(settings.BASE_DIR)+'/tmp/')
 
     if format == "excel":
-        return excelExportData(model, header, columns)
+        file_name = excelExportData(model, header, columns)
+        file_buffer = None
+        with open(file_name, 'rb') as f:
+            file_buffer = f.read()    
+        return ('Mooring Licensing - {} Report.xlsx'.format(model.capitalize()), file_buffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     else:
-        return csvExportData(model, header, columns)
+        file_name =  csvExportData(model, header, columns)
+        file_buffer = None
+        with open(file_name, 'rb') as f:
+            file_buffer = f.read()    
+        return ('Mooring Licensing - {} Report.csv'.format(model.capitalize()), file_buffer, 'application/csv')
