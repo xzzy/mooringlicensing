@@ -24,13 +24,13 @@ class Command(BaseCommand):
                 continue
 
             #set to complete or error
-            #try:     
-            management.call_command(jq.job_cmd, parameters, jq.user)
-            #    print("Job Completed {}".format(str(jq.id)))                
-            #    jq.processed_dt = datetime.now()
-            #    jq.status = 2
-            #    jq.save()
-            #except Exception as e:                
-            #    print("run_queue_job error",e)
-            #    jq.status = 3
-            #    jq.save()
+            try:     
+                management.call_command(jq.job_cmd, parameters, jq.user)
+                print("Job Completed {}".format(str(jq.id)))                
+                jq.processed_dt = datetime.now()
+                jq.status = 2
+                jq.save()
+            except Exception as e:                
+                print("run_queue_job error",e)
+                jq.status = 3
+                jq.save()
