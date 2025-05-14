@@ -991,7 +991,7 @@ class Approval(RevisionedMixin):
                             moa.end_date = None
                             moa.active = True
                             moa.save()
-                            moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
+                            moa.mooring.mooring_licence.generate_au_summary_doc()
 
                 send_approval_reinstate_email_notification(self, request)
                 # Log approval action
@@ -1576,7 +1576,7 @@ class AuthorisedUserPermit(Approval):
         #iterate through moorings and update their au summary doc
         for moa in MooringOnApproval.objects.filter(approval=self):
             if moa.mooring and moa.mooring.mooring_licence:
-                moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
+                moa.mooring.mooring_licence.generate_au_summary_doc()
 
     def get_grace_period_end_date(self):
         # No grace period for the AUP

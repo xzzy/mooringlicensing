@@ -2592,7 +2592,7 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 if moas.count() > 0:
                     for ml in mls:
                         # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
-                        ml.generate_au_summary_doc(request.user)
+                        ml.generate_au_summary_doc()
                         #send email to mooring licence owner if with the above attachement if required
                 else:
                     # removing the List of Authorised Users document if there is no more AUPs remaining 

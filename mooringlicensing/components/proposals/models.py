@@ -4319,7 +4319,7 @@ class MooringLicenceApplication(Proposal):
             # Creating documents should be performed at the end
             approval.generate_doc()
             if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
-                approval.generate_au_summary_doc(request.user)
+                approval.generate_au_summary_doc()
 
             # Email with attachments
             send_application_approved_or_declined_email(self, 'approved_paid', request, stickers_to_be_returned)
