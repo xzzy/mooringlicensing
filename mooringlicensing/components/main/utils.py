@@ -950,9 +950,11 @@ def getMooringExport(filters, num):
             if filters["status"] == 'Licensed':
                 qs = qs.filter(mooring_licence__approval__status__in=['current','suspended'])
             elif filters["status"] == 'Licence Application':
-                qs = qs.filter(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded'])
+                qs = qs.filter(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded'], ria_generated_proposal__lodgement_number__startswith="ML"),
             elif filters["status"] == 'Unlicensed':
-                qs = qs.exclude(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded'], mooring_licence__approval__status__in=['current','suspended'])
+                qs = qs.exclude(
+                    Q(ria_generated_proposal__processing_status__in=['approved', 'declined', 'discarded']) 
+                    & Q(ria_generated_proposal__lodgement_number__startswith="ML"), mooring_licence__approval__status__in=['current','suspended'])
         #bay
         if "bay" in filters and filters["bay"] and not filters["bay"].lower() == 'all':
             qs = qs.filter(mooring_bay__id=filters["bay"])
