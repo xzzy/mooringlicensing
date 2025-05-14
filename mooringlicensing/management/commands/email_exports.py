@@ -54,12 +54,13 @@ class Command(BaseCommand):
                 #email to user
                 email = TemplateEmailBase(
                     subject='Attached: Mooring Licensing - {} Report'.format(model.capitalize()), 
-                    html_template='mooringlicensing/emails/base_email-rottnest.html',
-                    txt_template='mooringlicensing/emails/base_email-rottnest.txt',
+                    html_template='mooringlicensing/emails_2/report_attached.html',
+                    txt_template='mooringlicensing/emails_2/report_attached.txt',
                 )
                 to_address = user.email
+                context = {"recipient":user, "model":model.capitalize()}
                 # Send email
-                email.send(to_address, attachments=attachments,)
+                email.send(to_address, attachments=attachments,context=context)
 
             else:
                 print("User not authorised to receive exports")
