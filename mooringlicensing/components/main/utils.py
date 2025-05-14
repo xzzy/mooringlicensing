@@ -1255,8 +1255,9 @@ def getMooringExportFields(data):
                 then=Value("Licensed")
             ),
             When(
-                ~Q(ria_generated_proposal__processing_status__in=['current', 'suspended']),
-                then=Value("Licensed")
+                ~Q(ria_generated_proposal__processing_status__in=['current', 'suspended'])
+                & Q(ria_generated_proposal__lodgement_number__startswith='ML'),
+                then=Value("Licence Application")
             ),
             default=Value('Unlicensed'),
             output_field=CharField(),     
