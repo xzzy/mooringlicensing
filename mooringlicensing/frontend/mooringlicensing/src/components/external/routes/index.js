@@ -55,7 +55,7 @@ export default
                 },
             ]
         },
-        {
+        /*{
             path: 'dcv_permit',
             component: DcvPermit,
             name: 'dcv_permit'
@@ -75,7 +75,7 @@ export default
             name:'dcv_admission'
             },
             ]
-            },
+        },NOTE: disabled pending rework*/
         {
             path: 'vessels',
             component: VesselsDashboard,

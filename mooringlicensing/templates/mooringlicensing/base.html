@@ -135,6 +135,9 @@
                                                     <li><a class="dropdown-item" href="/ledger-ui/accounts-management">Accounts Management</a></li>
                                                 {% endif %}
                                                     <li><a class="dropdown-item" href="/ledger-ui/system-accounts">Manage Account</a></li>
+                                                {% if is_internal_login %}
+                                                    <li><a href="{% url 'email-exports' %}">Reports</a></li>
+                                                {% endif %}
                                                 {% if not is_internal_login %}
                                                     <li><a href="/external/vessels">Manage Vessels</a></li>
                                                 {% endif %}

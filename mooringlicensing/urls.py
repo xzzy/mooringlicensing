@@ -71,9 +71,9 @@ router.register(r'vessel', proposal_api.VesselViewSet, 'vessel')
 router.register(r'mooring', proposal_api.MooringViewSet, 'mooring')
 router.register(r'dcv_vessel', approval_api.DcvVesselViewSet, 'dcv_vessel')
 router.register(r'vesselownership', proposal_api.VesselOwnershipViewSet, 'vesselownership')
-router.register(r'dcv_permit', approval_api.DcvPermitViewSet, 'dcv_permit')
+#router.register(r'dcv_permit', approval_api.DcvPermitViewSet, 'dcv_permit') NOTE: disabled pending rework
 router.register(r'internal_dcv_permit', approval_api.InternalDcvPermitViewSet, 'internal_dcv_permit')
-router.register(r'dcv_admission', approval_api.DcvAdmissionViewSet, 'dcv_admission')
+#router.register(r'dcv_admission', approval_api.DcvAdmissionViewSet, 'dcv_admission') NOTE: disabled pending rework
 router.register(r'internal_dcv_admission', approval_api.InternalDcvAdmissionViewSet, 'internal_dcv_admission')
 router.register(r'company', proposal_api.CompanyViewSet, 'company')
 router.register(r'companyownership', proposal_api.CompanyOwnershipViewSet, 'companyownership')
@@ -130,6 +130,7 @@ urlpatterns = [
     re_path(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
     re_path(r'^profiles/', views.ExternalView.as_view(), name='manage-profiles'),
     re_path(r'^mgt-commands/$', views.ManagementCommandsView.as_view(), name='mgt-commands'),
+    re_path(r'^email-exports/$', views.EmailExportsView.as_view(), name='email-exports'),
     re_path(r'^login-success/$', views.LoginSuccess.as_view(), name='login-success'),
 
     # payment related urls
@@ -152,7 +153,7 @@ urlpatterns = [
     re_path(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/endorse/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'endorse'}, name='endorse-url'),
     re_path(r'^aua_for_endorsement/(?P<uuid_str>[a-zA-Z0-9-]+)/decline/$', AuthorisedUserApplicationEndorseView.as_view(), {'action': 'decline'}, name='decline-url'),
     re_path(r'^mla_documents_upload/(?P<uuid_str>[a-zA-Z0-9-]+)/$', MooringLicenceApplicationDocumentsUploadView.as_view(), name='mla-documents-upload'),
-    re_path(r'^dcv_admission_form/$', DcvAdmissionFormView.as_view(), name='dcv_admission_form'),
+    #re_path(r'^dcv_admission_form/$', DcvAdmissionFormView.as_view(), name='dcv_admission_form'), NOTE: disabled pending rework
     re_path(r'payments/dcv-permit-pdf/(?P<id>\d+)', DcvPermitPDFView.as_view(), name='dcv-permit-pdf'),
     re_path(r'payments/dcv-admission-pdf/(?P<id>\d+)', DcvAdmissionPDFView.as_view(), name='dcv-admission-pdf'),
 

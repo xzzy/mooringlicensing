@@ -179,7 +179,7 @@ class MooringOnApproval(RevisionedMixin):
     This class is used only for AUP, because an AUP can have multiple moorings.
     """
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
-    mooring = models.ForeignKey(Mooring, on_delete=models.CASCADE)
+    mooring = models.ForeignKey(Mooring, related_name="mooring_on_approval",on_delete=models.CASCADE)
     sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL)
     previous_sticker = models.ForeignKey('Sticker', blank=True, null=True, on_delete=models.SET_NULL, related_name="previous_sticker")
     site_licensee = models.BooleanField()
@@ -991,7 +991,7 @@ class Approval(RevisionedMixin):
                             moa.end_date = None
                             moa.active = True
                             moa.save()
-                            moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
+                            moa.mooring.mooring_licence.generate_au_summary_doc()
 
                 send_approval_reinstate_email_notification(self, request)
                 # Log approval action
@@ -1576,7 +1576,7 @@ class AuthorisedUserPermit(Approval):
         #iterate through moorings and update their au summary doc
         for moa in MooringOnApproval.objects.filter(approval=self):
             if moa.mooring and moa.mooring.mooring_licence:
-                moa.mooring.mooring_licence.generate_au_summary_doc(request.user)
+                moa.mooring.mooring_licence.generate_au_summary_doc()
 
     def get_grace_period_end_date(self):
         # No grace period for the AUP

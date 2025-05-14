@@ -61,6 +61,13 @@ def is_internal(request):
                 return True
     return False
 
+def is_internal_user(user):
+    if user.is_authenticated:
+        for i in settings.INTERNAL_GROUPS:
+            if belongs_to(user, i):
+                return True
+    return False
+
 def is_authorised_to_pay_auto_approved(request, instance):
     if (instance.auto_approve and 
         (request.user.email == instance.applicant_email or is_internal(request))

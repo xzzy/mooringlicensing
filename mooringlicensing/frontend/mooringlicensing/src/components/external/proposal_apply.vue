@@ -196,7 +196,7 @@
                                     </div>
                                 </div>
                                 
-                                <div v-if="!is_internal" class="form-group">
+                                <!--<div v-if="!is_internal" class="form-group">
                                     <label>DCV Permit</label>
                                     <div>
                                         <div v-for="(application_type, index) in dcvpChoices">
@@ -207,7 +207,7 @@
                                                 application_type.new_application_text }}</label>
                                         </div>
                                     </div>
-                                </div>
+                                </div>-->
                             </div>
                         </div>
                     </FormSection>

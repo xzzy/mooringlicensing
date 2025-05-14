@@ -257,8 +257,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         # max vessel length
         max_vessel_length = request.data.get('max_vessel_length')
         if max_vessel_length:
-            filtered_ids = [a.id for a in Approval.objects.all() if a.current_proposal.vessel_details.vessel_applicable_length <= float(max_vessel_length)]
-            filter_query &= Q(id__in=filtered_ids)
+            filter_query &= Q(current_proposal__vessel_details__vessel_length__lte=float(max_vessel_length))
 
         # max vessel draft
         max_vessel_draft = request.data.get('max_vessel_draft')
@@ -503,7 +502,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if moas.count() > 0:
                 for ml in mls:
                     # regenerating the List of Authorised Users document for the mooring Licence and sending emal to the user
-                    ml.generate_au_summary_doc(request.user)
+                    ml.generate_au_summary_doc()
                     #send email to mooring licence owner if with the above attachement if required
             else:
                 # removing the List of Authorised Users document if there is no more AUPs remaining             
