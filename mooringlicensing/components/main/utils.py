@@ -1033,7 +1033,6 @@ def csvExportData(model, header, columns):
         writer.writerow(header)
         for i in columns:
             writer.writerow(i)
-    print(csv_file)
     return csv_file
 
 def excelExportData(model, header, columns):
@@ -1041,7 +1040,6 @@ def excelExportData(model, header, columns):
     workbook = xlsxwriter.Workbook(excel_file) 
     worksheet = workbook.add_worksheet("{} Report".format(model.capitalize()))
     format = workbook.add_format()
-    format.set_bold()
 
     col = 0 
     row = 0

@@ -1,5 +1,5 @@
 {% extends 'mooringlicensing/base.html' %}
-
+{% load bootstrap3 %}
 {% block content %}
     <style>
         .debug-box {
@@ -12,313 +12,434 @@
         }
     </style>
     <div class="container">
-        <h2>Reports</h2>
-        {{message}}
-        </br>
-        <div class="row">
-            <label>Format</label>
-            <select id="format_select" name="format" >
-                <option value="csv">CSV</option>
-                <option value="excel">Excel</option>
-            </select>
+        <div class="panel panel-default">
+            <div class="panel-header">
+                <h3 class="panel-title">
+                    Reports
+                </h3>
+            </div>
+            <div class="panel-body collapse show">
+                <div class="row form-group">
+                    <div class="col-sm-12">
+                    {{message}}
+                    </div>
+                </div>
+                <div class="row form-group">
+                    <label class="col-sm-3 control-label">Format</label>
+                    <div class="col-sm-6">
+                        <select id="format_select" name="format" class="form-control">
+                            <option value="csv">CSV</option>
+                            <option value="excel">Excel</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row form-group">
+                    <label class="col-sm-3 control-label"># Records for Report</label>
+                    <div class="col-sm-6">
+                        <input id="num_records" name="num_records" type="number" value=100000 max=100000 min=1 class="form-control">
+                    </div>
+                </div>
+                <div class="row form-group">
+                    <label class="col-sm-3 control-label">Report Type</label>
+                    <div class="col-sm-6">
+                        <select id="report_select" onchange="selectReport()" class="form-control">
+                            <option value="proposal_report">Proposals</option>
+                            <option value="approval_report">Approvals</option>
+                            <option value="compliance_report">Compliance</option>
+                            <option value="waiting_list_report">Waiting List</option>
+                            <option value="mooring_report">Moorings</option>
+                            <option value="dcv_permit_report">DCV Permits</option>
+                            <option value="dcv_admission_report">DCV Admissions</option>
+                            <option value="sticker_report">Stickers</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="row">
-            <label># Records for Report</label>
-            <input id="num_records" name="num_records" type="number" value=100000 max=100000 min=1>
-        </div>
-        <div class="row">
-            <label>Report Type</label>
-            <select id="report_select" onchange="selectReport()">
-                <option value="proposal_report">Proposals</option>
-                <option value="approval_report">Approvals</option>
-                <option value="compliance_report">Compliance</option>
-                <option value="waiting_list_report">Waiting List</option>
-                <option value="mooring_report">Moorings</option>
-                <option value="dcv_permit_report">DCV Permits</option>
-                <option value="dcv_admission_report">DCV Admissions</option>
-                <option value="sticker_report">Stickers</option>
-            </select>
-        </div>
-        <form class="report_form" id="proposal_report" method="POST" onsubmit="submitReport('proposal_report')"> 
-            <h3>Proposal Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Proposal Type</label>
-                <select class="proposal_field" id="proposal_type_select" name="type">
-                    <option value="all">All</option>
-                    {% for i in proposal_type_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Proposal Category</label>
-                <select class="proposal_field" id="proposal_category_select" name="category">
-                    <option value="all">All</option>
-                    {% for i in proposal_category_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Proposal Status</label>
-                <select class="proposal_field" id="proposal_status_options" name="status">
-                    <option value="all">All</option>
-                    {% for i in proposal_status_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Lodged From</label>
-                <input class="proposal_field" type="date" id="proposal_lodged_from" name="lodged_on_from">
-                <label>Lodged To</label>
-                <input class="proposal_field" type="date" id="proposal_lodged_to" name="lodge_on_to">
-            </div>
-            <div class="row">
-                <button 
-                    id="export_proposal" 
-                    type="submit" 
-                    name="export_model" 
-                    value="proposal" 
-                    title="Email Proposals Report">
-                    Email Proposals Report
-                </button>
+        <form class="report_form" id="proposal_report" method="POST" onsubmit="submitReport('proposal_report')">
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Proposal Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Proposal Type</label>
+                        <div class="col-sm-6">
+                        <select class="proposal_field form-control" id="proposal_type_select" name="type">
+                            <option value="all">All</option>
+                            {% for i in proposal_type_options %}
+                                <option value="{{i.code}}">{{i.description}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Proposal Category</label>
+                        <div class="col-sm-6">
+                        <select class="proposal_field form-control" id="proposal_category_select" name="category">
+                            <option value="all">All</option>
+                            {% for i in proposal_category_options %}
+                                <option value="{{i.code}}">{{i.description}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Proposal Status</label>
+                        <div class="col-sm-6">
+                        <select class="proposal_field form-control" id="proposal_status_options" name="status">
+                            <option value="all">All</option>
+                            {% for i in proposal_status_options %}
+                                <option value="{{i.code}}">{{i.description}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Lodged From</label>
+                        <div class="col-sm-3">
+                        <input class="proposal_field form-control" type="date" id="proposal_lodged_from" name="lodged_on_from">
+                        </div>
+                        <label class="col-sm-3 control-label">Lodged To</label>
+                        <div class="col-sm-3">
+                        <input class="proposal_field form-control" type="date" id="proposal_lodged_to" name="lodge_on_to">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                        <button class="btn btn-primary"
+                            id="export_proposal" 
+                            type="submit" 
+                            name="export_model" 
+                            value="proposal" 
+                            title="Email Proposals Report">
+                            Email Proposals Report
+                        </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="approval_report" method="POST" onsubmit="submitReport('approval_report')">
-            <h3>Approval Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Approval Type</label>
-                <select class="approval_field" id="approval_type_select" name="type">
-                    <option value="all">All</option>
-                    {% for i in approval_type_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Approval Status</label>
-                <select class="approval_field" id="approval_status_select" name="status">
-                    <option value="all">All</option>
-                    {% for i in approval_status_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Issued From</label>
-                <input class="approval_field" type="date" id="approval_issued_from" name="issued_from">
-                <label>Issued To</label>
-                <input class="approval_field" type="date" id="approval_issued_to" name="issued_to">
-            </div>
-            <div class="row">
-                <button 
-                    id="export_approval" 
-                    type="submit" 
-                    name="export_model" 
-                    value="approval" 
-                    title="Email Approvals Report">
-                    Email Approvals Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Approval Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Approval Type</label>
+                        <div class="col-sm-6">
+                            <select class="approval_field form-control" id="approval_type_select" name="type">
+                                <option value="all">All</option>
+                                {% for i in approval_type_options %}
+                                    <option value="{{i.code}}">{{i.description}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Approval Status</label>
+                        <div class="col-sm-6">
+                            <select class="approval_field form-control" id="approval_status_select" name="status">
+                                <option value="all">All</option>
+                                {% for i in approval_status_options %}
+                                    <option value="{{i.code}}">{{i.description}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Issued From</label>
+                        <div class="col-sm-3">
+                        <input class="approval_field form-control" type="date" id="approval_issued_from" name="issued_from">
+                        </div>
+                        <label class="col-sm-3 control-label">Issued To</label>
+                        <div class="col-sm-3">
+                        <input class="approval_field form-control" type="date" id="approval_issued_to" name="issued_to">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_approval" 
+                            type="submit" 
+                            name="export_model" 
+                            value="approval" 
+                            title="Email Approvals Report">
+                            Email Approvals Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="compliance_report" method="POST" onsubmit="submitReport('compliance_report')">
-            <h3>Compliance Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Compliance Status</label>
-                <select class="compliance_field" id="compliance_status_select" name="status">
-                    <option value="all">All</option>
-                    {% for i in compliance_status_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Lodged From</label>
-                <input class="compliance_field" type="date" id="compliance_lodged_from" name="lodged_on_from">
-                <label>Lodged To</label>
-                <input class="compliance_field" type="date" id="compliance_lodged_to" name="lodged_on_to">
-            </div>
-            <div class="row">
-                <button 
-                    id="export_compliance" 
-                    type="submit" 
-                    name="export_model" 
-                    value="compliance" 
-                    title="Email Compliances Report">
-                    Email Compliances Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Compliance Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Compliance Status</label>
+                        <div class="col-sm-6">
+                        <select class="compliance_field form-control" id="compliance_status_select" name="status">
+                            <option value="all">All</option>
+                            {% for i in compliance_status_options %}
+                                <option value="{{i.code}}">{{i.description}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Lodged From</label>
+                        <div class="col-sm-3">
+                        <input class="compliance_field form-control" type="date" id="compliance_lodged_from" name="lodged_on_from">
+                        </div>
+                        <label class="col-sm-3 control-label">Lodged To</label>
+                        <div class="col-sm-3">
+                        <input class="compliance_field form-control" type="date" id="compliance_lodged_to" name="lodged_on_to">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_compliance" 
+                            type="submit" 
+                            name="export_model" 
+                            value="compliance" 
+                            title="Email Compliances Report">
+                            Email Compliances Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="waiting_list_report" method="POST" onsubmit="submitReport('waiting_list_report')">
-            <h3>Waiting List Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Waiting List Bay</label>
-                <select class="waiting_list_field" id="waiting_list_bay_select" name="bay">
-                    <option value="all">All</option>
-                    {% for i in mooring_bay_options %}
-                        <option value="{{i.id}}">{{i.name}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Waiting List Status</label>
-                <select class="waiting_list_field" id="waiting_list_status_select" name="status">
-                    <option value="all">All</option>
-                    {% for i in approval_status_options %}
-                        <option value="{{i.code}}">{{i.description}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Max Vessel Length</label>
-                <input class="waiting_list_field" id="waiting_list_max_vessel_length" type="number" min=0 name="max_vessel_length">
-            </div>
-            <div class="row">
-                <label>Max Vessel Draft</label>
-                <input class="waiting_list_field" id="waiting_list_max_vessel_draft" type="number" min=0 name="max_vessel_draft">
-            </div>
-            <div class="row">
-                <label>Issued From</label>
-                <input class="waiting_list_field" type="date" id="waiting_list_issued_from" name="issued_from">
-                <label>Issued To</label>
-                <input class="waiting_list_field" type="date" id="waiting_list_issued_to" name="issued_to">
-            </div>
-            <div class="row">
-                <button 
-                    id="export_waiting_list" 
-                    type="submit" 
-                    name="export_model" 
-                    value="waiting_list" 
-                    title="Email Waiting List Report">
-                    Email Waiting List Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Waiting List Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Waiting List Bay</label>
+                        <div class="col-sm-6">
+                        <select class="waiting_list_field form-control" id="waiting_list_bay_select" name="bay">
+                            <option value="all">All</option>
+                            {% for i in mooring_bay_options %}
+                                <option value="{{i.id}}">{{i.name}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Waiting List Status</label>
+                        <div class="col-sm-6">
+                        <select class="waiting_list_field form-control" id="waiting_list_status_select" name="status">
+                            <option value="all">All</option>
+                            {% for i in approval_status_options %}
+                                <option value="{{i.code}}">{{i.description}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Max Vessel Length</label>
+                        <div class="col-sm-6">
+                        <input class="waiting_list_field form-control" id="waiting_list_max_vessel_length" type="number" min=0 name="max_vessel_length">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Max Vessel Draft</label>
+                        <div class="col-sm-6">
+                        <input class="waiting_list_field form-control" id="waiting_list_max_vessel_draft" type="number" min=0 name="max_vessel_draft">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Issued From</label>
+                        <div class="col-sm-3">
+                        <input class="waiting_list_field form-control" type="date" id="waiting_list_issued_from" name="issued_from">
+                        </div>
+                        <label class="col-sm-3 control-label">Issued To</label>
+                        <div class="col-sm-3">
+                        <input class="waiting_list_field form-control" type="date" id="waiting_list_issued_to" name="issued_to">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_waiting_list" 
+                            type="submit" 
+                            name="export_model" 
+                            value="waiting_list" 
+                            title="Email Waiting List Report">
+                            Email Waiting List Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="mooring_report" method="POST" onsubmit="submitReport('mooring_report')">
-            <h3>Mooring Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Mooring Bay</label>
-                <select class="mooring_field" id="mooring_bay_select" name="bay">
-                    <option value="all">All</option>
-                    {% for i in mooring_bay_options %}
-                        <option value="{{i.id}}">{{i.name}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Mooring Status</label>
-                <select class="mooring_field" id="mooring_status_select" name="status">
-                    <option value="all">All</option>
-                    {% for i in mooring_status_options %}
-                        <option value="{{i}}">{{i}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <button 
-                    id="export_mooring" 
-                    type="submit" 
-                    name="export_model" 
-                    value="mooring" 
-                    title="Email Moorings Report">
-                    Email Moorings Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Mooring Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Mooring Bay</label>
+                        <div class="col-sm-6">
+                        <select class="mooring_field form-control" id="mooring_bay_select" name="bay">
+                            <option value="all">All</option>
+                            {% for i in mooring_bay_options %}
+                                <option value="{{i.id}}">{{i.name}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Mooring Status</label>
+                        <div class="col-sm-6">
+                        <select class="mooring_field form-control" id="mooring_status_select" name="status">
+                            <option value="all">All</option>
+                            {% for i in mooring_status_options %}
+                                <option value="{{i}}">{{i}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_mooring" 
+                            type="submit" 
+                            name="export_model" 
+                            value="mooring" 
+                            title="Email Moorings Report">
+                            Email Moorings Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="dcv_permit_report" method="POST" onsubmit="submitReport('dcv_permit_report')">
-            <h3>DCV Permit Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Organisation</label>
-                <input class="dcv_permit_field" id="dcv_permit_organisation" name="organisation">
-            </div>
-            <div class="row">
-                <label>DCV Permit Seasons</label>
-                <select class="dcv_permit_field" id="dcv_permit_season_select" name="season">
-                    <option value="all">All</option>
-                    {% for i in dcv_permit_fee_seasons %}
-                        <option value="{{i.id}}">{{i.name}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <button 
-                    id="export_dcv_permit" 
-                    type="submit" 
-                    name="export_model" 
-                    value="dcv_permit" 
-                    title="Email DCV Permits Report">
-                    Email DCV Permits Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">DCV Permit Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Organisation</label>
+                        <div class="col-sm-6">
+                        <input class="dcv_permit_field form-control" id="dcv_permit_organisation" name="organisation">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">DCV Permit Seasons</label>
+                        <div class="col-sm-6">
+                        <select class="dcv_permit_field form-control" id="dcv_permit_season_select" name="season">
+                            <option value="all">All</option>
+                            {% for i in dcv_permit_fee_seasons %}
+                                <option value="{{i.id}}">{{i.name}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_dcv_permit" 
+                            type="submit" 
+                            name="export_model" 
+                            value="dcv_permit" 
+                            title="Email DCV Permits Report">
+                            Email DCV Permits Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="dcv_admission_report" method="POST" onsubmit="submitReport('dcv_admission_report')">
-            <h3>DCV Admission Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Organisation</label>
-                <input class="dcv_admission_field" id="dcv_admission_organisation" name="organisation">
-            </div>
-            <div class="row">
-                <label>Lodged From</label>
-                <input class="dcv_admission_field" type="date" id="dcv_admission_lodged_from" name="lodged_on_from">
-                <label>Lodged To</label>
-                <input class="dcv_admission_field" type="date" id="dcv_admission_lodged_to" name="lodged_on_to">
-            </div>
-            <div class="row">
-                <button 
-                    id="export_dcv_admission" 
-                    type="submit" 
-                    name="export_model" 
-                    value="dcv_admission" 
-                    title="Email DCV Admissions Report">
-                    Email DCV Admissions Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">DCV Admission Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Organisation</label>
+                        <div class="col-sm-6">
+                        <input class="dcv_admission_field form-control" id="dcv_admission_organisation" name="organisation">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Lodged From</label>
+                        <div class="col-sm-3">
+                        <input class="dcv_admission_field form-control" type="date" id="dcv_admission_lodged_from" name="lodged_on_from">
+                        </div>
+                        <label class="col-sm-3 control-label">Lodged To</label>
+                        <div class="col-sm-3">
+                        <input class="dcv_admission_field form-control" type="date" id="dcv_admission_lodged_to" name="lodged_on_to">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_dcv_admission" 
+                            type="submit" 
+                            name="export_model" 
+                            value="dcv_admission" 
+                            title="Email DCV Admissions Report">
+                            Email DCV Admissions Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
 
         <form class="report_form" style="display:None" id="sticker_report" method="POST" onsubmit="submitReport('sticker_report')">
-            <h3>Sticker Report</h3>
-            {% csrf_token %}
-            <div class="row">
-                <label>Sticker Status</label>
-                <select class="sticker_field" id="sticker_status_select" name="status">
-                    <option value="all">All</option>
-                    {% for i in sticker_status_options %}
-                        <option value="{{i.id}}">{{i.display}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <label>Sticker Seasons</label>
-                <select class="sticker_field" id="sticker_season_select" name="season">
-                    <option value="all">All</option>
-                    {% for i in sticker_fee_seasons %}
-                        <option value="{{i.start_date}}">{{i.name}}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="row">
-                <button 
-                    id="export_sticker" 
-                    type="submit" 
-                    name="export_model" 
-                    value="sticker" 
-                    title="Email Stickers Report">
-                    Email Stickers Report
-                </button>
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Sticker Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Sticker Status</label>
+                        <div class="col-sm-6">
+                        <select class="sticker_field form-control" id="sticker_status_select" name="status">
+                            <option value="all">All</option>
+                            {% for i in sticker_status_options %}
+                                <option value="{{i.id}}">{{i.display}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Sticker Seasons</label>
+                        <div class="col-sm-6">
+                        <select class="sticker_field form-control" id="sticker_season_select" name="season">
+                            <option value="all">All</option>
+                            {% for i in sticker_fee_seasons %}
+                                <option value="{{i.start_date}}">{{i.name}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_sticker" 
+                            type="submit" 
+                            name="export_model" 
+                            value="sticker" 
+                            title="Email Stickers Report">
+                            Email Stickers Report
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
     </div>
