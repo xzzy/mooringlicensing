@@ -162,6 +162,9 @@
             <div class="row">
                 <button type="submit" name="script" value="check_proposal_endorsements" {% if check_proposal_endorsements == 'true' %}style="color:green" {% endif %} title="Check Proposal Endorsements">Run Script 'check_proposal_endorsements'</button>
             </div>
+            <div class="row">
+                <button type="submit" name="script" value="run_queue_job" {% if run_queue_job == 'true' %}style="color:green" {% endif %} title="Run Queue Job (Email Reports)">Run Script 'run_queue_job' (Generate and Email Reports)</button>
+            </div>
 
         </form>
         <br>
