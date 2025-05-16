@@ -18,4 +18,6 @@ def mooringlicensing_processor(request):
         'LEDGER_SYSTEM_ID': f'{settings.LEDGER_SYSTEM_ID}',
         'ledger_totals': lt,
         'checkouthash' : checkouthash,
+        'GIT_COMMIT_DATE' : settings.GIT_COMMIT_DATE,
+        'GIT_COMMIT_HASH' : settings.GIT_COMMIT_HASH,
     }
