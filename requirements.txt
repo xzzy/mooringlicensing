@@ -1,4 +1,4 @@
-Django~=5.1.8
+Django~=5.2.0
 ipython==8.26.0
 psycopg2==2.9.9
 jedi==0.19.1
