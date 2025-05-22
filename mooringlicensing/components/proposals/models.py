@@ -3668,9 +3668,8 @@ class AuthorisedUserApplication(Proposal):
         mls_to_be_emailed = []
         from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
         new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True, active=True)  # New moa doesn't have stickers.
-        if not self.mooring_authorisation_preference == 'ria':
-            for new_moa in new_moas:
-                mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+        for new_moa in new_moas:
+            mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
@@ -3721,7 +3720,8 @@ class AuthorisedUserApplication(Proposal):
         # Email to ML holder when new moorings added
         for mooring_licence in mls_to_be_emailed:
             mooring_licence.generate_au_summary_doc()
-            send_au_summary_to_ml_holder(mooring_licence, request, self)
+            if not self.mooring_authorisation_preference == 'ria':
+                send_au_summary_to_ml_holder(mooring_licence, request, self)
 
         # Log proposal action
         if self.auto_approve or not request:
