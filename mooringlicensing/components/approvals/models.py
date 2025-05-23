@@ -800,6 +800,23 @@ class Approval(RevisionedMixin):
             self.approval.licence_document = self.licence_document
             self.approval.save()
 
+    def process_mooring_approvals_before_swap(self):
+        query = Q()
+        query &= Q(mooring=self.mooring)
+        query &= Q(active=True)
+        moa_set = MooringOnApproval.objects.filter(query)
+        for i in moa_set:
+            i.active = False
+            i.end_date = datetime.datetime.today()
+            i.save()
+            if i.approval:
+                try:
+                    i.approval.manage_stickers()
+                except Exception as e:
+                    #if we are here it means the sticker for the AUP has not been exported yet
+                    #this should not be allowed to happen, ensure all AUPs on both moorings are exported prior to approval
+                    print(e)
+
     def generate_au_summary_doc(self):
         target_date=datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
         if hasattr(self, 'mooring'):
