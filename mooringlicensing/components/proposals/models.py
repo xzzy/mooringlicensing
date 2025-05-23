@@ -1823,6 +1823,20 @@ class Proposal(RevisionedMixin):
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
                         raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
+                    
+                    if self.application_type_code == 'mla' or self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
+                        from mooringlicensing.components.approvals.models import MooringOnApproval
+                        #check aups on mooring, do not allow approval if any stickers not exported
+                        #or if it is a swap, check the aups on the OTHER approval as well
+                        #(the listed mooring will apply either way)
+                        query = Q()
+                        query &= Q(mooring=self.allocated_mooring)
+                        query &= Q(active=True)
+                        moa_set = MooringOnApproval.objects.filter(query)
+                        for i in moa_set:
+                            if i.approval and i.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]).exists():
+                                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+'].')
+
 
                 # Validation & update proposed_issuance_approval
                 if not ((self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT):
@@ -3668,9 +3682,8 @@ class AuthorisedUserApplication(Proposal):
         mls_to_be_emailed = []
         from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
         new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True, active=True)  # New moa doesn't have stickers.
-        if not self.mooring_authorisation_preference == 'ria':
-            for new_moa in new_moas:
-                mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+        for new_moa in new_moas:
+            mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
 
         # manage stickers
         moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
@@ -3721,7 +3734,8 @@ class AuthorisedUserApplication(Proposal):
         # Email to ML holder when new moorings added
         for mooring_licence in mls_to_be_emailed:
             mooring_licence.generate_au_summary_doc()
-            send_au_summary_to_ml_holder(mooring_licence, request, self)
+            if not self.mooring_authorisation_preference == 'ria':
+                send_au_summary_to_ml_holder(mooring_licence, request, self)
 
         # Log proposal action
         if self.auto_approve or not request:
@@ -4318,6 +4332,11 @@ class MooringLicenceApplication(Proposal):
 
             # Creating documents should be performed at the end
             approval.generate_doc()
+
+            #end all approval moorings on previous ML
+            if self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
+                approval.process_mooring_approvals_before_swap()
+
             if self.proposal_type.code in [PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_SWAP_MOORINGS,]:
                 approval.generate_au_summary_doc()
 
