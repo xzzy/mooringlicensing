@@ -549,3 +549,17 @@ PREVIOUS_PAYMENT_REASON = env('PREVIOUS_PAYMENT_REASON', "Previous payment made"
 
 CSRF_TRUSTED_ORIGINS_STRING = decouple.config("CSRF_TRUSTED_ORIGINS", default='[]')
 CSRF_TRUSTED_ORIGINS = json.loads(str(CSRF_TRUSTED_ORIGINS_STRING))
+
+WAITING_QUEUE_ENABLED = decouple.config('WAITING_QUEUE_ENABLED',default=False, cast=bool)
+QUEUE_GROUP_NAME = decouple.config('QUEUE_GROUP_NAME', default=None)
+QUEUE_WAITING_URL = decouple.config('QUEUE_WAITING_URL', default=None)
+
+QUEUE_DOMAIN = decouple.config('QUEUE_DOMAIN',default='')
+QUEUE_URL = decouple.config('QUEUE_URL',default='')
+QUEUE_BACKEND_URL = decouple.config('QUEUE_BACKEND_URL',default='')
+QUEUE_ACTIVE_HOSTS = decouple.config('QUEUE_ACTIVE_HOSTS',default='')
+ENABLE_QUEUE_MIDDLEWARE = decouple.config('ENABLE_QUEUE_MIDDLEWARE',default=False, cast=bool)
+if ENABLE_QUEUE_MIDDLEWARE is True or ENABLE_QUEUE_MIDDLEWARE == 'True':
+    MIDDLEWARE_CLASSES += [
+        'mooringlicensing.queue_middleware.QueueControl',
+    ]
