@@ -1,6 +1,7 @@
 import requests
 from django.conf import settings
 from django.http import HttpResponse
+from mooringlicensing.helpers import is_internal
 
 class QueueControl(object):
 
@@ -20,7 +21,7 @@ class QueueControl(object):
                 return response
             
             sitequeuesession = request.COOKIES.get('sitequeuesession', None)
-            if (request.path.startswith('/')):
+            if (request.path.startswith('/') and not is_internal(request)):
                 try:
                     if 'HTTP_HOST' in request.META:
                         if settings.QUEUE_ACTIVE_HOSTS == request.META.get('HTTP_HOST',''):
