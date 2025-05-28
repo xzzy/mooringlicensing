@@ -20,4 +20,8 @@ def mooringlicensing_processor(request):
         'checkouthash' : checkouthash,
         'GIT_COMMIT_DATE' : settings.GIT_COMMIT_DATE,
         'GIT_COMMIT_HASH' : settings.GIT_COMMIT_HASH,
+        'QUEUE_DOMAIN' : settings.QUEUE_DOMAIN,
+        'QUEUE_URL' : settings.QUEUE_URL,
+        'QUEUE_ACTIVE_HOSTS' : settings.QUEUE_ACTIVE_HOSTS,
+        'QUEUE_GROUP_NAME' : settings.QUEUE_GROUP_NAME,
     }
