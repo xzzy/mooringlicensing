@@ -359,10 +359,14 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
         logger.info('Performing DoT check...')
         vessel_lookup_errors = {}
         # Mooring Licence vessel history
-        if type(instance.child_obj) == MooringLicenceApplication and instance.approval:
+        # Migrated records do not have DOT name, so only run dot check for new vessel submissions
+        if type(instance.child_obj) == MooringLicenceApplication and instance.approval and not instance.approval.migrated:
             for vo in instance.approval.child_obj.vessel_ownership_list:
-                dot_name = vo.dot_name
-                owner_str = dot_name.replace(" ", "%20")
+                if vo.dot_name:
+                    dot_name = vo.dot_name
+                    owner_str = dot_name.replace(" ", "%20")
+                else:
+                    owner_str = ""
                 payload = {
                         "boatRegistrationNumber": vo.vessel.rego_no,
                         "owner": owner_str,
@@ -373,7 +377,10 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
         # current proposal vessel check
         if vessel_data.get("rego_no"):
             dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
-            owner_str = dot_name.replace(" ", "%20")
+            if dot_name:
+                owner_str = dot_name.replace(" ", "%20")
+            else:
+                owner_str = ""
             payload = {
                     "boatRegistrationNumber": vessel_data.get("rego_no"),
                     "owner": owner_str,
