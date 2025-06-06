@@ -46,14 +46,25 @@ class Command(BaseCommand):
                     proposal_type=fee_item.proposal_type,
                     fee_constructor__enabled=True,
                 ).last()
-                acquired_fee_items[fee_item.id] = new_con_fee_item
-                print("\nchange fee item id from {} to {}".format(fee_item.id, acquired_fee_items[fee_item.id].id))
-                amount_to_be_paid = acquired_fee_items[fee_item.id].get_absolute_amount(i.application_fee.proposal.vessel_length)
+
+                if not new_con_fee_item:
+                    #if we are here, the vessel size categories are likely different and we need to find the one applicable to the application
+                    new_con_fee_item = FeeItem.objects.filter(
+                        fee_period=fee_item.fee_period, 
+                        proposal_type=fee_item.proposal_type,
+                        fee_constructor__enabled=True,
+                    )
+                    closest_size_cat = new_con_fee_item.last().fee_constructor.vessel_size_category_group.vessel_size_categories.filter(start_size__lte=i.application_fee.proposal.vessel_length, null_vessel=False).order_by('start_size').last()
+                    new_con_fee_item = new_con_fee_item.filter(vessel_size_category=closest_size_cat).last()
+                else:
+                    acquired_fee_items[fee_item.id] = new_con_fee_item
+                print("\nchange fee item id from {} to {}".format(fee_item.id, new_con_fee_item.id))
+                amount_to_be_paid = new_con_fee_item.get_absolute_amount(i.application_fee.proposal.vessel_length)
                 print("change amount paid from {} to {}\n".format(i.amount_paid, amount_to_be_paid))
                 if fix:
                     i.amount_paid = amount_to_be_paid
                     i.amount_to_be_paid = amount_to_be_paid
-                    i.fee_item_id = acquired_fee_items[fee_item.id].id
+                    i.fee_item_id = new_con_fee_item.id
                     i.save()
                     print("change applied for payment record with id {}".format(i.id))
                     fix_count += 1
