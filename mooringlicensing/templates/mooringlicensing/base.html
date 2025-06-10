@@ -197,6 +197,7 @@
         {% if not dev %}
             <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/chunk-vendors.js' %}?v={{GIT_COMMIT_HASH}}"></script>
             <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{GIT_COMMIT_HASH}}"></script>
+            <script type="text/javascript" src="{% static 'jquery.js' %}?v={{GIT_COMMIT_HASH}}"></script>
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}
