@@ -176,12 +176,7 @@
         {% endblock %}
 
         {% block custom_js %}
-            <script src="{{ QUEUE_URL }}/static/js/django_queue_manager/site-queue-manager.js?ver={{ GIT_COMMIT_HASH }}"></script>
-            <script>
-                if (typeof sitequeuemanager !== "undefined") {
-                    sitequeuemanager.init('{{ QUEUE_DOMAIN }}','{{ QUEUE_URL }}','{{ QUEUE_GROUP_NAME }}','{{ QUEUE_ACTIVE_HOSTS }}');
-                }
-            </script>
+
         {% endblock %}
 
 		{% if system_maintenance_due %}
@@ -198,6 +193,13 @@
             <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/chunk-vendors.js' %}?v={{GIT_COMMIT_HASH}}"></script>
             <script type="text/javascript" src="{% static 'mooringlicensing_vue/js/app.js' %}?v={{GIT_COMMIT_HASH}}"></script>
             <script type="text/javascript" src="{% static 'jquery.js' %}?v={{GIT_COMMIT_HASH}}"></script>
+	    <!-- load queue after jquery -->
+            <script src="{{ QUEUE_URL }}/static/js/django_queue_manager/site-queue-manager.js?ver={{ GIT_COMMIT_HASH }}"></script>
+            <script>
+                if (typeof sitequeuemanager !== "undefined") {
+                    sitequeuemanager.init('{{ QUEUE_DOMAIN }}','{{ QUEUE_URL }}','{{ QUEUE_GROUP_NAME }}','{{ QUEUE_ACTIVE_HOSTS }}');
+                }
+            </script>	    
         {% else %}
             <script type="text/javascript" src="{{ dev_url }}"></script>
         {% endif %}
