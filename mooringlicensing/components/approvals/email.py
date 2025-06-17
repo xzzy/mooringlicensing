@@ -712,6 +712,7 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
         'due_date': due_date,
         'dashboard_external_url': get_public_url(request),
         'cancelation_policy_url': settings.CANCELATION_POLICY_URL,
+        'approval': approval,
     }
     all_ccs = []
     all_bccs = proposal.assessor_recipients
