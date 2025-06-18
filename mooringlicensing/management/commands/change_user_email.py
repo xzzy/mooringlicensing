@@ -56,7 +56,8 @@ class Command(BaseCommand):
                 print("Provided email already has an associated System User")
                 return
         else:
-            new_email_ledger = get_or_create(new_email)
+            new_email_resp = get_or_create(new_email)["data"]["email"]
+            new_email_ledger = EmailUserRO.objects.filter(email__iexact=new_email_resp).last()
 
         #get all pertaining records (anything that refers to ledger id or email, except for log emails)
         #Approval (submitter)
@@ -125,25 +126,59 @@ class Command(BaseCommand):
             current_email_system.ledger_id_id = new_email_ledger.id
             current_email_system.change_by_user_id = system_user_system_user.id
             current_email_system.save()
+            print("changed system_user email and ledger_id")
 
             for k in change_email:
+                changed = []
                 for v in change_email[k]:
                     change = k.objects.filter(**{v:current_email_ledger.email})
                     if change.exists():
+                        count = change.count()
                         change.update(**{v:new_email_ledger.email})
+                        print("changed {} {} {}(s)".format(count,k._meta.model_name,v))
+                        changed.append((v,change.values_list('id', flat=True)))
+                if changed and k in log_change_models:
+                    try:
+                        logging_model = log_change_models[k][0]
+                        logging_model_relation = log_change_models[k][1]
+                        changed_model = k
+                        changed_model_relation = None if len(log_change_models[k]) < 3 else log_change_models[k][2]
+                        for i in changed:
+                            for c in change:
+                                if changed_model_relation:
+                                    action = "Changed {} field due to user email change for {} {} {}".format(i[0],logging_model_relation,changed_model._meta.model_name,getattr(c,changed_model_relation))
+                                    logging_model.log_action(getattr(c,changed_model_relation),action)
+                                else:
+                                    action = "Changed {} field due to user email change for {} {}".format(i[0],changed_model._meta.model_name,c)
+                                    logging_model.log_action(c,action)
+
+                    except Exception as e:
+                        print("Error:",e)
 
             for k in change_ledger_id:
                 changed = []
                 for v in change_ledger_id[k]:
                     change = k.objects.filter(**{v:current_email_ledger.id})
                     if change.exists():
-                        #change.update(**{v:new_email_ledger.id})
-                        changed.append((k,v,change.values_list('id', flat=True)))
+                        count = change.count()
+                        change.update(**{v:new_email_ledger.id})
+                        print("changed {} {} {}(s)".format(count,k._meta.model_name,v))
+                        changed.append((v,change))
                 if changed and k in log_change_models:
                     try:
                         logging_model = log_change_models[k][0]
                         logging_model_relation = log_change_models[k][1]
                         changed_model = k
-                        changed_model_relation = None if len(log_change_models[k]) < 3 else log_change_models[k][3]
+                        changed_model_relation = None if len(log_change_models[k]) < 3 else log_change_models[k][2]
+                        for i in changed:
+                            for c in change:
+                                if changed_model_relation:
+                                    action = "Changed {} field due to user email change for {} {} {}".format(i[0],changed_model._meta.model_name,logging_model_relation,getattr(c,changed_model_relation))
+                                    logging_model.log_action(getattr(c,changed_model_relation),action)
+                                else:
+                                    action = "Changed {} field due to user email change for {} {}".format(i[0],changed_model._meta.model_name,c)
+                                    logging_model.log_action(c,action)
+
                     except Exception as e:
                         print("Error:",e)
+        
