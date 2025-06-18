@@ -355,37 +355,39 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
     logger.info(f'submit_vessel_data() is called with the vessel_data: {vessel_data}')
 
     # Dot vessel rego lookup
-    if settings.DO_DOT_CHECK:
-        logger.info('Performing DoT check...')
-        vessel_lookup_errors = {}
-        # Mooring Licence vessel history
-        # Migrated records do not have DOT name, so only run dot check for new vessel submissions
-        if type(instance.child_obj) == MooringLicenceApplication and instance.approval and not instance.approval.migrated:
-            for vo in instance.approval.child_obj.vessel_ownership_list:
-                if vo.dot_name:
-                    dot_name = vo.dot_name
-                    owner_str = dot_name.replace(" ", "%20")
-                else:
-                    owner_str = ""
-                payload = {
-                        "boatRegistrationNumber": vo.vessel.rego_no,
-                        "owner": owner_str,
-                        "userId": str(request.user.id)
-                        }
-                dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
-
-        # current proposal vessel check
-        if vessel_data.get("rego_no"):
-            dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
-            if dot_name:
+    logger.info('Performing DoT check...')
+    vessel_lookup_errors = {}
+    # Mooring Licence vessel history
+    # Migrated records do not have DOT name, so only run dot check for new vessel submissions
+    print(instance, instance.id)
+    if isinstance(instance,MooringLicenceApplication) and instance.approval and not instance.approval.migrated:
+        for vo in instance.approval.vessel_ownership_list:
+            if vo.dot_name:
+                dot_name = vo.dot_name
                 owner_str = dot_name.replace(" ", "%20")
             else:
                 owner_str = ""
             payload = {
-                    "boatRegistrationNumber": vessel_data.get("rego_no"),
+                    "boatRegistrationNumber": vo.vessel.rego_no,
                     "owner": owner_str,
                     "userId": str(request.user.id)
                     }
+        if settings.DO_DOT_CHECK:
+            dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
+
+    # current proposal vessel check
+    if vessel_data.get("rego_no"):
+        dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
+        if dot_name:
+            owner_str = dot_name.replace(" ", "%20")
+        else:
+            owner_str = ""
+        payload = {
+                "boatRegistrationNumber": vessel_data.get("rego_no"),
+                "owner": owner_str,
+                "userId": str(request.user.id)
+                }
+        if settings.DO_DOT_CHECK:
             dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
         if vessel_lookup_errors:
@@ -393,7 +395,7 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
 
     if not vessel_data.get('rego_no'):
         #MLA and WLA do not need a vessel to be submitted
-        if type(instance.child_obj) in [MooringLicenceApplication, WaitingListApplication,]:
+        if isinstance(instance, MooringLicenceApplication) or isinstance(instance, WaitingListApplication):
             return
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")
