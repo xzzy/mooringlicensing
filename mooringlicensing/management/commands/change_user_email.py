@@ -12,8 +12,11 @@ from mooringlicensing.components.payments_ml.models import (
     DcvAdmissionFee, DcvPermitFee, StickerActionFee, ApplicationFee
 )
 from mooringlicensing.components.proposals.models import (
-    Proposal, ProposalApplicant, Owner, ProposalRequest, ProposalDeclinedDetails, ProposalUserAction, ProposalLogEntry, MooringLogEntry, VesselLogEntry
+    Proposal, ProposalApplicant, Owner, ProposalUserAction, ProposalLogEntry, MooringLogEntry, VesselLogEntry
 )
+from ledger_api_client.utils import get_or_create
+from django.db import transaction
+from mooringlicensing.components.users.utils import get_or_create_system_user_system_user
 
 class Command(BaseCommand):
     help = 'Change user email address and all associated mooring licensing records'
@@ -45,61 +48,102 @@ class Command(BaseCommand):
             print("Ledger User record does not exist for specified current email")
             return
 
-        change_ledger_id = {}
-        change_email = {}
+        new_email_ledger = EmailUserRO.objects.filter(email__iexact=new_email).last()
+        #check if new email already exists on ledger (create new if it does not)
+        if new_email_ledger:
+            #if it already exists, check if system user record exists on ML - stop if it does (TBD what happens next)
+            if SystemUser.objects.filter(email__iexact=new_email):
+                print("Provided email already has an associated System User")
+                return
+        else:
+            new_email_ledger = get_or_create(new_email)
+
         #get all pertaining records (anything that refers to ledger id or email, except for log emails)
         #Approval (submitter)
-        change_ledger_id["approval_submitter"] = Approval.objects.filter(submitter=current_email_ledger.id)
         #DcvAdmission (submitter, applicant)
-        change_ledger_id["dcv_admission_submitter"] = DcvAdmission.objects.filter(submitter=current_email_ledger.id)
-        change_ledger_id["dcv_admission_applicant"] = DcvAdmission.objects.filter(applicant=current_email_ledger.id)
         #DcvPermit (submitter, applicant)
-        change_ledger_id["dcv_permit_submitter"] = DcvPermit.objects.filter(submitter=current_email_ledger.id)
-        change_ledger_id["dcv_permit_applicant"] = DcvPermit.objects.filter(applicant=current_email_ledger.id)
         #ApprovalUserAction (who) 
-        change_ledger_id["approver_user_action_who"] = ApprovalUserAction.objects.filter(who=current_email_ledger.id)
         #StickerActionDetail (user)
-        change_ledger_id["sticker_action_detail_user"] = StickerActionDetail.objects.filter(user=current_email_ledger.id)
         #ApprovalLogEntry (customer)
-        change_ledger_id["approval_log_entry_customer"] = ApprovalLogEntry.objects.filter(customer=current_email_ledger.id)
         
-        #Compliance (assigned_to, submitter)
-        change_ledger_id["compliance_assigned_to"] = Compliance.objects.filter(assigned_to=current_email_ledger.id)
-        change_ledger_id["compliance_submitter"] = Compliance.objects.filter(submitter=current_email_ledger.id)
+        #Compliance (submitter)
         #ComplianceUserAction (who)
-        change_ledger_id["compliance_user_action_who"] = ComplianceUserAction.objects.filter(who=current_email_ledger.id)
         #ComplianceLogEntry (customer)
-        change_ledger_id["compliance_log_entry_customer"] = ComplianceLogEntry.objects.filter(customer=current_email_ledger.id)
 
         #DcvAdmissionFee (created_by)
-        change_ledger_id["dcv_admission_fee_created_by"] = DcvAdmissionFee.objects.filter(created_by=current_email_ledger.id)
         #DcvPermitFee (created_by)
-        change_ledger_id["dcv_permit_fee_created_by"] = DcvPermitFee.objects.filter(created_by=current_email_ledger.id)
         #StickerActionFee (created_by)
-        change_ledger_id["sticker_action_fee_created_by"] = StickerActionFee.objects.filter(created_by=current_email_ledger.id)
         #ApplicationFee (created_by)
-        change_ledger_id["application_fee_created_by"] = ApplicationFee.objects.filter(created_by=current_email_ledger.id)
 
         #Proposal (submitter)
-        change_ledger_id["proposal_submitter"] = Proposal.objects.filter(submitter=current_email_ledger.id)
         #ProposalApplicant (email_user_id, email)
-        change_ledger_id["proposal_applicant_email_user_id"] = ProposalApplicant.objects.filter(email_user_id=current_email_ledger.id)
-        change_email["proposal_applicant_email"] = ProposalApplicant.objects.filter(email=current_email)
         #Owner (emailuser)
-        change_ledger_id["owner_emailuser"] = Owner.objects.filter(emailuser=current_email_ledger.id)
         #ProposalUserAction (who)
-        change_ledger_id["proposal_user_action_who"] = ProposalUserAction.objects.filter(who=current_email_ledger.id)
         #ProposalLogEntry (customer)
-        change_ledger_id["proposal_log_entry_customer"] = ProposalLogEntry.objects.filter(customer=current_email_ledger.id)
         #MooringLogEntry (customer)
-        change_ledger_id["mooring_log_entry_customer"] = MooringLogEntry.objects.filter(customer=current_email_ledger.id)
         #VesselLogEntry (customer)
-        change_ledger_id["vessel_log_entry_customer"] = VesselLogEntry.objects.filter(customer=current_email_ledger.id)
 
-        #check if new email already exists on ledger (create new if it does not)
+        change_ledger_id = {
+            Approval: ["submitter"],
+            DcvAdmission: ["submitter", "applicant"],
+            DcvPermit: ["submitter", "applicant"],
+            ApprovalUserAction: ["who"],
+            StickerActionDetail: ["user"],
+            ApprovalLogEntry: ["customer"],
+            Compliance: ["submitter"],
+            ComplianceUserAction: ["who"],
+            ComplianceLogEntry: ["customer"],
+            DcvAdmissionFee: ["created_by"],
+            DcvPermitFee: ["created_by"],
+            StickerActionFee: ["created_by"],
+            ApplicationFee: ["created_by"],
+            Proposal: ["submitter"],
+            ProposalApplicant: ["email_user_id"],
+            Owner: ["emailuser"],
+            ProposalUserAction: ["who"],
+            ProposalLogEntry: ["customer"],
+            MooringLogEntry: ["customer"],
+            VesselLogEntry: ["customer"],
+        }
+        change_email = {
+            ProposalApplicant: ["email"]
+        }
+        log_change_models = {
+            Approval: (ApprovalUserAction, "approval"), #(logging_model, logging_model_relation)
+            Compliance: (ComplianceUserAction, "compliance"),
+            Proposal: (ProposalUserAction, "proposal"),
+            ProposalApplicant: (ProposalUserAction, "proposal", "proposal"), #(logging_model, logging_model_relation, changed_model_relation)
+        }
 
-        #if it already exists, check if system user records exists on ML - stop if it does (TBD what happens next)
+        with transaction.atomic():
 
-        #change all records to the new email and ledger id 
-        
-        #log all record changes to record's respective action logs where applicable (Applicant/Submitter/Holder Email Address change)
+            system_user_system_user = get_or_create_system_user_system_user()
+
+            #change all records to the new email and ledger id 
+            #log all record changes to record's respective action logs where applicable (Applicant/Submitter/Holder Email Address change)
+            current_email_system.email = new_email
+            current_email_system.ledger_id_id = new_email_ledger.id
+            current_email_system.change_by_user_id = system_user_system_user.id
+            current_email_system.save()
+
+            for k in change_email:
+                for v in change_email[k]:
+                    change = k.objects.filter(**{v:current_email_ledger.email})
+                    if change.exists():
+                        change.update(**{v:new_email_ledger.email})
+
+            for k in change_ledger_id:
+                changed = []
+                for v in change_ledger_id[k]:
+                    change = k.objects.filter(**{v:current_email_ledger.id})
+                    if change.exists():
+                        #change.update(**{v:new_email_ledger.id})
+                        changed.append((k,v,change.values_list('id', flat=True)))
+                if changed and k in log_change_models:
+                    try:
+                        logging_model = log_change_models[k][0]
+                        logging_model_relation = log_change_models[k][1]
+                        changed_model = k
+                        changed_model_relation = None if len(log_change_models[k]) < 3 else log_change_models[k][3]
+                    except Exception as e:
+                        print("Error:",e)
