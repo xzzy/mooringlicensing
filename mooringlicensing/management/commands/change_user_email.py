@@ -134,9 +134,10 @@ class Command(BaseCommand):
                     change = k.objects.filter(**{v:current_email_ledger.email})
                     if change.exists():
                         count = change.count()
+                        changed.append((v,list(change)))
                         change.update(**{v:new_email_ledger.email})
                         print("changed {} {} {}(s)".format(count,k._meta.model_name,v))
-                        changed.append((v,change.values_list('id', flat=True)))
+                        
                 if changed and k in log_change_models:
                     try:
                         logging_model = log_change_models[k][0]
@@ -144,13 +145,13 @@ class Command(BaseCommand):
                         changed_model = k
                         changed_model_relation = None if len(log_change_models[k]) < 3 else log_change_models[k][2]
                         for i in changed:
-                            for c in change:
+                            for c in i[1]:
                                 if changed_model_relation:
-                                    action = "Changed {} field due to user email change for {} {} {}".format(i[0],logging_model_relation,changed_model._meta.model_name,getattr(c,changed_model_relation))
-                                    logging_model.log_action(getattr(c,changed_model_relation),action)
+                                    action = "Changed {} field due to user email change for {} {} {}".format(i[0],changed_model._meta.model_name,logging_model_relation,getattr(c,changed_model_relation))
+                                    print(logging_model.log_action(getattr(c,changed_model_relation),action))
                                 else:
                                     action = "Changed {} field due to user email change for {} {}".format(i[0],changed_model._meta.model_name,c)
-                                    logging_model.log_action(c,action)
+                                    print(logging_model.log_action(c,action))
 
                     except Exception as e:
                         print("Error:",e)
@@ -161,9 +162,10 @@ class Command(BaseCommand):
                     change = k.objects.filter(**{v:current_email_ledger.id})
                     if change.exists():
                         count = change.count()
+                        changed.append((v,list(change)))
                         change.update(**{v:new_email_ledger.id})
                         print("changed {} {} {}(s)".format(count,k._meta.model_name,v))
-                        changed.append((v,change))
+                        
                 if changed and k in log_change_models:
                     try:
                         logging_model = log_change_models[k][0]
@@ -171,13 +173,13 @@ class Command(BaseCommand):
                         changed_model = k
                         changed_model_relation = None if len(log_change_models[k]) < 3 else log_change_models[k][2]
                         for i in changed:
-                            for c in change:
+                            for c in i[1]:
                                 if changed_model_relation:
                                     action = "Changed {} field due to user email change for {} {} {}".format(i[0],changed_model._meta.model_name,logging_model_relation,getattr(c,changed_model_relation))
-                                    logging_model.log_action(getattr(c,changed_model_relation),action)
+                                    print(logging_model.log_action(getattr(c,changed_model_relation),action))
                                 else:
                                     action = "Changed {} field due to user email change for {} {}".format(i[0],changed_model._meta.model_name,c)
-                                    logging_model.log_action(c,action)
+                                    print(logging_model.log_action(c,action))
 
                     except Exception as e:
                         print("Error:",e)
