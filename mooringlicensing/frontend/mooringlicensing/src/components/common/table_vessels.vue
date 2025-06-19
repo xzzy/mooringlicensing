@@ -3,9 +3,6 @@
         <div class="row">
             <div class="col-sm-10">
             </div>
-            <div class="col-sm-2">
-                <button type="button" class="btn btn-primary pull-right" @click="addVessel">Add Vessel</button>
-            </div>
         </div>
 
         <div class="row">
@@ -169,11 +166,6 @@ export default {
         },
         closeModal: function() {
             this.uuid++;
-        },
-        addVessel: function() {
-            this.$router.push({
-                name: 'new-vessel'
-            });
         },
         refreshFromResponse: async function(){
             await this.$refs.vessels_datatable.vmDataTable.ajax.reload();
