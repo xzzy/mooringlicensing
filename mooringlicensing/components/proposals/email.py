@@ -1247,6 +1247,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     details = ''
     attachments = []
     payment_url = ''
+    approval = None
 
     if decision == 'approved':
         # for payment
@@ -1267,14 +1268,15 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
                 # Payment required
                 payment_url = '{}/application_fee_existing/{}'.format(get_public_url(request), invoice.reference)
     elif decision == 'approved_paid':
-        html_template += 'email_50a.html'
-        txt_template += 'email_50a.txt'
+        html_template += 'email_51a.html'
+        txt_template += 'email_51a.txt'
         subject = 'Approved: Application for Rottnest Island Mooring Site Licence'
         details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
         cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
 
+        approval = proposal.approval
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
         attachments = get_attachments(True, True, proposal, attach_au_summary_doc)
 
@@ -1304,6 +1306,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
         'payment_url': make_http_https(payment_url),
+        'approval': approval,
     }
 
     to_address = proposal.applicant_obj.email
