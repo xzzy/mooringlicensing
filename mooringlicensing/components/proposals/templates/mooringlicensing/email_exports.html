@@ -21,7 +21,11 @@
             <div class="panel-body collapse show">
                 <div class="row form-group">
                     <div class="col-sm-12">
-                    {{message}}
+                    {% if message %}
+                    <div class="alert alert-success">{{message}}</div>
+                    {% else %}
+                    <div class="alert alert-info">Email reports will be sent to the requesting user some time after the request has been made.</div>
+                    {% endif %}
                     </div>
                 </div>
                 <div class="row form-group">
