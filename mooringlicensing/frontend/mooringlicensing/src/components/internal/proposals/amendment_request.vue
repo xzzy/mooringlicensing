@@ -121,9 +121,12 @@ export default {
         close:function () {
             this.isModalOpen = false;
             this.amendment = {
-                reason: '',
+                reason:'',
                 reason_id: null,
-                proposal_id: this.proposal.id
+                amendingProposal: false,
+                proposal: this.proposal,
+                num_files: 0,
+                input_name: 'amendment_request_doc',
             };
             this.errors = false;
             $(this.$refs.reason).val(null).trigger('change');
