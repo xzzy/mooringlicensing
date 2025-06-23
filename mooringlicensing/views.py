@@ -117,7 +117,7 @@ class ManagementCommandsView(LoginRequiredMixin, UserPassesTestMixin, TemplateVi
     template_name = 'mooringlicensing/mgt-commands.html'
 
     def test_func(self):
-        return is_internal(self.request)
+        return is_internal(self.request) and settings.ENABLE_MANAGEMENT_COMMANDS
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)

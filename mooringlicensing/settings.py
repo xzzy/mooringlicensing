@@ -563,3 +563,5 @@ if ENABLE_QUEUE_MIDDLEWARE is True or ENABLE_QUEUE_MIDDLEWARE == 'True':
     MIDDLEWARE_CLASSES += [
         'mooringlicensing.queue_middleware.QueueControl',
     ]
+
+ENABLE_MANAGEMENT_COMMANDS = env('ENABLE_MANAGEMENT_COMMANDS', False)
