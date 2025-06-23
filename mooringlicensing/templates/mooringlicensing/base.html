@@ -125,8 +125,10 @@
                                                 {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
+                                                {% if management_commands_enabled %}
                                                 {% if is_mooringlicensing_admin_user or request.user.is_superuser %}
                                                     <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
+                                                {% endif %}
                                                 {% endif %}
                                                 {% if show_tests and request.user.is_superuser %}
                                                     <li><a href="{% url 'test-emails' %}">Test Emails</a></li>
