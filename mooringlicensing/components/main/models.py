@@ -77,7 +77,9 @@ class SanitiseFileMixin(SanitiseMixin, DirtyFieldsMixin):
             #auto-gen file name
             _, extension = os.path.splitext(str(file_content))
             generated_file_name = self.auto_generate_file_name(extension.replace(".",""))
-            self._file = storage.save('{}/{}'.format(path_to_file,generated_file_name), ContentFile(file_content.read()))
+            read = file_content.read()
+            if bool(read):
+                self._file = storage.save('{}/{}'.format(path_to_file,generated_file_name), ContentFile(read))
         elif '_file' in self.get_dirty_fields() and self.get_dirty_fields()['_file']:
             raise ValidationError("Cannot change file")
 

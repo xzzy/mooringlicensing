@@ -111,10 +111,17 @@ class MooringBayAdmin(admin.ModelAdmin):
 @admin.register(Mooring)
 class MooringAdmin(admin.ModelAdmin):
     list_display = ['id', 'name', 'mooring_bay', 'active', 'vessel_size_limit', 'vessel_draft_limit', ]
-    readonly_fields = ['mooring_licence',]
+    readonly_fields = ['mooring_licence', 'name', 'mooring_bay', 'active', 'vessel_size_limit', 'vessel_draft_limit', 'vessel_weight_limit', 'mooring_bookings_id', 'mooring_bookings_bay_id', 'mooring_bookings_mooring_specification']
     list_filter = ('active',)
     search_fields = ['name',]
+    
 
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
 
 class GlobalSettingsForm(django.forms.ModelForm):
     def __init__(self, *args, **kwargs):
