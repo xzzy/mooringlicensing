@@ -4465,10 +4465,10 @@ class Mooring(RevisionedMixin):
     name = models.CharField(max_length=100)
     mooring_bay = models.ForeignKey(MooringBay, on_delete=models.CASCADE)
     active = models.BooleanField(default=True)
-    vessel_size_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
-    vessel_draft_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
+    vessel_size_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text = "Any required changes should be done via Mooring Bookings.") # does not exist in MB
+    vessel_draft_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text = "Any required changes should be done via Mooring Bookings.")
     vessel_beam_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
-    vessel_weight_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # tonnage
+    vessel_weight_limit = models.DecimalField(max_digits=8, decimal_places=2, default='0.00', help_text = "Any required changes should be done via Mooring Bookings.") # tonnage
     # stored for debugging purposes, not used in this system
     mooring_bookings_id = models.IntegerField()
     mooring_bookings_mooring_specification = models.IntegerField(choices=MOORING_SPECIFICATION)
