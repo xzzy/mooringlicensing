@@ -2134,6 +2134,7 @@ class MooringLicence(Approval):
             additional_vessels = []
 
             max_vessel_length = 0
+            minimum_mooring_vessel_length = float(GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH).value)
             current_vessels = self.get_current_vessels_for_licence_doc()
             for vessel in current_vessels:
                 v = {}
@@ -2141,9 +2142,11 @@ class MooringLicence(Approval):
                 v['vessel_name'] = vessel['latest_vessel_details'].vessel_name
                 v['vessel_length'] = vessel['latest_vessel_details'].vessel_applicable_length
                 v['vessel_draft'] = vessel['latest_vessel_details'].vessel_draft
-                if not licenced_vessel:
+                if not licenced_vessel and v['vessel_length'] >= minimum_mooring_vessel_length:
                     # No licenced vessel stored yet
                     licenced_vessel = v
+                elif v['vessel_length'] < minimum_mooring_vessel_length:
+                    additional_vessels.append(v)
                 else:
                     if licenced_vessel['vessel_length'] < v['vessel_length']:
                         # Found a larger vessel than the one stored as a licenced.  Replace it by the larger one.

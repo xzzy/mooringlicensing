@@ -4720,7 +4720,7 @@ class Vessel(RevisionedMixin):
         )
 
         #common blocks
-        #another application of the same type that is not accepted, (printing sticker,) discarded, or declined 
+        #another application of the same type that is not accepted, (printing sticker,) discarded, or declined
         #another approval of the same type that is current or suspended - unless this is an amendment or renewal of a previous application
         #another application of any kind where the vessel is owned by another user that is not accepted, (printing sticker,) discarded, or declined
         #another approval of any other kind (though effectively all kinds) where the vessel is owned by another user that is current or suspended
@@ -4756,7 +4756,7 @@ class Vessel(RevisionedMixin):
         if not vessel_ownership.owner or not vessel_ownership.owner.emailuser:
             raise serializers.ValidationError("Invalid vessel ownership")
 
-        blocking_ownerships = Proposal.objects.filter(proposals_filter).exclude(vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
+        blocking_ownerships = Proposal.objects.filter(proposals_filter).exclude(proposal_applicant__email_user_id=vessel_ownership.owner.emailuser).exclude(vessel_ownership__owner__emailuser=vessel_ownership.owner.emailuser)
         for bp in blocking_ownerships:
             logger.debug(f'blocking_ownership: [{bp}]')
 
