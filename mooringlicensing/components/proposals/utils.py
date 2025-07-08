@@ -314,13 +314,16 @@ def dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data):
     logger.info(dot_response_json.get("status"))
     if dot_response_json.get("status") and not dot_response_json.get("status") == 200:
         raise serializers.ValidationError("DoT Service Unavailable")
-    dot_response = dot_response_json.get("data")
-    dot_boat_length = dot_response.get("boatLength")
-    boat_found = True if dot_response.get("boatFound") == "Y" else False
-    boat_owner_match = True if dot_response.get("boatOwnerMatch") else False
-    ml_boat_length = vessel_data.get("vessel_details", {}).get("vessel_length")
-    if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
-        vessel_lookup_errors[vessel_data.get("rego_no")] = "The provided details do not match those recorded with the Department of Transport"
+    try:
+        dot_response = dot_response_json.get("data")
+        dot_boat_length = dot_response.get("boatLength")
+        boat_found = True if dot_response.get("boatFound") == "Y" else False
+        boat_owner_match = True if dot_response.get("boatOwnerMatch") else False
+        ml_boat_length = vessel_data.get("vessel_details", {}).get("vessel_length")
+        if not boat_found or not boat_owner_match or not dot_boat_length == float(ml_boat_length):
+            vessel_lookup_errors[vessel_data.get("rego_no")] = "The provided details do not match those recorded with the Department of Transport"
+    except:
+        raise serializers.ValidationError("Issue verifying your DoT Vessel Information, please try again later or if the problem persists please contact us.")
 
 def submit_vessel_data(instance, request, vessel_data=None, approving=False):
 
