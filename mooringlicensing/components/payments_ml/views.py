@@ -183,12 +183,16 @@ class ConfirmationView(TemplateView):
 
 
 class ApplicationFeeExistingView(APIView):
-    permission_classes=[IsAuthenticated]
+    #permission_classes=[IsAuthenticated]
 
     def get_object(self):
         return get_object_or_404(Invoice, reference=self.kwargs['invoice_reference'])
 
     def get(self, request, *args, **kwargs):
+
+        if not bool(request.user and request.user.is_authenticated):
+            return HttpResponseRedirect("/sso/auth_local/?next={}".format(request.build_absolute_uri()))
+
         invoice = self.get_object()
         logger.info(f'Getting payment screen for the future invoice: [{invoice}] ...')
 
