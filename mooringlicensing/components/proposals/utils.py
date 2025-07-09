@@ -386,13 +386,14 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
             owner_str = dot_name.replace(" ", "%20")
         else:
             owner_str = ""
-        payload = {
-                "boatRegistrationNumber": vessel_data.get("rego_no"),
-                "owner": owner_str,
-                "userId": str(request.user.id)
-                }
-        if settings.DO_DOT_CHECK:
-            dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
+        if request: #if there is no request do not run DoT check (system reissue)
+            payload = {
+                    "boatRegistrationNumber": vessel_data.get("rego_no"),
+                    "owner": owner_str,
+                    "userId": str(request.user.id)
+                    }
+            if settings.DO_DOT_CHECK:
+                dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
         if vessel_lookup_errors:
             raise serializers.ValidationError(vessel_lookup_errors)
