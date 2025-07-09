@@ -1586,9 +1586,8 @@ class Proposal(RevisionedMixin):
                         elif self.mooring_authorisation_preference == "site_licensee" and not True in requested_checked_list:
                             raise serializers.ValidationError("No mooring provided")
 
-                check_mooring_ids = id_list + requested_id_list
-                
-                check_moorings = MooringOnApproval.objects.filter(id__in=check_mooring_ids)          
+                check_old_moorings = MooringOnApproval.objects.filter(id__in=id_list)          
+                check_new_moorings = Mooring.objects.filter(id__in=requested_id_list)
 
                 if mooring_id:
                     if (self.vessel_length > mooring.vessel_size_limit or
@@ -1596,7 +1595,7 @@ class Proposal(RevisionedMixin):
                         (self.vessel_weight > mooring.vessel_weight_limit and mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
 
-                for i in check_moorings:
+                for i in check_old_moorings:
                     if not i.mooring:
                         raise serializers.ValidationError("Mooring does not exist")
                     
@@ -1608,7 +1607,17 @@ class Proposal(RevisionedMixin):
                         (self.vessel_weight > i.mooring.vessel_weight_limit and i.mooring.vessel_weight_limit > 0)):
                         raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
                     
-                if not mooring_id and not check_mooring_ids and self.application_type.code == "aua":
+                for i in check_new_moorings:
+                    
+                    if not self.vessel_length or not self.vessel_draft or not self.vessel_weight:
+                        raise serializers.ValidationError("One or more vessel dimensions are not specified")
+
+                    if (self.vessel_length > i.vessel_size_limit or
+                        self.vessel_draft > i.vessel_draft_limit or
+                        (self.vessel_weight > i.vessel_weight_limit and i.vessel_weight_limit > 0)):
+                        raise serializers.ValidationError("Vessel dimensions are not compatible with one or more moorings")
+                    
+                if not mooring_id and (not id_list and not requested_id_list) and self.application_type.code == "aua":
                     raise serializers.ValidationError("No mooring provided")
                 
                 if self.application_type.code == "mla":
