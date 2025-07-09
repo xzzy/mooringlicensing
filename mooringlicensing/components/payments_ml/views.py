@@ -191,7 +191,7 @@ class ApplicationFeeExistingView(APIView):
     def get(self, request, *args, **kwargs):
 
         if not bool(request.user and request.user.is_authenticated):
-            return HttpResponseRedirect("/sso/auth_local/?next={}".format(request.build_absolute_uri()))
+            return HttpResponseRedirect("/sso/auth_local?next={}".format(request.build_absolute_uri()))
 
         invoice = self.get_object()
         logger.info(f'Getting payment screen for the future invoice: [{invoice}] ...')
