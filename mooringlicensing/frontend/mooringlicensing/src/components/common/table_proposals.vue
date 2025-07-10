@@ -278,7 +278,7 @@ export default {
                     }
                     for (let invoice of full.invoices){
                             if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){
-                                links +=  `<a href='/application_fee_existing/${invoice.reference}'>Pay</a>`
+                                links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a>`
                             }
                         }     
                     if (full.document_upload_url){
