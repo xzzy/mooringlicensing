@@ -1,6 +1,8 @@
 from django.conf import settings
 from ledger_api_client.ledger_models import EmailUserRO as EmailUser
+import logging
 
+logger = logging.getLogger(__name__)
 
 def get_user_as_email_user(sender):
     try:
@@ -42,16 +44,10 @@ def make_url_for_external(url):
 
 
 def get_public_url(request=None):
-    if request:
-        web_url = '{}://{}'.format(request.scheme, request.get_host())
-    else:
-        web_url = settings.SITE_URL if settings.SITE_URL else ''
+    if not settings.SITE_URL:
+        logger.error("Site URL not set, link cannot be provided")
 
-    web_url = make_http_https(web_url)
-
-    # Public URL should not have 'internal' substring
-    web_url = make_url_for_external(web_url)
-
+    web_url = settings.SITE_URL if settings.SITE_URL else ''
     return web_url
 
 
