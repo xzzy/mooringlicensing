@@ -100,7 +100,7 @@
                 </div>
             </div>
             <div class="row form-group">
-                <label for="" class="col-sm-3 control-label">Owner name as shown on DoT registration (SURNAME FIRST MIDDLE)</label>
+                <label for="" class="col-sm-3 control-label">Owner name as shown on DoT registration (SURNAME FIRST MIDDLE)*</label>
                 <div class="col-sm-9">
                     <input
                         :readonly="readonly"
