@@ -64,14 +64,14 @@ class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
 
 class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
     subject = 'Mooring removed'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/emails_2/auth_user_mooring_removed_notification.html'
-    txt_template = 'mooringlicensing/emails_2/auth_user_mooring_removed_notification.txt'
+    html_template = 'mooringlicensing/templates/mooringlicensing/emails_2/email_38.html'
+    txt_template = 'mooringlicensing/templates/mooringlicensing/emails_2/email_38.txt'
 
     def __init__(self, approval):
         self.subject = 'Amended: {} {} - {}.'.format(approval.child_obj.description, approval.child_obj.lodgement_number, settings.RIA_NAME)
 
 
-def send_auth_user_mooring_removed_notification(approval, mooring_licence):
+def send_auth_user_mooring_removed_notification(approval, mooring_licence, stickers_to_be_returned):
     email = AuthorisedUserMooringRemovedNotificationEmail(approval)
     proposal = approval.current_proposal
 
@@ -88,7 +88,9 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence):
         'approval': approval,
         'proposal': proposal,
         'mooring_licence': mooring_licence,
+        'mooring': mooring_licence.mooring,
         'url': make_http_https(url),
+        'stickers_to_be_returned': stickers_to_be_returned,
     }
     all_ccs = []
     msg = email.send(proposal.applicant_obj.email, cc=all_ccs, context=context)

@@ -1705,10 +1705,12 @@ class AuthorisedUserPermit(Approval):
                 moa.save()
                 logger.info(f'Set end_date: [{moa.end_date}] to the MooringOnApproval: [{moa}] because the Mooring: [{moa.mooring}] is no longer available.')
 
+        stickers_to_be_returned = Sticker.objects.filter(approval=self.approval,status=Sticker.STICKER_STATUS_TO_BE_RETURNED)
+
         if not self.mooringonapproval_set.filter(mooring__mooring_licence__status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,]):
             ## No moorings left on this AU permit, include information that permit holder can amend and apply for new mooring up to expiry date.
             logger.info(f'There are no moorings left on the AU approval: [{self}].')
-            send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+            send_auth_user_mooring_removed_notification(self.approval, mooring_licence, stickers_to_be_returned)
         else:
             for moa in self.mooringonapproval_set.all():
                 # There is at lease one mooring on this AU permit with 'current'/'suspended' status
@@ -1716,7 +1718,7 @@ class AuthorisedUserPermit(Approval):
                 logger.info(f'There is still at least one mooring on this AU Permit: [{self}] with current/suspended status.')
                 if moa.mooring == mooring_licence.mooring:
                     ## send email to auth user
-                    send_auth_user_mooring_removed_notification(self.approval, mooring_licence)
+                    send_auth_user_mooring_removed_notification(self.approval, mooring_licence, stickers_to_be_returned)
         self.internal_reissue(mooring_licence)
 
     @property
