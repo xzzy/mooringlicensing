@@ -691,13 +691,13 @@ class Proposal(RevisionedMixin):
 
                         if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
                             # When ML, customer is adding a new vessel to the ML
-                            #if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
-                            #    # However, old vessel (target vessel) is no longer on any licence/permit.
-                            #    logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
-                            #else:
-                            # We have to charge full amount  --> Go to next loop
-                            #logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}] and the vessel: [{target_vessel}] is still on another licence/permit.  We cannot transfer the amount paid: [{fee_item_application_fee}] for the vessel: [{vessel}].')
-                            continue
+                            if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
+                                # However, old vessel (target vessel) is no longer on any licence/permit.
+                                logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
+                            else:
+                                # We have to charge full amount  --> Go to next loop
+                                logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}] and the vessel: [{target_vessel}] is still on another licence/permit.  We cannot transfer the amount paid: [{fee_item_application_fee}] for the vessel: [{vessel}].')
+                                continue
                         if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == AuthorisedUserPermit:
                             # When AU, customer is replacing the current vessel
                             for key, qs in current_approvals.items():
