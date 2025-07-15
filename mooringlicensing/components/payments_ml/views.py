@@ -780,7 +780,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
                 return redirect(reverse('external'))
             else:
                 logger.info(f'FeeCalculation with uuid: {uuid} exist.')
-            fee_calculation = FeeCalculation.objects.get(uuid=uuid)
+            fee_calculation = FeeCalculation.objects.order_by("id").filter(uuid=uuid).last()
 
             db_operations = fee_calculation.data
             proposal = application_fee.proposal
@@ -851,10 +851,11 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 try:
-                    inv = Invoice.objects.get(reference=invoice_reference)
+                    inv = Invoice.objects.get(reference=invoice_reference) #TODO why are we doing this twice?
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
+                
                 if inv.system not in [LEDGER_SYSTEM_ID, ]:
                     logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user',inv.reference))
                     return redirect('external-proposal-detail', args=(proposal.id,))
