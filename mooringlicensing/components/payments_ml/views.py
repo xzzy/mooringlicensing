@@ -851,7 +851,7 @@ class ApplicationFeeSuccessViewPreload(APIView):
 
             if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
                 try:
-                    inv = Invoice.objects.get(reference=invoice_reference) #TODO why are we doing this twice?
+                    inv = Invoice.objects.get(reference=invoice_reference)
                 except Invoice.DoesNotExist:
                     logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user'))
                     return redirect('external-proposal-detail', args=(proposal.id,))
