@@ -64,8 +64,8 @@ class AuthorisedUserNoMooringsNotificationEmail(TemplateEmailBase):
 
 class AuthorisedUserMooringRemovedNotificationEmail(TemplateEmailBase):
     subject = 'Mooring removed'  # This is default and should be overwitten
-    html_template = 'mooringlicensing/templates/mooringlicensing/emails_2/email_38.html'
-    txt_template = 'mooringlicensing/templates/mooringlicensing/emails_2/email_38.txt'
+    html_template = 'mooringlicensing/emails_2/email_38.html'
+    txt_template = 'mooringlicensing/emails_2/email_38.txt'
 
     def __init__(self, approval):
         self.subject = 'Amended: {} {} - {}.'.format(approval.child_obj.description, approval.child_obj.lodgement_number, settings.RIA_NAME)
