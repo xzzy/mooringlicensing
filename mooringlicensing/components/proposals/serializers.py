@@ -1702,7 +1702,7 @@ class ListMooringSerializer(serializers.ModelSerializer):
             )
     
     def get_holder(self, obj):
-        if obj.mooring_licence:
+        if obj.mooring_licence and obj.mooring_licence.approval and obj.mooring_licence.approval.status != "surrendered":
             try:
                 return obj.mooring_licence.approval.current_proposal.proposal_applicant.get_full_name()
             except:
