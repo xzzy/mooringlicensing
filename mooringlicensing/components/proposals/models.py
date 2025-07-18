@@ -584,7 +584,8 @@ class Proposal(RevisionedMixin):
             self.proposal_applicant.email_user_id
         ) else None
 
-    def get_fee_amount_adjusted(self, fee_item_being_applied, vessel_length, max_amount_paid):
+    #TODO replace max_amount_paid with max_previous_vessel_length
+    def get_fee_amount_adjusted(self, fee_item_being_applied, previous_fee_item, vessel_length, previous_vessel_length):
         """
         Retrieve all the fee_items for this vessel
         """
@@ -593,14 +594,17 @@ class Proposal(RevisionedMixin):
             msg = f'FeeItem is None.  Cannot proceed to calculate the fee_amount_adjusted for the proposal: [{self}]...'
             logger.exception(msg)
             raise ValidationError(msg)
-
+        if previous_fee_item: 
+            previous_payment = previous_fee_item.get_absolute_amount(previous_vessel_length)
+        else:
+            previous_payment = 0
         fee_amount_adjusted = fee_item_being_applied.get_absolute_amount(vessel_length)
 
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
         if self.proposal_type.code in (PROPOSAL_TYPE_AMENDMENT,) or fee_item_being_applied.application_type == annual_admission_type:
             # When amendment or adjusting an AA component, amount needs to be adjusted
-            logger.info(f'Deduct $[{max_amount_paid}] from $[{fee_amount_adjusted}]')
-            fee_amount_adjusted = fee_amount_adjusted - max_amount_paid
+            #logger.info(f'Deduct $[{max_amount_paid}] from $[{fee_amount_adjusted}]')
+            fee_amount_adjusted = fee_amount_adjusted - previous_payment
             logger.info(f'Result amount: $[{fee_amount_adjusted}]')
 
             fee_amount_adjusted = Decimal('0.00') if fee_amount_adjusted <= 0 else fee_amount_adjusted
@@ -2844,6 +2848,7 @@ class WaitingListApplication(Proposal):
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
+        from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_previous_proposals
 
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
@@ -2885,10 +2890,18 @@ class WaitingListApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-        logger.info(f'Max amount paid so far (for main component(WL)): ${max_amount_paid}')
+
+        # Get max vessel length among relevant previous proposals
+        max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+
+        #logger.info(f'Max amount paid so far (for main component(WL)): ${max_amount_paid}')
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+        if max_vessel_length:
+            max_fee_item = fee_constructor.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+        else:
+            max_fee_item = None
         logger.info(f'FeeItem (for main component(WL)): [{fee_item}] has been retrieved for calculation.')
-        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, max_fee_item, vessel_length, max_vessel_length)
         logger.info(f'Fee amount adjusted (for main component(WL)) to be paid: ${fee_amount_adjusted}')
 
         db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
@@ -3094,6 +3107,7 @@ class AnnualAdmissionApplication(Proposal):
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
+        from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_previous_proposals
 
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
@@ -3142,10 +3156,18 @@ class AnnualAdmissionApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-        logger.info(f'Max amount paid so far (for main component(AA)): ${max_amount_paid}')
+        #logger.info(f'Max amount paid so far (for main component(AA)): ${max_amount_paid}')
+
+        # Get max vessel length among relevant previous proposals
+        max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+        if max_vessel_length:
+            max_fee_item = fee_constructor.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+        else:
+            max_fee_item = None
+
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         logger.info(f'FeeItem (for main component(AA)): [{fee_item}] has been retrieved for calculation.')
-        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, max_fee_item, vessel_length, max_vessel_length)
         logger.info(f'Fee amount adjusted (for main component(AA)) to be paid: ${fee_amount_adjusted}')
 
         db_processes_after_success['season_start_date'] = fee_constructor.fee_season.start_date.__str__()
@@ -3352,6 +3374,7 @@ class AuthorisedUserApplication(Proposal):
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
+        from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_previous_proposals
 
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = self.get_target_date(current_datetime.date())
@@ -3425,10 +3448,18 @@ class AuthorisedUserApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-        logger.info(f'Max amount paid so far (for main component(AU)): ${max_amount_paid}')
+        #logger.info(f'Max amount paid so far (for main component(AU)): ${max_amount_paid}')
+
+        # Get max vessel length among relevant previous proposals
+        max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+        if max_vessel_length:
+            max_fee_item = fee_constructor.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+        else:
+            max_fee_item = None
+
         fee_item = fee_constructor.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         logger.info(f'FeeItem (for main component(AU)): [{fee_item}] has been retrieved for calculation.')
-        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, max_fee_item, vessel_length, max_vessel_length)
         logger.info(f'Fee amount adjusted (for main component(AU)) to be paid: ${fee_amount_adjusted}')
 
         fee_items_to_store.append({
@@ -3444,8 +3475,16 @@ class AuthorisedUserApplication(Proposal):
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
                 logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
                 fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
-                logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+                #logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
+
+                # Get max vessel length among relevant previous proposals
+                max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+                if max_vessel_length:
+                    max_fee_item = fee_constructor.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+                else:
+                    max_fee_item = None
+
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, max_fee_item, vessel_length, max_vessel_length)
                 logger.info(f'Fee amount adjusted (for AA component) to be paid: ${fee_amount_adjusted_additional}')
 
                 fee_items_to_store.append({
@@ -3457,7 +3496,7 @@ class AuthorisedUserApplication(Proposal):
             else:
                 fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date) if fee_constructor_for_aa else None
                 logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, 0)
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, None, vessel_length, 0)
                 logger.info(f'Fee amount adjusted (for AA component) to be paid: ${fee_amount_adjusted_additional}')
 
                 fee_items_to_store.append({
@@ -3920,6 +3959,7 @@ class MooringLicenceApplication(Proposal):
 
         from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.payments_ml.utils import generate_line_item
+        from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_previous_proposals
 
         accept_null_vessel = False
         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -3999,10 +4039,16 @@ class MooringLicenceApplication(Proposal):
 
         # Retrieve amounts paid
         max_amount_paid = self.get_max_amount_paid_for_main_component()
-        logger.info(f'Max amount paid so far (for main component(ML)): ${max_amount_paid}')
+        #logger.info(f'Max amount paid so far (for main component(ML)): ${max_amount_paid}')
+        # Get max vessel length among relevant previous proposals
+        max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+        if max_vessel_length:
+            max_fee_item = fee_constructor_for_ml.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+        else:
+            max_fee_item = None
         fee_item = fee_constructor_for_ml.get_fee_item(vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
         logger.info(f'FeeItem (for main component(ML)): [{fee_item}] has been retrieved for calculation.')
-        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, vessel_length, max_amount_paid)
+        fee_amount_adjusted = self.get_fee_amount_adjusted(fee_item, max_fee_item, vessel_length, max_vessel_length)
         logger.info(f'Fee amount adjusted (for main component(ML)) to be paid: ${fee_amount_adjusted}')
 
         if vessel_details_largest:
@@ -4032,11 +4078,18 @@ class MooringLicenceApplication(Proposal):
                     submitted_vessel_processed = True
                     vessel_length = self.vessel_length
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
-                logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
+                
+                #logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
+                # Get max vessel length among relevant previous proposals
+                max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+                if max_vessel_length:
+                    max_fee_item = fee_constructor_for_aa.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+                else:
+                    max_fee_item = None
                 # Check if there is already an AA component paid for this vessel
                 fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
                 logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, max_fee_item, vessel_length, max_vessel_length)
                 logger.info(f'Fee amount adjusted (for AA component): ${fee_amount_adjusted_additional}')
 
                 fee_items_to_store.append({
@@ -4050,7 +4103,7 @@ class MooringLicenceApplication(Proposal):
                 vessel_length = self.vessel_length
                 fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
                 logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, 0)
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, None, vessel_length, 0)
                 fee_items_to_store.append({
                     'fee_item_id': fee_item_for_aa.id,
                     'vessel_details_id': '',
@@ -4064,14 +4117,23 @@ class MooringLicenceApplication(Proposal):
             if vessel_details_qs.exists():
                 vessel_details = vessel_details_qs.last()
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
+                # Get max vessel length among relevant previous proposals
+                max_vessel_length = get_max_vessel_length_for_previous_proposals(self)
+                if max_vessel_length:
+                    max_fee_item = fee_constructor_for_aa.get_fee_item(max_vessel_length, self.proposal_type, target_date, accept_null_vessel=accept_null_vessel)
+                else:
+                    max_fee_item = None
             else:
                 max_amount_paid = 0
-            logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
+                max_vessel_length = 0 
+                max_fee_item = None
+            #logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
+
             # Check if there is already an AA component paid for this vessel
             if vessel_length > 0:
                 fee_item_for_aa = fee_constructor_for_aa.get_fee_item(vessel_length, self.proposal_type, target_date)
                 logger.info(f'FeeItem (for AA component): [{fee_item_for_aa}] has been retrieved for calculation.')
-                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, vessel_length, max_amount_paid)
+                fee_amount_adjusted_additional = self.get_fee_amount_adjusted(fee_item_for_aa, max_fee_item, vessel_length, max_fee_item)
                 logger.info(f'Fee amount adjusted (for AA component): ${fee_amount_adjusted_additional}')
 
                 fee_items_to_store.append({
