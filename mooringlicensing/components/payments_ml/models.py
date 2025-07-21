@@ -662,7 +662,7 @@ class FeeItem(models.Model):
         else:
             # This self.amount is the incremental amount.
             vessel_size = float(vessel_size)
-            absolute_amount = Decimal(round(float(self.amount) * vessel_size,2))
+            absolute_amount = Decimal(round(Decimal(self.amount) * Decimal(vessel_size),2))
             logger.info(f'Absolute amount calculated: $[{absolute_amount}] from the FeeItem: [{self}] and the vessel_size: [{vessel_size}].')
             return absolute_amount
 
