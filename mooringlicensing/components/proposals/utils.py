@@ -363,9 +363,8 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
     vessel_lookup_errors = {}
     # Mooring Licence vessel history
     # Migrated records do not have DOT name, so only run dot check for new vessel submissions
-    print(instance, instance.id)
-    if isinstance(instance,MooringLicenceApplication) and instance.approval and not instance.approval.migrated:
-        for vo in instance.approval.vessel_ownership_list:
+    if isinstance(instance,MooringLicenceApplication) and instance.approval and instance.vessel_ownership_list and not instance.approval.migrated:
+        for vo in instance.vessel_ownership_list:
             if vo.dot_name:
                 dot_name = vo.dot_name
                 owner_str = dot_name.replace(" ", "%20")

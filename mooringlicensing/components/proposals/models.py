@@ -584,7 +584,7 @@ class Proposal(RevisionedMixin):
             self.proposal_applicant.email_user_id
         ) else None
 
-    #TODO replace max_amount_paid with max_previous_vessel_length
+    
     def get_fee_amount_adjusted(self, fee_item_being_applied, previous_fee_item, vessel_length, previous_vessel_length):
         """
         Retrieve all the fee_items for this vessel
