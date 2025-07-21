@@ -419,7 +419,8 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
         instance.vessel_ownership = vessel_ownership #TODO investigate why this would ever be None
         instance.save()
 
-    instance.validate_against_existing_proposals_and_approvals()
+    if request:
+        instance.validate_against_existing_proposals_and_approvals()
 
     ownership_percentage_validation(instance)
 
@@ -668,7 +669,7 @@ def store_vessel_ownership(request, vessel, instance):
         logger.info(f'CompanyOwnership: [{company_ownership}] has been added to the company_ownerships field of the VesselOwnership: [{vessel_ownership}].')
 
     # check and set blocking_owner
-    if instance:
+    if instance and request:
         vessel.check_blocking_ownership(vessel_ownership, instance)
 
     # save temp doc if exists
