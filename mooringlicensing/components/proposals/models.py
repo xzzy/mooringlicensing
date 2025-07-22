@@ -379,6 +379,31 @@ class Proposal(RevisionedMixin):
         verbose_name = "Application"
         verbose_name_plural = "Applications"
     
+    def cancel_payment(self):
+        with transaction.atomic():
+
+            if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+                raise serializers.ValidationError("Unable to cancel proposal payment (not awaiting payment)")
+            
+            #Remove Ledger Invoice - proceed only if successful
+            ledger_cancellation = False
+            try:
+                ledger_cancellation = True #TODO add ledger api client func once available
+            except Exception as e:            
+                raise serializers.ValidationError("Unable to cancel proposal payment - ledger invoice cancellation failed with error:", str(e))
+            
+            if not ledger_cancellation:
+                raise serializers.ValidationError("Unable to cancel proposal payment - ledger invoice cancellation failed")
+
+            #Cancel Application Fees
+            self.application_fees.update(cancelled=True)
+            #Empty Invoice Property Cache
+            self.invoice_propery_cache = {}
+            #Set status to discarded
+            self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
+            self.save()
+        
+
     def populate_reissue_vessel_properties(self):
 
         #get vessel ownership and vessel details of proposal and save them to reissue_vessel_properties
@@ -651,7 +676,7 @@ class Proposal(RevisionedMixin):
 
     def payment_required(self):
         payment_required = False
-        if self.application_fees and self.application_fees.count():
+        if self.application_fees and self.application_fees.filter(cancelled=False).count():
             application_fee = self.get_main_application_fee()
             invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
             if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
@@ -838,7 +863,7 @@ class Proposal(RevisionedMixin):
         return self.invoice_property_cache
 
     def invoices_display(self):
-        invoice_references = [item.invoice_reference for item in self.application_fees.filter(system_invoice=False)]
+        invoice_references = [item.invoice_reference for item in self.application_fees.filter(cancelled=False).filter(system_invoice=False)]
         return Invoice.objects.filter(reference__in=invoice_references)
 
     def get_fee_items_paid(self, fee_season, vessel_details=None):
@@ -847,7 +872,7 @@ class Proposal(RevisionedMixin):
         fee_items = []
 
         queries = Q()
-        queries &= Q(application_fee__in=self.application_fees.all())
+        queries &= Q(application_fee__in=self.application_fees.filter(cancelled=False).all())
         queries &= Q(fee_item__fee_period__fee_season=fee_season)
         if vessel_details:
             # AA component for ML, we mind the vessel
@@ -1021,7 +1046,7 @@ class Proposal(RevisionedMixin):
 
     def get_main_application_fee(self):
         main_af = None
-        for af in self.application_fees.all():
+        for af in self.application_fees.filter(cancelled=False):
             if af.fee_constructor:
                 main_af = af
                 break
@@ -1679,7 +1704,7 @@ class Proposal(RevisionedMixin):
                     if not is_applicant_postal_address_set(self):
                         raise ValidationError('The applicant needs to have set their postal address before approving this proposal.')
 
-                    if self.application_fees.count() < 1:
+                    if self.application_fees.filter(cancelled=False).count() < 1:
                         raise ValidationError('Payment record not found for the Annual Admission Application: {}'.format(self))
                     
                     if details:

@@ -192,6 +192,7 @@ class ApplicationFee(Payment):
     )
 
     proposal = models.ForeignKey('Proposal', on_delete=models.CASCADE, blank=True, null=True, related_name='application_fees')
+    cancelled = models.BooleanField(default=False)
     payment_type = models.SmallIntegerField(choices=PAYMENT_TYPE_CHOICES, default=0)
     cost = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')
     created_by = models.IntegerField(blank=True, null=True)
@@ -381,7 +382,7 @@ class FeeConstructor(models.Model):
 
     @property
     def num_of_times_used_for_payment(self):
-        application_fees = ApplicationFee.objects.filter(fee_items__in=self.feeitem_set.all())
+        application_fees = ApplicationFee.objects.filter(cancelled=False,fee_items__in=self.feeitem_set.all())
         return application_fees.count()
 
     def validate_unique(self, exclude=None):

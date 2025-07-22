@@ -349,10 +349,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         return obj.get_customer_status_display()
 
     def get_fee_invoice_references(self, obj):
-        ret_list = []
-        if obj.application_fees.count():
-            for application_fee in obj.application_fees.all():
-                ret_list.append(application_fee.invoice_reference)
+        ret_list = list(obj.application_fees.filter(cancelled=False).values_list('invoice_reference', flat=True))
         return ret_list
 
     def get_invoices(self, obj):
@@ -361,7 +358,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
             is_internal(self.context['request']) or
             (obj.proposal_applicant and obj.proposal_applicant.email_user_id == self.context['request'].user.id)
         )):
-            invoice_references = [item.invoice_reference for item in obj.application_fees.all()]
+            invoice_references = list(obj.application_fees.filter(cancelled=False).values_list('invoice_reference', flat=True))
             invoices = Invoice.objects.filter(reference__in=invoice_references)
             if not invoices:
                 return ''
@@ -542,7 +539,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                     url = f'/ledger-toolkit-api/invoice-pdf/{invoice_property_cache[invoice]["reference"]}/'
                     links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice_property_cache[invoice]["reference"]}</a></div>"
 
-                if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.count():
+                if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.filter(cancelled=False):
                     # paid invoices url
                     invoices_str=''
                     for inv in invoice_property_cache:
