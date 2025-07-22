@@ -273,8 +273,10 @@ export default {
                         }
                         else if (full.can_user_view) {
                             links +=  `<a href='/external/proposal/${full.id}'>View</a><br/>`;
-                        }
-                                          
+                        }                                          
+                    }
+                    if (full.can_user_cancel_payment) {
+                        links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}' data-application-type-code='${full.application_type_dict.code}' data-proposal-type-code='${full.proposal_type.code}'>Discard</a><br/>`;
                     }
                     for (let invoice of full.invoices){
                             if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){

@@ -379,8 +379,10 @@ class Proposal(RevisionedMixin):
         verbose_name = "Application"
         verbose_name_plural = "Applications"
     
-    def cancel_payment(self):
+    def cancel_payment(self, request):
         with transaction.atomic():
+            if not ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request.user)):
+                raise serializers.ValidationError("User not authorised to cancel proposal payment")
 
             if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
                 raise serializers.ValidationError("Unable to cancel proposal payment (not awaiting payment)")
@@ -402,6 +404,9 @@ class Proposal(RevisionedMixin):
             #Set status to discarded
             self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
             self.save()
+
+            self.child_obj.process_after_discarded()
+            send_application_discarded_email(self, request)
         
     #proposals cannot be auto-approved if an existing approval has non-exported stickers
     def approval_has_pending_stickers(self):
@@ -1162,6 +1167,13 @@ class Proposal(RevisionedMixin):
         :return: True if the application is in one of the approved status.
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
+
+    @property
+    def can_user_cancel_payment(self):
+        """
+        :return: True if the application is in one of the approved status.
+        """
+        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT
 
     @property
     def permit(self):
