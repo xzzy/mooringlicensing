@@ -365,10 +365,9 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
     # Migrated records do not have DOT name, so only run dot check for new vessel submissions
     if (isinstance(instance,MooringLicenceApplication) and 
         instance.approval and 
-        not instance.approval.migrated and 
-        instance.approval.child_obj,isinstance(instance,MooringLicence)
+        not instance.approval.migrated
         ):
-        if instance.approval.child_obj.vessel_ownership_list:
+        if instance.approval.child_obj.isinstance(instance,MooringLicence) and instance.approval.child_obj.vessel_ownership_list:
             for vo in instance.approval.child_obj.vessel_ownership_list:
                 if vo.dot_name:
                     dot_name = vo.dot_name

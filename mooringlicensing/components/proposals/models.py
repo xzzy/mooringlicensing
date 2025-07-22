@@ -403,6 +403,10 @@ class Proposal(RevisionedMixin):
             self.processing_status = Proposal.PROCESSING_STATUS_DISCARDED
             self.save()
         
+    #proposals cannot be auto-approved if an existing approval has non-exported stickers
+    def approval_has_pending_stickers(self):
+        from mooringlicensing.components.approvals.models import Sticker
+        return (self.approval != None and self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]).exists())
 
     def populate_reissue_vessel_properties(self):
 
@@ -2732,30 +2736,35 @@ class WaitingListApplication(Proposal):
         app_label = 'mooringlicensing'
     
     def set_auto_approve(self,request):
-        #check WLA auto approval conditions
-        if (self.is_assessor(request.user) or 
-            self.is_approver(request.user) or
-            (self.proposal_applicant and 
-            self.proposal_applicant.email_user_id == request.user.id)
-            ):
 
-            if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.rego_no: 
-                self.auto_approve = True
-                self.save()
-            elif (
-                (not self.vessel_on_proposal() and self.rego_no) or 
-                self.mooring_preference_changed() or 
-                self.has_higher_vessel_category() or
-                self.has_different_vessel_category() or
-                not self.vessel_moorings_compatible() or
-                not self.keeping_current_vessel() or
-                self.vessel_ownership_changed()
+        if self.approval_has_pending_stickers():
+            self.auto_approve = False        
+            self.save()
+        else:
+            #check WLA auto approval conditions
+            if (self.is_assessor(request.user) or 
+                self.is_approver(request.user) or
+                (self.proposal_applicant and 
+                self.proposal_applicant.email_user_id == request.user.id)
                 ):
-                self.auto_approve = False        
-                self.save()
-            else:
-                self.auto_approve = True
-                self.save()
+
+                if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.rego_no: 
+                    self.auto_approve = True
+                    self.save()
+                elif (
+                    (not self.vessel_on_proposal() and self.rego_no) or 
+                    self.mooring_preference_changed() or 
+                    self.has_higher_vessel_category() or
+                    self.has_different_vessel_category() or
+                    not self.vessel_moorings_compatible() or
+                    not self.keeping_current_vessel() or
+                    self.vessel_ownership_changed()
+                    ):
+                    self.auto_approve = False        
+                    self.save()
+                else:
+                    self.auto_approve = True
+                    self.save()
         
 
     def validate_against_existing_proposals_and_approvals(self):
@@ -3015,17 +3024,22 @@ class AnnualAdmissionApplication(Proposal):
     description = 'Annual Admission Application'
 
     def set_auto_approve(self,request):
-        #check AAA auto approval conditions
-        if (self.is_assessor(request.user) or 
-            self.is_approver(request.user) or
-            (self.proposal_applicant and 
-            self.proposal_applicant.email_user_id == request.user.id)
-            ):
-            if self.proposal_type and (
-            self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
-            self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
-                self.auto_approve = True
-                self.save()
+
+        if self.approval_has_pending_stickers():
+            self.auto_approve = False        
+            self.save()
+        else:
+            #check AAA auto approval conditions
+            if (self.is_assessor(request.user) or 
+                self.is_approver(request.user) or
+                (self.proposal_applicant and 
+                self.proposal_applicant.email_user_id == request.user.id)
+                ):
+                if self.proposal_type and (
+                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                    self.auto_approve = True
+                    self.save()
 
     def validate_against_existing_proposals_and_approvals(self):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
@@ -3588,33 +3602,38 @@ class AuthorisedUserApplication(Proposal):
             return self.mooring_authorisation_preference
 
     def set_auto_approve(self,request):
-        #check AUP auto approval conditions
-        if (self.is_assessor(request.user) or 
-            self.is_approver(request.user) or
-            (self.proposal_applicant and 
-            self.proposal_applicant.email_user_id == request.user.id)
-            ):
 
-            #check if amendment or renewal
-            if self.proposal_type and (
-                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
-                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
-                if (not self.vessel_on_proposal() or
-                    self.mooring_changed(request) or
-                    not self.vessel_moorings_compatible(request) or
-                    self.has_higher_vessel_category() or
-                    self.has_different_vessel_category() or
-                    not self.keeping_current_vessel() or
-                    self.vessel_ownership_changed()
-                    ):
+        if self.approval_has_pending_stickers():
+            self.auto_approve = False        
+            self.save()
+        else:
+            #check AUP auto approval conditions
+            if (self.is_assessor(request.user) or 
+                self.is_approver(request.user) or
+                (self.proposal_applicant and 
+                self.proposal_applicant.email_user_id == request.user.id)
+                ):
+
+                #check if amendment or renewal
+                if self.proposal_type and (
+                    self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                    self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                    if (not self.vessel_on_proposal() or
+                        self.mooring_changed(request) or
+                        not self.vessel_moorings_compatible(request) or
+                        self.has_higher_vessel_category() or
+                        self.has_different_vessel_category() or
+                        not self.keeping_current_vessel() or
+                        self.vessel_ownership_changed()
+                        ):
+                        self.auto_approve = False
+                        self.save()
+                    else:
+                        self.auto_approve = True
+                        self.save()
+                else:
                     self.auto_approve = False
                     self.save()
-                else:
-                    self.auto_approve = True
-                    self.save()
-            else:
-                self.auto_approve = False
-                self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -4238,31 +4257,36 @@ class MooringLicenceApplication(Proposal):
         return True
 
     def set_auto_approve(self,request):
-        #check MLA auto approval conditions
-        if (self.is_assessor(request.user) or 
-            self.is_approver(request.user) or
-            (self.proposal_applicant and 
-            self.proposal_applicant.email_user_id == request.user.id)
-            ):
 
-            #check if amendment or renewal
-            if self.proposal_type and (
-                self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
-                self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
-                if (not self.vessel_on_proposal() or
-                    not self.vessel_moorings_compatible(request) or
-                    self.has_higher_vessel_category() or
-                    self.has_different_vessel_category() or
-                    self.vessel_ownership_changed()
-                    ):
+        if self.approval_has_pending_stickers():
+            self.auto_approve = False        
+            self.save()
+        else:    
+            #check MLA auto approval conditions
+            if (self.is_assessor(request.user) or 
+                self.is_approver(request.user) or
+                (self.proposal_applicant and 
+                self.proposal_applicant.email_user_id == request.user.id)
+                ):
+
+                #check if amendment or renewal
+                if self.proposal_type and (
+                    self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT or 
+                    self.proposal_type.code == PROPOSAL_TYPE_RENEWAL):
+                    if (not self.vessel_on_proposal() or
+                        not self.vessel_moorings_compatible(request) or
+                        self.has_higher_vessel_category() or
+                        self.has_different_vessel_category() or
+                        self.vessel_ownership_changed()
+                        ):
+                        self.auto_approve = False
+                        self.save()
+                    else:
+                        self.auto_approve = True
+                        self.save()
+                else:
                     self.auto_approve = False
                     self.save()
-                else:
-                    self.auto_approve = True
-                    self.save()
-            else:
-                self.auto_approve = False
-                self.save()
 
     def process_after_submit(self, request):
         self.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
