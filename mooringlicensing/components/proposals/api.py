@@ -1864,6 +1864,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             if hasattr(e,'message'):
                 raise serializers.ValidationError(e.message)
+            raise serializers.ValidationError("Unable to obtain Max Vessel Length for AA component")
 
     @detail_route(methods=['GET',], detail=True)
     def fetch_vessel(self, request, *args, **kwargs):
@@ -1906,7 +1907,10 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             is_internal(request)):
             instance.withdraw(request, *args, **kwargs)
         else:
-            instance.destroy(request, *args, **kwargs)
+            if instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+                instance.cancel_payment(request)
+            else:
+                instance.destroy(request, *args, **kwargs)
 
         return Response()
 

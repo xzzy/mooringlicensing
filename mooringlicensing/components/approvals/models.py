@@ -1153,7 +1153,7 @@ class Approval(RevisionedMixin):
         fee_items = []
         for proposal in self.proposal_set.all():
             logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
-            for application_fee in proposal.application_fees.all():
+            for application_fee in proposal.application_fees.filter(cancelled=False):
                 if application_fee.fee_items:
                     for fee_item in application_fee.fee_items.all():
                         fee_items.append(fee_item)

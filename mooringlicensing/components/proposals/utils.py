@@ -363,20 +363,24 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
     vessel_lookup_errors = {}
     # Mooring Licence vessel history
     # Migrated records do not have DOT name, so only run dot check for new vessel submissions
-    if isinstance(instance,MooringLicenceApplication) and instance.approval and instance.vessel_ownership_list and not instance.approval.migrated:
-        for vo in instance.vessel_ownership_list:
-            if vo.dot_name:
-                dot_name = vo.dot_name
-                owner_str = dot_name.replace(" ", "%20")
-            else:
-                owner_str = ""
-            payload = {
-                    "boatRegistrationNumber": vo.vessel.rego_no,
-                    "owner": owner_str,
-                    "userId": str(request.user.id)
-                    }
-        if settings.DO_DOT_CHECK:
-            dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
+    if (isinstance(instance,MooringLicenceApplication) and 
+        instance.approval and 
+        not instance.approval.migrated
+        ):
+        if instance.approval.child_obj.isinstance(instance,MooringLicence) and instance.approval.child_obj.vessel_ownership_list:
+            for vo in instance.approval.child_obj.vessel_ownership_list:
+                if vo.dot_name:
+                    dot_name = vo.dot_name
+                    owner_str = dot_name.replace(" ", "%20")
+                else:
+                    owner_str = ""
+                payload = {
+                        "boatRegistrationNumber": vo.vessel.rego_no,
+                        "owner": owner_str,
+                        "userId": str(request.user.id)
+                        }
+            if settings.DO_DOT_CHECK:
+                dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
     # current proposal vessel check
     if vessel_data.get("rego_no"):
