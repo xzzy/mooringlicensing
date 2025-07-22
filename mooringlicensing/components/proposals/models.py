@@ -2737,34 +2737,30 @@ class WaitingListApplication(Proposal):
     
     def set_auto_approve(self,request):
 
-        if self.approval_has_pending_stickers():
-            self.auto_approve = False        
-            self.save()
-        else:
-            #check WLA auto approval conditions
-            if (self.is_assessor(request.user) or 
-                self.is_approver(request.user) or
-                (self.proposal_applicant and 
-                self.proposal_applicant.email_user_id == request.user.id)
-                ):
+        #check WLA auto approval conditions
+        if (self.is_assessor(request.user) or 
+            self.is_approver(request.user) or
+            (self.proposal_applicant and 
+            self.proposal_applicant.email_user_id == request.user.id)
+            ):
 
-                if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.rego_no: 
-                    self.auto_approve = True
-                    self.save()
-                elif (
-                    (not self.vessel_on_proposal() and self.rego_no) or 
-                    self.mooring_preference_changed() or 
-                    self.has_higher_vessel_category() or
-                    self.has_different_vessel_category() or
-                    not self.vessel_moorings_compatible() or
-                    not self.keeping_current_vessel() or
-                    self.vessel_ownership_changed()
-                    ):
-                    self.auto_approve = False        
-                    self.save()
-                else:
-                    self.auto_approve = True
-                    self.save()
+            if not self.vessel_on_proposal() and not self.mooring_preference_changed() and not self.rego_no: 
+                self.auto_approve = True
+                self.save()
+            elif (
+                (not self.vessel_on_proposal() and self.rego_no) or 
+                self.mooring_preference_changed() or 
+                self.has_higher_vessel_category() or
+                self.has_different_vessel_category() or
+                not self.vessel_moorings_compatible() or
+                not self.keeping_current_vessel() or
+                self.vessel_ownership_changed()
+                ):
+                self.auto_approve = False        
+                self.save()
+            else:
+                self.auto_approve = True
+                self.save()
         
 
     def validate_against_existing_proposals_and_approvals(self):
