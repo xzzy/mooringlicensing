@@ -1017,31 +1017,3 @@ def get_max_vessel_length_for_main_component(proposal):
             max_vessel_length = length_tuple
 
     return max_vessel_length
-
-def get_max_vessel_length_for_previous_proposals(proposal):
-    #get longest vessel length among proposals with their previous iterations (except renewals)
-    max_vessel_length = 0
-    
-    if proposal.proposal_type and proposal.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-        proposal_id_list = []
-        vessel_lengths = []
-        continue_loop = True
-
-        #populate the proposal id list with all previous applications, up to the latest renewal or new application
-        #include the latest renewal (if any) but stop checking previous applications after that
-        proposal = proposal.previous_application
-        while continue_loop:
-            if proposal.id in proposal_id_list:
-                continue_loop = False
-                break
-            proposal_id_list.append(proposal.id)
-            vessel_lengths.append(proposal.vessel_length)
-            if (proposal.previous_application and 
-                proposal.proposal_type and 
-                (not proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL,])):
-                proposal = proposal.previous_application
-            else:
-                continue_loop = False
-        max_vessel_length = max(vessel_lengths)
-
-    return max_vessel_length
