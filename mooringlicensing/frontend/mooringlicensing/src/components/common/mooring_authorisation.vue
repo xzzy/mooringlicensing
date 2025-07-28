@@ -287,13 +287,11 @@ import draggable from 'vuedraggable';
                 const response = await this.$http.get(api_endpoints.mooring_bays);
                 // reorder array based on proposal.bay_preferences_numbered
                 if (this.proposal.bay_preferences_numbered) {
-                    console.log("bay_preferences_numbered",this.proposal.bay_preferences_numbered)
                     let newArray = [];
                     for (let n of this.proposal.bay_preferences_numbered) {
                         const found = response.body.results.find(el => el.id === n);
                         newArray.push(found);
                     }
-                    console.log(newArray)
                     // read ordered array into Vue array
                     for (let bay of newArray) {
                         if (bay != undefined) {
