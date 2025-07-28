@@ -243,7 +243,10 @@ class Compliance(RevisionedMixin):
                 logger.info('Error sending Reminder Compliance {}\n{}'.format(self.lodgement_number, e))
 
     def log_user_action(self, action, request):
-        return ComplianceUserAction.log_action(self, action, request.user)
+        if request.user:
+            return ComplianceUserAction.log_action(self, action, request.user)
+        else:
+            return ComplianceUserAction.log_action(self, action, None)
 
     def __str__(self):
         return self.lodgement_number

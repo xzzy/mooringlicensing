@@ -294,7 +294,9 @@ import draggable from 'vuedraggable';
                     }
                     // read ordered array into Vue array
                     for (let bay of newArray) {
-                        this.mooringBays.push(bay);
+                        if (bay != undefined) {
+                            this.mooringBays.push(bay);
+                        }
                     }
                 } else {
                     for (let bay of response.body.results) {
