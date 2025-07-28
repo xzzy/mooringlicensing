@@ -4379,12 +4379,14 @@ class MooringLicenceApplication(Proposal):
                     compliance.save()
                 self.generate_compliances(approval, request)
 
-            mooring.log_user_action(
-                MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
-                    str(approval),
-                ),
-                request
-            )
+            if request:
+                mooring.log_user_action(
+                    MooringUserAction.ACTION_ASSIGN_MOORING_LICENCE.format(
+                        str(approval),
+                    ),
+                    request
+                )
+                
             # always reset this flag
             approval.renewal_sent = False
             approval.export_to_mooring_booking = True

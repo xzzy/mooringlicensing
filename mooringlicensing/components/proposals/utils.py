@@ -374,13 +374,14 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
                     owner_str = dot_name.replace(" ", "%20")
                 else:
                     owner_str = ""
-                payload = {
-                        "boatRegistrationNumber": vo.vessel.rego_no,
-                        "owner": owner_str,
-                        "userId": str(request.user.id)
-                        }
-            if settings.DO_DOT_CHECK:
-                dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
+                if request: #if there is no request do not run DoT check (system reissue)
+                    payload = {
+                            "boatRegistrationNumber": vo.vessel.rego_no,
+                            "owner": owner_str,
+                            "userId": str(request.user.id)
+                            }
+                    if settings.DO_DOT_CHECK:
+                        dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
     # current proposal vessel check
     if vessel_data.get("rego_no"):
@@ -473,7 +474,7 @@ def store_vessel_ownership(request, vessel, instance):
 
     ## Get Vessel
     ## we cannot use vessel_data, because this dict has been modified in store_vessel_data()
-    if hasattr(request,'data') and request.data.get('vessel'):
+    if request and hasattr(request,'data') and request.data.get('vessel'):
         vessel_ownership_data = deepcopy(request.data.get('vessel').get("vessel_ownership"))
     else:
         vessel_data = {
