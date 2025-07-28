@@ -1709,7 +1709,7 @@ class Proposal(RevisionedMixin):
                 # Validation & update proposed_issuance_approval
                 if not ((self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or 
                     self.proposal_type == PROPOSAL_TYPE_AMENDMENT):
-                    if not self.auto_approve and not self.can_assess(request.user):
+                    if request and not self.auto_approve and not self.can_assess(request.user):
                         raise exceptions.ProposalNotAuthorized()
                     if not self.auto_approve and self.processing_status not in (Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_ASSESSOR):
                         raise ValidationError('You cannot issue the approval if it is not with an assessor')
@@ -1827,7 +1827,8 @@ class Proposal(RevisionedMixin):
 
                 # send Proposal approval email with attachment
                 approval.generate_doc()
-                send_application_approved_or_declined_email(self, 'approved', request, [sticker_to_be_returned,])
+                if request:
+                    send_application_approved_or_declined_email(self, 'approved', request, [sticker_to_be_returned,])
                 self.save(version_comment='Final Approval: {}'.format(self.approval.lodgement_number))
                 self.approval.approval_documents.all().update(can_delete=False)
 
