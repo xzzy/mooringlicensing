@@ -207,6 +207,10 @@ def save_proponent_data_aua(instance, request, action):
     if proposal_data.get("mooring_authorisation_preference") == 'site_licensee':
         if instance.proposal_type.code == PROPOSAL_TYPE_NEW or not proposal_data.get('keep_existing_mooring'):
             site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
+
+            if not site_licensee_moorings_data:
+                raise serializers.ValidationError("No mooring site licensees have been specified - please add at least one site licensee or select Rottnest Island Authority for authorisation")
+
             #get all ProposalSiteLicenseeMooringRequest for proposal
             site_licensee_moorings = instance.site_licensee_mooring_request.all()
             
