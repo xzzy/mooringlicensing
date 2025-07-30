@@ -671,7 +671,7 @@ class Proposal(RevisionedMixin):
 
         return max_amount_paid_for_main_component
 
-    def get_max_amount_paid_for_aa_component(self, target_date, vessel):
+    def get_max_amount_paid_for_aa_component(self, target_date, vessel=None):
         logger.info(f'Calculating the max amount paid for the AA component, which can be transferred for the vessel: [{vessel}]...')
 
         max_amount_paid_for_aa_component = 0
@@ -683,14 +683,15 @@ class Proposal(RevisionedMixin):
                 max_amount_paid_for_aa_component = max_amount_paid
 
             # Get max amount for this vessel from other current/suspended approvals
-            current_approvals = vessel.get_current_aaps(target_date)
-            for approval in current_approvals:
-                # Current approval exists
-                max_amount_paid = self.get_amounts_paid_so_far_for_aa_through_other_approvals(approval.current_proposal, vessel)  # We mind vessel for AA component
-                # When there is an AAP component
-                if max_amount_paid_for_aa_component < max_amount_paid:
-                    # Update variable
-                    max_amount_paid_for_aa_component = max_amount_paid
+            if vessel:
+                current_approvals = vessel.get_current_aaps(target_date)
+                for approval in current_approvals:
+                    # Current approval exists
+                    max_amount_paid = self.get_amounts_paid_so_far_for_aa_through_other_approvals(approval.current_proposal, vessel)  # We mind vessel for AA component
+                    # When there is an AAP component
+                    if max_amount_paid_for_aa_component < max_amount_paid:
+                        # Update variable
+                        max_amount_paid_for_aa_component = max_amount_paid
 
         return max_amount_paid_for_aa_component
 
@@ -4129,11 +4130,12 @@ class MooringLicenceApplication(Proposal):
         else: #only one vessel to process on the application, not a renewal
             vessel_details_qs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no).order_by('id')
             vessel_details = None
+            #TODO: run get_max... even if not vessel details
             if vessel_details_qs.exists():
                 vessel_details = vessel_details_qs.last()
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
             else:
-                max_amount_paid = 0
+                max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date)
             logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
             # Check if there is already an AA component paid for this vessel
             if vessel_length > 0:
