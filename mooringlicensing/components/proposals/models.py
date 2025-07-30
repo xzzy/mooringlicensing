@@ -15,7 +15,7 @@ from mooringlicensing.components.proposals.email import send_aua_declined_by_end
 from mooringlicensing.ledger_api_utils import (
     retrieve_email_userro, get_invoice_payment_status, retrieve_system_user
 )
-from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties
+from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties, cancel_invoice
 from mooringlicensing.settings import (
     PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE,
     GROUP_ASSESSOR_MOORING_LICENCE, 
@@ -380,6 +380,7 @@ class Proposal(RevisionedMixin):
         verbose_name_plural = "Applications"
     
     def cancel_payment(self, request):
+        logger.info(f'Cancelling payment for Proposal: [{self}].')
         with transaction.atomic():
             if not ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request.user)):
                 raise serializers.ValidationError("User not authorised to cancel proposal payment")
@@ -388,10 +389,24 @@ class Proposal(RevisionedMixin):
                 raise serializers.ValidationError("Unable to cancel proposal payment (not awaiting payment)")
             
             #Remove Ledger Invoice - proceed only if successful
-            ledger_cancellation = False
-            try:
-                ledger_cancellation = True #TODO add ledger api client func once available
-            except Exception as e:            
+            ledger_cancellation = True
+            try:     
+                for inv in self.invoices_display():
+                    try:
+                        inv_props = get_invoice_properties(inv.id)
+                        if Decimal(inv_props['data']['invoice']['balance']) > 0:
+                            res = cancel_invoice(inv.reference)
+                            logger.info(f'Response for cancelling invoice: [{inv.reference}]: {res["message"]}.')
+                            if not "message" in res or (res["message"] != 'success' and res["message"] != 'Invoice not found'): #Invoice not found, the invoice does not exist so we do not need to cancel it
+                                ledger_cancellation = False
+                                continue
+                        else:
+                            continue #invoice has already been paid for
+                    except:
+                        ledger_cancellation = False
+                        continue
+            except Exception as e:  
+                ledger_cancellation = False          
                 raise serializers.ValidationError("Unable to cancel proposal payment - ledger invoice cancellation failed with error:", str(e))
             
             if not ledger_cancellation:
