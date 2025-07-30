@@ -14,7 +14,7 @@ from mooringlicensing.components.payments_ml.models import (
 from mooringlicensing.components.proposals.models import (
     Proposal, ProposalApplicant, Owner, ProposalUserAction, ProposalLogEntry, MooringLogEntry, VesselLogEntry
 )
-from ledger_api_client.utils import get_or_create
+from ledger_api_client.utils import get_or_create, change_user_invoice_ownership
 from django.db import transaction
 from mooringlicensing.components.users.utils import get_or_create_system_user_system_user
 
@@ -51,7 +51,7 @@ class Command(BaseCommand):
         new_email_ledger = EmailUserRO.objects.filter(email__iexact=new_email).last()
         #check if new email already exists on ledger (create new if it does not)
         if new_email_ledger:
-            #if it already exists, check if system user record exists on ML - stop if it does (TBD what happens next)
+            #if it already exists, check if system user record exists on ML - stop if it does
             if SystemUser.objects.filter(email__iexact=new_email):
                 print("Provided email already has an associated System User")
                 return
@@ -184,3 +184,8 @@ class Command(BaseCommand):
                     except Exception as e:
                         print("Error:",e)
         
+            #transfer invoice ownership on ledger - raise an error if this fails
+            res = change_user_invoice_ownership(current_email, new_email)
+            if not 'message' in res or res['message'] != 'success':
+                raise ValueError("Invoice ownership change failed")
+            print("change_user_invoice_ownership response:", res['message'])
