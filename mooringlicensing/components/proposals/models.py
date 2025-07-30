@@ -15,7 +15,7 @@ from mooringlicensing.components.proposals.email import send_aua_declined_by_end
 from mooringlicensing.ledger_api_utils import (
     retrieve_email_userro, get_invoice_payment_status, retrieve_system_user
 )
-from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties
+from ledger_api_client.utils import calculate_excl_gst, get_invoice_properties, cancel_invoice
 from mooringlicensing.settings import (
     PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE,
     GROUP_ASSESSOR_MOORING_LICENCE, 
@@ -380,6 +380,7 @@ class Proposal(RevisionedMixin):
         verbose_name_plural = "Applications"
     
     def cancel_payment(self, request):
+        logger.info(f'Cancelling payment for Proposal: [{self}].')
         with transaction.atomic():
             if not ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request.user)):
                 raise serializers.ValidationError("User not authorised to cancel proposal payment")
@@ -388,10 +389,24 @@ class Proposal(RevisionedMixin):
                 raise serializers.ValidationError("Unable to cancel proposal payment (not awaiting payment)")
             
             #Remove Ledger Invoice - proceed only if successful
-            ledger_cancellation = False
-            try:
-                ledger_cancellation = True #TODO add ledger api client func once available
-            except Exception as e:            
+            ledger_cancellation = True
+            try:     
+                for inv in self.invoices_display():
+                    try:
+                        inv_props = get_invoice_properties(inv.id)
+                        if Decimal(inv_props['data']['invoice']['balance']) > 0:
+                            res = cancel_invoice(inv.reference)
+                            logger.info(f'Response for cancelling invoice: [{inv.reference}]: {res["message"]}.')
+                            if not "message" in res or (res["message"] != 'success' and res["message"] != 'Invoice not found'): #Invoice not found, the invoice does not exist so we do not need to cancel it
+                                ledger_cancellation = False
+                                continue
+                        else:
+                            continue #invoice has already been paid for
+                    except:
+                        ledger_cancellation = False
+                        continue
+            except Exception as e:  
+                ledger_cancellation = False          
                 raise serializers.ValidationError("Unable to cancel proposal payment - ledger invoice cancellation failed with error:", str(e))
             
             if not ledger_cancellation:
@@ -656,7 +671,7 @@ class Proposal(RevisionedMixin):
 
         return max_amount_paid_for_main_component
 
-    def get_max_amount_paid_for_aa_component(self, target_date, vessel):
+    def get_max_amount_paid_for_aa_component(self, target_date, vessel=None):
         logger.info(f'Calculating the max amount paid for the AA component, which can be transferred for the vessel: [{vessel}]...')
 
         max_amount_paid_for_aa_component = 0
@@ -668,14 +683,15 @@ class Proposal(RevisionedMixin):
                 max_amount_paid_for_aa_component = max_amount_paid
 
             # Get max amount for this vessel from other current/suspended approvals
-            current_approvals = vessel.get_current_aaps(target_date)
-            for approval in current_approvals:
-                # Current approval exists
-                max_amount_paid = self.get_amounts_paid_so_far_for_aa_through_other_approvals(approval.current_proposal, vessel)  # We mind vessel for AA component
-                # When there is an AAP component
-                if max_amount_paid_for_aa_component < max_amount_paid:
-                    # Update variable
-                    max_amount_paid_for_aa_component = max_amount_paid
+            if vessel:
+                current_approvals = vessel.get_current_aaps(target_date)
+                for approval in current_approvals:
+                    # Current approval exists
+                    max_amount_paid = self.get_amounts_paid_so_far_for_aa_through_other_approvals(approval.current_proposal, vessel)  # We mind vessel for AA component
+                    # When there is an AAP component
+                    if max_amount_paid_for_aa_component < max_amount_paid:
+                        # Update variable
+                        max_amount_paid_for_aa_component = max_amount_paid
 
         return max_amount_paid_for_aa_component
 
@@ -4114,11 +4130,12 @@ class MooringLicenceApplication(Proposal):
         else: #only one vessel to process on the application, not a renewal
             vessel_details_qs = VesselDetails.objects.filter(vessel__rego_no=self.rego_no).order_by('id')
             vessel_details = None
+            #TODO: run get_max... even if not vessel details
             if vessel_details_qs.exists():
                 vessel_details = vessel_details_qs.last()
                 max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date, vessel_details.vessel)
             else:
-                max_amount_paid = 0
+                max_amount_paid = self.get_max_amount_paid_for_aa_component(target_date)
             logger.info(f'Max amount paid so far (for AA component): ${max_amount_paid}')
             # Check if there is already an AA component paid for this vessel
             if vessel_length > 0:
