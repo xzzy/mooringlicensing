@@ -1,6 +1,6 @@
 import os
-from io import BytesIO
-
+from django.core.files.base import ContentFile
+import csv
 from ledger_api_client.settings_base import TIME_ZONE
 from django.utils import timezone
 from confy import env
@@ -25,10 +25,9 @@ from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
     StickerPrintingBatch,
-    Proposal, MooringLicenceApplication, AuthorisedUserApplication, AnnualAdmissionApplication, WaitingListApplication
+    Proposal
 )
 from rest_framework import serializers
-from openpyxl import Workbook
 from copy import deepcopy
 import logging
 from mooringlicensing.settings import MAX_NUM_ROWS_MODEL_EXPORT
@@ -357,11 +356,10 @@ def sticker_export():
 
     if stickers.count():
         try:
-            wb = Workbook()
-            virtual_workbook = BytesIO()
-            ws1 = wb.create_sheet(title="Info", index=0)
 
-            ws1.append([
+            data = []
+
+            data.append([
                 'Date',
                 'First Name',
                 'Last Name',
@@ -376,6 +374,8 @@ def sticker_export():
                 'Moorings',
                 'Length Colour',
                 'White info',
+                'Vessel Length',
+                'Season',
             ])
             for sticker in stickers:
                 try:
@@ -391,7 +391,7 @@ def sticker_export():
                         logger.warning(f'Postal address not found for the Sticker: [{sticker}].')
                         continue
 
-                    ws1.append([
+                    data.append([
                         today.strftime('%d/%m/%Y'),
                         sticker.first_name,
                         sticker.last_name,
@@ -406,6 +406,8 @@ def sticker_export():
                         mooring_names,
                         sticker.get_sticker_colour(),
                         sticker.get_white_info(),
+                        sticker.vessel_applicable_length,
+                        sticker.fee_constructor.fee_season.name if sticker.fee_constructor and sticker.fee_constructor.fee_season else ''
                     ])
                     logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
                     updates.append(sticker.number)
@@ -425,14 +427,20 @@ def sticker_export():
                     logger.error('{}\n{}'.format(err_msg, str(e)))
                     errors.append(err_msg)
 
-            wb.save(virtual_workbook)
-
             batch_obj = StickerPrintingBatch.objects.create()
-            filename = 'RIA-{}.xlsx'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d'))
-            batch_obj._file.save(filename, virtual_workbook, save=False)
-            batch_obj.name = filename
-            batch_obj.save()
-            logger.info('Sticker printing batch file {} generated successfully.'.format(batch_obj.name))
+            filename = 'RIA-{}.csv'.format(batch_obj.uploaded_date.astimezone(pytz.timezone(TIME_ZONE)).strftime('%Y%m%d'))
+
+            csv_file = str(settings.BASE_DIR)+'/tmp/{}'.format(filename)
+            with open(csv_file, 'w', newline='') as new_file:
+                writer = csv.writer(new_file)
+                for i in data:
+                    writer.writerow(i)
+
+            with open(csv_file, 'rb') as f:
+                batch_obj._file.save(filename, ContentFile(f.read()), save=False)
+                batch_obj.name = filename
+                batch_obj.save()
+                logger.info('Sticker printing batch file {} generated successfully.'.format(batch_obj.name))
 
             # Update sticker objects
             stickers.update(
