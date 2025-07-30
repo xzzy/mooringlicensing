@@ -40,7 +40,7 @@
                 <div class="row form-group">
                     <label class="col-sm-3 control-label"># Records for Report</label>
                     <div class="col-sm-6">
-                        <input id="num_records" name="num_records" type="number" value=100000 max=100000 min=1 class="form-control">
+                        <input id="num_records" name="num_records" type="number" value=100000 max=500000 min=1 class="form-control">
                     </div>
                 </div>
                 <div class="row form-group">
@@ -55,6 +55,7 @@
                             <option value="dcv_permit_report">DCV Permits</option>
                             <option value="dcv_admission_report">DCV Admissions</option>
                             <option value="sticker_report">Stickers</option>
+                            <option value="system_user_report">System Users</option>
                         </select>
                     </div>
                 </div>
@@ -446,6 +447,33 @@
                 </div>
             </div>
         </form>
+
+        <form class="report_form" style="display:None" id="system_user_report" method="POST" onsubmit="submitReport('system_user_report')">
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">System Users Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Active Users</label>
+                        <div class="col-sm-6">
+                        <input class="system_user_field form-check-input" id="system_user_active" name="active" type="checkbox">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_system_user" 
+                            type="submit" 
+                            name="export_model" 
+                            value="system_user" 
+                            title="Email System Users Report">
+                            Email System Users Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
     
     <script>
@@ -455,6 +483,9 @@
             var filters = Object();
             Array.from(fields).forEach(field => {
                 filters[field.name] = field.value;
+                if (field.type == 'checkbox') {
+                    filters[field.name] = field.checked;
+                }
             });
             var input = document.createElement('input');
             input.setAttribute('name', "filters");

@@ -27,6 +27,7 @@ from mooringlicensing.components.proposals.models import (
     StickerPrintingBatch,
     Proposal
 )
+from ledger_api_client.managed_models import SystemUser
 from rest_framework import serializers
 from copy import deepcopy
 import logging
@@ -1010,6 +1011,16 @@ def getPrintExport(filters, num):
 
     return qs[:num]
 
+def getSystemUserExport(filters, num):
+
+    qs = SystemUser.objects.order_by("-id")
+
+    if filters:        
+        if "active" in filters and filters["active"]:
+            qs = qs.filter(is_active=filters["active"])
+
+    return qs[:num]
+
 def exportModelData(model, filters, num_records):
 
     if not num_records:
@@ -1033,6 +1044,8 @@ def exportModelData(model, filters, num_records):
         return getDcvAdmissionExport(filters, num_records)
     elif model == "sticker":
         return getPrintExport(filters, num_records)
+    elif model == "system_user":
+        return getSystemUserExport(filters, num_records)
     else:
         return
 
@@ -1369,6 +1382,32 @@ def getStickerExportFields(data):
 
     return header, columns
 
+def getSystemUserExportFields(data):
+    header = ["Ledger ID", "Account Name", "Legal Name", "Legal DOB", "Email"]
+
+    columns = list(data.annotate(
+        account_name=Concat(
+            'first_name',
+            Value(" "),
+            'last_name'
+            ),
+    ).annotate(
+        legal_name=Concat(
+            'legal_first_name',
+            Value(" "),
+            'legal_last_name'
+            ),
+    ).values_list(
+        "ledger_id",
+        "account_name",
+        "legal_name",
+        "legal_dob",
+        "email"
+        )
+    )
+
+    return header, columns
+
 def formatExportData(model, data, format):
 
     if model == "proposal":
@@ -1387,6 +1426,8 @@ def formatExportData(model, data, format):
         header, columns = getDcvAdmissionExportFields(data)
     elif model == "sticker":
         header, columns = getStickerExportFields(data)
+    elif model == "system_user":
+        header, columns = getSystemUserExportFields(data)
     else:
         return
 
