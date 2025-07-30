@@ -207,6 +207,10 @@ def save_proponent_data_aua(instance, request, action):
     if proposal_data.get("mooring_authorisation_preference") == 'site_licensee':
         if instance.proposal_type.code == PROPOSAL_TYPE_NEW or not proposal_data.get('keep_existing_mooring'):
             site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
+
+            if not site_licensee_moorings_data:
+                raise serializers.ValidationError("No mooring site licensees have been specified - please add at least one site licensee or select Rottnest Island Authority for authorisation")
+
             #get all ProposalSiteLicenseeMooringRequest for proposal
             site_licensee_moorings = instance.site_licensee_mooring_request.all()
             
@@ -367,7 +371,7 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
         instance.approval and 
         not instance.approval.migrated
         ):
-        if instance.approval.child_obj.isinstance(instance,MooringLicence) and instance.approval.child_obj.vessel_ownership_list:
+        if isinstance(instance.approval.child_obj,MooringLicence) and instance.approval.child_obj.vessel_ownership_list:
             for vo in instance.approval.child_obj.vessel_ownership_list:
                 if vo.dot_name:
                     dot_name = vo.dot_name

@@ -3659,8 +3659,8 @@ class Sticker(models.Model):
 
     def get_white_info(self):
         white_info = ''
-        colour = self.get_sticker_colour()
-        if colour in [AuthorisedUserPermit.sticker_colour + '/white', MooringLicence.sticker_colour + '/white',]:
+        colour = self.get_sticker_colour().lower()
+        if colour == 'white':
             if self.vessel_applicable_length > 26:
                 white_info = self.vessel_applicable_length
             elif self.vessel_applicable_length > 24:
