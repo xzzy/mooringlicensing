@@ -371,7 +371,7 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
         instance.approval and 
         not instance.approval.migrated
         ):
-        if instance.approval.child_obj.isinstance(instance,MooringLicence) and instance.approval.child_obj.vessel_ownership_list:
+        if isinstance(instance.approval.child_obj,MooringLicence) and instance.approval.child_obj.vessel_ownership_list:
             for vo in instance.approval.child_obj.vessel_ownership_list:
                 if vo.dot_name:
                     dot_name = vo.dot_name
