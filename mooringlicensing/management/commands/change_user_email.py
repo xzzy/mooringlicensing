@@ -147,10 +147,10 @@ class Command(BaseCommand):
                         for i in changed:
                             for c in i[1]:
                                 if changed_model_relation:
-                                    action = "Changed {} field due to user email change for {} {} {}".format(i[0],changed_model._meta.model_name,logging_model_relation,getattr(c,changed_model_relation))
+                                    action = "Changed {} field due to user email change from {} to {} change for {} {} {}".format(i[0], current_email, new_email,changed_model._meta.model_name,logging_model_relation,getattr(c,changed_model_relation))
                                     print(logging_model.log_action(getattr(c,changed_model_relation),action))
                                 else:
-                                    action = "Changed {} field due to user email change for {} {}".format(i[0],changed_model._meta.model_name,c)
+                                    action = "Changed {} field due to user email change from {} to {} change for {} {}".format(i[0], current_email, new_email,changed_model._meta.model_name,c)
                                     print(logging_model.log_action(c,action))
 
                     except Exception as e:
