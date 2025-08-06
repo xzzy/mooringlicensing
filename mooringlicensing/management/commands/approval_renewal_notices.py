@@ -59,20 +59,17 @@ class Command(BaseCommand):
             queries &= Q(expiry_date__lte=expiry_notification_date)
             queries &= Q(renewal_sent=False)
             queries &= Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+            if number_of_days_code == CODE_DAYS_FOR_RENEWAL_AUP:
+                queries &= ~Q(current_proposal__vessel_ownership=None)
+                queries &= ~Q(current_proposal__vessel_ownership__end_date=None)
 
         approvals = approval_class.objects.filter(queries).order_by('issue_date')[:max_renewal_notices]
         for a in approvals:
             try:
                 if not approval_class == DcvPermit:
                     approval = Approval.objects.get(id=a.id)
-                    v_details = approval.current_proposal.latest_vessel_details
-                    v_ownership = approval.current_proposal.vessel_ownership
-                    if (not v_details or v_ownership.end_date) and approval.code in [AnnualAdmissionPermit.code, AuthorisedUserPermit.code,]:
-                        # Null vessel is not allowed for both the annual admission permit application and authorised user permit application.
-                        continue
-                    else:
-                        approval.generate_renewal_doc()
-                        logger.info(f'Renewal document has been generated for the approval: [{approval}]')
+                    approval.generate_renewal_doc()
+                    logger.info(f'Renewal document has been generated for the approval: [{approval}]')
                 else:
                     approval = DcvPermit.objects.get(id=a.id)
                 send_approval_renewal_email_notification(approval)
