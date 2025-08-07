@@ -6,7 +6,7 @@
             Index="other_documents"
         >
             <div class="row form-group" v-if="!readonly">
-                <label for="" class="col-sm-12 control-label">Attach the following documents and submit them to the Rottnest Island Authority</label>
+                <label for="" class="col-sm-12 control-label">Attach the following documents and submit them to the Rottnest Island Authority. If you are a current licensee, please do not attach any documents here.</label>
             </div>
 
             <div class="row form-group">
