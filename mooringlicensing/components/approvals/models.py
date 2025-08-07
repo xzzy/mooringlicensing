@@ -2724,37 +2724,18 @@ class MooringLicence(Approval):
         proposal = self.proposal_set.latest('vessel_ownership__end_date')
         return proposal.vessel_ownership.end_date
 
-    @property
     def vessel_list_for_payment(self):
         vessels = []
-        proposals = []
         check_vessels = []
-        
-        #not all vessel ownerships are valid - if a vessel ownership was created before the latest end_date (with the same vessel) it does not count
-        for proposal in self.proposal_set.all():
-            if (
-                    proposal.final_status and
-                    proposal.vessel_details and
-                    not proposal.vessel_ownership.end_date and  # vessel has not been sold by this owner
-                    proposal.vessel_details.vessel
-            ):
-                proposals.append(proposal)
-                check_vessels.append(proposal.vessel_ownership.vessel)
+
+        for vessel_details in self.vessel_details_list:
+            check_vessels.append(vessel_details.vessel)
                 
-        vessel_ownerships = VesselOwnership.objects.filter(vessel__in=check_vessels)
+        vessel_ownerships = VesselOwnership.objects.filter(vessel__in=check_vessels).distinct('vessel__rego_no').order_by('vessel__rego_no','-created')
 
-        for proposal in proposals: 
-            
-            #check if the vessel_ownership created and id are both gt(e) than the latest end date with the same rego no
-            latest_end_dates = vessel_ownerships.filter(vessel__rego_no=proposal.vessel_ownership.vessel.rego_no).exclude(end_date=None).order_by('end_date')
-
-            if latest_end_dates.exists():
-                latest_end_date = latest_end_dates.last()
-                if proposal.vessel_ownership.created.date() <= latest_end_date.end_date and proposal.vessel_ownership.id < latest_end_date.id:
-                    continue
-
-            if proposal.vessel_details.vessel not in vessels:
-                vessels.append(proposal.vessel_details.vessel)
+        for vessel_ownership in vessel_ownerships: 
+            if not vessel_ownership.end_date and vessel_ownership.vessel:
+                vessels.append(vessel_ownership.vessel)
 
         return vessels
 

@@ -4030,7 +4030,7 @@ class MooringLicenceApplication(Proposal):
         
         if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # Only when 'Renewal' application, we are interested in the existing vessels
-            vessel_list = self.approval.child_obj.vessel_list_for_payment
+            vessel_list = self.approval.child_obj.vessel_list_for_payment()
             for vessel in vessel_list:
                 vessel_detais_list_to_be_processed.append(vessel.latest_vessel_details)
                 if vessel_details_largest:
