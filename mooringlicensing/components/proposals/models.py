@@ -706,6 +706,7 @@ class Proposal(RevisionedMixin):
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
+        from mooringlicensing.components.payments_ml.models import FeeConstructor
         from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit
         logger.info(f'Calculating the amount paid so far for the AA component through the proposal(s) which leads to the proposal: [{self}]...')
 
@@ -723,6 +724,22 @@ class Proposal(RevisionedMixin):
                     continue_loop = False
                     break
                 proposal_id_list.append(proposal.id)
+
+                if not FeeItemApplicationFee.objects.filter(
+                    application_fee__proposal=proposal,
+                    fee_item__fee_constructor__application_type=annual_admission_type).exists() and not proposal == self:
+                    logger.info(f'Proposal: [{proposal}] has no annual admission fees paid')
+                    #subtract what would have been paid from max_amount_paid unless the vessel ownership has an end date
+                    if proposal.vessel_ownership and proposal.vessel_ownership.end_date:
+                        continue
+
+                    fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, target_date)
+                    if proposal.fee_season and proposal.fee_season.start_date:
+                        fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, proposal.fee_season.start_date)
+                        logger.info(f'Proposal: [{proposal}] would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for')
+                        max_amount_paid -= fee_item.get_absolute_amount(proposal.vessel_length)
+                    else:
+                        logger.warning(f'Proposal: [{proposal}] has no fee season - will be unable to determine how much would have been paid for it')
 
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
                     application_fee__proposal=proposal,
