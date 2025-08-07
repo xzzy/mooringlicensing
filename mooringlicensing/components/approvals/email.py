@@ -83,7 +83,7 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence, stick
         url = ''.join(url.split('-internal'))
 
     context = {
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'public_url': get_public_url(),
         'approval': approval,
         'proposal': proposal,
@@ -117,7 +117,7 @@ def send_approval_expire_email_notification(approval):
         url = ''.join(url.split('-internal'))
 
     context = {
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'public_url': get_public_url(),
         'approval': approval,
         'proposal': proposal,
@@ -150,7 +150,7 @@ def send_approval_cancelled_due_to_no_vessels_nominated_mail(approval, request=N
         due_date = approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6)
 
     context = {
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'public_url': get_public_url(request),
         'approval': approval,
         'due_date': due_date,
@@ -186,7 +186,7 @@ def send_vessel_nomination_reminder_mail(approval, request=None):
     proposal = approval.current_proposal
 
     context = {
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'public_url': get_public_url(request),
         'approval': approval,
         'date_to_nominate_new_vessel': approval.current_proposal.vessel_ownership.end_date + relativedelta(months=+6),
@@ -448,7 +448,7 @@ def send_approval_cancel_email_notification(approval):
     context = {
         'public_url': get_public_url(),
         'approval': approval,
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'cancel_start_date': approval.cancellation_date,
         'details': approval.cancellation_details,
     }
@@ -485,7 +485,7 @@ def send_approval_suspend_email_notification(approval, request=None):
         to_date = approval.suspension_details['to_date'] if 'to_date' in approval.suspension_details else ''
 
     context = {
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'public_url': get_public_url(request),
         'approval': approval,
         'details': details,
@@ -532,7 +532,7 @@ def send_approval_surrender_email_notification(approval, request=None, already_s
     context = {
         'public_url': get_public_url(request),
         'approval': approval,
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'details': details,
         'surrender_date': surrender_date,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -590,7 +590,7 @@ def send_approval_reinstate_email_notification(approval, request):
     context = {
         'public_url': get_public_url(request),
         'approval': approval,
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
     }
     all_ccs = []
     msg = email.send(proposal.applicant_obj.email, cc=all_ccs, context=context)
@@ -631,7 +631,7 @@ def send_reissue_ml_after_sale_recorded_email(approval, request, vessel_ownershi
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
         'due_date': due_date,
@@ -669,7 +669,7 @@ def send_reissue_wla_after_sale_recorded_email(approval, request, vessel_ownersh
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
         'due_date': due_date,
@@ -708,7 +708,7 @@ def send_reissue_aup_after_sale_recorded_email(approval, request, vessel_ownersh
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
         'due_date': due_date,
@@ -749,7 +749,7 @@ def send_reissue_aap_after_sale_recorded_email(approval, request, vessel_ownersh
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'vessel_rego_no': vessel_ownership.vessel.rego_no,
         'stickers_to_be_returned': stickers_to_be_returned,
         'due_date': due_date,
@@ -788,7 +788,7 @@ def send_sticker_replacement_email(request, old_sticker_numbers, approval, invoi
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'approval': approval,
         'old_sticker_numbers': ','.join(old_sticker_numbers),
         'vessel_rego_no': vessel_rego,
