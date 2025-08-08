@@ -113,7 +113,7 @@ def send_confirmation_email_upon_submit(request, proposal, payment_made, attachm
         'public_url': get_public_url(request),
         'dashboard_external_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'payment_made': payment_made,
     }
     to_address = proposal.applicant_obj.email
@@ -148,7 +148,7 @@ def send_notification_email_upon_submit_to_assessor(request, proposal, attachmen
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'proposal_internal_url': url,
     }
     to_address = proposal.assessor_recipients
@@ -213,7 +213,7 @@ def send_amendment_email_notification(amendment_request, request, proposal):
 
     context = {
         'public_url': get_public_url(request),
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'proposal': proposal,
         'reason': reason,
         'text': amendment_request.text,
@@ -306,7 +306,7 @@ def send_documents_upload_for_mooring_licence_application_email(request, proposa
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'proposal_external_url': make_http_https(url),
         'num_of_days_to_submit_documents': days_setting.number_of_days,
     }
@@ -407,7 +407,7 @@ def send_invitee_reminder_email(approval, due_date, request=None):
     context = {
         'public_url': get_public_url(request),
         'approval': approval,
-        'recipient': approval.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'due_date': due_date,
     }
     to_address = approval.applicant_obj.email
@@ -438,7 +438,7 @@ def send_expire_application_email(proposal, due_date,):
     context = {
         'url': url,
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'dashboard_url': make_http_https(dashboard_url),
     }
     to_address = proposal.applicant_obj.email
@@ -465,7 +465,7 @@ def send_expire_notification_to_assessor(proposal, due_date):
         'public_url': get_public_url(),
         'applicant': proposal.applicant_obj,
         'due_date': due_date,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'proposal': proposal
     }
 
@@ -497,7 +497,7 @@ def send_payment_reminder_email(proposal, request=None):
     context = {
         'url': url,
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'applicant': proposal.applicant_obj,
         'due_date': due_date,
     }
@@ -537,7 +537,7 @@ def send_expire_mooring_licence_application_email(proposal, reason, due_date,):
     context = {
         'public_url': get_public_url(),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'dashboard_url': make_http_https(dashboard_url),
     }
     to_address = proposal.applicant_obj.email
@@ -575,7 +575,7 @@ def send_expire_mooring_licence_by_no_documents_email(proposal, reason, due_date
     context = {
         'public_url': get_public_url(),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'dashboard_url': make_http_https(dashboard_url),
     }
     to_address = proposal.applicant_obj.email
@@ -611,7 +611,7 @@ def send_expire_mla_notification_to_assessor(proposal, reason, due_date):
         'applicant': proposal.applicant_obj,
         'due_date': due_date,
         'mooring_name': mooring_name,
-        'recipient': proposal.applicant_obj
+        'recipient': proposal.proposal_applicant
     }
 
     to_address = proposal.assessor_recipients
@@ -660,7 +660,7 @@ def send_endorser_reminder_email(proposal, request=None):
         context = {
             'public_url': get_public_url(request),
             'proposal': proposal,
-            'recipient': proposal.applicant_obj,
+            'recipient': proposal.proposal_applicant,
             'endorser': endorser,
             'applicant': proposal.applicant_obj,
             'endorse_url': make_http_https(endorse_url),
@@ -708,7 +708,7 @@ def send_approval_renewal_email_notification(approval):
         'public_url': get_public_url(),
         'approval': approval,
         'vessel_rego_no': proposal.vessel_details.vessel.rego_no,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'expiry_date': approval.expiry_date,
         'dashboard_external_url': make_http_https(url),
     }
@@ -824,7 +824,7 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'proposal_type_code': proposal.proposal_type.code,
         'decision': decision,
         'details': details,
@@ -897,7 +897,7 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -983,7 +983,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1045,7 +1045,7 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1128,7 +1128,7 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1301,7 +1301,7 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1367,7 +1367,7 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1451,7 +1451,7 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         'public_url': get_public_url(request),
         'proposal': proposal,
         'approval': proposal.approval,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'decision': decision,
         'details': details,
         'stickers_to_be_returned': stickers_to_be_returned,
@@ -1496,7 +1496,7 @@ def send_aua_declined_by_endorser_email(proposal, request):
         'public_url': get_public_url(request),
         'proposal': proposal,
         'approval': proposal.approval,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
     }
 
     to_address = proposal.applicant_obj.email
@@ -1626,7 +1626,7 @@ def send_endorsement_of_authorised_user_application_email(request, proposal):
         context = {
             'public_url': get_public_url(request),
             'proposal': proposal,
-            'recipient': proposal.applicant_obj,
+            'recipient': proposal.proposal_applicant,
             'endorser': endorser,
             'applicant': proposal.applicant_obj,
             'mooring_name': mooring_name,
@@ -1659,7 +1659,7 @@ def send_application_discarded_email(proposal, request):
 
     context = {
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
     }
 
     to_address = proposal.applicant_obj.email
@@ -1693,7 +1693,7 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     context = {
         'public_url': get_public_url(request),
         'proposal': proposal,
-        'recipient': proposal.applicant_obj,
+        'recipient': proposal.proposal_applicant,
         'url': url,
         'approver_comment': approver_comment
     }

@@ -473,32 +473,35 @@ class ApplicationFeeView(TemplateView):
                 previous_application_fees = ApplicationFee.objects.filter(proposal=proposal, cancelled=False).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
                 previous_application_fee = previous_application_fees.last()
 
-                current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                fee_amount = previous_application_fee.cost if previous_application_fee else 0
+                if previous_application_fee:
+                    previous_application_fee_items = previous_application_fee.fee_items
 
-                fee_constructor = previous_application_fee.fee_constructor if previous_application_fee else None
+                    for previous_application_fee_item in previous_application_fee_items:
+                        current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                        fee_amount = previous_application_fee_item.amount
+                        fee_constructor = previous_application_fee_item.fee_constructor
 
-                if settings.ROUND_FEE_ITEMS:
-                    # In debug environment, we want to avoid decimal number which may cause some kind of error.
-                    total_amount = 0 - round(float(fee_amount))
-                    total_amount_excl_tax = 0 - round(float(ledger_api_client.utils.calculate_excl_gst(fee_amount)) if fee_constructor and fee_constructor.incur_gst else fee_amount)
-                else:
-                    total_amount = 0 - float(fee_amount)
-                    total_amount_excl_tax = 0 - float(ledger_api_client.utils.calculate_excl_gst(fee_amount) if fee_constructor and fee_constructor.incur_gst else fee_amount)
+                        if settings.ROUND_FEE_ITEMS:
+                            # In debug environment, we want to avoid decimal number which may cause some kind of error.
+                            total_amount = 0 - round(float(fee_amount))
+                            total_amount_excl_tax = 0 - round(float(ledger_api_client.utils.calculate_excl_gst(fee_amount)) if fee_constructor and fee_constructor.incur_gst else fee_amount)
+                        else:
+                            total_amount = 0 - float(fee_amount)
+                            total_amount_excl_tax = 0 - float(ledger_api_client.utils.calculate_excl_gst(fee_amount) if fee_constructor and fee_constructor.incur_gst else fee_amount)
 
-                oracle_code = proposal.application_type.get_oracle_code_by_date(current_datetime.date())
-                if proposal.application_type.code == 'mla' and proposal.proposal_type.code == 'swap_moorings':
-                    target_date = datetime.now(pytz.timezone(settings.TIME_ZONE))
-                    oracle_code = OracleCodeItem.objects.filter(date_of_enforcement__lte=target_date, application_type__code='mooring_swap').last().value
+                        oracle_code = proposal.application_type.get_oracle_code_by_date(current_datetime.date())
+                        if proposal.application_type.code == 'mla' and proposal.proposal_type.code == 'swap_moorings':
+                            target_date = datetime.now(pytz.timezone(settings.TIME_ZONE))
+                            oracle_code = OracleCodeItem.objects.filter(date_of_enforcement__lte=target_date, application_type__code='mooring_swap').last().value
 
-                if total_amount != 0:
-                    lines.append({
-                        'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
-                        'oracle_code': oracle_code,
-                        'price_incl_tax': total_amount,
-                        'price_excl_tax': total_amount_excl_tax,
-                        'quantity': 1,
-                    })             
+                        if total_amount != 0:
+                            lines.append({
+                                'ledger_description': settings.PREVIOUS_PAYMENT_REASON,
+                                'oracle_code': oracle_code,
+                                'price_incl_tax': total_amount,
+                                'price_excl_tax': total_amount_excl_tax,
+                                'quantity': 1,
+                            })             
 
                 return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                 return_preload_url = settings.MOORING_LICENSING_EXTERNAL_URL + reverse("ledger-api-success-callback", kwargs={"uuid": application_fee.uuid})
