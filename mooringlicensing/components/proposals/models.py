@@ -801,10 +801,11 @@ class Proposal(RevisionedMixin):
                     #factor in discounted payments (subtract difference between cost and paid (deduction-(cost-paid)))
                     if fee_item_application_fee.fee_item and fee_item_application_fee.fee_item.fee_period and fee_item_application_fee.fee_item.fee_period.start_date:
                         fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, fee_item_application_fee.fee_item.fee_period.start_date)
-                        fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)
-                        logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
+                        fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)                        
                         amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - amount_paid
-                        logger.info(f'Proposal: [{proposal}] AA had ${amount_paid_deduction} deducted from its cost')
+                        if amount_paid_deduction > 0:
+                            logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
+                            logger.info(f'Proposal: [{proposal}] AA had ${amount_paid_deduction} deducted from its cost')
                         amount_paid -= amount_paid_deduction
                     else:
                         logger.warning(f'Fee Item has no fee period start date - will be unable to determine how much would have been paid for it')
@@ -828,6 +829,10 @@ class Proposal(RevisionedMixin):
             else:
                 continue_loop = False
                 break
+
+        if max_amount_paid < 0:
+            logger.warning(f'Max amount paid is negative ({max_amount_paid}) - prior discounts may have been nullified on reinstating vessels or applicant has been undercharged')
+
         return max_amount_paid
 
     def get_amounts_paid_so_far(self, proposal):
