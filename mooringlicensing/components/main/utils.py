@@ -408,7 +408,7 @@ def sticker_export():
                         sticker.get_sticker_colour(),
                         sticker.get_white_info(),
                         sticker.vessel_applicable_length,
-                        sticker.fee_constructor.fee_season.name if sticker.fee_constructor and sticker.fee_constructor.fee_season else ''
+                        sticker.fee_season.name if sticker.fee_season and sticker.fee_season.name else ''
                     ])
                     logger.info('Sticker: {} details added to the spreadsheet'.format(sticker.number))
                     updates.append(sticker.number)
