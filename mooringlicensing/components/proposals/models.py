@@ -707,7 +707,7 @@ class Proposal(RevisionedMixin):
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
         from mooringlicensing.components.payments_ml.models import FeeConstructor
-        from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit, VesselOwnershipOnApproval
+        from mooringlicensing.components.approvals.models import MooringLicence, AuthorisedUserPermit, VesselOwnershipOnApproval, ApprovalHistory
         logger.info(f'Calculating the amount paid so far for the AA component through the proposal(s) which leads to the proposal: [{self}]...')
 
         max_amount_paid = 0
@@ -748,13 +748,15 @@ class Proposal(RevisionedMixin):
                             check_unpaid_aa = False
                     
                     if check_unpaid_aa:
-                        if proposal.fee_season and proposal.fee_season.start_date:
-                            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, proposal.fee_season.start_date)
-                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, proposal.fee_season.start_date)
+                        #need to get the start date from the approval history to determine what would have been paid
+                        try:
+                            paid_date = ApprovalHistory.objects.filter(proposal=proposal).first().start_date.date()
+                            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, paid_date)
+                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, paid_date)
                             logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for')
                             max_amount_paid -= fee_item.get_absolute_amount(proposal.vessel_length)
-                        else:
-                            logger.warning(f'Proposal: [{proposal}] has no fee season - will be unable to determine how much would have been paid for it')
+                        except:
+                            logger.warning(f'Unable to determine proposal approval start date - will be unable to determine how much would have been paid for it')
 
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
                     application_fee__proposal=proposal,
