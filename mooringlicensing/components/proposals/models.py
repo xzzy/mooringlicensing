@@ -803,10 +803,11 @@ class Proposal(RevisionedMixin):
                         fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, fee_item_application_fee.fee_item.fee_period.start_date)
                         fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)                        
                         amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - amount_paid
-                        if amount_paid_deduction > 0:
+                        amount_paid -= amount_paid_deduction
+                        #only show logs if a) the deduction has been reduced but there is still an amount to apply or b) a prior deduction needs to taken away from a total deduction
+                        if amount_paid_deduction > 0 and ((amount_paid < 0 and not deduct) or (deduct and amount_paid > 0)):
                             logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
                             logger.info(f'Proposal: [{proposal}] AA had ${amount_paid_deduction} deducted from its cost')
-                        amount_paid -= amount_paid_deduction
                     else:
                         logger.warning(f'Fee Item has no fee period start date - will be unable to determine how much would have been paid for it')
 
