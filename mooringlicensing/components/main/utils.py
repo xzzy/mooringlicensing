@@ -39,6 +39,7 @@ import xlsxwriter
 import datetime
 import uuid
 from django.contrib.postgres.aggregates import ArrayAgg
+from urllib import parse
 
 logger = logging.getLogger(__name__)
 
@@ -506,7 +507,7 @@ def get_client_ip(request):
 
 def get_dot_vessel_information(request,json_string):
     DOT_URL=settings.DOT_URL
-    paramGET=json_string.replace("\n", "")
+    paramGET=parse.quote(json_string.replace("\n", ""))
     client_ip = get_client_ip(request)
     auth=auth=HTTPBasicAuth(settings.DOT_USERNAME,settings.DOT_PASSWORD)
     r = requests.get(DOT_URL+"?paramGET="+paramGET+"&client_ip="+client_ip, auth=auth)
