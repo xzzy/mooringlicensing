@@ -12,7 +12,7 @@ from mooringlicensing.components.payments_ml.models import (
     DcvAdmissionFee, DcvPermitFee, StickerActionFee, ApplicationFee
 )
 from mooringlicensing.components.proposals.models import (
-    Proposal, ProposalApplicant, Owner, ProposalUserAction, ProposalLogEntry, MooringLogEntry, VesselLogEntry
+    Proposal, ProposalApplicant, Owner, ProposalUserAction, ProposalLogEntry, MooringLogEntry, VesselLogEntry, VesselOwnership
 )
 from ledger_api_client.utils import get_or_create, change_user_invoice_ownership
 from django.db import transaction
@@ -24,6 +24,30 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--current_email', type=str)
         parser.add_argument('--new_email', type=str)
+
+
+    def check_proposals_and_approvals(self,to_be_changed,existing):
+        #TODO
+        return False, "Record merging not yet supported", []
+
+    def check_ownerships(self,to_be_changed,existing):
+        owners_to_be_changed = list(filter(lambda i: i[0]==Owner),to_be_changed)
+        owners_existing = list(filter(lambda i: i[0]==Owner),existing)
+
+        if owners_to_be_changed and owners_existing:
+            to_be_changed_rego_nos = []
+            for i in owners_to_be_changed[1]:
+                to_be_changed_rego_nos += list(i.vessels.filter(vesselownership__end_date=None).values_list('rego_no',flat=True))
+
+            existing_rego_nos = []
+            for i in owners_existing[1]:
+                existing_rego_nos += list(i.vessels.filter(vesselownership__end_date=None).values_list('rego_no',flat=True))
+
+            intersecting_rego_nos = list(set(existing_rego_nos).intersection(set(to_be_changed_rego_nos)))
+            if intersecting_rego_nos:
+                return False, "Both accounts own vessels with rego_nos {intersecting_rego_nos}. Please discontinue vessel ownerships under one user to allow for records to merge."
+        else:
+            return True, "No conflicting Owner records"
 
     def handle(self, *args, **options):
 
@@ -85,6 +109,10 @@ class Command(BaseCommand):
         #MooringLogEntry (customer)
         #VesselLogEntry (customer)
 
+        potential_blockers = [Approval,Proposal,Owner]
+
+        special_handling = {Owner:False} #if a model require special handling under certain conditions, set Key bool to True
+
         change_ledger_id = {
             Approval: ["submitter"],
             DcvAdmission: ["submitter", "applicant"],
@@ -118,9 +146,6 @@ class Command(BaseCommand):
         }
 
         with transaction.atomic():
-
-            system_user_system_user = get_or_create_system_user_system_user()
-
             #change all records to the new email and ledger id 
             #log all record changes to record's respective action logs where applicable (Applicant/Submitter/Holder Email Address change)
             if not system_user_exists:
@@ -138,29 +163,48 @@ class Command(BaseCommand):
                     fax_number = current_email_system.fax_number,
                 )
             else:
-
                 #first, get every record from the current email that will move to the new email (only models in change_ledger_id need to be checked)
                 to_be_changed = []
                 for k in change_ledger_id: 
-                    for v in change_ledger_id[k]:
-                        change = k.objects.filter(**{v:current_email_ledger.id})
-                        if change.exists():
-                            to_be_changed.append((v,list(change)))
+                    if k in potential_blockers:
+                        for v in change_ledger_id[k]:
+                            change = k.objects.filter(**{v:current_email_ledger.id})
+                            if change.exists():
+                                to_be_changed.append((k,list(change)))
 
                 existing = []
                 for k in change_ledger_id:
-                    for v in change_ledger_id[k]:
-                        exists = k.objects.filter(**{v:new_email_ledger.id})
-                        if exists.exists():
-                            existing.append((v,list(exists)))
+                    if k in potential_blockers:
+                        for v in change_ledger_id[k]:
+                            exists = k.objects.filter(**{v:new_email_ledger.id})
+                            if exists.exists():
+                                existing.append((k,list(exists)))
+
+                print(to_be_changed)
+                print(existing)
 
                 if to_be_changed and existing:
-                    pass
                     #check validity - if a record cannot be moved STOP
+                    #proposals and approvals will need to be checked together to ensure they can exist on the same user
+                    valid, reason, merging_records = self.check_proposals_and_approvals(to_be_changed, existing)
+                    print(reason)
+                    #owners will require special handling - users may only have one owner record each so the vessel ownerships will need to be moved instead
+                    #if a current vessel_ownership on the current owner shares a rego_no with the new owner's current vessel_ownerships, count as invalid and STOP
+                    valid, reason = self.check_ownerships(to_be_changed, existing)
+                    print(reason)
 
-                    #deliver a warning - once merged the change CANNOT be reversed, so make that clear to the user
-
-                    return #temp TODO remove this line
+                    if valid:
+                        #deliver a warning - once merged the change CANNOT be reversed, so make that clear to the user
+                        answer = input(f"""
+###############################################################################################################################################################                                    
+WARNING: you are about to merge {merging_records} and related records (such as logs and relation tables) in to a user with existing records!                
+This process cannot be reversed using the change_user_email management command, the records will be bound to the same user once this process has completed. 
+###############################################################################################################################################################  
+Are you sure you want to continue? (y/n): """)
+                        if answer.lower() != 'y':
+                            return
+                    else:
+                        return 
                 else:
                     if not to_be_changed:
                         print("Current user has no potentially conflicting records - change can proceed")
@@ -196,6 +240,8 @@ class Command(BaseCommand):
                         print("Error:",e)
 
             for k in change_ledger_id:
+                if k in special_handling and special_handling[k]:
+                    continue
                 changed = []
                 for v in change_ledger_id[k]:
                     change = k.objects.filter(**{v:current_email_ledger.id})
@@ -223,8 +269,19 @@ class Command(BaseCommand):
                     except Exception as e:
                         print("Error:",e)
         
+            #special handling for certain models happens here
+            if special_handling[Owner]:
+                #Users may only have one owner record, so we have to change to change VesselOwnership records instead
+                try:
+                    current_owner = Owner.objects.get(emailuser=new_email_ledger.id)
+                    new_owner = Owner.objects.get(emailuser=new_email_ledger.id)
+                    VesselOwnership.objects.filter(owner=current_owner).update(owner=new_owner)
+                except Exception as e:
+                    print(e)
+
             #transfer invoice ownership on ledger - raise an error if this fails
             res = change_user_invoice_ownership(current_email, new_email)
             if not 'message' in res or res['message'] != 'success':
                 raise ValueError("Invoice ownership change failed")
             print("change_user_invoice_ownership response:", res['message'])
+            
