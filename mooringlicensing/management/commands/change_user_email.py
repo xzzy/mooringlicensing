@@ -50,14 +50,15 @@ class Command(BaseCommand):
 
         new_email_ledger = EmailUserRO.objects.filter(email__iexact=new_email).last()
         #check if new email already exists on ledger (create new if it does not)
-        if new_email_ledger:
-            #if it already exists, check if system user record exists on ML - stop if it does
-            if SystemUser.objects.filter(email__iexact=new_email):
-                print("Provided email already has an associated System User")
-                return
-        else:
+        if not new_email_ledger:
             new_email_resp = get_or_create(new_email)["data"]["email"]
             new_email_ledger = EmailUserRO.objects.filter(email__iexact=new_email_resp).last()
+
+        system_user_exists = False
+        #if it already exists, check if system user record exists on ML - stop if it does
+        if SystemUser.objects.filter(email__iexact=new_email):
+            print("Provided email already has an associated System User")
+            system_user_exists = True
 
         #get all pertaining records (anything that refers to ledger id or email, except for log emails)
         #Approval (submitter)
@@ -122,11 +123,49 @@ class Command(BaseCommand):
 
             #change all records to the new email and ledger id 
             #log all record changes to record's respective action logs where applicable (Applicant/Submitter/Holder Email Address change)
-            current_email_system.email = new_email
-            current_email_system.ledger_id_id = new_email_ledger.id
-            current_email_system.change_by_user_id = system_user_system_user.id
-            current_email_system.save()
-            print("changed system_user email and ledger_id")
+            if not system_user_exists:
+                SystemUser.objects.create(
+                    email = new_email,
+                    ledger_id_id = new_email_ledger.id,
+                    first_name = current_email_system.first_name,
+                    last_name = current_email_system.last_name,
+                    is_staff = current_email_system.is_staff,
+                    is_active = current_email_system.is_active,
+                    title = current_email_system.title,
+                    legal_dob = current_email_system.legal_dob,
+                    phone_number = current_email_system.phone_number,
+                    mobile_number = current_email_system.mobile_number,
+                    fax_number = current_email_system.fax_number,
+                )
+            else:
+
+                #first, get every record from the current email that will move to the new email (only models in change_ledger_id need to be checked)
+                to_be_changed = []
+                for k in change_ledger_id: 
+                    for v in change_ledger_id[k]:
+                        change = k.objects.filter(**{v:current_email_ledger.id})
+                        if change.exists():
+                            to_be_changed.append((v,list(change)))
+
+                existing = []
+                for k in change_ledger_id:
+                    for v in change_ledger_id[k]:
+                        exists = k.objects.filter(**{v:new_email_ledger.id})
+                        if exists.exists():
+                            existing.append((v,list(exists)))
+
+                if to_be_changed and existing:
+                    pass
+                    #check validity - if a record cannot be moved STOP
+
+                    #deliver a warning - once merged the change CANNOT be reversed, so make that clear to the user
+
+                    return #temp TODO remove this line
+                else:
+                    if not to_be_changed:
+                        print("Current user has no potentially conflicting records - change can proceed")
+                    if not existing:
+                        print("New (existing) user has no potentially conflicting records - change can proceed")
 
             for k in change_email:
                 changed = []
