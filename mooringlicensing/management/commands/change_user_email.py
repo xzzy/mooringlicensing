@@ -45,7 +45,7 @@ class Command(BaseCommand):
         # A person cannot start a Waiting List Application if there is a Mooring Licence application in status other than issued, declined or discarded
         # A person cannot start a Waiting List Application if there is a Mooring Licence in status Current or Suspended
 
-        # (Inferred) WAITING LIST ALLOCATION RULES
+        # WAITING LIST ALLOCATION RULES
         # A person cannot have a Current or Suspended Waiting List Allocation if there is another New Waiting List application for that person in status other than issued, declined, discarded
         # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence application in status other than issued, declined or discarded
         # A person can have only one Current or Suspended Waiting List Allocation in status other than cancelled, expired, surrendered
@@ -59,14 +59,28 @@ class Command(BaseCommand):
         # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
         # Vessel cannot be part of a current or suspended Mooring Licence (as nominated vessel or as one of other vessels on the licence)
 
-        # (Inferred) ANNUAL ADMISSION PERMIT RULES
-        # Vessel cannot be part of a New Annual Admission application in status other than issued, declined or discarded
-        # Vessel cannot be part of a another current or suspended Annual Admission Permit
+        # ANNUAL ADMISSION PERMIT RULES
+        # Vessel in Current or Suspended Annual Admission Permit cannot be part of a New Annual Admission application in status other than issued, declined or discarded
+        # Vessel in Current or Suspended Annual Admission Permit cannot be part of a another current or suspended Annual Admission Permit
+        # Vessel in Current or Suspended Annual Admission Permit cannot be part of an New Authorised User application in status other than issued, declined or discarded
+        # Vessel in Current or Suspended Annual Admission Permit cannot be part of a current or suspended Authorised User Permit
+        # Vessel in Current or Suspended Annual Admission Permit cannot be part of a Mooring Licence application in status other than issued, declined or discarded
+        # Vessel in Current or Suspended Annual Admission Permit cannot be part of a current or suspended Mooring Licence (as nominated vessel or as one of other vessels on the licence)
 
-        # Vessel cannot be part of an Authorised User application in status other than issued, declined or discarded
+        # AUTHORISED USER APPLICATION RULES
+        # Vessel cannot be part of another another Authorised User application in status other than issued, declined or discarded
         # Vessel cannot be part of a current or suspended Authorised User Permit
-        # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
-        # Vessel cannot be part of a current or suspended Mooring Licence (as nominated vessel or as one of other vessels on the licence)
+
+        # AUTHORISED USER PERMIT RULES
+        # Vessel in Current or Suspended Authorised User Permit cannot be part of a another current or suspended Authorised User Permit
+        # Vessel in Current or Suspended Authorised User Permit cannot be part of an New Authorised User application in status other than issued, declined or discarded
+        
+
+        # MOORING LICENSE APPLICATION RULES
+        # Vessel cannot be part of another Mooring Licence application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Mooring Licence allocation 
+
+        # MOORING LICENSE ALLOCATION RULES
 
         return False, "Record merging not yet supported", []
 
