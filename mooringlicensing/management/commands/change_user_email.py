@@ -25,9 +25,16 @@ class Command(BaseCommand):
         parser.add_argument('--current_email', type=str)
         parser.add_argument('--new_email', type=str)
 
-
     def check_proposals_and_approvals(self,to_be_changed,existing):
-        #TODO
+        #TODO go through each proposal/approval type and ensure no conflict between to_be_changed and existing
+        #check for application limit rules (e.g. one wla per user), vessel rules (can only be one application at a time, can not be on an AAP and an MLA, etc)
+
+        proposals_to_be_changed = list(filter(lambda i: i[0]==Proposal),to_be_changed)
+        proposals_existing = list(filter(lambda i: i[0]==Proposal),existing)
+
+        approvals_to_be_changed = list(filter(lambda i: i[0]==Approval),to_be_changed)
+        approvals_existing = list(filter(lambda i: i[0]==Approval),existing)
+
         return False, "Record merging not yet supported", []
 
     def check_ownerships(self,to_be_changed,existing):
@@ -163,6 +170,26 @@ class Command(BaseCommand):
                     fax_number = current_email_system.fax_number,
                 )
             else:
+                existing_system_user = SystemUser.objects.filter(email__iexact=new_email).first()
+                #if somehow a system user already exists but their ledger id does not match that of the provided email, update it (with a warning)
+                if existing_system_user.ledger_id_id != new_email_ledger.id: 
+                    system_user_system_user = get_or_create_system_user_system_user()
+                    answer = input(f"""
+############################################################################################################################################################################################                                    
+WARNING: Existing system user account has a different ledger id ({existing_system_user.ledger_id_id}) to that of the provided new email address {new_email} ledger id {new_email_ledger.id}
+
+Proceeding will change the the ledger id of the system user record for {new_email} from {existing_system_user.ledger_id_id} to {new_email_ledger.id}. 
+
+Do not proceed if there are other records referencing ledger id {existing_system_user.ledger_id_id} - they should be adjusted prior to conducting an email change.
+############################################################################################################################################################################################ 
+Are you sure you want to continue? (y/n): """)
+                    if answer.lower() != 'y':
+                        return
+                    else:
+                        existing_system_user.ledger_id_id = new_email_ledger.id
+                        existing_system_user.change_by_user_id = system_user_system_user.id
+                        existing_system_user.save()
+
                 #first, get every record from the current email that will move to the new email (only models in change_ledger_id need to be checked)
                 to_be_changed = []
                 for k in change_ledger_id: 
@@ -199,6 +226,8 @@ class Command(BaseCommand):
 ###############################################################################################################################################################                                    
 WARNING: you are about to merge {merging_records} and related records (such as logs and relation tables) in to a user with existing records!                
 This process cannot be reversed using the change_user_email management command, the records will be bound to the same user once this process has completed. 
+
+Will move and merge records from {current_email} in to {new_email}.
 ###############################################################################################################################################################  
 Are you sure you want to continue? (y/n): """)
                         if answer.lower() != 'y':
