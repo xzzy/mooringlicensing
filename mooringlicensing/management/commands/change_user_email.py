@@ -105,10 +105,30 @@ class Command(BaseCommand):
 
         # WAITING LIST ALLOCATION RULES
         # A waiting list allocation must follow an application, therefore is subject to some of the same rules
-        # A person cannot have a Current or Suspended Waiting List Allocation if there is another New Waiting List application for that person in status other than issued, declined, discarded
-        # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence application in status other than issued, declined or discarded
-        # A person can have only one Current or Suspended Waiting List Allocation in status other than cancelled, expired, surrendered
-        # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence in status Current or Suspended
+        for wl_appr in wl_appr_to_be_changed:
+            
+            # A person cannot have a Current or Suspended Waiting List Allocation if there is a Waiting List application for that person in status other than issued, declined, discarded
+            allowed_appl_status = [Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_DECLINED,Proposal.PROCESSING_STATUS_DISCARDED]
+            check = list(filter(lambda i: not i.processing_status in allowed_appl_status, wl_appl_existing))
+            disallowed_appr_status = [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED]
+            if len(check) > 0 and wl_appr.status in disallowed_appr_status:
+                return False, "A person cannot have a Current or Suspended Waiting List Allocation if there is a Waiting List application for that person in status other than issued, declined, discarded: {}".format(wl_appr.lodgement_number), []
+
+            # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence application in status other than issued, declined or discarded
+            check = list(filter(lambda i: not i.processing_status in allowed_appl_status, ml_appl_existing))
+            if len(check) > 0 and wl_appr.status in disallowed_appr_status:
+                return False, "A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence application in status other than issued, declined or discarded: {}".format(wl_appr.lodgement_number), []
+            
+            # A person can have only one Current or Suspended Waiting List Allocation in status other than cancelled, expired, surrendered
+            allowed_appr_status = [Approval.APPROVAL_STATUS_CANCELLED,Approval.APPROVAL_STATUS_EXPIRED,Approval.APPROVAL_STATUS_SURRENDERED]
+            check = list(filter(lambda i: (not i.status in allowed_appr_status), wl_appr_existing))
+            if len(check) > 0 and wl_appr.status in disallowed_appr_status:
+                return False, "A person can have only one Current or Suspended Waiting List Allocation in status other than cancelled, expired, surrendered: {}".format(wl_appr.lodgement_number), []
+
+            # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence in status Current or Suspended
+            check = list(filter(lambda i: (i.status in disallowed_appr_status), ml_appr_existing))
+            if len(check) > 0 and wl_appr.status in disallowed_appr_status:
+                return False, "A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence in status Current or Suspended: {}".format(wl_appr.lodgement_number), []
 
         # ANNUAL ADMISSION APPLICATION RULES
         # Vessel cannot be part of another Annual Admission application in status other than issued, declined or discarded
