@@ -2712,6 +2712,8 @@ class MooringLicence(Approval):
                     "rego_no": vooa.vessel_ownership.vessel.rego_no,
                     "latest_vessel_details": vooa.vessel_ownership.vessel.latest_vessel_details
                 })
+            elif attribute == 'rego_no':
+                attribute_list.append(vooa.vessel_ownership.vessel.rego_no)
         return attribute_list
 
     @property

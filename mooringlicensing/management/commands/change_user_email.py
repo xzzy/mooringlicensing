@@ -26,26 +26,85 @@ class Command(BaseCommand):
         parser.add_argument('--new_email', type=str)
 
     def check_proposals_and_approvals(self,to_be_changed,existing):
-        #TODO go through each proposal/approval type and ensure no conflict between to_be_changed and existing
+        #go through each proposal/approval type and ensure no conflict between to_be_changed and existing
         #check for application limit rules (e.g. one wla per user), vessel rules (can only be one application at a time, can not be on an AAP and an MLA, etc)
 
         proposals_to_be_changed = list(filter(lambda i: i[0]==Proposal),to_be_changed)
         proposals_existing = list(filter(lambda i: i[0]==Proposal),existing)
 
+        wl_appl_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and i.child_obj.application_type.code == 'wla',proposals_to_be_changed))))
+        aa_appl_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and i.child_obj.application_type.code == 'aaa',proposals_to_be_changed))))
+        au_appl_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and i.child_obj.application_type.code == 'aua',proposals_to_be_changed))))
+        ml_appl_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and (i.child_obj.application_type.code == 'mla' or i.application_type.code == 'mooring_swap'),proposals_to_be_changed))))
+
+        wl_appl_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and i.child_obj.application_type.code == 'wla',proposals_existing))))
+        aa_appl_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and i.child_obj.application_type.code == 'aaa',proposals_existing))))
+        au_appl_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and i.child_obj.application_type.code == 'aua',proposals_existing))))
+        ml_appl_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'application_type') and hasattr(i.child_obj.application_type, 'code') and (i.child_obj.application_type.code == 'mla' or i.application_type.code == 'mooring_swap'),proposals_existing))))
+
         approvals_to_be_changed = list(filter(lambda i: i[0]==Approval),to_be_changed)
         approvals_existing = list(filter(lambda i: i[0]==Approval),existing)
 
+        wl_appr_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'wla',approvals_to_be_changed))))
+        aa_appr_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'aap',approvals_to_be_changed))))
+        au_appr_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'aup',approvals_to_be_changed))))
+        ml_appr_to_be_changed = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'ml',approvals_to_be_changed))))
+
+        wl_appr_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'wla',approvals_existing))))
+        aa_appr_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'aap',approvals_existing))))
+        au_appr_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'aup',approvals_existing))))
+        ml_appr_existing = list(set(list(filter(lambda i: hasattr(i,'child_obj') and hasattr(i.child_obj, 'code') and i.child_obj.code == 'ml',approvals_existing))))
+
         # WAITING LIST APPLICATION RULES
-        # Vessel cannot be part of another Waiting List application in status other than issued, declined or discarded
-        # Vessel cannot be part of a current or suspended Waiting List Allocation
-        # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
-        # Vessel cannot be part of a current or suspended Mooring Licence allocation (as nominated vessel or as one of other vessels on the licence)
-        # A person cannot start a Waiting List Application if there is another Waiting List application for that person in status other than issued, declined, discarded
-        # A person cannot start a Waiting List Application if there is another Waiting List Allocation for that person in status other than cancelled, expired, surrendered
-        # A person cannot start a Waiting List Application if there is a Mooring Licence application in status other than issued, declined or discarded
-        # A person cannot start a Waiting List Application if there is a Mooring Licence in status Current or Suspended
+        for wl_appl in wl_appl_to_be_changed:
+
+            vessel = wl_appl.rego_no
+
+            # Vessel cannot be part of another Waiting List application in status other than issued, declined or discarded
+            allowed_appl_status = [Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_DECLINED,Proposal.PROCESSING_STATUS_DISCARDED]
+            check = list(filter(lambda i: (i.rego_no == vessel and not i.processing_status in allowed_appl_status), wl_appl_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "Vessel cannot be part of another Waiting List application in status other than issued, declined or discarded: {}".format(wl_appl.lodgement_number), []
+
+            # Vessel cannot be part of a current or suspended Waiting List Allocation
+            disallowed_appr_status = [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED]
+            check = list(filter(lambda i: (i.current_proposal.rego_no == vessel and i.status in disallowed_appr_status), wl_appr_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "Vessel cannot be part of a current or suspended Waiting List Allocation: {}".format(wl_appl.lodgement_number), []
+
+            # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
+            check = list(filter(lambda i: (i.rego_no == vessel and not i.processing_status in allowed_appl_status), ml_appl_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded: {}".format(wl_appl.lodgement_number), []
+
+            # Vessel cannot be part of a current or suspended Mooring Licence allocation (as nominated vessel or as one of other vessels on the licence)
+            check = list(filter(lambda i: (vessel in i.child_obj.current_vessel_attributes(attribute="rego_no") and i.status in disallowed_appr_status), ml_appr_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "Vessel cannot be part of a current or suspended Mooring Licence allocation (as nominated vessel or as one of other vessels on the licence): {}".format(wl_appl.lodgement_number), []
+
+            # A person cannot start a Waiting List Application if there is another Waiting List application for that person in status other than issued, declined, discarded
+            check = list(filter(lambda i: not i.processing_status in allowed_appl_status, wl_appl_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "A person cannot start a Waiting List Application if there is another Waiting List application for that person in status other than issued, declined, discarded: {}".format(wl_appl.lodgement_number), []
+            
+            # A person cannot start a Waiting List Application if there is another Waiting List Allocation for that person in status other than cancelled, expired, surrendered
+            allowed_appr_status = [Approval.APPROVAL_STATUS_CANCELLED,Approval.APPROVAL_STATUS_EXPIRED,Approval.APPROVAL_STATUS_SURRENDERED]
+            check = list(filter(lambda i: (not i.status in allowed_appr_status), wl_appr_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "A person cannot start a Waiting List Application if there is another Waiting List Allocation for that person in status other than cancelled, expired, surrendered: {}".format(wl_appl.lodgement_number), []
+
+            # A person cannot start a Waiting List Application if there is a Mooring Licence application in status other than issued, declined or discarded
+            check = list(filter(lambda i: not i.processing_status in allowed_appl_status, ml_appl_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "A person cannot start a Waiting List Application if there is a Mooring Licence application in status other than issued, declined or discarded: {}".format(wl_appl.lodgement_number), []
+
+            # A person cannot start a Waiting List Application if there is a Mooring Licence in status Current or Suspended
+            check = list(filter(lambda i: i.status in disallowed_appr_status, ml_appr_existing))
+            if len(check) > 0 and wl_appl.processing_status not in allowed_appl_status:
+                return False, "A person cannot start a Waiting List Application if there is a Mooring Licence in status Current or Suspended: {}".format(wl_appl.lodgement_number), []
 
         # WAITING LIST ALLOCATION RULES
+        # A waiting list allocation must follow an application, therefore is subject to some of the same rules
         # A person cannot have a Current or Suspended Waiting List Allocation if there is another New Waiting List application for that person in status other than issued, declined, discarded
         # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence application in status other than issued, declined or discarded
         # A person can have only one Current or Suspended Waiting List Allocation in status other than cancelled, expired, surrendered
@@ -74,13 +133,15 @@ class Command(BaseCommand):
         # AUTHORISED USER PERMIT RULES
         # Vessel in Current or Suspended Authorised User Permit cannot be part of a another current or suspended Authorised User Permit
         # Vessel in Current or Suspended Authorised User Permit cannot be part of an New Authorised User application in status other than issued, declined or discarded
-        
 
         # MOORING LICENSE APPLICATION RULES
         # Vessel cannot be part of another Mooring Licence application in status other than issued, declined or discarded
-        # Vessel cannot be part of a current or suspended Mooring Licence allocation 
+        # Vessel cannot be part of a current or suspended Mooring Licence
 
-        # MOORING LICENSE ALLOCATION RULES
+        # MOORING LICENSE RULES
+        # As a mooring license would require the issuance of waiting list allocation, it is effectively subject to the same rules
+        # A person can have only one Current or Suspended Mooring License in status other than cancelled, expired, surrendered
+        # A person cannot have a Current or Suspended Mooring Licence if there is a Waiting List Allocation in status Current or Suspended
 
         return False, "Record merging not yet supported", []
 
