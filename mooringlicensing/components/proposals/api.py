@@ -2422,7 +2422,7 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
                 try:
                     owner = Owner.objects.get(emailuser=target_email_user_id)
                 except ObjectDoesNotExist:
-                    raise serializers.ValidationError("user does not exist with provided email user id")
+                    return Response([])
                 except:
                     raise serializers.ValidationError("error")
             else:
