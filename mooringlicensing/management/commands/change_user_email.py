@@ -35,6 +35,39 @@ class Command(BaseCommand):
         approvals_to_be_changed = list(filter(lambda i: i[0]==Approval),to_be_changed)
         approvals_existing = list(filter(lambda i: i[0]==Approval),existing)
 
+        # WAITING LIST APPLICATION RULES
+        # Vessel cannot be part of another Waiting List application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Waiting List Allocation
+        # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Mooring Licence allocation (as nominated vessel or as one of other vessels on the licence)
+        # A person cannot start a Waiting List Application if there is another Waiting List application for that person in status other than issued, declined, discarded
+        # A person cannot start a Waiting List Application if there is another Waiting List Allocation for that person in status other than cancelled, expired, surrendered
+        # A person cannot start a Waiting List Application if there is a Mooring Licence application in status other than issued, declined or discarded
+        # A person cannot start a Waiting List Application if there is a Mooring Licence in status Current or Suspended
+
+        # (Inferred) WAITING LIST ALLOCATION RULES
+        # A person cannot have a Current or Suspended Waiting List Allocation if there is another New Waiting List application for that person in status other than issued, declined, discarded
+        # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence application in status other than issued, declined or discarded
+        # A person can have only one Current or Suspended Waiting List Allocation in status other than cancelled, expired, surrendered
+        # A person cannot have a Current or Suspended Waiting List Allocation if there is a Mooring Licence in status Current or Suspended
+
+        # ANNUAL ADMISSION APPLICATION RULES
+        # Vessel cannot be part of another Annual Admission application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Annual Admission Permit
+        # Vessel cannot be part of an Authorised User application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Authorised User Permit
+        # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Mooring Licence (as nominated vessel or as one of other vessels on the licence)
+
+        # (Inferred) ANNUAL ADMISSION PERMIT RULES
+        # Vessel cannot be part of a New Annual Admission application in status other than issued, declined or discarded
+        # Vessel cannot be part of a another current or suspended Annual Admission Permit
+
+        # Vessel cannot be part of an Authorised User application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Authorised User Permit
+        # Vessel cannot be part of a Mooring Licence application in status other than issued, declined or discarded
+        # Vessel cannot be part of a current or suspended Mooring Licence (as nominated vessel or as one of other vessels on the licence)
+
         return False, "Record merging not yet supported", []
 
     def check_ownerships(self,to_be_changed,existing):
@@ -216,21 +249,21 @@ class Command(BaseCommand):
                 if to_be_changed and existing:
                     #check validity - if a record cannot be moved STOP
                     #proposals and approvals will need to be checked together to ensure they can exist on the same user
-                    valid, reason, merging_records = self.check_proposals_and_approvals(to_be_changed, existing)
+                    valid1, reason, merging_records = self.check_proposals_and_approvals(to_be_changed, existing)
                     print(reason)
                     #owners will require special handling - users may only have one owner record each so the vessel ownerships will need to be moved instead
                     #if a current vessel_ownership on the current owner shares a rego_no with the new owner's current vessel_ownerships, count as invalid and STOP
-                    valid, reason = self.check_ownerships(to_be_changed, existing)
+                    valid2, reason = self.check_ownerships(to_be_changed, existing)
                     print(reason)
 
-                    if valid:
+                    if valid1 and valid2:
                         #deliver a warning - once merged the change CANNOT be reversed, so make that clear to the user
                         answer = input(f"""
 ###############################################################################################################################################################                                    
 WARNING: you are about to merge {merging_records} and related records (such as logs and relation tables) in to a user with existing records!                
 This process cannot be reversed using the change_user_email management command, the records will be bound to the same user once this process has completed. 
 
-Will move and merge records from {current_email} in to {new_email}.
+Will move and merge records from {current_email} in to {new_email}. Potential payment adjustments will need to be reviewed and conducted manually.
 ###############################################################################################################################################################  
 Are you sure you want to continue? (y/n): """)
                         if answer.lower() != 'y':
