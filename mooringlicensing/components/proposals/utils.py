@@ -384,12 +384,13 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
                             "owner": owner_str,
                             "userId": str(request.user.id)
                             }
-                    if settings.DO_DOT_CHECK:
+                    if settings.DO_DOT_CHECK and vo.individual_owner:
                         dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
     # current proposal vessel check
     if vessel_data.get("rego_no"):
         dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
+        individual_owner = vessel_data.get("vessel_ownership", {}).get("individual_owner", True)
         if dot_name:
             owner_str = dot_name.replace(" ", "%20")
         else:
@@ -400,9 +401,8 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
                     "owner": owner_str,
                     "userId": str(request.user.id)
                     }
-            if settings.DO_DOT_CHECK:
+            if settings.DO_DOT_CHECK and individual_owner:
                 dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
-
         if vessel_lookup_errors:
             raise serializers.ValidationError(vessel_lookup_errors)
 
