@@ -362,6 +362,19 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
 
     logger.info(f'submit_vessel_data() is called with the vessel_data: {vessel_data}')
 
+    #only enforce this for requests and if a rego_no has been provided
+    if (request and vessel_data["rego_no"]):
+        if (not vessel_data or not vessel_data["vessel_details"] or 
+            not (vessel_data["vessel_details"]["vessel_draft"] and vessel_data["vessel_details"]["vessel_length"] and vessel_data["vessel_details"]["vessel_weight"])
+        ):
+            raise serializers.ValidationError("Submitted vessel details missing")
+        else:
+            try:
+                if not(float(vessel_data["vessel_details"]["vessel_draft"]) and float(vessel_data["vessel_details"]["vessel_length"]) and float(vessel_data["vessel_details"]["vessel_weight"])):
+                    raise serializers.ValidationError("Provided vessel details invalid")
+            except:
+                raise serializers.ValidationError("Provided vessel details invalid")
+
     # Dot vessel rego lookup
     logger.info('Performing DoT check...')
     vessel_lookup_errors = {}
@@ -384,12 +397,13 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
                             "owner": owner_str,
                             "userId": str(request.user.id)
                             }
-                    if settings.DO_DOT_CHECK:
+                    if settings.DO_DOT_CHECK and vo.individual_owner:
                         dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
 
     # current proposal vessel check
     if vessel_data.get("rego_no"):
         dot_name = vessel_data.get("vessel_ownership", {}).get("dot_name", "")
+        individual_owner = vessel_data.get("vessel_ownership", {}).get("individual_owner", True)
         if dot_name:
             owner_str = dot_name.replace(" ", "%20")
         else:
@@ -400,9 +414,8 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
                     "owner": owner_str,
                     "userId": str(request.user.id)
                     }
-            if settings.DO_DOT_CHECK:
+            if settings.DO_DOT_CHECK and individual_owner:
                 dot_check_wrapper(request, payload, vessel_lookup_errors, vessel_data)
-
         if vessel_lookup_errors:
             raise serializers.ValidationError(vessel_lookup_errors)
 
@@ -459,6 +472,10 @@ def store_vessel_data(request, vessel_data):
             # Value is different between the existing and new --> We create new vessel details rather than updating the existing
             create_vessel_details = True
             break
+    
+    #replace null vessel name
+    if vessel_details_data["vessel_name"] == None:
+        vessel_details_data["vessel_name"] = ""
 
     if create_vessel_details:
         serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
