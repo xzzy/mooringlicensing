@@ -4337,6 +4337,7 @@ class MooringLicenceApplication(Proposal):
 
     def update_or_create_approval(self, current_datetime, request=None):
         from mooringlicensing.components.proposals.utils import submit_vessel_data
+        from mooringlicensing.components.approvals.models import Approval
         logger.info(f'Updating/Creating Mooring Site Licence from the application: [{self}]...')
         try:
             # renewal/amendment/reissue - associated ML must have a mooring
@@ -4366,6 +4367,10 @@ class MooringLicenceApplication(Proposal):
                 if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
                     # When renewal, we have to update the expiry_date of the approval
                     approval.expiry_date = self.end_date
+                    #if the approval expired, set back to current on being re-approved
+                    if approval.status == Approval.APPROVAL_STATUS_EXPIRED:
+                        approval.status = Approval.APPROVAL_STATUS_CURRENT
+
                 approval.submitter = self.submitter
                 approval.save()
                 if self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
