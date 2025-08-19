@@ -3705,195 +3705,202 @@ class AuthorisedUserApplication(Proposal):
     def update_or_create_approval(self, current_datetime, request=None):
         from mooringlicensing.components.proposals.utils import submit_vessel_data
         logger.info(f'Updating/Creating Authorised User Permit from the application: [{self}]...')
-        # This function is called after payment success for new/amendment/renewal application
-        # Manage approval
-        approval_created = False
-        if self.proposal_type.code == PROPOSAL_TYPE_NEW:
-            # When new application
-            approval, approval_created = self.approval_class.objects.update_or_create(
-                current_proposal=self,
-                defaults={
-                    'issue_date': current_datetime,
-                    'start_date': current_datetime.date(),
-                    'expiry_date': self.end_date,
-                    'submitter': self.submitter,
-                }
-            )
-            if approval_created:
-                from mooringlicensing.components.approvals.models import Approval
-                logger.info(f'Approval: [{approval}] has been created.')
-                approval.cancel_existing_annual_admission_permit(current_datetime.date())
+        try:
+            # This function is called after payment success for new/amendment/renewal application
+            # Manage approval
+            approval_created = False
+            if self.proposal_type.code == PROPOSAL_TYPE_NEW:
+                # When new application
+                approval, approval_created = self.approval_class.objects.update_or_create(
+                    current_proposal=self,
+                    defaults={
+                        'issue_date': current_datetime,
+                        'start_date': current_datetime.date(),
+                        'expiry_date': self.end_date,
+                        'submitter': self.submitter,
+                    }
+                )
+                if approval_created:
+                    from mooringlicensing.components.approvals.models import Approval
+                    logger.info(f'Approval: [{approval}] has been created.')
+                    approval.cancel_existing_annual_admission_permit(current_datetime.date())
 
-                self.approval = approval
-                self.save()
+                    self.approval = approval
+                    self.save()
 
-        elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
-            if self.auto_approve and request:
-                submit_vessel_data(self, request, approving=True)
-                self.refresh_from_db()
+            elif self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT:
+                if self.auto_approve and request:
+                    submit_vessel_data(self, request, approving=True)
+                    self.refresh_from_db()
 
-            # When amendment application
-            approval = self.approval.child_obj
-            approval.current_proposal = self
-            approval.issue_date = current_datetime
-            approval.start_date = current_datetime.date()
-            # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
-            approval.submitter = self.submitter
-            approval.save()
-        elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-            if self.auto_approve and request:
-                submit_vessel_data(self, request, approving=True)
-                self.refresh_from_db()
+                # When amendment application
+                approval = self.approval.child_obj
+                approval.current_proposal = self
+                approval.issue_date = current_datetime
+                approval.start_date = current_datetime.date()
+                # We don't need to update expiry_date when amendment.  Also self.end_date can be None.
+                approval.submitter = self.submitter
+                approval.save()
+            elif self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+                if self.auto_approve and request:
+                    submit_vessel_data(self, request, approving=True)
+                    self.refresh_from_db()
 
-            # When renewal application
-            approval = self.approval.child_obj
-            approval.current_proposal = self
-            approval.issue_date = current_datetime
-            approval.start_date = current_datetime.date()
-            approval.expiry_date = self.end_date
-            approval.submitter = self.submitter
-            approval.renewal_sent = False
-            approval.renewal_count += 1
-            approval.save()
+                # When renewal application
+                approval = self.approval.child_obj
+                approval.current_proposal = self
+                approval.issue_date = current_datetime
+                approval.start_date = current_datetime.date()
+                approval.expiry_date = self.end_date
+                approval.submitter = self.submitter
+                approval.renewal_sent = False
+                approval.renewal_count += 1
+                approval.save()
 
-        # update proposed_issuance_approval and MooringOnApproval if not system reissue (no request) or auto_approve
-        if request and not self.auto_approve:
-            # Create MooringOnApproval records
-            ## also see logic in approval.add_mooring()
-            mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
-            ria_selected_mooring = None
-            if mooring_id_pk:
-                ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
+            # update proposed_issuance_approval and MooringOnApproval if not system reissue (no request) or auto_approve
+            if request and not self.auto_approve:
+                # Create MooringOnApproval records
+                ## also see logic in approval.add_mooring()
+                mooring_id_pk = self.proposed_issuance_approval.get('mooring_id')
+                ria_selected_mooring = None
+                if mooring_id_pk:
+                    ria_selected_mooring = Mooring.objects.get(id=mooring_id_pk)
 
-            if ria_selected_mooring:
-                approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
-            else:
-                for moa in self.proposed_issuance_approval.get('requested_mooring_on_approval'):
-                    if moa.get("checked"):
-                        requested_mooring = Mooring.objects.get(id=moa.get("id"))
-                        approval.add_mooring(mooring=requested_mooring, site_licensee=True)
-            # updating checkboxes
-            for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
-                for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
-                    # convert proposed_issuance_approval to an end_date
-                    if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
-                        moa2.end_date = current_datetime.date()
-                        moa2.active = False
-                        moa2.save()
-                    elif moa1.get("id") == moa2.id and moa1.get("checked") and moa2.end_date:
-                        moa2.end_date = None
-                        moa2.active = True
-                        moa2.save()
-        # set auto_approve renewal application ProposalRequirement due dates to those from previous application + 12 months
-        if self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
-            for req in self.requirements.filter(is_deleted=False):
-                if req.copied_from and req.copied_from.due_date:
-                    req.due_date = req.copied_from.due_date + relativedelta(months=+12)
-                    req.save()
-        # do not process compliances for system reissue
-        if request:
-            # Generate compliances
-            from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
-            target_proposal = self.previous_application if self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT else self.proposal
-            for compliance in Compliance.objects.filter(
-                approval=approval.approval,
-                proposal=target_proposal,
-                processing_status='future',
-                ):
-                compliance.processing_status='discarded'
-                compliance.customer_status = 'discarded'
-                compliance.post_reminder_sent=True
-                compliance.save()
-            self.generate_compliances(approval, request)
-
-        # always reset this flag
-        approval.renewal_sent = False
-        approval.export_to_mooring_booking = True
-        approval.save()
-
-        # set proposal status to approved - can change later after manage_stickers
-        self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-        self.save()
-
-        # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
-        mls_to_be_emailed = []
-        from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
-        new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True, active=True)  # New moa doesn't have stickers.
-        for new_moa in new_moas:
-            mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
-
-        # manage stickers
-        moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
-
-        self.refresh_from_db()
-        #####
-        # Set proposal status after manage _stickers
-        #####
-        stickers_to_be_printed = []
-        if self.approval:
-            stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-            stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING,])
-
-        if len(stickers_to_be_returned):
-            a_sticker = stickers_to_be_returned[0]  # All the stickers to be returned should have the same vessel, so just pick the first one
-            if self.vessel_ownership and a_sticker.vessel_ownership.vessel.rego_no == self.vessel_ownership.vessel.rego_no:
-                # Same vessel
-                if stickers_not_exported:
-                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number), )
+                if ria_selected_mooring:
+                    approval.add_mooring(mooring=ria_selected_mooring, site_licensee=False)
                 else:
-                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-            else:
-                # Vessel changed OR null vessel
-                # there is a sticker to be returned, application status gets 'Sticker to be Returned' status
-                self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
-                self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
-        else:
-            # There are no stickers to be returned - before and after the sticker for this application has been printed
-            if stickers_not_exported:
-                #if we are here, it is an entirely new application and we need a sticker (or a renewal where the vessel has been changed)
-                self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
-            else:
-                #otherwise with no stickers to be returned, the application should be approved - this can only occur on an auto-approved amend/renew
-                self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
-                self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
-
-        self.save()
-        self.proposal.save()
-
-        approval.generate_doc()
-        self.proposal.refresh()  # so that the approval doc field is updated by the doc generated above
-
-        # Email - do not send if internal reissue (i.e. only send if there is a request)
-        if request:
-            send_application_approved_or_declined_email(self.proposal, 'approved_paid', request, stickers_to_be_returned)
-
-        # Email to ML holder when new moorings added
-        for mooring_licence in mls_to_be_emailed:
-            mooring_licence.generate_au_summary_doc()
-            if not self.mooring_authorisation_preference == 'ria':
-                send_au_summary_to_ml_holder(mooring_licence, request, self)
-
-        # Log proposal action
-        if self.auto_approve or not request:
-            self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id))
-
-        # Write approval history
-        if self.approval and self.approval.reissued:
+                    for moa in self.proposed_issuance_approval.get('requested_mooring_on_approval'):
+                        if moa.get("checked"):
+                            requested_mooring = Mooring.objects.get(id=moa.get("id"))
+                            approval.add_mooring(mooring=requested_mooring, site_licensee=True)
+                # updating checkboxes
+                for moa1 in self.proposed_issuance_approval.get('mooring_on_approval'):
+                    for moa2 in self.approval.mooringonapproval_set.filter(mooring__mooring_licence__status='current'):
+                        # convert proposed_issuance_approval to an end_date
+                        if moa1.get("id") == moa2.id and not moa1.get("checked") and not moa2.end_date:
+                            moa2.end_date = current_datetime.date()
+                            moa2.active = False
+                            moa2.save()
+                        elif moa1.get("id") == moa2.id and moa1.get("checked") and moa2.end_date:
+                            moa2.end_date = None
+                            moa2.active = True
+                            moa2.save()
+            # set auto_approve renewal application ProposalRequirement due dates to those from previous application + 12 months
+            if self.auto_approve and self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+                for req in self.requirements.filter(is_deleted=False):
+                    if req.copied_from and req.copied_from.due_date:
+                        req.due_date = req.copied_from.due_date + relativedelta(months=+12)
+                        req.save()
+            # do not process compliances for system reissue
             if request:
-                approval.write_approval_history('Reissue via application {}'.format(self.lodgement_number))
-        elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
-            approval.write_approval_history('Renewal application {}'.format(self.lodgement_number))
-        elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT):
-            approval.write_approval_history('Amendment application {}'.format(self.lodgement_number))
-        else:
-            approval.write_approval_history()
+                # Generate compliances
+                from mooringlicensing.components.compliances.models import Compliance, ComplianceUserAction
+                target_proposal = self.previous_application if self.proposal_type.code == PROPOSAL_TYPE_AMENDMENT else self.proposal
+                for compliance in Compliance.objects.filter(
+                    approval=approval.approval,
+                    proposal=target_proposal,
+                    processing_status='future',
+                    ):
+                    compliance.processing_status='discarded'
+                    compliance.customer_status = 'discarded'
+                    compliance.post_reminder_sent=True
+                    compliance.save()
+                self.generate_compliances(approval, request)
 
-        self.save()
-        self.proposal.save()
+            # always reset this flag
+            approval.renewal_sent = False
+            approval.export_to_mooring_booking = True
+            approval.save()
 
-        return approval, approval_created
+            # set proposal status to approved - can change later after manage_stickers
+            self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+            self.save()
+
+            # Retrieve newely added moorings, and send authorised user summary doc to the licence holder
+            mls_to_be_emailed = []
+            from mooringlicensing.components.approvals.models import MooringOnApproval, MooringLicence, Approval, Sticker
+            new_moas = MooringOnApproval.objects.filter(approval=approval, sticker__isnull=True, end_date__isnull=True, active=True)  # New moa doesn't have stickers.
+            for new_moa in new_moas:
+                mls_to_be_emailed = MooringLicence.objects.filter(mooring=new_moa.mooring, status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
+
+            # manage stickers
+            moas_to_be_reallocated, stickers_to_be_returned = approval.manage_stickers(self)
+
+            self.refresh_from_db()
+            #####
+            # Set proposal status after manage _stickers
+            #####
+            stickers_to_be_printed = []
+            if self.approval:
+                stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                stickers_to_be_printed = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING,])
+
+            if len(stickers_to_be_returned):
+                a_sticker = stickers_to_be_returned[0]  # All the stickers to be returned should have the same vessel, so just pick the first one
+                if self.vessel_ownership and a_sticker.vessel_ownership.vessel.rego_no == self.vessel_ownership.vessel.rego_no:
+                    # Same vessel
+                    if stickers_not_exported:
+                        self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                        self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number), )
+                    else:
+                        self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                else:
+                    # Vessel changed OR null vessel
+                    # there is a sticker to be returned, application status gets 'Sticker to be Returned' status
+                    self.processing_status = Proposal.PROCESSING_STATUS_STICKER_TO_BE_RETURNED
+                    self.log_user_action(ProposalUserAction.ACTION_STICKER_TO_BE_RETURNED.format(self.lodgement_number), request)
+            else:
+                # There are no stickers to be returned - before and after the sticker for this application has been printed
+                if stickers_not_exported:
+                    #if we are here, it is an entirely new application and we need a sticker (or a renewal where the vessel has been changed)
+                    self.processing_status = Proposal.PROCESSING_STATUS_PRINTING_STICKER
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+                else:
+                    #otherwise with no stickers to be returned, the application should be approved - this can only occur on an auto-approved amend/renew
+                    self.processing_status = Proposal.PROCESSING_STATUS_APPROVED
+                    self.log_user_action(ProposalUserAction.ACTION_PRINTING_STICKER.format(self.lodgement_number),)
+
+            self.save()
+            self.proposal.save()
+
+            approval.generate_doc()
+            self.proposal.refresh()  # so that the approval doc field is updated by the doc generated above
+
+            # Email - do not send if internal reissue (i.e. only send if there is a request)
+            if request:
+                send_application_approved_or_declined_email(self.proposal, 'approved_paid', request, stickers_to_be_returned)
+
+            # Email to ML holder when new moorings added
+            for mooring_licence in mls_to_be_emailed:
+                mooring_licence.generate_au_summary_doc()
+                if not self.mooring_authorisation_preference == 'ria':
+                    send_au_summary_to_ml_holder(mooring_licence, request, self)
+
+            # Log proposal action
+            if self.auto_approve or not request:
+                self.log_user_action(ProposalUserAction.ACTION_AUTO_APPROVED.format(self.id))
+
+            # Write approval history
+            if self.approval and self.approval.reissued:
+                if request:
+                    approval.write_approval_history('Reissue via application {}'.format(self.lodgement_number))
+            elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_RENEWAL):
+                approval.write_approval_history('Renewal application {}'.format(self.lodgement_number))
+            elif self.proposal_type == ProposalType.objects.get(code=PROPOSAL_TYPE_AMENDMENT):
+                approval.write_approval_history('Amendment application {}'.format(self.lodgement_number))
+            else:
+                approval.write_approval_history()
+
+            self.save()
+            self.proposal.save()
+
+            return approval, approval_created
+        except Exception as e:
+            print(e)
+            msg = 'Payment taken for Proposal: {}, but approval creation has failed\n{}'.format(self.lodgement_number, str(e))
+            logger.error(msg)
+            logger.error(traceback.print_exc())
+            raise e
 
     @property
     def does_accept_null_vessel(self):
