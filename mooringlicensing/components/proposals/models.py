@@ -4838,14 +4838,16 @@ class Vessel(RevisionedMixin):
         return existing_aups
 
     def get_current_mls(self, target_date):
-        from mooringlicensing.components.approvals.models import Approval, MooringLicence
+        from mooringlicensing.components.approvals.models import Approval, MooringLicence, VesselOwnershipOnApproval
+        
+        approval_ids = list(VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel=self,end_date__isnull=True).values_list("approval__id", flat=True))
+        
         existing_mls = MooringLicence.objects.filter(
             status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,),
             start_date__lte=target_date,
             expiry_date__gte=target_date,
             proposal__processing_status__in=(Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_APPROVED,),
-            proposal__vessel_details__vessel=self, #TODO this does not work - should check all vessels on a mooring license not just whatever is on the latest proposal...
-            proposal__vessel_ownership__end_date__isnull=True, #TODO same as above, replace/remove this line as needed
+            id__in=approval_ids
         ).distinct()
         return existing_mls
 
