@@ -5054,7 +5054,7 @@ class VesselDetailsManager(models.Manager):
 class VesselDetails(RevisionedMixin): # ManyToManyField link in Proposal
     vessel_type = models.CharField(max_length=20, choices=VESSEL_TYPES)
     vessel = models.ForeignKey(Vessel, on_delete=models.CASCADE)
-    vessel_name = models.CharField(max_length=400)
+    vessel_name = models.CharField(max_length=400, null=True, blank=True)
     vessel_length = models.DecimalField(max_digits=8, decimal_places=2, default='0.00') # does not exist in MB
     vessel_draft = models.DecimalField(max_digits=8, decimal_places=2)
     vessel_beam = models.DecimalField(max_digits=8, decimal_places=2, default='0.00')

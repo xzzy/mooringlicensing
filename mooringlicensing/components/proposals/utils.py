@@ -473,7 +473,9 @@ def store_vessel_data(request, vessel_data):
             create_vessel_details = True
             break
     
-    #TODO replace null vessel name
+    #replace null vessel name
+    if vessel_details_data["vessel_name"] == None:
+        vessel_details_data["vessel_name"] = ""
 
     if create_vessel_details:
         serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
