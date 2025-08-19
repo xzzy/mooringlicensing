@@ -474,7 +474,7 @@ class ApplicationFeeView(TemplateView):
                 previous_application_fee = previous_application_fees.last()
 
                 if previous_application_fee:
-                    previous_application_fee_items = previous_application_fee.fee_items
+                    previous_application_fee_items = previous_application_fee.fee_items.all()
 
                     for previous_application_fee_item in previous_application_fee_items:
                         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
@@ -489,8 +489,8 @@ class ApplicationFeeView(TemplateView):
                             total_amount = 0 - float(fee_amount)
                             total_amount_excl_tax = 0 - float(ledger_api_client.utils.calculate_excl_gst(fee_amount) if fee_constructor and fee_constructor.incur_gst else fee_amount)
 
-                        oracle_code = proposal.application_type.get_oracle_code_by_date(current_datetime.date())
-                        if proposal.application_type.code == 'mla' and proposal.proposal_type.code == 'swap_moorings':
+                        oracle_code = previous_application_fee_item.fee_constructor.application_type.get_oracle_code_by_date(current_datetime.date())
+                        if previous_application_fee_item.fee_constructor.application_type.code == 'mla' and proposal.proposal_type.code == 'swap_moorings':
                             target_date = datetime.now(pytz.timezone(settings.TIME_ZONE))
                             oracle_code = OracleCodeItem.objects.filter(date_of_enforcement__lte=target_date, application_type__code='mooring_swap').last().value
 

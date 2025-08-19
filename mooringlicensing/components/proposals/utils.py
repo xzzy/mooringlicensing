@@ -472,6 +472,8 @@ def store_vessel_data(request, vessel_data):
             # Value is different between the existing and new --> We create new vessel details rather than updating the existing
             create_vessel_details = True
             break
+    
+    #TODO replace null vessel name
 
     if create_vessel_details:
         serializer = SaveVesselDetailsSerializer(data=vessel_details_data)
