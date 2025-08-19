@@ -362,17 +362,17 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
 
     logger.info(f'submit_vessel_data() is called with the vessel_data: {vessel_data}')
 
-    print(not vessel_data or not vessel_data["vessel_details"] or not (vessel_data["vessel_details"]["vessel_draft"] and vessel_data["vessel_details"]["vessel_length"] and vessel_data["vessel_details"]["vessel_weight"]),vessel_data)
-    if (not vessel_data or not vessel_data["vessel_details"] or 
-        not (vessel_data["vessel_details"]["vessel_draft"] and vessel_data["vessel_details"]["vessel_length"] and vessel_data["vessel_details"]["vessel_weight"])
-    ):
-        raise serializers.ValidationError("Submitted vessel details missing")
-    else:
-        try:
-            if not(float(vessel_data["vessel_details"]["vessel_draft"]) and float(vessel_data["vessel_details"]["vessel_length"]) and float(vessel_data["vessel_details"]["vessel_weight"])):
-                raise serializers.ValidationError("Provided vessel details invalid")
-        except:
-            raise serializers.ValidationError("Provided vessel details invalid")
+    #TODO this needs more conditions to work
+    #if (not vessel_data or not vessel_data["vessel_details"] or 
+    #    not (vessel_data["vessel_details"]["vessel_draft"] and vessel_data["vessel_details"]["vessel_length"] and vessel_data["vessel_details"]["vessel_weight"])
+    #):
+    #    raise serializers.ValidationError("Submitted vessel details missing")
+    #else:
+    #    try:
+    #        if not(float(vessel_data["vessel_details"]["vessel_draft"]) and float(vessel_data["vessel_details"]["vessel_length"]) and float(vessel_data["vessel_details"]["vessel_weight"])):
+    #            raise serializers.ValidationError("Provided vessel details invalid")
+    #    except:
+    #        raise serializers.ValidationError("Provided vessel details invalid")
 
     # Dot vessel rego lookup
     logger.info('Performing DoT check...')
