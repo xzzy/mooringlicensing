@@ -198,8 +198,8 @@
             showDocumentsTab: function(){
                 if (this.is_internal){
                     return true
-                } else if (this.proposal.amendment_requests){
-                    return true
+                } else if (this.proposal.proposal_type.code !== 'new'){
+                    return false 
                 } else if (this.proposal.processing_status === 'Draft' && this.proposal.proposal_type.code === 'new'){
                     return false
                 } else {
