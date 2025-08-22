@@ -329,16 +329,20 @@ class Command(BaseCommand):
 
         if owners_to_be_changed and owners_existing:
             to_be_changed_rego_nos = []
-            for i in owners_to_be_changed[1]:
-                to_be_changed_rego_nos += list(i.vessels.filter(vesselownership__end_date=None).values_list('rego_no',flat=True))
+            for owner_to_be_changed in owners_to_be_changed:
+                for i in owner_to_be_changed[1]:
+                    to_be_changed_rego_nos += list(i.vessels.filter(vesselownership__end_date=None).values_list('rego_no',flat=True))
 
             existing_rego_nos = []
-            for i in owners_existing[1]:
-                existing_rego_nos += list(i.vessels.filter(vesselownership__end_date=None).values_list('rego_no',flat=True))
+            for owner_existing in owners_existing:
+                for i in owner_existing[1]:
+                    existing_rego_nos += list(i.vessels.filter(vesselownership__end_date=None).values_list('rego_no',flat=True))
 
             intersecting_rego_nos = list(set(existing_rego_nos).intersection(set(to_be_changed_rego_nos)))
             if intersecting_rego_nos:
                 return False, "Both accounts own vessels with rego_nos {intersecting_rego_nos}. Please discontinue vessel ownerships under one user to allow for records to merge."
+            else:
+                return True, "No conflicting Owner records"
         else:
             return True, "No conflicting Owner records"
 
@@ -571,7 +575,7 @@ Are you sure you want to continue? (y/n): """)
                         print("Error:",e)
 
             for k in change_ledger_id:
-                if k in special_handling and special_handling[k]:
+                if k in special_handling:
                     continue
                 changed = []
                 for v in change_ledger_id[k]:
