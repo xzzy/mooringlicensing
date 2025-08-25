@@ -1136,7 +1136,7 @@ def getProposalExportFields(data):
     return header, columns
 
 def getApprovalExportFields(data):
-    header = ["Lodgement Number", "Type", "Sticker Number/s" , "Sticker Mailed Date/s", "Holder", "Status", "Mooring", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
+    header = ["Lodgement Number", "Type", "Sticker Number/s" , "Sticker Mailed Date/s", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Status", "Mooring", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
 
     columns = list(data.annotate(type=
         Case(
@@ -1192,6 +1192,9 @@ def getApprovalExportFields(data):
         "sticker_numbers",
         "sticker_mailing_date",
         "holder",
+        "proposal__proposal_applicant__email",
+        "proposal__proposal_applicant__mobile_number",
+        "proposal__proposal_applicant__phone_number",
         "status",
         "mooring_number",
         "issue_date",
@@ -1204,7 +1207,7 @@ def getApprovalExportFields(data):
     return header, columns
 
 def getComplianceExportFields(data):
-    header = ["Lodgement Number", "Type", "Approval Number", "Holder", "Status", "Due Date"]
+    header = ["Lodgement Number", "Type", "Approval Number", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Status", "Due Date"]
 
     columns = list(data.annotate(type=
         Case(
@@ -1234,6 +1237,9 @@ def getComplianceExportFields(data):
         "type",
         "approval__lodgement_number",
         "holder",
+        "proposal__proposal_applicant__email",
+        "proposal__proposal_applicant__mobile_number",
+        "proposal__proposal_applicant__phone_number",
         "processing_status",
         "due_date",
         )
@@ -1242,7 +1248,7 @@ def getComplianceExportFields(data):
     return header, columns
 
 def getWaitingListExportFields(data):
-    header = ["Lodgement Number", "Holder", "Status", "Bay", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
+    header = ["Lodgement Number", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Status", "Bay", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
 
     columns = list(data.annotate(
         holder=Concat(
@@ -1253,6 +1259,9 @@ def getWaitingListExportFields(data):
     ).values_list(
         "lodgement_number",
         "holder",
+        "proposal__proposal_applicant__email",
+        "proposal__proposal_applicant__mobile_number",
+        "proposal__proposal_applicant__phone_number",
         "status",
         "current_proposal__preferred_bay__name",
         "issue_date",
@@ -1265,7 +1274,7 @@ def getWaitingListExportFields(data):
     return header, columns
 
 def getMooringExportFields(data):
-    header = ["Mooring", "Bay", "Status", "Holder", "Authorised User Permits (RIA)", "Authorised User Permits (LIC)", "Max Vessel Length (M)", "Max Vessel Draft (M)"]
+    header = ["Mooring", "Bay", "Status", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Authorised User Permits (RIA)", "Authorised User Permits (LIC)", "Max Vessel Length (M)", "Max Vessel Draft (M)"]
 
     columns = list(data.annotate(
         holder=Concat(
@@ -1308,6 +1317,9 @@ def getMooringExportFields(data):
         "mooring_bay__name",
         "status",
         "holder",
+        "mooring_licence__proposal__proposal_applicant__email",
+        "mooring_licence__proposal__proposal_applicant__mobile_number",
+        "mooring_licence__proposal__proposal_applicant__phone_number",
         "preference_count_ria",
         "preference_count_site_licensee",
         "vessel_size_limit",
@@ -1360,7 +1372,7 @@ def getDcvAdmissionExportFields(data):
     return header, columns
 
 def getStickerExportFields(data):
-    header = ["Sticker Number", "Permit or Licence", "Vessel Registration", "Holder", "Date Sent", "Date Printed", "Date Mailed", "Season", "Invoice Properties" ]
+    header = ["Sticker Number", "Permit or Licence", "Vessel Registration", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Date Sent", "Date Printed", "Date Mailed", "Season", "Invoice Properties" ]
 
     columns = list(data.annotate(
         holder=Concat(
@@ -1373,6 +1385,9 @@ def getStickerExportFields(data):
         "approval__lodgement_number",
         "approval__current_proposal__rego_no",
         "holder",
+        "approval__proposal__proposal_applicant__email",
+        "approval__proposal__proposal_applicant__mobile_number",
+        "approval__proposal__proposal_applicant__phone_number",
         "sticker_printing_batch__emailed_datetime",
         "printing_date",
         "mailing_date",
