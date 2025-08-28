@@ -47,7 +47,7 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context['dev_url'] = settings.DEV_STATIC_URL
 
         notices_obj = {}
-        notices_array = list(Notice.objects.all().order_by("order").values('id','notice_type','message','active'))
+        notices_array = list(Notice.objects.filter(active=True).order_by("order").values('id','notice_type','message','active'))
         notices_obj['notices'] = notices_array
         context['notices_obj'] = notices_obj
 
