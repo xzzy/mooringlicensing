@@ -2,10 +2,36 @@ from django import forms
 from django.contrib import admin
 
 from mooringlicensing.components.main.models import VesselSizeCategory, VesselSizeCategoryGroup, ApplicationType, \
-    NumberOfDaysSetting, NumberOfDaysType, Document, FileExtensionWhitelist
+    NumberOfDaysSetting, NumberOfDaysType, Document, FileExtensionWhitelist, Notice
 from mooringlicensing.components.payments_ml.models import OracleCodeItem
 from django.utils.html import mark_safe
 from django.apps import apps
+from django.utils.html import strip_tags
+from django_summernote.widgets import SummernoteWidget
+
+class NoticeForm(forms.ModelForm):
+    message = forms.CharField(
+        widget=SummernoteWidget(
+            attrs={'summernote': {'toolbar': [['style', ['bold', 'italic', 'underline', 'strikethrough', 'fontsize']], ['insert', ['link']]]}}
+        )
+    )
+
+    class Meta:
+        model = Notice
+        fields = '__all__'
+
+@admin.register(Notice)
+class NoticeAdmin(admin.ModelAdmin):
+    form = NoticeForm
+    list_display = ('formatted_message', 'notice_type', 'order', 'created', 'active')
+    readonly_fields = ['created',]
+
+    def save_model(self, request, obj, form, change):
+        obj.save(exclude_sanitise=["message"])
+
+    def formatted_message(self, obj):
+        return f"{strip_tags(obj.message).replace('&nbsp;', ' ')}"
+    formatted_message.short_description = 'Message'
 
 class VesselSizeCategoryForm(forms.ModelForm):
 

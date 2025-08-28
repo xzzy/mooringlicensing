@@ -14,6 +14,8 @@ from django.core.files.storage import FileSystemStorage
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from dirtyfields import DirtyFieldsMixin
+from django.utils import timezone
+from django.utils.html import strip_tags
 
 import uuid
 
@@ -89,6 +91,29 @@ class SanitiseFileMixin(SanitiseMixin, DirtyFieldsMixin):
     class Meta:
         abstract = True
 
+
+class Notice(SanitiseMixin):
+
+    NOTICE_TYPE_CHOICES = (
+        (0, 'Red Warning'),
+        (1, 'Orange Warning'),
+        (2, 'Blue Warning') ,
+        (3, 'Green Warning')   
+        )
+
+    notice_type = models.IntegerField(choices=NOTICE_TYPE_CHOICES,default=0)
+    message = models.TextField(null=True, blank=True, default='')
+    order = models.IntegerField(default=1)
+    active = models.BooleanField(default=True)
+    created = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+           return '{}'.format(strip_tags(self.message).replace('&nbsp;', ' '))
+    
+    def save(self, *args, **kwargs):
+        cache.delete('utils_cache.get_notices()')
+        self.full_clean()
+        super(Notice, self).save(*args, **kwargs)
 
 class UserAction(models.Model):
     who = models.IntegerField(null=True, blank=True)
