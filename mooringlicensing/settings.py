@@ -68,6 +68,7 @@ INSTALLED_APPS += [
     'appmonitor_client',
     'crispy_bootstrap5',
     'crispy_forms',
+    'django_summernote',
 ]
 
 ADD_REVERSION_ADMIN=True

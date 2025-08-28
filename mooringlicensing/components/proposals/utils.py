@@ -421,7 +421,11 @@ def submit_vessel_data(instance, request, vessel_data=None, approving=False):
 
     if not vessel_data.get('rego_no'):
         #MLA and WLA do not need a vessel to be submitted
-        if isinstance(instance, MooringLicenceApplication) or isinstance(instance, WaitingListApplication):
+        if (
+            hasattr(instance,"child_obj") and (isinstance(instance.child_obj, MooringLicenceApplication) or isinstance(instance.child_obj, WaitingListApplication))
+            or 
+            (isinstance(instance, MooringLicenceApplication) or isinstance(instance, WaitingListApplication))
+        ):
             return
         else:
             raise serializers.ValidationError("Application cannot be submitted without a vessel listed")

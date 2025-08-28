@@ -120,6 +120,7 @@ api_patterns = [
 # URL Patterns
 urlpatterns = [
     path(r"admin/", admin.site.urls),
+    path('summernote/', include('django_summernote.urls')),
     re_path(r'^chaining/', include('smart_selects.urls')),
     re_path(r'', include(api_patterns)),
     re_path(r'^$', views.MooringLicensingRoutingView.as_view(), name='home'),

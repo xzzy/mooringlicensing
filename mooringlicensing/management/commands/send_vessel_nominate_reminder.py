@@ -38,7 +38,7 @@ class Command(BaseCommand):
             days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_WLA).first()
             approval_class = WaitingListAllocation
         elif approval_type == MooringLicence.code:
-            days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML).first(0)
+            days_type = NumberOfDaysType.objects.filter(code=CODE_DAYS_BEFORE_END_OF_SIX_MONTH_PERIOD_ML).first()
             approval_class = MooringLicence
         else:
             # Do nothing
