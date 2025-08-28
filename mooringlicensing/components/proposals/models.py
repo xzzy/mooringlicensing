@@ -2491,6 +2491,10 @@ class Proposal(RevisionedMixin):
             vessel_details = vdqs.last()
             if vessel_details.vessel_length == self.vessel_length:
                 return False
+
+            if not self.vessel_length: #if we are here it means that the vessel details length is not none, therefore is the vessel length of the proposal is None it is in a different category
+                return True
+
             current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
             current_datetime_str = current_datetime.astimezone(pytz.timezone(TIME_ZONE)).strftime('%d/%m/%Y %I:%M %p')
             target_date = self.get_target_date(current_datetime.date())
