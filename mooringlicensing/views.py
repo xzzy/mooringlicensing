@@ -47,15 +47,10 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context['dev_url'] = settings.DEV_STATIC_URL
 
         notices_obj = {}
-        notices_query = Notice.objects.all().order_by("order")
-        notices_array = []
-        for nq in notices_query:
-               notices_array.append({'id': nq.id, 'notice_type' : nq.notice_type, 'message': nq.message, 'active': nq.active})
-
+        notices_array = list(Notice.objects.all().order_by("order").values('id','notice_type','message','active'))
         notices_obj['notices'] = notices_array
-
         context['notices_obj'] = notices_obj
-        print("\n\n\n\n",notices_obj)
+
         if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
             context['app_build_url'] = settings.DEV_APP_BUILD_URL
         return context
