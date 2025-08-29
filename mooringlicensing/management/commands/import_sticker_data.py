@@ -212,12 +212,12 @@ def process_sticker_printing_response(process_summary):
                             for j in range(len(rows[i])):
                                 if 'batch' in rows[i][j].strip().lower() and 'date' in rows[i][j].strip().lower():
                                     batch_date_column = j  # 1-based
-                                    header_row = i # 1-based
                                 elif 'sticker' in rows[i][j].strip().lower() and 'number' in rows[i][j].strip().lower():
                                     sticker_number_column = j
-                                elif 'printing' in rows[i][j].strip().lower() and 'date' in rows[i][j].strip().lower():
+                                    header_row = i # 1-based
+                                elif ('printing' in rows[i][j].strip().lower() or 'printed' in rows[i][j].strip().lower()) and 'date' in rows[i][j].strip().lower():
                                     printing_date_column = j
-                                elif 'mailing' in rows[i][j].strip().lower() and 'date' in rows[i][j].strip().lower():
+                                elif ('mailing' in rows[i][j].strip().lower() or 'mailed' in rows[i][j].strip().lower()) and 'date' in rows[i][j].strip().lower():
                                     mailing_date_column = j
                             if header_row != None:
                                 break
@@ -301,13 +301,13 @@ def process_sticker_printing_response(process_summary):
                     for row in ws.rows:
                         for cell in row:
                             if 'batch' in cell.value.lower() and 'date' in cell.value.lower():
-                                batch_date_column = cell.column  # 1-based
-                                header_row = cell.row  # 1-based
+                                batch_date_column = cell.column  # 1-based                              
                             elif 'sticker' in cell.value.lower() and 'number' in cell.value.lower():
                                 sticker_number_column = cell.column
-                            elif 'printing' in cell.value.lower() and 'date' in cell.value.lower():
+                                header_row = cell.row  # 1-based
+                            elif ('printing' in cell.value.lower() or 'printed' in cell.value.lower()) and 'date' in cell.value.lower():
                                 printing_date_column = cell.column
-                            elif 'mailing' in cell.value.lower() and 'date' in cell.value.lower():
+                            elif ('mailing' in cell.value.lower() or 'mailed' in cell.value.lower()) and 'date' in cell.value.lower():
                                 mailing_date_column = cell.column
                         if header_row > 0:
                             break
