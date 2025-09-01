@@ -534,7 +534,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
         return bay_id
 
     def get_status(self, obj):
-        return obj.get_status_display()
+        return obj.detailed_status
 
     def get_internal_status(self, obj):
         return obj.get_internal_status_display()
@@ -960,7 +960,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return bay_id
 
     def get_status(self, obj):
-        return obj.get_status_display()
+        return obj.detailed_status
 
     def get_internal_status(self, obj):
         return obj.get_internal_status_display()
@@ -1062,7 +1062,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
         return '/internal/approval/{}'.format(obj.id)
 
     def get_status(self, obj):
-        return obj.get_status_display()
+        return obj.detailed_status
 
     def get_approval_type_dict(self, obj):
         try:
