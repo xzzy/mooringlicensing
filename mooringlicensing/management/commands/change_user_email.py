@@ -490,6 +490,8 @@ class Command(BaseCommand):
                         existing_system_user.legal_first_name = current_email_system.legal_first_name
                     if not existing_system_user.legal_last_name:
                         existing_system_user.legal_last_name = current_email_system.legal_last_name
+                    if not existing_system_user.legal_dob:
+                        existing_system_user.legal_dob = current_email_system.legal_dob
                     if not existing_system_user.title:
                         existing_system_user.title = current_email_system.title
                     if not existing_system_user.phone_number:

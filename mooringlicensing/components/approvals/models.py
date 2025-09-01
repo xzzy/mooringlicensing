@@ -336,6 +336,34 @@ class Approval(RevisionedMixin):
     def grace_period_end_date(self):
         return self.child_obj.get_grace_period_end_date()
 
+    @property
+    def detailed_status(self):
+        
+        if self.set_to_cancel or self.set_to_surrender:
+            surrender_date = None
+            cancellation_date = None
+
+            if self.set_to_surrender:
+                if "surrender_date" in self.surrender_details:
+                    surrender_date = self.surrender_details["surrender_date"]
+            if self.set_to_cancel:
+                    cancellation_date = self.cancellation_date.strftime("%d/%m/%Y")
+
+            if surrender_date and cancellation_date:
+                s_date = datetime.strptime(surrender_date,"%d/%m/%Y")
+                c_date = self.cancellation_date
+                
+                if s_date < c_date:
+                    cancellation_date = None
+                else:
+                    surrender_date = None
+            if surrender_date:
+                return "Surrender Pending ({})".format(surrender_date)
+            if cancellation_date:
+                return "Cancellation Pending ({})".format(cancellation_date)
+
+        return self.get_status_display()
+
     def cancel_existing_annual_admission_permit(self, current_date):
         # Cancel existing annual admission permit for the same vessl if exists
         if self.current_proposal and self.current_proposal.vessel_ownership:

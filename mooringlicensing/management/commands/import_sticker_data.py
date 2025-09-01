@@ -4,6 +4,7 @@ import email
 import ssl
 import openpyxl
 from django.utils import timezone
+import csv
 
 from confy import env
 from django.core.management.base import BaseCommand
@@ -100,7 +101,8 @@ class Command(BaseCommand):
                         if part.get('Content-Disposition') is None:
                             continue
                         fileName = part.get_filename()
-                        if bool(fileName) and fileName.lower().endswith('.xlsx'):
+
+                        if bool(fileName) and (fileName.lower().endswith('.xlsx') or (fileName.lower().endswith('.csv'))):
                             now = timezone.localtime(timezone.now())
 
                             # Create sticker_printing_response object. File is not saved yet
@@ -187,94 +189,184 @@ def process_sticker_printing_response(process_summary):
         if response._file:
             response.no_errors_when_process = True
             # Load file
-            try:
-                wb = openpyxl.load_workbook(response._file)
-
-                # Retrieve the first worksheet
-                ws = wb.worksheets[0]
-            except IndexError as e:
-                logger.warning('No worksheet found in the file: {}'.format(response._file.name))
-                continue
-            except Exception as e:
-                err_msg = 'Error loading the file/worksheet: {}'.format(response._file.name)
-                logger.exception('{}\n{}'.format(err_msg, str(e)))
-                errors.append(err_msg)
-                response.no_errors_when_process = False
+            if response._file.name:
+                filename = response._file.name
+            else:
                 continue
 
-            try:
-                # Loop rows in order to determine which column is what
-                header_row = 0
-                batch_date_column, sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0, 0
-                for row in ws.rows:
-                    for cell in row:
-                        if 'batch' in cell.value.lower() and 'date' in cell.value.lower():
-                            batch_date_column = cell.column  # 1-based
-                            header_row = cell.row  # 1-based
-                        elif 'sticker' in cell.value.lower() and 'number' in cell.value.lower():
-                            sticker_number_column = cell.column
-                        elif 'printing' in cell.value.lower() and 'date' in cell.value.lower():
-                            printing_date_column = cell.column
-                        elif 'mailing' in cell.value.lower() and 'date' in cell.value.lower():
-                            mailing_date_column = cell.column
-                    if header_row > 0:
-                        break
-            except Exception as e:
-                err_msg = 'Error loading the table headers {}'.format(response._file.name)
-                logger.exception('{}\n{}'.format(err_msg, str(e)))
-                errors.append(err_msg)
-                response.no_errors_when_process = False
-                continue
-
-            # Loop rows after the header row and retrieve values
-            for row in ws.iter_rows(min_row=header_row + 1):
-                if all(is_empty(c) for c in row):
-                    # Found empty row, finish processing rows
-                    break
+            if filename.lower().endswith('.csv'):
                 try:
-                    batch_date_value = row[batch_date_column - 1].value  # [] is index, therefore minus 1
-                    sticker_number_value = row[sticker_number_column - 1].value
-                    printing_date_value = row[printing_date_column - 1].value
-                    mailing_date_value = row[mailing_date_column - 1].value
+                    with open(response._file.path) as csvfile:
+                        rows = csv.reader(csvfile)
 
-                    batch_date_value = make_sure_datetime(batch_date_value)
-                    sticker_number_value = make_sure_sticker_number(sticker_number_value)
-                    printing_date_value = make_sure_datetime(printing_date_value)
-                    mailing_date_value = make_sure_datetime(mailing_date_value)
+                        temp_rows = []
+                        for row in rows:
+                            temp_rows.append(row)
+                        rows = temp_rows
 
-                    # Find a sticker from the Database and change its attributes
-                    sticker = Sticker.objects.get(number=sticker_number_value)
-                    sticker.printing_date = printing_date_value
-                    sticker.mailing_date = mailing_date_value
-                    sticker.sticker_printing_response = response
-                    if sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
-                        # sticker should not be in READY status though.
-                        sticker.status = Sticker.STICKER_STATUS_CURRENT
-                    sticker.save()
-                    process_summary['stickers'].append(sticker)
+                        header_row = None
+                        batch_date_column, sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0, 0
 
-                    updates.append(sticker.number)
-                except Sticker.DoesNotExist as e:
-                    err_msg = 'Error sticker {} not found to update'.format(sticker_number_value)
+                        #determine header row (if it's not the first row for some reason) and cell column positions (batch date, sticker number, printing date, mailing date)
+                        for i in range(len(rows)):
+                            for j in range(len(rows[i])):
+                                if 'batch' in rows[i][j].strip().lower() and 'date' in rows[i][j].strip().lower():
+                                    batch_date_column = j  # 1-based
+                                elif 'sticker' in rows[i][j].strip().lower() and 'number' in rows[i][j].strip().lower():
+                                    sticker_number_column = j
+                                    header_row = i # 1-based
+                                elif ('printing' in rows[i][j].strip().lower() or 'printed' in rows[i][j].strip().lower()) and 'date' in rows[i][j].strip().lower():
+                                    printing_date_column = j
+                                elif ('mailing' in rows[i][j].strip().lower() or 'mailed' in rows[i][j].strip().lower()) and 'date' in rows[i][j].strip().lower():
+                                    mailing_date_column = j
+                            if header_row != None:
+                                break
+
+                        for i in range(len(rows)):
+                            if i == header_row:
+                                continue
+
+                            try:
+                                batch_date_value = rows[i][batch_date_column]
+                                sticker_number_value = int(rows[i][sticker_number_column])
+                                printing_date_value = rows[i][printing_date_column]
+                                mailing_date_value = rows[i][mailing_date_column]
+
+                                batch_date_value = make_sure_datetime(batch_date_value)
+                                sticker_number_value = make_sure_sticker_number(sticker_number_value)
+                                printing_date_value = make_sure_datetime(printing_date_value)
+                                mailing_date_value = make_sure_datetime(mailing_date_value)
+
+                                # Find a sticker from the Database and change its attributes
+                                sticker = Sticker.objects.get(number=sticker_number_value)
+                                sticker.printing_date = printing_date_value
+                                sticker.mailing_date = mailing_date_value
+                                sticker.sticker_printing_response = response
+                                if sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
+                                    # sticker should not be in READY status though.
+                                    sticker.status = Sticker.STICKER_STATUS_CURRENT
+                                sticker.save()
+                                process_summary['stickers'].append(sticker)
+
+                                updates.append(sticker.number)
+                            except Sticker.DoesNotExist as e:
+                                err_msg = 'Error sticker {} not found to update'.format(sticker_number_value)
+                                logger.exception('{}\n{}'.format(err_msg, str(e)))
+                                errors.append(err_msg)
+                                response.no_errors_when_process = False
+                                process_summary['errors'].append(err_msg)
+                                response.processed = True  # Update response obj not to process again.  But from no_errors_when_process flag tells admin that there was an error.
+                                response.save()
+                                continue
+                            except Exception as e:
+                                err_msg = 'Error updating the sticker {}'.format(sticker_number_value)
+                                logger.exception('{}\n{}'.format(err_msg, str(e)))
+                                errors.append(err_msg)
+                                response.no_errors_when_process = False
+                                process_summary['errors'].append(err_msg)
+                                response.processed = True  # Update response obj not to process again.  But from no_errors_when_process flag tells admin that there was an error.
+                                response.save()
+                                continue
+
+                except Exception as e:
+                    err_msg = 'Error loading the file/worksheet: {}'.format(response._file.name)
                     logger.exception('{}\n{}'.format(err_msg, str(e)))
                     errors.append(err_msg)
                     response.no_errors_when_process = False
-                    process_summary['errors'].append(err_msg)
-                    response.processed = True  # Update response obj not to process again.  But from no_errors_when_process flag tells admin that there was an error.
-                    response.save()
+                    continue
+
+                response.processed = True  # Update response obj not to process again
+                response.save()
+
+            elif filename.lower().endswith('.xlsx'):
+                try:
+                    wb = openpyxl.load_workbook(response._file)
+
+                    # Retrieve the first worksheet
+                    ws = wb.worksheets[0]
+                except IndexError as e:
+                    logger.warning('No worksheet found in the file: {}'.format(response._file.name))
                     continue
                 except Exception as e:
-                    err_msg = 'Error updating the sticker {}'.format(sticker_number_value)
+                    err_msg = 'Error loading the file/worksheet: {}'.format(response._file.name)
                     logger.exception('{}\n{}'.format(err_msg, str(e)))
                     errors.append(err_msg)
                     response.no_errors_when_process = False
-                    process_summary['errors'].append(err_msg)
-                    response.processed = True  # Update response obj not to process again.  But from no_errors_when_process flag tells admin that there was an error.
-                    response.save()
                     continue
 
-            response.processed = True  # Update response obj not to process again
-            response.save()
+                try:
+                    # Loop rows in order to determine which column is what
+                    header_row = 0
+                    batch_date_column, sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0, 0
+                    for row in ws.rows:
+                        for cell in row:
+                            if 'batch' in cell.value.lower() and 'date' in cell.value.lower():
+                                batch_date_column = cell.column  # 1-based                              
+                            elif 'sticker' in cell.value.lower() and 'number' in cell.value.lower():
+                                sticker_number_column = cell.column
+                                header_row = cell.row  # 1-based
+                            elif ('printing' in cell.value.lower() or 'printed' in cell.value.lower()) and 'date' in cell.value.lower():
+                                printing_date_column = cell.column
+                            elif ('mailing' in cell.value.lower() or 'mailed' in cell.value.lower()) and 'date' in cell.value.lower():
+                                mailing_date_column = cell.column
+                        if header_row > 0:
+                            break
+                except Exception as e:
+                    err_msg = 'Error loading the table headers {}'.format(response._file.name)
+                    logger.exception('{}\n{}'.format(err_msg, str(e)))
+                    errors.append(err_msg)
+                    response.no_errors_when_process = False
+                    continue
+
+                # Loop rows after the header row and retrieve values
+                for row in ws.iter_rows(min_row=header_row + 1):
+                    if all(is_empty(c) for c in row):
+                        # Found empty row, finish processing rows
+                        break
+                    try:
+                        batch_date_value = row[batch_date_column - 1].value  # [] is index, therefore minus 1
+                        sticker_number_value = row[sticker_number_column - 1].value
+                        printing_date_value = row[printing_date_column - 1].value
+                        mailing_date_value = row[mailing_date_column - 1].value
+
+                        batch_date_value = make_sure_datetime(batch_date_value)
+                        sticker_number_value = make_sure_sticker_number(sticker_number_value)
+                        printing_date_value = make_sure_datetime(printing_date_value)
+                        mailing_date_value = make_sure_datetime(mailing_date_value)
+
+                        # Find a sticker from the Database and change its attributes
+                        sticker = Sticker.objects.get(number=sticker_number_value)
+                        sticker.printing_date = printing_date_value
+                        sticker.mailing_date = mailing_date_value
+                        sticker.sticker_printing_response = response
+                        if sticker.status in (Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY):
+                            # sticker should not be in READY status though.
+                            sticker.status = Sticker.STICKER_STATUS_CURRENT
+                        sticker.save()
+                        process_summary['stickers'].append(sticker)
+
+                        updates.append(sticker.number)
+                    except Sticker.DoesNotExist as e:
+                        err_msg = 'Error sticker {} not found to update'.format(sticker_number_value)
+                        logger.exception('{}\n{}'.format(err_msg, str(e)))
+                        errors.append(err_msg)
+                        response.no_errors_when_process = False
+                        process_summary['errors'].append(err_msg)
+                        response.processed = True  # Update response obj not to process again.  But from no_errors_when_process flag tells admin that there was an error.
+                        response.save()
+                        continue
+                    except Exception as e:
+                        err_msg = 'Error updating the sticker {}'.format(sticker_number_value)
+                        logger.exception('{}\n{}'.format(err_msg, str(e)))
+                        errors.append(err_msg)
+                        response.no_errors_when_process = False
+                        process_summary['errors'].append(err_msg)
+                        response.processed = True  # Update response obj not to process again.  But from no_errors_when_process flag tells admin that there was an error.
+                        response.save()
+                        continue
+
+                response.processed = True  # Update response obj not to process again
+                response.save()
 
     return updates, errors
 
