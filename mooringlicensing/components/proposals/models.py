@@ -3877,7 +3877,7 @@ class AuthorisedUserApplication(Proposal):
             # Email to ML holder when new moorings added
             for mooring_licence in mls_to_be_emailed:
                 mooring_licence.generate_au_summary_doc()
-                if not self.mooring_authorisation_preference == 'ria':
+                if not self.mooring_authorisation_preference == 'ria' and self.proposal_type and self.proposal_type.code == 'new':
                     send_au_summary_to_ml_holder(mooring_licence, request, self)
 
             # Log proposal action
