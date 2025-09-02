@@ -198,6 +198,11 @@ class ApplicationFeeExistingView(APIView):
 
         if is_internal(request) or invoice.owner.id == request.user.id:
             application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
+            proposal = application_fee.proposal
+            if not proposal:
+                raise serializers.ValidationError("Fee proposal does not exist")
+            if proposal and proposal.processing_status == "expired" and not is_internal(request):
+                raise serializers.ValidationError("The application has expired")
 
             if get_invoice_payment_status(invoice.id) in ['paid', 'over_paid',]:
                 return redirect('application_fee_already_paid', proposal_pk=application_fee.proposal.id)
@@ -217,7 +222,7 @@ class ApplicationFeeExistingView(APIView):
                     return_url = request.build_absolute_uri(reverse('fee_success', kwargs={"uuid": application_fee.uuid}))
                     fallback_url = request.build_absolute_uri(reverse("external"))
                     payment_session = ledger_api_client.utils.generate_payment_session(request, invoice.reference, return_url, fallback_url)
-                    proposal = application_fee.proposal                    
+
                     request.session["payment_pk"] = proposal.pk
                     request.session["payment_model"] = "proposal"
                     return HttpResponseRedirect(payment_session['payment_url'])

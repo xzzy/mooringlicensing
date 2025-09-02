@@ -185,6 +185,7 @@ class MooringOnApproval(RevisionedMixin):
     site_licensee = models.BooleanField()
     end_date = models.DateField(blank=True, null=True)
     active = models.BooleanField(default=True)
+    migrated = models.BooleanField(default=False)
 
     def __str__(self):
         approval = self.approval.lodgement_number if self.approval else ' '
