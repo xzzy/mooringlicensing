@@ -102,9 +102,9 @@ class Notice(SanitiseMixin):
         )
     
     PAGE_CHOICES = (
-        ('','Dashboard'),
-        ('proposal','Proposal'),
-        ('compliance','Compliance'),
+        ('','External Dashboard'),
+        ('proposal','Application Page'),
+        ('compliance','Compliance Page'),
     )
 
     notice_type = models.IntegerField(choices=NOTICE_TYPE_CHOICES,default=0)

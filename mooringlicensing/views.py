@@ -46,17 +46,19 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
 
-        print("\n\n\n",self.request.path)
-
         notices_obj = {}
         notices_qs = Notice.objects.filter(active=True).order_by("order").values('id','notice_type','message','active')
+        notices_page = "dashboard"
 
         if "proposal" in self.request.path:
             notices_qs = notices_qs.filter(page="proposal")
+            notices_page = "proposal"
         if "compliance" in self.request.path:
             notices_qs = notices_qs.filter(page="compliance")
+            notices_page = "compliance"
 
         notices_obj['notices'] = list(notices_qs)
+        notices_obj['page'] = notices_page
         context['notices_obj'] = notices_obj
 
         if hasattr(settings, 'DEV_APP_BUILD_URL') and settings.DEV_APP_BUILD_URL:
