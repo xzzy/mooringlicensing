@@ -419,29 +419,30 @@ export default {
     },
     save: async function(withConfirm=true, url=this.proposal_form_url) {
         let vm = this;
+        let payload = this.buildPayload();
         vm.savingProposal=true;
 
-        let payload = this.buildPayload();
-
-        const res = await vm.$http.post(url, payload);
-        if (res.ok) {
-            if (withConfirm) {
-                swal(
-                    'Saved',
-                    'Your application has been saved',
-                    'success'
-                );
-            };
-            if (res.body.auto_approve !== undefined) {
-                vm.proposal.auto_approve = res.body.auto_approve;
+        try {
+          const res = await vm.$http.post(url, payload); 
+          if (res.ok) {
+              if (withConfirm) {
+                  swal(
+                      'Saved',
+                      'Your application has been saved',
+                      'success'
+                  );
+              };
+              if (res.body.auto_approve !== undefined) {
+                  vm.proposal.auto_approve = res.body.auto_approve;
+              }
+              vm.savingProposal=false;
+              this.submitRes = true;
+              return res;
             }
-            vm.savingProposal=false;
-            this.submitRes = true;
-            return res;
-        } else {
+        } catch(err) {
             swal({
                 title: "Please fix following errors before saving",
-                text: err.bodyText,
+                text: helpers.formatError(err),
                 type:'error'
             });
             vm.savingProposal=false;
