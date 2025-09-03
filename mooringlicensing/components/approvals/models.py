@@ -2149,7 +2149,7 @@ class MooringLicence(Approval):
             'approval': self,
             'application': self.current_proposal,
             'issue_date': self.issue_date.strftime('%d/%m/%Y'),
-            'applicant_first_name': retrieve_email_userro(self.proposal_applicant.email_user_id).first_name if (self.proposal_applicant and self.proposal_applicant.email_user_id) else "",
+            'applicant_first_name': self.current_proposal.proposal_applicant.first_name if self.current_proposal and self.current_proposal.proposal_applicant else '',
             'mooring_name': self.mooring.name,
             'authorised_persons': authorised_persons,
             'public_url': get_public_url(),
