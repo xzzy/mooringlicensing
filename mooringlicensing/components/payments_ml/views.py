@@ -201,7 +201,7 @@ class ApplicationFeeExistingView(APIView):
             proposal = application_fee.proposal
             if not proposal:
                 raise serializers.ValidationError("Fee proposal does not exist")
-            if proposal and proposal.processing_status == "expired" and not is_internal(request):
+            if proposal and proposal.processing_status == "expired":
                 raise serializers.ValidationError("The application has expired")
 
             if get_invoice_payment_status(invoice.id) in ['paid', 'over_paid',]:

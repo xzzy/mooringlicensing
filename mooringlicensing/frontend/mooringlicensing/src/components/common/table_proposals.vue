@@ -282,7 +282,7 @@ export default {
                             if (
                                 (invoice.payment_status.toLowerCase() === 'unpaid' || 
                                 invoice.payment_status.toLowerCase() === 'partially paid') &&
-                                (full.processing_status !== 'Expired' || vm.is_internal)
+                                full.processing_status !== 'Expired'
                             ){
                                 links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a>`
                             }

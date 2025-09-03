@@ -385,7 +385,7 @@ class Proposal(RevisionedMixin):
             if not ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request.user)):
                 raise serializers.ValidationError("User not authorised to cancel proposal payment")
 
-            if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+            if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.processing_status != Proposal.PROCESSING_STATUS_EXPIRED:
                 raise serializers.ValidationError("Unable to cancel proposal payment (not awaiting payment)")
             
             #Remove Ledger Invoice - proceed only if successful
@@ -1244,7 +1244,7 @@ class Proposal(RevisionedMixin):
         """
         :return: True if the application is in one of the approved status.
         """
-        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT
+        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT or self.customer_status in self.CUSTOMER_STATUS_EXPIRED
 
     @property
     def permit(self):

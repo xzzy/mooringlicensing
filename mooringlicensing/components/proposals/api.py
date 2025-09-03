@@ -1907,7 +1907,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             is_internal(request)):
             instance.withdraw(request, *args, **kwargs)
         else:
-            if instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+            if instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT or instance.processing_status == Proposal.PROCESSING_STATUS_EXPIRED:
                 instance.cancel_payment(request)
             else:
                 instance.destroy(request, *args, **kwargs)
