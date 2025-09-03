@@ -7,7 +7,7 @@ import logging
 
 from mooringlicensing.components.proposals.email import send_expire_application_email, send_expire_notification_to_assessor
 from mooringlicensing.components.main.models import NumberOfDaysType, NumberOfDaysSetting
-from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.proposals.models import Proposal, ProposalUserAction
 from mooringlicensing.management.commands.utils import construct_email_message
 from mooringlicensing.settings import CODE_DAYS_BEFORE_DUE_PAYMENT
 
@@ -40,6 +40,7 @@ class Command(BaseCommand):
             try:
                 p.processing_status = Proposal.PROCESSING_STATUS_EXPIRED
                 p.save()
+                ProposalUserAction.log_action(p, ProposalUserAction.ACTION_EXPIRED_PROPOSAL.format(p.lodgement_number))
 
                 send_expire_application_email(p, p.payment_due_date)
                 send_expire_notification_to_assessor(p, p.payment_due_date)

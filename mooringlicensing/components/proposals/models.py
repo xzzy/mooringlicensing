@@ -5589,6 +5589,7 @@ class ProposalUserAction(UserAction):
     ACTION_UPDATE_APPROVAL_ = "Update Approval for application {}"
     ACTION_APPROVED = "Grant application {}"
     ACTION_AUTO_APPROVED = "Grant application {}"
+    ACTION_EXPIRED_PROPOSAL = "Proposal expired {} due to no payment"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
     ACTION_WITHDRAW_PROPOSAL = "Withdraw application {}"
