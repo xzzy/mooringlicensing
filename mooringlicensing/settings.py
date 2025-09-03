@@ -547,6 +547,7 @@ AUTO_CANCEL_APPROVAL_WHEN_GRACE_PERIOD_EXPIRED = env('AUTO_CANCEL_APPROVAL_WHEN_
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 PREVIOUS_PAYMENT_REASON = env('PREVIOUS_PAYMENT_REASON', "Adjustment - Previous payment made")
+STICKER_EXPORT_RUN_TIME_MESSAGE = env('STICKER_EXPORT_RUN_TIME_MESSAGE',"Sticker export runs every Monday 7:30AM AWST") #make sure this corresponds to export_and_email_sticker_data in python-cron
 
 CSRF_TRUSTED_ORIGINS_STRING = decouple.config("CSRF_TRUSTED_ORIGINS", default='[]')
 CSRF_TRUSTED_ORIGINS = json.loads(str(CSRF_TRUSTED_ORIGINS_STRING))

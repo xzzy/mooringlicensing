@@ -22,7 +22,7 @@ from mooringlicensing.settings import (
     GROUP_APPROVER_MOORING_LICENCE, 
     PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL,
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, 
-    PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
+    PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA, STICKER_EXPORT_RUN_TIME_MESSAGE
 )
 
 from django.db import models, transaction
@@ -1948,7 +1948,7 @@ class Proposal(RevisionedMixin):
                 if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
-                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
+                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                     
                     if self.application_type_code == 'mla' or self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
                         from mooringlicensing.components.approvals.models import MooringOnApproval
@@ -1961,7 +1961,7 @@ class Proposal(RevisionedMixin):
                         moa_set = MooringOnApproval.objects.filter(query)
                         for i in moa_set:
                             if i.approval and i.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]).exists():
-                                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+'].')
+                                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
 
                 # Validation & update proposed_issuance_approval

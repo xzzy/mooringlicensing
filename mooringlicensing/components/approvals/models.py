@@ -20,7 +20,7 @@ from django.db.models import Q
 from django_countries.fields import CountryField
 
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
-from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, GROUP_DCV_PERMIT_ADMIN, PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL
+from mooringlicensing.settings import PROPOSAL_TYPE_SWAP_MOORINGS, TIME_ZONE, GROUP_DCV_PERMIT_ADMIN, PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL, STICKER_EXPORT_RUN_TIME_MESSAGE
 from ledger_api_client.ledger_models import Invoice, EmailUserRO
 from mooringlicensing.components.approvals.pdf import (
     create_dcv_permit_document, create_dcv_admission_document, 
@@ -1548,7 +1548,7 @@ class AnnualAdmissionPermit(Approval):
 
             if self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
                 # Should not reach here
-                raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
             # Handle the existing sticker if there is.
             existing_stickers = self.stickers.filter(status__in=[
@@ -1777,7 +1777,7 @@ class AuthorisedUserPermit(Approval):
 
         stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
         if stickers_not_exported:
-            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
         # Lists to be returned to the caller
         moas_to_be_reallocated = []  # List of MooringOnApproval objects which are to be on the new stickers
@@ -2298,7 +2298,7 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
                 stickers_for_this_vessel = self.stickers.filter(
@@ -2374,7 +2374,7 @@ class MooringLicence(Approval):
 
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
-                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
             
                     new_sticker = Sticker.objects.create(
                         approval=self,
@@ -2501,7 +2501,7 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
                 stickers_for_this_vessel = self.stickers.filter(
@@ -2572,7 +2572,7 @@ class MooringLicence(Approval):
 
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
-                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
             
                     new_sticker = Sticker.objects.create(
                         approval=self,
@@ -2633,7 +2633,7 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
                 existing_sticker = self.stickers.filter(
@@ -2651,7 +2651,7 @@ class MooringLicence(Approval):
 
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}].')
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
                 # Sticker not found --> Create it
                 new_sticker = Sticker.objects.create(
