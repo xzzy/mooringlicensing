@@ -1191,12 +1191,26 @@ class Approval(RevisionedMixin):
                     logger.error('ApplicationFee: {} does not have any fee_item. It should have at least one.')
         return fee_items
 
+    #get_applied_fee_items - get fee items where the application has been approved (incl. printing sticker) (and therefore paid for AND applied)
+    def get_applied_fee_items(self):
+        fee_items = []
+        for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
+            logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
+            for application_fee in proposal.application_fees.filter(cancelled=False):
+                if application_fee.fee_items:
+                    for fee_item in application_fee.fee_items.all():
+                        fee_items.append(fee_item)
+                else:
+                    # Should not reach here, however the data generated at the early stage of the development may reach here.
+                    logger.error('ApplicationFee: {} does not have any fee_item. It should have at least one.')
+        return fee_items
+
     @property
     def latest_applied_season(self):
         latest_applied_season = None
 
-        if self.get_fee_items():
-            for fee_item in self.get_fee_items():
+        if self.get_applied_fee_items():
+            for fee_item in self.get_applied_fee_items():
                 if latest_applied_season:
                     if latest_applied_season.end_date < fee_item.fee_period.fee_season.end_date:
                         latest_applied_season = fee_item.fee_period.fee_season
@@ -1204,7 +1218,7 @@ class Approval(RevisionedMixin):
                     latest_applied_season = fee_item.fee_period.fee_season
         else:
             logger.info(f'No FeeItems found under the Approval: {self}.  Probably because the approval is AUP and the ML for the same vessel exists.')
-            for proposal in self.proposal_set.all():
+            for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
                 if proposal.fee_season:
                     if latest_applied_season:
                         if latest_applied_season.end_date < proposal.fee_season.end_date:

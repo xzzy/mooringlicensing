@@ -2412,15 +2412,8 @@ class Proposal(RevisionedMixin):
                 logger.error(msg)
                 raise Exception(msg)
         elif self.proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL:
-
-            #check if this proposal has an associated amendment request, if it does treat as a reissue if outside original season
-            amendment_request_exists = AmendmentRequest.objects.filter(proposal=self).exists()
-
             if (
-                applied_date < self.approval.latest_applied_season.start_date or 
-                    (self.approval.latest_applied_season.start_date <= applied_date <= self.approval.latest_applied_season.end_date and
-                        amendment_request_exists
-                    )
+                applied_date < self.approval.latest_applied_season.start_date 
                 ):  # This should be same as self.approval.expiry_date
                 # This renewal is being applied before the latest season starts
                 # Therefore this application is renewal application reissued.
