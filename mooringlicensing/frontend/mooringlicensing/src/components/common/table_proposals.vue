@@ -279,7 +279,11 @@ export default {
                         links +=  `<a href='#${full.id}' data-discard-proposal='${full.id}' data-application-type-code='${full.application_type_dict.code}' data-proposal-type-code='${full.proposal_type.code}'>Discard</a><br/>`;
                     }
                     for (let invoice of full.invoices){
-                            if (invoice.payment_status.toLowerCase() === 'unpaid' || invoice.payment_status.toLowerCase() === 'partially paid'){
+                            if (
+                                (invoice.payment_status.toLowerCase() === 'unpaid' || 
+                                invoice.payment_status.toLowerCase() === 'partially paid') &&
+                                full.processing_status !== 'Expired'
+                            ){
                                 links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a>`
                             }
                         }     

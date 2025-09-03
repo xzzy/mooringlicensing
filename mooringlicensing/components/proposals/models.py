@@ -22,7 +22,7 @@ from mooringlicensing.settings import (
     GROUP_APPROVER_MOORING_LICENCE, 
     PRIVATE_MEDIA_STORAGE_LOCATION, PRIVATE_MEDIA_BASE_URL,
     PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, 
-    PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA
+    PROPOSAL_TYPE_NEW, CODE_DAYS_FOR_ENDORSER_AUA, STICKER_EXPORT_RUN_TIME_MESSAGE
 )
 
 from django.db import models, transaction
@@ -385,7 +385,7 @@ class Proposal(RevisionedMixin):
             if not ((self.proposal_applicant and request.user.id == self.proposal_applicant.email_user_id) or self.is_assessor(request.user)):
                 raise serializers.ValidationError("User not authorised to cancel proposal payment")
 
-            if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+            if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.processing_status != Proposal.PROCESSING_STATUS_EXPIRED:
                 raise serializers.ValidationError("Unable to cancel proposal payment (not awaiting payment)")
             
             #Remove Ledger Invoice - proceed only if successful
@@ -1244,7 +1244,7 @@ class Proposal(RevisionedMixin):
         """
         :return: True if the application is in one of the approved status.
         """
-        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT
+        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT or self.customer_status in self.CUSTOMER_STATUS_EXPIRED
 
     @property
     def permit(self):
@@ -1948,7 +1948,7 @@ class Proposal(RevisionedMixin):
                 if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
                     stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                     if stickers_not_exported:
-                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+'].')
+                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                     
                     if self.application_type_code == 'mla' or self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
                         from mooringlicensing.components.approvals.models import MooringOnApproval
@@ -1961,7 +1961,7 @@ class Proposal(RevisionedMixin):
                         moa_set = MooringOnApproval.objects.filter(query)
                         for i in moa_set:
                             if i.approval and i.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]).exists():
-                                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+'].')
+                                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
 
                 # Validation & update proposed_issuance_approval
@@ -2412,15 +2412,8 @@ class Proposal(RevisionedMixin):
                 logger.error(msg)
                 raise Exception(msg)
         elif self.proposal_type.code == settings.PROPOSAL_TYPE_RENEWAL:
-
-            #check if this proposal has an associated amendment request, if it does treat as a reissue if outside original season
-            amendment_request_exists = AmendmentRequest.objects.filter(proposal=self).exists()
-
             if (
-                applied_date < self.approval.latest_applied_season.start_date or 
-                    (self.approval.latest_applied_season.start_date <= applied_date <= self.approval.latest_applied_season.end_date and
-                        amendment_request_exists
-                    )
+                applied_date < self.approval.latest_applied_season.start_date 
                 ):  # This should be same as self.approval.expiry_date
                 # This renewal is being applied before the latest season starts
                 # Therefore this application is renewal application reissued.
@@ -5596,6 +5589,7 @@ class ProposalUserAction(UserAction):
     ACTION_UPDATE_APPROVAL_ = "Update Approval for application {}"
     ACTION_APPROVED = "Grant application {}"
     ACTION_AUTO_APPROVED = "Grant application {}"
+    ACTION_EXPIRED_PROPOSAL = "Proposal expired {} due to no payment"
     ACTION_EXPIRED_APPROVAL_ = "Expire Approval for proposal {}"
     ACTION_DISCARD_PROPOSAL = "Discard application {}"
     ACTION_WITHDRAW_PROPOSAL = "Withdraw application {}"

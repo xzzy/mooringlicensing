@@ -91,9 +91,9 @@
                 <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
                 <input type='hidden' name="proposal_id" :value="1" />
 
-                <div class="row" style="margin-bottom: 50px">
+                <div class="row">
                         <div  class="container">
-                          <div class="row" style="margin-bottom: 50px">
+                          <div class="row">
                               <div class="navbar navbar-fixed-bottom"  style="background-color: #f5f5f5;">
                                   <div class="navbar-inner">
                                     <div v-if="proposal && !proposal.readonly" class="container">

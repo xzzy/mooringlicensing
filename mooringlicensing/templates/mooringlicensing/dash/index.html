@@ -10,10 +10,18 @@
 {% endblock %}
 
 {% block content %}
+
+    {% if notices_obj.notices|length > 0 and notices_obj.page == "dashboard" %}
     {% include "mooringlicensing/notification.html" %}
+    {% endif %}
     <div class="container-fluid" id="dashboard-table-container">
         {% block vue-component %}
         <div id="app"></div>
         {% endblock %}
+        {% if notices_obj.notices|length > 0 and notices_obj.page != "dashboard" %}
+        {% include "mooringlicensing/notification.html" %}
+        {% endif %}
+    </br></br></br>
     </div>
+    
 {% endblock %}
