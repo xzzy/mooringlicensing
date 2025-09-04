@@ -280,6 +280,7 @@ class GlobalSettings(models.Model):
     KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP = 'number_of_moorings_to_return_for_lookup'
     KEY_FEE_AMOUNT_OF_SWAP_MOORINGS = 'fee_amount_of_swap_moorings'
     KEY_SWAP_MOORINGS_INCLUDES_GST = 'swap_moorings_includes_gst'
+    KEY_STAT_DEC_FORM = 'stat_dec_form'
 
     keys_for_file = (
         KEY_DCV_PERMIT_TEMPLATE_FILE,
@@ -289,6 +290,7 @@ class GlobalSettings(models.Model):
         KEY_AUP_TEMPLATE_FILE,
         KEY_ML_TEMPLATE_FILE,
         KEY_ML_AU_LIST_TEMPLATE_FILE,
+        KEY_STAT_DEC_FORM
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
@@ -304,6 +306,7 @@ class GlobalSettings(models.Model):
         (KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP, 'Number of moorings to return for lookup'),
         (KEY_FEE_AMOUNT_OF_SWAP_MOORINGS, 'Fee amount of swap moorings'),
         (KEY_SWAP_MOORINGS_INCLUDES_GST, 'Fee for swap moorings includes gst'),
+        (KEY_STAT_DEC_FORM, 'Statutory declaration form')
     )
     template_folder = 'mooringlicensing/management/templates'
     default_values = {
@@ -320,6 +323,7 @@ class GlobalSettings(models.Model):
         KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP: 10,
         KEY_FEE_AMOUNT_OF_SWAP_MOORINGS: 317.00,
         KEY_SWAP_MOORINGS_INCLUDES_GST: True,
+        KEY_STAT_DEC_FORM: os.path.join(settings.BASE_DIR, template_folder, 'Statutory Declaration Form.docx'),
     }
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
