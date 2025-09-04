@@ -23,8 +23,9 @@ class NoticeForm(forms.ModelForm):
 @admin.register(Notice)
 class NoticeAdmin(admin.ModelAdmin):
     form = NoticeForm
-    list_display = ('formatted_message', 'notice_type', 'order', 'created', 'active')
+    list_display = ('formatted_message', 'notice_type', 'order', 'created', 'active', 'page')
     readonly_fields = ['created',]
+    search_fields = ('page',)
 
     def save_model(self, request, obj, form, change):
         obj.save(exclude_sanitise=["message"])

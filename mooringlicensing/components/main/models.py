@@ -101,10 +101,11 @@ class Notice(SanitiseMixin):
         (3, 'Green Warning')   
         )
     
+    #NOTE: formatting not ideal but we need to be able to search this field
     PAGE_CHOICES = (
-        ('','External Dashboard'),
-        ('proposal','Application Page'),
-        ('compliance','Compliance Page'),
+        ('External Dashboard','External Dashboard'),
+        ('Application Page','Application Page'),
+        ('Compliance Page','Compliance Page'),
     )
 
     notice_type = models.IntegerField(choices=NOTICE_TYPE_CHOICES,default=0)
@@ -112,7 +113,7 @@ class Notice(SanitiseMixin):
     order = models.IntegerField(default=1)
     active = models.BooleanField(default=True)
     created = models.DateTimeField(default=timezone.now)
-    page = models.TextField(null=True, blank=True, default='', choices=PAGE_CHOICES)
+    page = models.TextField(null=True, blank=True, default='External Dashboard', choices=PAGE_CHOICES)
 
     def __str__(self):
            return '{}'.format(strip_tags(self.message).replace('&nbsp;', ' '))

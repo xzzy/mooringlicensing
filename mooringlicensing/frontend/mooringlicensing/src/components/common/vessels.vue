@@ -141,7 +141,7 @@
 
             <transition>
                 <div v-if="showProofOfVesselOwnership" class="row form-group">
-                    <label for="" class="col-sm-3 control-label">Proof of vessel ownership</label>
+                    <label for="" class="col-sm-3 control-label">A statutory declaration is required as proof of vessel ownership</label>
                     <div class="col-sm-9">
                         <FileField 
                             :readonly="hinReadonly"
