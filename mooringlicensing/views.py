@@ -51,9 +51,7 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         notices_page = "dashboard"
 
         if "proposal" in self.request.path:
-            print("\n\n\nhello???")
             notices_qs = notices_qs.filter(page="Application Page")
-            print(notices_qs)
             notices_page = "proposal"
         elif "compliance" in self.request.path:
             notices_qs = notices_qs.filter(page="Compliance Page")
