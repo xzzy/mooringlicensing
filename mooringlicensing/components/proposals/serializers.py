@@ -27,8 +27,8 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication,
     ProposalSiteLicenseeMooringRequest,
-    InsuranceCertificateDocument,
 )
+from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
 from mooringlicensing.components.approvals.models import MooringLicence, MooringOnApproval, Approval, VesselOwnershipOnApproval
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
@@ -139,6 +139,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     amendment_requests = serializers.SerializerMethodField()
     site_licensee_moorings = serializers.SerializerMethodField()
     previous_application_insurance_choice = serializers.SerializerMethodField()
+    stat_dec_form = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -214,6 +215,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'uuid',
                 'amendment_requests',
                 'auto_approve',
+                'stat_dec_form',
                 )
         read_only_fields=('documents','auto_approve')
 
@@ -386,6 +388,12 @@ class BaseProposalSerializer(serializers.ModelSerializer):
         if (obj.previous_application and obj.previous_application.insurance_choice):
             return obj.previous_application.insurance_choice
 
+    def get_stat_dec_form(self, obj):
+        try:
+            return GlobalSettings.objects.get(key=GlobalSettings.KEY_STAT_DEC_FORM)._file.url
+        except:
+            return ""
+
 class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializer):
     
     can_endorse = serializers.SerializerMethodField()
@@ -441,6 +449,7 @@ class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializ
             obj.mooring.mooring_licence.approval.status == "current"):
             return True
         return False
+
 
 class ListProposalSerializer(BaseProposalSerializer):
     submitter = serializers.SerializerMethodField(read_only=True)
@@ -991,6 +1000,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'allocated_mooring',
                 'has_unactioned_endorsements',
                 'no_email_notifications',
+                'stat_dec_form'
                 )
         read_only_fields = (
             'documents',

@@ -101,10 +101,11 @@ class Notice(SanitiseMixin):
         (3, 'Green Warning')   
         )
     
+    #NOTE: formatting not ideal but we need to be able to search this field
     PAGE_CHOICES = (
-        ('','External Dashboard'),
-        ('proposal','Application Page'),
-        ('compliance','Compliance Page'),
+        ('External Dashboard','External Dashboard'),
+        ('Application Page','Application Page'),
+        ('Compliance Page','Compliance Page'),
     )
 
     notice_type = models.IntegerField(choices=NOTICE_TYPE_CHOICES,default=0)
@@ -112,7 +113,7 @@ class Notice(SanitiseMixin):
     order = models.IntegerField(default=1)
     active = models.BooleanField(default=True)
     created = models.DateTimeField(default=timezone.now)
-    page = models.TextField(null=True, blank=True, default='', choices=PAGE_CHOICES)
+    page = models.TextField(null=True, blank=True, default='External Dashboard', choices=PAGE_CHOICES)
 
     def __str__(self):
            return '{}'.format(strip_tags(self.message).replace('&nbsp;', ' '))
@@ -279,6 +280,7 @@ class GlobalSettings(models.Model):
     KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP = 'number_of_moorings_to_return_for_lookup'
     KEY_FEE_AMOUNT_OF_SWAP_MOORINGS = 'fee_amount_of_swap_moorings'
     KEY_SWAP_MOORINGS_INCLUDES_GST = 'swap_moorings_includes_gst'
+    KEY_STAT_DEC_FORM = 'stat_dec_form'
 
     keys_for_file = (
         KEY_DCV_PERMIT_TEMPLATE_FILE,
@@ -288,6 +290,7 @@ class GlobalSettings(models.Model):
         KEY_AUP_TEMPLATE_FILE,
         KEY_ML_TEMPLATE_FILE,
         KEY_ML_AU_LIST_TEMPLATE_FILE,
+        KEY_STAT_DEC_FORM
     )
     keys = (
         (KEY_DCV_PERMIT_TEMPLATE_FILE, 'DcvPermit template file'),
@@ -303,6 +306,7 @@ class GlobalSettings(models.Model):
         (KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP, 'Number of moorings to return for lookup'),
         (KEY_FEE_AMOUNT_OF_SWAP_MOORINGS, 'Fee amount of swap moorings'),
         (KEY_SWAP_MOORINGS_INCLUDES_GST, 'Fee for swap moorings includes gst'),
+        (KEY_STAT_DEC_FORM, 'Statutory declaration form')
     )
     template_folder = 'mooringlicensing/management/templates'
     default_values = {
@@ -319,6 +323,7 @@ class GlobalSettings(models.Model):
         KEY_NUMBER_OF_MOORINGS_TO_RETURN_FOR_LOOKUP: 10,
         KEY_FEE_AMOUNT_OF_SWAP_MOORINGS: 317.00,
         KEY_SWAP_MOORINGS_INCLUDES_GST: True,
+        KEY_STAT_DEC_FORM: os.path.join(settings.BASE_DIR, template_folder, 'Statutory Declaration Form.docx'),
     }
 
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False,)
