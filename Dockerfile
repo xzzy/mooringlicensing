@@ -29,7 +29,7 @@ RUN mv /etc/apt/sourcesau.list /etc/apt/sources.list
 RUN exec 3<>/dev/tcp/raw.githubusercontent.com/80 \
     echo -e "GET /dbca-wa/wagov_utils/refs/heads/main/wagov_utils/bin/set_ubuntu_apt.sh HTTP/1.0\r\nHost: raw.githubusercontent.com\r\n\r\n" >&3 \
     cat <&3 > /tmp/set_ubuntu_apt.sh \
-    exec 3<&- \
+    exec 3<&-
 # RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/refs/heads/main/wagov_utils/bin/set_ubuntu_apt.sh -O /tmp/set_ubuntu_apt.sh
 RUN chmod 755 /tmp/set_ubuntu_apt.sh
 RUN /tmp/set_ubuntu_apt.sh
