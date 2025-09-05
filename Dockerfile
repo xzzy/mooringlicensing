@@ -23,8 +23,8 @@ ENV NODE_MAJOR=20
 #ENV BRANCH=$BRANCH_ARG
 #ENV REPO=$REPO_ARG
 #ENV REPO_NO_DASH=$REPO_NO_DASH_ARG
-RUN sed 's/archive.ubuntu.com/mirror.enzu.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
-RUN sed 's/secuirty.ubuntu.com/mirror.enzu.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
+#RUN sed 's/archive.ubuntu.com/mirror.enzu.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
+#RUN sed 's/secuirty.ubuntu.com/mirror.enzu.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
 # RUN mv /etc/apt/sources.list.d/ubuntu-new.sources /etc/apt/sources.list.d/ubuntu.sources
 
 
