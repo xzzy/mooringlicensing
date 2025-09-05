@@ -205,14 +205,12 @@ def process_sticker_printing_response(process_summary):
                         rows = temp_rows
 
                         header_row = None
-                        batch_date_column, sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0, 0
+                        sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0
 
                         #determine header row (if it's not the first row for some reason) and cell column positions (batch date, sticker number, printing date, mailing date)
                         for i in range(len(rows)):
                             for j in range(len(rows[i])):
-                                if 'batch' in rows[i][j].strip().lower() and 'date' in rows[i][j].strip().lower():
-                                    batch_date_column = j  # 1-based
-                                elif 'sticker' in rows[i][j].strip().lower() and 'number' in rows[i][j].strip().lower():
+                                if 'sticker' in rows[i][j].strip().lower() and 'number' in rows[i][j].strip().lower():
                                     sticker_number_column = j
                                     header_row = i # 1-based
                                 elif ('printing' in rows[i][j].strip().lower() or 'printed' in rows[i][j].strip().lower()) and 'date' in rows[i][j].strip().lower():
@@ -227,12 +225,10 @@ def process_sticker_printing_response(process_summary):
                                 continue
 
                             try:
-                                batch_date_value = rows[i][batch_date_column]
                                 sticker_number_value = int(rows[i][sticker_number_column])
                                 printing_date_value = rows[i][printing_date_column]
                                 mailing_date_value = rows[i][mailing_date_column]
 
-                                batch_date_value = make_sure_datetime(batch_date_value)
                                 sticker_number_value = make_sure_sticker_number(sticker_number_value)
                                 printing_date_value = make_sure_datetime(printing_date_value)
                                 mailing_date_value = make_sure_datetime(mailing_date_value)
@@ -297,12 +293,10 @@ def process_sticker_printing_response(process_summary):
                 try:
                     # Loop rows in order to determine which column is what
                     header_row = 0
-                    batch_date_column, sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0, 0
+                    sticker_number_column, printing_date_column, mailing_date_column = 0, 0, 0
                     for row in ws.rows:
                         for cell in row:
-                            if 'batch' in cell.value.lower() and 'date' in cell.value.lower():
-                                batch_date_column = cell.column  # 1-based                              
-                            elif 'sticker' in cell.value.lower() and 'number' in cell.value.lower():
+                            if 'sticker' in cell.value.lower() and 'number' in cell.value.lower():
                                 sticker_number_column = cell.column
                                 header_row = cell.row  # 1-based
                             elif ('printing' in cell.value.lower() or 'printed' in cell.value.lower()) and 'date' in cell.value.lower():
@@ -324,12 +318,10 @@ def process_sticker_printing_response(process_summary):
                         # Found empty row, finish processing rows
                         break
                     try:
-                        batch_date_value = row[batch_date_column - 1].value  # [] is index, therefore minus 1
                         sticker_number_value = row[sticker_number_column - 1].value
                         printing_date_value = row[printing_date_column - 1].value
                         mailing_date_value = row[mailing_date_column - 1].value
 
-                        batch_date_value = make_sure_datetime(batch_date_value)
                         sticker_number_value = make_sure_sticker_number(sticker_number_value)
                         printing_date_value = make_sure_datetime(printing_date_value)
                         mailing_date_value = make_sure_datetime(mailing_date_value)

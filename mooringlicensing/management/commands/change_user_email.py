@@ -478,30 +478,31 @@ class Command(BaseCommand):
                             return
                     else:
                         print(f"System user with email {new_email} does not have a ledger id set, updating to use ledger id {new_email_ledger.id}")
-                    system_user_system_user = get_or_create_system_user_system_user()
-                    existing_system_user.ledger_id_id = new_email_ledger.id
-                    existing_system_user.change_by_user_id = system_user_system_user.id
+                        
+                system_user_system_user = get_or_create_system_user_system_user()
+                existing_system_user.ledger_id_id = new_email_ledger.id
+                existing_system_user.change_by_user_id = system_user_system_user.id
 
-                    if not existing_system_user.first_name:
-                        existing_system_user.first_name = current_email_system.first_name
-                    if not existing_system_user.last_name:
-                        existing_system_user.last_name = current_email_system.last_name
-                    if not existing_system_user.legal_first_name:
-                        existing_system_user.legal_first_name = current_email_system.legal_first_name
-                    if not existing_system_user.legal_last_name:
-                        existing_system_user.legal_last_name = current_email_system.legal_last_name
-                    if not existing_system_user.legal_dob:
-                        existing_system_user.legal_dob = current_email_system.legal_dob
-                    if not existing_system_user.title:
-                        existing_system_user.title = current_email_system.title
-                    if not existing_system_user.phone_number:
-                        existing_system_user.phone_number = current_email_system.phone_number
-                    if not existing_system_user.mobile_number:
-                        existing_system_user.mobile_number = current_email_system.mobile_number
-                    if not existing_system_user.fax_number:
-                        existing_system_user.fax_number = current_email_system.fax_number
+                if not existing_system_user.first_name:
+                    existing_system_user.first_name = current_email_system.first_name
+                if not existing_system_user.last_name:
+                    existing_system_user.last_name = current_email_system.last_name
+                if not existing_system_user.legal_first_name:
+                    existing_system_user.legal_first_name = current_email_system.legal_first_name
+                if not existing_system_user.legal_last_name:
+                    existing_system_user.legal_last_name = current_email_system.legal_last_name
+                if not existing_system_user.legal_dob:
+                    existing_system_user.legal_dob = current_email_system.legal_dob
+                if not existing_system_user.title:
+                    existing_system_user.title = current_email_system.title
+                if not existing_system_user.phone_number:
+                    existing_system_user.phone_number = current_email_system.phone_number
+                if not existing_system_user.mobile_number:
+                    existing_system_user.mobile_number = current_email_system.mobile_number
+                if not existing_system_user.fax_number:
+                    existing_system_user.fax_number = current_email_system.fax_number
 
-                    existing_system_user.save()
+                existing_system_user.save()
 
                 #first, get every record from the current email that will move to the new email (only models in change_ledger_id need to be checked)
                 to_be_changed = []
