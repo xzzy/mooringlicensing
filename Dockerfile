@@ -26,6 +26,10 @@ ENV NODE_MAJOR=20
 RUN sed 's/archive.ubuntu.com/mirror.pilotfiber.com/g' /etc/apt/sources.list > /etc/apt/sourcesau.list
 RUN mv /etc/apt/sourcesau.list /etc/apt/sources.list
 
+RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/refs/heads/main/wagov_utils/bin/set_ubuntu_apt.sh -O /tmp/set_ubuntu_apt.sh
+RUN chmod 755 /tmp/set_ubuntu_apt.sh
+RUN /tmp/set_ubuntu_apt.sh
+
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get upgrade -y
