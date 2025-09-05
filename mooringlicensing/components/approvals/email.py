@@ -84,7 +84,7 @@ def send_auth_user_mooring_removed_notification(approval, mooring_licence, stick
 
     context = {
         'recipient': proposal.proposal_applicant,
-        'public_url': get_public_url(),
+        'dashboard_external_url': get_public_url(),
         'approval': approval,
         'proposal': proposal,
         'mooring_licence': mooring_licence,
