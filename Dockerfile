@@ -23,6 +23,8 @@ ENV NODE_MAJOR=20
 #ENV BRANCH=$BRANCH_ARG
 #ENV REPO=$REPO_ARG
 #ENV REPO_NO_DASH=$REPO_NO_DASH_ARG
+RUN sed 's/archive.ubuntu.com/mirror.pilotfiber.com/g' /etc/apt/sources.list > /etc/apt/sourcesau.list
+RUN mv /etc/apt/sourcesau.list /etc/apt/sources.list
 
 RUN apt-get clean
 RUN apt-get update
