@@ -23,13 +23,10 @@ ENV NODE_MAJOR=20
 #ENV BRANCH=$BRANCH_ARG
 #ENV REPO=$REPO_ARG
 #ENV REPO_NO_DASH=$REPO_NO_DASH_ARG
-RUN sed 's/archive.ubuntu.com/mirror.pilotfiber.com/g' /etc/apt/sources.list > /etc/apt/sourcesau.list
-RUN mv /etc/apt/sourcesau.list /etc/apt/sources.list
+RUN sed 's/archive.ubuntu.com/mirror.pilotfiber.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
+RUN sed 's/secuirty.ubuntu.com/mirror.pilotfiber.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
+# RUN mv /etc/apt/sources.list.d/ubuntu-new.sources /etc/apt/sources.list.d/ubuntu.sources
 
-RUN perl -MFile::Fetch -e 'File::Fetch->new(uri => "https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin/set_ubuntu_apt.sh")->fetch(to => "/tmp")'
-# RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/refs/heads/main/wagov_utils/bin/set_ubuntu_apt.sh -O /tmp/set_ubuntu_apt.sh
-RUN chmod 755 /tmp/set_ubuntu_apt.sh
-RUN /tmp/set_ubuntu_apt.sh
 
 RUN apt-get clean
 RUN apt-get update
