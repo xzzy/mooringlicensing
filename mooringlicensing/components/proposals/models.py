@@ -2048,7 +2048,8 @@ class Proposal(RevisionedMixin):
                             self.payment_due_date = today + datetime.timedelta(days=days_setting.number_of_days)
                             self.save()
 
-                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, self.payment_due_date.strftime("%d/%m/%Y"))
+                            payment_due_date = self.payment_due_date.strftime("%d/%m/%Y") if self.payment_due_date else None
+                            pcfi = process_create_future_invoice(basket_hash_split[0], invoice_text, return_preload_url, invoice_name, payment_due_date)
 
                             application_fee.invoice_reference = pcfi['data']['invoice']
                             application_fee.save()
