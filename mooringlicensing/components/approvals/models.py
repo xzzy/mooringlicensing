@@ -347,7 +347,7 @@ class Approval(RevisionedMixin):
             if self.set_to_surrender:
                 if "surrender_date" in self.surrender_details:
                     surrender_date = self.surrender_details["surrender_date"]
-            if self.set_to_cancel:
+            if self.set_to_cancel and self.cancellation_date:
                     cancellation_date = self.cancellation_date.strftime("%d/%m/%Y")
 
             if surrender_date and cancellation_date:
@@ -1325,11 +1325,11 @@ class WaitingListAllocation(Approval):
             context = {
                 'approval': self,
                 'application': self.current_proposal,
-                'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+                'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
                 'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'applicant_full_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'bay_name': self.current_proposal.preferred_bay.name,
-                'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y'),
+                'allocation_date': self.wla_queue_date.strftime('%d/%m/%Y') if self.wla_queue_date else '',
                 'position_number': self.wla_order,
                 'vessel_rego_no': vessel_rego_no,
                 'vessel_name': vessel_name,
@@ -1460,7 +1460,7 @@ class AnnualAdmissionPermit(Approval):
             context = {
                 'approval': self,
                 'application': self.current_proposal,
-                'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+                'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
                 'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
@@ -1470,7 +1470,7 @@ class AnnualAdmissionPermit(Approval):
                 'vessel_rego_no': vessel_rego_no,
                 'vessel_name': vessel_name,
                 'vessel_length': vessel_length,
-                'expiry_date': self.expiry_date.strftime('%d/%m/%Y'),
+                'expiry_date': self.expiry_date.strftime('%d/%m/%Y') if self.expiry_date else '',
                 'public_url': get_public_url(),
             }
             return context
@@ -2151,7 +2151,7 @@ class MooringLicence(Approval):
                     'length': aup.current_proposal.vessel_details.vessel_applicable_length if aup.current_proposal.vessel_details else '',
                     'draft': aup.current_proposal.vessel_details.vessel_draft if aup.current_proposal.vessel_details else '',
                 }
-                authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y')
+                authorised_person['authorised_date'] = aup.issue_date.strftime('%d/%m/%Y') if aup.issue_date else ''
                 authorised_person['authorised_by'] = authorised_by
                 authorised_person['mobile_number'] = aup.current_proposal.proposal_applicant.mobile_number
                 authorised_person['email_address'] = aup.current_proposal.proposal_applicant.email
@@ -2162,7 +2162,7 @@ class MooringLicence(Approval):
         context = {
             'approval': self,
             'application': self.current_proposal,
-            'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+            'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
             'applicant_first_name': self.current_proposal.proposal_applicant.first_name if self.current_proposal and self.current_proposal.proposal_applicant else '',
             'mooring_name': self.mooring.name,
             'authorised_persons': authorised_persons,
@@ -2203,7 +2203,7 @@ class MooringLicence(Approval):
             context = {
                 'approval': self,
                 'application': self.current_proposal,
-                'issue_date': self.issue_date.strftime('%d/%m/%Y'),
+                'issue_date': self.issue_date.strftime('%d/%m/%Y') if self.issue_date else '',
                 'applicant_name': self.current_proposal.proposal_applicant.get_full_name(),
                 'p_address_line1': self.postal_address_line1,
                 'p_address_line2': self.postal_address_line2,
@@ -2213,7 +2213,7 @@ class MooringLicence(Approval):
                 'licenced_vessel': licenced_vessel,
                 'additional_vessels': additional_vessels,
                 'mooring': self.mooring,
-                'expiry_date': self.expiry_date.strftime('%d/%m/%Y'),
+                'expiry_date': self.expiry_date.strftime('%d/%m/%Y') if self.expiry_date else '',
                 'public_url': get_public_url(),
             }
             return context
