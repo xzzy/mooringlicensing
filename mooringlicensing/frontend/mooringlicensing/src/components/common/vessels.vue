@@ -143,7 +143,7 @@
                 <div v-if="showProofOfVesselOwnership" class="row form-group">
                     <label for="" class="col-sm-3 control-label">A statutory declaration is required as proof of vessel ownership</label>
                     <div class="col-sm-9" v-if="proposal.stat_dec_form">
-                        Download form <a :href="proposal.stat_dec_form">here</a>
+                        Download form <a target="_blank" :href="proposal.stat_dec_form">here</a>
                     </div>
                     <div class="col-sm-9">
                         <FileField 
