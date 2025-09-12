@@ -4100,6 +4100,7 @@ class MooringLicenceApplication(Proposal):
 
         vessel_detais_list_to_be_processed = []
         vessel_details_largest = None  # As a default value
+        largest_rego_no = None
         
         if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
             # Only when 'Renewal' application, we are interested in the existing vessels
@@ -4109,8 +4110,10 @@ class MooringLicenceApplication(Proposal):
                 if vessel_details_largest:
                     if vessel_details_largest.vessel_applicable_length < vessel.latest_vessel_details.vessel_applicable_length:
                         vessel_details_largest = vessel.latest_vessel_details
+                        largest_rego_no = vessel.rego_no
                 else:
                     vessel_details_largest = vessel.latest_vessel_details
+                    largest_rego_no = vessel.rego_no
 
         line_items = []  # Store all the line items
         fee_items_to_store = []  # Store all the fee_items
@@ -4122,10 +4125,12 @@ class MooringLicenceApplication(Proposal):
             if vessel_details_largest:
                 if self.vessel_length > vessel_details_largest.vessel_applicable_length:
                     vessel_length = self.vessel_length
+                    largest_rego_no = self.rego_no
                 else:
                     vessel_length = vessel_details_largest.vessel_applicable_length
             else:
                 vessel_length = self.vessel_length
+                largest_rego_no = self.rego_no
         else:
             # No vessel specified in the application
             if self.does_accept_null_vessel:
@@ -4153,7 +4158,7 @@ class MooringLicenceApplication(Proposal):
                 'vessel_details_id': vessel_details_largest.id if vessel_details_largest else '',
                 'fee_amount_adjusted': str(fee_amount_adjusted),
             })
-            line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime, vessel_details_largest.vessel.rego_no))
+            line_items.append(generate_line_item(self.application_type, fee_amount_adjusted, fee_constructor_for_ml, self, current_datetime, largest_rego_no))
         else: #if there is no vessel_details_largest then use the provided proposal details
             fee_items_to_store.append({
                 'fee_item_id': fee_item.id,
