@@ -667,9 +667,13 @@ export default {
                                 // retrieve list of Vessel Owners
                                 const res = await vm.$http.get(`${api_endpoints.vessel}${data.id}/lookup_vessel_ownership`);
                                 await vm.parseVesselOwnershipList(res);
-
-                                const res_for_length = await vm.$http.get(`${api_endpoints.proposal}${vm.proposal.id}/get_max_vessel_length_for_aa_component?vid=${data.id}`);
-                                vm.max_vessel_length_for_aa_component = res_for_length.body.max_length
+                                
+                                try {
+                                    const res_for_length = await vm.$http.get(`${api_endpoints.proposal}${vm.proposal.id}/get_max_vessel_length_for_aa_component?vid=${data.id}`);
+                                    vm.max_vessel_length_for_aa_component = res_for_length.body.max_length
+                                } catch(e) {
+                                    console.error(e);
+                                }
                                 
                             }
                         } else {

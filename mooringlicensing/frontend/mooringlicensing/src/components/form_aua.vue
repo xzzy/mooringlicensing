@@ -105,6 +105,7 @@
                   :key="'mooringAuthorisation' + mooringAuthorisationUuid"
                   :changeMooring="changeMooring"
                   :newAua="newAua"
+                  :noMoorings="noMoorings"
                   ref="mooring_authorisation"
                   :readonly="readonly"
                   />
@@ -237,6 +238,9 @@
                     newApp = true;
                 }
                 return newApp;
+            },
+            noMoorings: function(){
+                return this.proposal.authorised_user_moorings_str == ''
             },
         },
         methods:{
