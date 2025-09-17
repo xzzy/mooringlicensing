@@ -4298,6 +4298,17 @@ class MooringLicenceApplication(Proposal):
     def send_emails_after_payment_success(self, request):
         return True
 
+    def has_new_vessel(self):
+        from mooringlicensing.components.approvals.models import VesselOwnershipOnApproval
+        if self.previous_application:
+            approval = self.previous_application.approval
+            if VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel__rego_no=self.rego_no,vessel_ownership__end_date=None,approval=approval).exists():
+                return False
+            else:
+                return True
+        return True
+
+
     def set_auto_approve(self,request):
 
         if self.approval_has_pending_stickers():
@@ -4319,7 +4330,8 @@ class MooringLicenceApplication(Proposal):
                         not self.vessel_moorings_compatible(request) or
                         self.has_higher_vessel_category() or
                         self.has_different_vessel_category() or
-                        self.vessel_ownership_changed()
+                        self.vessel_ownership_changed() or
+                        self.has_new_vessel()
                         ):
                         self.auto_approve = False
                         self.save()
