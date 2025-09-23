@@ -1723,16 +1723,20 @@ class StickerFilterBackend(DatatablesFilterBackend):
         #2) other filters DO override the custom search
         try:
             super_queryset = super(StickerFilterBackend, self).filter_queryset(request, queryset, view)
+
             if search_text:
+
                 system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
                 .filter(
                     Q(legal_first_name__icontains=search_text) | Q(legal_last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("ledger_id", flat=True))
+
                 proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
                 .filter(
                     Q(first_name__icontains=search_text) | Q(last_name__icontains=search_text) | Q(email__icontains=search_text) | Q(full_name__icontains=search_text)
                 ).values_list("proposal_id", flat=True))
-                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=system_user_ids))
+
+                q_set = queryset.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=system_user_ids)|Q(vessel_ownership__vessel__rego_no__icontains=search_text))
                 queryset = super_queryset.union(q_set)
         except Exception as e:
             print(e)
@@ -1742,9 +1746,11 @@ class StickerFilterBackend(DatatablesFilterBackend):
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
-            
-        setattr(view, '_datatables_total_count', total_count)
-        
+
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
+        if search_text:
+            print(queryset)
         return queryset
 
 

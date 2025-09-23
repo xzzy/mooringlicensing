@@ -137,7 +137,7 @@ export default {
             return {
                 // 2. Number
                 data: "vessel_rego_no",
-                orderable: true,
+                orderable: false,
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
@@ -150,7 +150,7 @@ export default {
         column_holder: function(){
             return {
                 data: "id",
-                orderable: true,
+                orderable: false,
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
@@ -181,7 +181,7 @@ export default {
         column_permit_or_licence: function(){
             return {
                 data: "approval",
-                orderable: true,
+                orderable: false,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
@@ -204,7 +204,7 @@ export default {
             return {
                 // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
-                orderable: true,
+                orderable: false,
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
@@ -224,7 +224,7 @@ export default {
             return {
                 // 5. Status
                 data: "status",
-                orderable: true,
+                orderable: false,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
@@ -289,7 +289,7 @@ export default {
             return {
                 // 8. Action
                 data: "id",
-                orderable: true,
+                orderable: false,
                 searchable: false,
                 visible: true,
                 'render': function(row, type, full){
