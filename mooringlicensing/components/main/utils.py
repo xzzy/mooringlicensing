@@ -527,7 +527,7 @@ def export_to_mooring_booking(approval_id):
             licence_type = 3
         errors = []
         updates = []
-        if approval and type(approval.child_obj) in [AnnualAdmissionPermit, AuthorisedUserPermit]:
+        if approval and type(approval.child_obj) in [AnnualAdmissionPermit, AuthorisedUserPermit] and approval.current_proposal and approval.current_proposal.vessel_ownership and approval.current_proposal.vessel_ownership.vessel:
             myobj = {
                     'vessel_rego': approval.current_proposal.vessel_ownership.vessel.rego_no,
                     'licence_id': approval.id,
@@ -550,24 +550,25 @@ def export_to_mooring_booking(approval_id):
                 errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, approval.current_proposal.vessel_ownership.vessel.id, resp.text))
         elif approval and type(approval.child_obj) == MooringLicence:
             for vessel_ownership in approval.child_obj.vessel_ownership_list:
-                myobj = {
-                        'vessel_rego': vessel_ownership.vessel.rego_no,
-                        'licence_id': approval.id,
-                        'licence_type': licence_type,
-                        'start_date': approval.start_date.strftime('%Y-%m-%d') if approval.start_date else '',
-                        'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d') if approval.expiry_date else '',
-                        'status' : status,
-                        }
-                resp = requests.post(url, data = myobj)
-                if not resp or not resp.text:
-                    print("Server unavailable")
-                    raise Exception("Server unavailable")
-                resp_dict = json.loads(resp.text)
+                if vessel_ownership.vessel:
+                    myobj = {
+                            'vessel_rego': vessel_ownership.vessel.rego_no,
+                            'licence_id': approval.id,
+                            'licence_type': licence_type,
+                            'start_date': approval.start_date.strftime('%Y-%m-%d') if approval.start_date else '',
+                            'expiry_date' : approval.expiry_date.strftime('%Y-%m-%d') if approval.expiry_date else '',
+                            'status' : status,
+                            }
+                    resp = requests.post(url, data = myobj)
+                    if not resp or not resp.text:
+                        print("Server unavailable")
+                        raise Exception("Server unavailable")
+                    resp_dict = json.loads(resp.text)
 
-                if resp_dict.get("status") == 200:
-                    updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
-                else:
-                    errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, vessel_ownership.vessel.id, resp.text))
+                    if resp_dict.get("status") == 200:
+                        updates.append('approval_id: {}, vessel_id: {}'.format(approval.id, vessel_ownership.vessel.id))
+                    else:
+                        errors.append('approval_id: {}, vessel_id: {}, error_message: {}'.format(approval.id, vessel_ownership.vessel.id, resp.text))
             # do not mark mooring licences without vessels as exported
             if not errors and approval.child_obj.vessel_ownership_list:
                 approval.export_to_mooring_booking = False
