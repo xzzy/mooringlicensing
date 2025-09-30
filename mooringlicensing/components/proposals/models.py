@@ -1835,8 +1835,10 @@ class Proposal(RevisionedMixin):
                 fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
                 fee_item_application_fees.update(vessel_details=self.vessel_details)
 
+                # TODO only reset this flag if it is a renewal
                 # always reset this flag
                 approval.renewal_sent = False
+                
                 if type(self.child_obj) == AnnualAdmissionApplication:
                     approval.export_to_mooring_booking = True
                 approval.save()
@@ -3814,8 +3816,10 @@ class AuthorisedUserApplication(Proposal):
                     compliance.save()
                 self.generate_compliances(approval, request)
 
-            # always reset this flag
-            approval.renewal_sent = False
+            # only reset this flag if it is a renewal
+            if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+                approval.renewal_sent = False
+                
             approval.export_to_mooring_booking = True
             approval.save()
 
@@ -4500,8 +4504,10 @@ class MooringLicenceApplication(Proposal):
                     request
                 )
                 
-            # always reset this flag
-            approval.renewal_sent = False
+            # only reset this flag if it is a renewal
+            if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+                approval.renewal_sent = False
+
             approval.export_to_mooring_booking = True
             approval.save()
 
