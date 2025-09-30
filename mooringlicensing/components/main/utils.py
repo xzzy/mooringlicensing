@@ -17,7 +17,7 @@ from django.db.models import Q
 from mooringlicensing.components.approvals.models import (
     Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, DcvPermitDocument,
     MooringLicence, Approval, WaitingListAllocation,
-    ApprovalHistory, DcvPermit, DcvAdmission, Approval
+    ApprovalHistory, DcvPermit, DcvAdmission, Approval, VesselOwnershipOnApproval
 )
 from mooringlicensing.components.compliances.models import Compliance
 from mooringlicensing.components.proposals.email import send_sticker_printing_batch_email
@@ -32,7 +32,8 @@ from rest_framework import serializers
 from copy import deepcopy
 import logging
 from mooringlicensing.settings import MAX_NUM_ROWS_MODEL_EXPORT
-from django.db.models import Case, Value, When, CharField, Count
+from django.db.models import Case, Value, When, CharField, Count, OuterRef, Subquery
+from django.contrib.postgres.fields import ArrayField
 from django.db.models.functions import Concat, Cast
 import csv
 import xlsxwriter
@@ -1187,6 +1188,21 @@ def getApprovalExportFields(data):
             ),
             distinct=True
         ), 
+    ).annotate(
+        rego_no=Case(
+            When(
+                Q(lodgement_number__startswith='MOL') & Q(vesselownershiponapproval__vessel_ownership__end_date=None),
+                then=ArrayAgg(
+                    'vesselownershiponapproval__vessel_ownership__vessel__rego_no',
+                    distinct=True
+                )
+            ),
+            When(
+                current_proposal__vessel_ownership__end_date=None,
+                then=ArrayAgg('current_proposal__vessel_ownership__vessel__rego_no',distinct=True)
+            ),
+            output_field=ArrayField(CharField())
+        )
     ).values_list(
         "lodgement_number",
         "type",
@@ -1201,7 +1217,7 @@ def getApprovalExportFields(data):
         "issue_date",
         "start_date",
         "expiry_date",
-        "current_proposal__rego_no"
+        "rego_no"
         )
     )
     

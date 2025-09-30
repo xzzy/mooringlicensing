@@ -2854,6 +2854,11 @@ class ApprovalUserAction(UserAction):
     ACTION_REISSUE_APPROVAL_ML = "Reissued due to change in Mooring Site Licence {}"
     ACTION_RENEWAL_NOTICE_SENT_FOR_APPROVAL = "Renewal notice sent for approval: {}"
 
+    ACTION_STICKER_LOST = "Sticker recorded lost {}"
+    ACTION_REQUEST_NEW_STICKER = "Request new sticker {}"
+    ACTION_UPDATE_STICKER_ADDRESS = "Update sticker address {}"
+    ACTION_STICKER_RETURNED = "Sticker recorded returned {}"
+
     class Meta:
         app_label = 'mooringlicensing'
         ordering = ('-when',)
