@@ -43,7 +43,7 @@ from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, DcvAdmissionArrival, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
-    MooringOnApproval, VesselOwnershipOnApproval
+    MooringOnApproval, VesselOwnershipOnApproval, ApprovalUserAction
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
@@ -710,6 +710,9 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             serializer = StickerPostalAddressSaveSerializer(sticker,data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+            ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_UPDATE_STICKER_ADDRESS.format(sticker.number),request.user)
+
         return Response()
 
     @detail_route(methods=['GET'], detail=True)
@@ -1785,6 +1788,9 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         # Update Sticker
         sticker.record_returned()
         serializer = StickerSerializer(sticker)
+
+        ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_STICKER_RETURNED.format(sticker.number),request.user)
+
         return Response({'sticker': serializer.data})
 
     @detail_route(methods=['POST',], detail=True)
@@ -1807,6 +1813,8 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         # Update Sticker
         sticker.record_lost()
         serializer = StickerSerializer(sticker)
+
+        ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_STICKER_LOST.format(sticker.number),request.user)
 
         return Response({'sticker': serializer.data})
 
@@ -1832,6 +1840,8 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         serializer = StickerActionDetailSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         details = serializer.save()
+
+        ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_REQUEST_NEW_STICKER.format(sticker.number),request.user)
 
         return Response({'sticker_action_detail_ids': [details.id,]})
 

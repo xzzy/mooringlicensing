@@ -272,8 +272,8 @@ class StickerReplacementFeeView(TemplateView):
                         'price_excl_tax': total_amount_excl_tax,
                         'quantity': 1,
                     }
-                    if not applicant:
-                        applicant = sticker_action_detail.approval.applicant_obj
+                    if not applicant and sticker_action_detail and sticker_action_detail.sticker and sticker_action_detail.sticker.approval:
+                        applicant = sticker_action_detail.sticker.approval.applicant_obj
                     lines.append(line)
 
 
