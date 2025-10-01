@@ -4877,7 +4877,7 @@ class Vessel(RevisionedMixin):
     def get_current_mls(self, target_date):
         from mooringlicensing.components.approvals.models import Approval, MooringLicence, VesselOwnershipOnApproval
         
-        approval_ids = list(VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel=self,end_date__isnull=True).values_list("approval__id", flat=True))
+        approval_ids = list(VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel=self,vessel_ownership__end_date__isnull=True,end_date__isnull=True).values_list("approval__id", flat=True))
         
         existing_mls = MooringLicence.objects.filter(
             status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,),
