@@ -78,6 +78,7 @@
         </div>
         <ApprovalCancellation ref="approval_cancellation"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalCancellation>
         <ApprovalSuspension ref="approval_suspension"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalSuspension>
+        <ApprovalExtension ref="approval_extension"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalExtension>
         <ApprovalSurrender ref="approval_surrender"  @refreshFromResponse="refreshFromResponseApprovalModify"></ApprovalSurrender>
         <div v-if="approvalHistoryId">
             <ApprovalHistory
@@ -114,6 +115,7 @@ import datatable from '@/utils/vue/datatable.vue'
 import OfferMooringLicence from '@/components/internal/approvals/offer_mooring_licence.vue'
 import ApprovalCancellation from '../internal/approvals/approval_cancellation.vue'
 import ApprovalSuspension from '../internal/approvals/approval_suspension.vue'
+import ApprovalExtension from '../internal/approvals/approval_extension.vue'
 import ApprovalSurrender from '../internal/approvals/approval_surrender.vue'
 import ApprovalHistory from '../internal/approvals/approval_history.vue'
 import CreateNewStickerModal from "@/components/common/create_new_sticker_modal.vue"
@@ -172,6 +174,7 @@ export default {
         ApprovalCancellation,
         ApprovalSuspension,
         ApprovalSurrender,
+        ApprovalExtension,
         ApprovalHistory,
         CreateNewStickerModal,
         RequestNewStickerModal,
@@ -475,6 +478,9 @@ export default {
                                     if(full.can_reinstate){
                                         links +=  `<a href='#${full.id}' data-reinstate-approval='${full.id}'>Reinstate</a><br/>`
                                     }
+                                    if(full.can_extend){
+                                        links +=  `<a href='#${full.id}' data-extend-approval='${full.id}'>Extend Expiry</a><br/>`
+                                    }
                                 }
                                 if(full.renewal_document && full.renewal_sent){
                                     links += `<a href='${full.renewal_document}' target='_blank'>Renewal Notice</a><br/>`
@@ -484,7 +490,7 @@ export default {
                                         links += `<a href='#${full.id}' data-swap-moorings-approval='${full.id}' data-swap-moorings-approval-lodgement-number='${full.lodgement_number}'>Swap moorings</a><br/>`
                                 }
                             }
-                            if (full.approval_type_dict.code != 'wla') {
+                            if (full.approval_type_dict.code != 'wla' && full.status == 'Current') {
 
                                 if (!full.has_sticker) {
                                     if (vm.is_internal) {
@@ -1002,6 +1008,14 @@ export default {
                 vm.suspendApproval(id);
             });
 
+            //Internal Extend listener
+            vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-extend-approval]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-extend-approval');
+                vm.extendApproval(id);
+            });
+
+
             //Internal Swap moorings listener
             vm.$refs.approvals_datatable.vmDataTable.on('click', 'a[data-swap-moorings-approval]', function(e) {
                 e.preventDefault();
@@ -1165,6 +1179,11 @@ export default {
             this.$refs.approval_suspension.approval = {};
             this.$refs.approval_suspension.approval_id = approval_id;
             this.$refs.approval_suspension.isModalOpen = true;
+        },
+        extendApproval: function(approval_id){
+            this.$refs.approval_extension.approval = {};
+            this.$refs.approval_extension.approval_id = approval_id;
+            this.$refs.approval_extension.isModalOpen = true;
         },
         swapMoorings: function(approval_id, lodgement_number){
             this.$refs.swap_moorings_modal.approval_id = approval_id

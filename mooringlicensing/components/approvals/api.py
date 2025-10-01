@@ -54,6 +54,7 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
     ApprovalCancellationSerializer,
     ApprovalSuspensionSerializer,
+    ApprovalExtensionSerializer,
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
@@ -792,6 +793,18 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             serializer = ApprovalSuspensionSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.approval_suspension(request,serializer.validated_data)
+            return Response()
+        else:
+            raise serializers.ValidationError("User not authorised to suspend approval")
+        
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
+    @basic_exception_handler
+    def approval_extension(self, request, *args, **kwargs):
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ApprovalExtensionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.approval_extension(request,serializer.validated_data)
             return Response()
         else:
             raise serializers.ValidationError("User not authorised to suspend approval")

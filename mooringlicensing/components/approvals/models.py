@@ -27,7 +27,7 @@ from mooringlicensing.components.approvals.pdf import (
     create_approval_doc, create_renewal_doc
 )
 from mooringlicensing.components.emails.utils import get_public_url
-from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeConstructor
+from mooringlicensing.components.payments_ml.models import StickerActionFee, FeeConstructor, FeeSeason
 from mooringlicensing.components.proposals.models import (
     Proposal, ProposalUserAction, Mooring, 
     StickerPrintingBatch, StickerPrintingResponse,
@@ -309,6 +309,7 @@ class Approval(RevisionedMixin):
     expiry_date = models.DateField(blank=True, null=True)
     surrender_details = JSONField(blank=True,null=True)
     suspension_details = JSONField(blank=True,null=True)
+    extension_details = JSONField(blank=True,null=True)
     submitter = models.IntegerField(blank=True, null=True)
     cancellation_details = models.TextField(blank=True)
     cancellation_date = models.DateField(blank=True, null=True)
@@ -770,6 +771,10 @@ class Approval(RevisionedMixin):
             return True
         else:
             return False
+        
+    @property
+    def can_extend(self):
+        return self.status in [Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED, Approval.APPROVAL_STATUS_EXPIRED]
 
     @property
     def code(self):
@@ -981,6 +986,61 @@ class Approval(RevisionedMixin):
                 self.log_user_action(ApprovalUserAction.ACTION_SUSPEND_APPROVAL.format(self.id),request)
                 # Log entry for proposal
                 self.current_proposal.log_user_action(ProposalUserAction.ACTION_SUSPEND_APPROVAL.format(self.current_proposal.id),request)
+            except:
+                raise
+
+    def approval_extension(self,request,details):
+        with transaction.atomic():
+            try:
+                #check if user allowed to extend approval
+                if not request.user in self.allowed_assessors:
+                    raise ValidationError('You do not have access to extend the expiry date this approval')
+                if not self.can_extend:
+                    raise ValidationError('You cannot extend the expiry on an approval if it is not current, suspended, or expired')
+                
+                #check if expiry date valid 
+                if details.get('expiry_date'):
+                    expiry_date_str = details.get('expiry_date').strftime('%d/%m/%Y')
+                    expiry_date = datetime.datetime.strptime(expiry_date_str,'%d/%m/%Y').date()
+                else:
+                    raise ValidationError('Expiry date not provided')
+                
+                #must be greater than existing expiry date
+                if expiry_date <= self.expiry_date:
+                    raise ValidationError('Provided expiry date must be after the existing expiry date')
+                
+                approval_season = self.latest_applied_season
+                #must not go beyond the next season (e.g. 2024-2025 may go to 2025-2026 but not 2026-2027)
+                latest_allowed = approval_season.end_date + relativedelta(years=1)
+                if expiry_date > latest_allowed:
+                    raise ValidationError('Provided expiry date must not be after the end of the next applicable fee season ({})'.format(latest_allowed.strftime('%d/%m/%Y')))
+
+                #check if approval is allowed to exist as current again
+                self.current_proposal.validate_against_existing_proposals_and_approvals()
+                from mooringlicensing.components.proposals.utils import ownership_percentage_validation
+                ownership_percentage_validation(self.current_proposal)
+
+                #set extension_details
+                self.extension_details = {
+                    'expiry_date' : expiry_date_str,
+                    'details': details.get('extension_details'),
+                }
+                
+                #set expiry date
+                self.expiry_date = expiry_date
+
+                #if status is set to expired, set back to current if the current date is after the expiry date
+                if self.expiry_date > datetime.datetime.now().date():
+                    self.status = Approval.APPROVAL_STATUS_CURRENT
+                
+                self.save()
+
+                #log action
+                self.log_user_action(ApprovalUserAction.ACTION_EXTEND_APPROVAL.format(self.id),request)
+
+                #NOTE stickers cannnot be restored if expired so new stickers will need to be manually generated via the request new sticker functionality
+
+                #email holder? make this optional? TODO determine if needed
             except:
                 raise
 
