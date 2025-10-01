@@ -136,7 +136,18 @@ class GetSticker(views.APIView):
             items_per_page = 10
 
             if search_term:
-                data = Sticker.objects.filter(number__icontains=search_term)
+                system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
+                .filter(
+                    Q(legal_first_name__icontains=search_term) | Q(legal_last_name__icontains=search_term) | Q(email__icontains=search_term) | Q(full_name__icontains=search_term)
+                ).values_list("ledger_id", flat=True))
+
+                proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                .filter(
+                    Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term) | Q(full_name__icontains=search_term)
+                ).values_list("proposal_id", flat=True))
+
+                data = Sticker.objects.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=system_user_ids)|Q(vessel_ownership__vessel__rego_no__icontains=search_term)|Q(number__icontains=search_term)).exclude(number="")
+
                 paginator = Paginator(data, items_per_page)
                 try:
                     current_page = paginator.page(page_number)
