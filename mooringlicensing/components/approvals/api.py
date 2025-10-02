@@ -54,6 +54,7 @@ from mooringlicensing.components.approvals.serializers import (
     ApprovalSerializer,
     ApprovalCancellationSerializer,
     ApprovalSuspensionSerializer,
+    ApprovalExtensionSerializer,
     ApprovalSurrenderSerializer,
     ApprovalUserActionSerializer,
     ApprovalLogEntrySerializer,
@@ -136,7 +137,18 @@ class GetSticker(views.APIView):
             items_per_page = 10
 
             if search_term:
-                data = Sticker.objects.filter(number__icontains=search_term)
+                system_user_ids = list(SystemUser.objects.annotate(full_name=Concat('legal_first_name',Value(" "),'legal_last_name',output_field=CharField()))
+                .filter(
+                    Q(legal_first_name__icontains=search_term) | Q(legal_last_name__icontains=search_term) | Q(email__icontains=search_term) | Q(full_name__icontains=search_term)
+                ).values_list("ledger_id", flat=True))
+
+                proposal_applicant_proposals = list(ProposalApplicant.objects.annotate(full_name=Concat('first_name',Value(" "),'last_name',output_field=CharField()))
+                .filter(
+                    Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term) | Q(email__icontains=search_term) | Q(full_name__icontains=search_term)
+                ).values_list("proposal_id", flat=True))
+
+                data = Sticker.objects.filter(Q(approval__current_proposal__id__in=proposal_applicant_proposals)|Q(approval__submitter__in=system_user_ids)|Q(vessel_ownership__vessel__rego_no__icontains=search_term)|Q(number__icontains=search_term)).exclude(number="")
+
                 paginator = Paginator(data, items_per_page)
                 try:
                     current_page = paginator.page(page_number)
@@ -509,6 +521,8 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 mooring.mooring_licence.authorised_user_summary_document = None
             mooring.save()
             mooring.mooring_licence.save()
+            approval.log_user_action(f'Mooring {mooring} removed from AUP {approval}.', request)
+            mooring.log_user_action(f'Mooring {mooring} removed from AUP {approval}.', request)
             return Response({"results": "Success"})
 
     @detail_route(methods=['GET'], detail=True)
@@ -600,6 +614,8 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             new_sticker_action_detail.save()
             sticker_action_details.append(new_sticker_action_detail.id)
 
+            approval.log_user_action(f"New sticker created for Approval {approval}", request)
+
             return Response({'sticker_action_detail_ids': sticker_action_details})
         else:
             raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
@@ -669,6 +685,9 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 new_sticker_action_detail.sticker = sticker
                 new_sticker_action_detail.save()
                 sticker_action_details.append(new_sticker_action_detail.id)
+
+                approval.log_user_action(f"New sticker requested for Approval {approval}", request)
+
             return Response({'sticker_action_detail_ids': sticker_action_details})
         else:
             raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
@@ -710,7 +729,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             serializer = StickerPostalAddressSaveSerializer(sticker,data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
+            
             ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_UPDATE_STICKER_ADDRESS.format(sticker.number),request.user)
 
         return Response()
@@ -784,6 +803,18 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             return Response()
         else:
             raise serializers.ValidationError("User not authorised to suspend approval")
+        
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
+    @basic_exception_handler
+    def approval_extension(self, request, *args, **kwargs):
+        if is_internal(request):
+            instance = self.get_object()
+            serializer = ApprovalExtensionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            instance.approval_extension(request,serializer.validated_data)
+            return Response()
+        else:
+            raise serializers.ValidationError("User not authorised to suspend approval")
 
     @detail_route(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission])
     @basic_exception_handler
@@ -846,6 +877,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     )
 
                 # End Save Documents
+                instance.log_user_action(f'User added comms log.', request)
 
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to add comms log")

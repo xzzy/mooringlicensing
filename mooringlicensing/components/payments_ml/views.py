@@ -756,152 +756,168 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
 
 class ApplicationFeeSuccessViewPreload(APIView):
-
+    
     def get(self, request, uuid, format=None):
         logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
+        with transaction.atomic(): #will prevent handled_in_preload being saved if an error occurs
+            if uuid:
+                if not ApplicationFee.objects.filter(uuid=uuid).exists():
+                    logger.info(f'ApplicationFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
+                    return redirect(reverse('external'))
+                else:
+                    logger.info(f'ApplicationFee with uuid: {uuid} exist.')
+                application_fee = ApplicationFee.objects.get(uuid=uuid)
 
-        if uuid:
-            if not ApplicationFee.objects.filter(uuid=uuid).exists():
-                logger.info(f'ApplicationFee with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
-                return redirect(reverse('external'))
-            else:
-                logger.info(f'ApplicationFee with uuid: {uuid} exist.')
-            application_fee = ApplicationFee.objects.get(uuid=uuid)
+                #NOTE should prevent some instances of repeat request issues, but not enough on its own
+                if application_fee.handled_in_preload:
+                    logger.info(f'ApplicationFee already handled in preload.')
+                    return Response(status=status.HTTP_200_OK)
 
-            if application_fee.handled_in_preload:
-                return Response(status=status.HTTP_200_OK)
+                # invoice_reference is set in the URL when normal invoice,
+                # invoice_reference is not set in the URL when future invoice, but it is set in the application_fee on creation.
+                invoice_reference = request.GET.get("invoice", "")
+                invoice_reference = application_fee.invoice_reference if not invoice_reference else invoice_reference
+                logger.info(f"Invoice reference: {invoice_reference} and uuid: {uuid}.",)
+                if not Invoice.objects.filter(reference=invoice_reference).exists():
+                    logger.info(f'Invoice with invoice_reference: {invoice_reference} does not exist.  Redirecting user to dashboard page.')
+                    return redirect(reverse('external'))
+                else:
+                    logger.info(f'Invoice with invoice_reference: {invoice_reference} exist.')
+                invoice = Invoice.objects.get(reference=invoice_reference)
 
-            # invoice_reference is set in the URL when normal invoice,
-            # invoice_reference is not set in the URL when future invoice, but it is set in the application_fee on creation.
-            invoice_reference = request.GET.get("invoice", "")
-            invoice_reference = application_fee.invoice_reference if not invoice_reference else invoice_reference
-            logger.info(f"Invoice reference: {invoice_reference} and uuid: {uuid}.",)
-            if not Invoice.objects.filter(reference=invoice_reference).exists():
-                logger.info(f'Invoice with invoice_reference: {invoice_reference} does not exist.  Redirecting user to dashboard page.')
-                return redirect(reverse('external'))
-            else:
-                logger.info(f'Invoice with invoice_reference: {invoice_reference} exist.')
-            invoice = Invoice.objects.get(reference=invoice_reference)
+                if not FeeCalculation.objects.filter(uuid=uuid).exists():
+                    logger.info(f'FeeCalculation with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
+                    return redirect(reverse('external'))
+                else:
+                    logger.info(f'FeeCalculation with uuid: {uuid} exist.')
+                fee_calculation = FeeCalculation.objects.order_by("id").filter(uuid=uuid).last()
 
-            if not FeeCalculation.objects.filter(uuid=uuid).exists():
-                logger.info(f'FeeCalculation with uuid: {uuid} does not exist.  Redirecting user to dashboard page.')
-                return redirect(reverse('external'))
-            else:
-                logger.info(f'FeeCalculation with uuid: {uuid} exist.')
-            fee_calculation = FeeCalculation.objects.order_by("id").filter(uuid=uuid).last()
+                db_operations = fee_calculation.data
+                proposal = application_fee.proposal
 
-            db_operations = fee_calculation.data
-            proposal = application_fee.proposal
+                
+                #NOTE first changes made here fee item application fees are updated or created here
+                #check application fee again - if is already has a preload return 200
+                check_application_fee = ApplicationFee.objects.get(uuid=uuid)
+                if check_application_fee.handled_in_preload:
+                    logger.info(f'ApplicationFee already handled in preload.')
+                    return Response(status=status.HTTP_200_OK)
 
-            if 'for_existing_invoice' in db_operations and db_operations['for_existing_invoice']:
-                # For existing invoices, fee_item_application_fee.amount_paid should be updated, once paid
-                for idx in db_operations['fee_item_application_fee_ids']:
-                    fee_item_application_fee = FeeItemApplicationFee.objects.get(id=int(idx))
-                    fee_item_application_fee.amount_paid = fee_item_application_fee.amount_to_be_paid
-                    fee_item_application_fee.save()
-            else:
-                # Update the application_fee object
-                # For the AUA and MLA's new/amendment application, the application_fee already has relations to fee_item(s) created after creating lines.
-                # In that case, there are no 'fee_item_id' and/or 'fee_item_additional_id' keys in the db_operations
-                if 'fee_item_id' in db_operations:
-                    fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
-                    if fee_items:
-                        amount_paid = None
-                        amount_to_be_paid = None
-                        if 'fee_amount_adjusted' in db_operations:
-                            # Because of business rules, fee_item.amount is not always the same as the actual amount paid.
-                            # Therefore we want to store the amount paid too as well as fee_item.
-                            fee_amount_adjusted = db_operations['fee_amount_adjusted']
+                if 'for_existing_invoice' in db_operations and db_operations['for_existing_invoice']:
+                    # For existing invoices, fee_item_application_fee.amount_paid should be updated, once paid
+                    for idx in db_operations['fee_item_application_fee_ids']:
+                        fee_item_application_fee = FeeItemApplicationFee.objects.get(id=int(idx))
+                        fee_item_application_fee.amount_paid = fee_item_application_fee.amount_to_be_paid
+                        fee_item_application_fee.save()
+                else:
+                    # Update the application_fee object
+                    # For the AUA and MLA's new/amendment application, the application_fee already has relations to fee_item(s) created after creating lines.
+                    # In that case, there are no 'fee_item_id' and/or 'fee_item_additional_id' keys in the db_operations
+                    if 'fee_item_id' in db_operations:
+                        fee_items = FeeItem.objects.filter(id=db_operations['fee_item_id'])
+                        if fee_items:
+                            amount_paid = None
+                            amount_to_be_paid = None
+                            if 'fee_amount_adjusted' in db_operations:
+                                # Because of business rules, fee_item.amount is not always the same as the actual amount paid.
+                                # Therefore we want to store the amount paid too as well as fee_item.
+                                fee_amount_adjusted = db_operations['fee_amount_adjusted']
+                                amount_to_be_paid = Decimal(fee_amount_adjusted)
+                                amount_paid = amount_to_be_paid
+                                fee_item = fee_items.first()
+                            fee_item_application_fee = FeeItemApplicationFee.objects.create(
+                                fee_item=fee_item,
+                                application_fee=application_fee,
+                                amount_to_be_paid=amount_to_be_paid,
+                                amount_paid=amount_paid,
+                            )
+                            logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] created.')
+                    if isinstance(db_operations, list):
+                        # This is used for AU/ML's auto renewal
+                        for item in db_operations:
+                            fee_item = FeeItem.objects.get(id=item['fee_item_id'])
+                            fee_amount_adjusted = item['fee_amount_adjusted']
                             amount_to_be_paid = Decimal(fee_amount_adjusted)
                             amount_paid = amount_to_be_paid
-                            fee_item = fee_items.first()
-                        fee_item_application_fee = FeeItemApplicationFee.objects.create(
-                            fee_item=fee_item,
-                            application_fee=application_fee,
-                            amount_to_be_paid=amount_to_be_paid,
-                            amount_paid=amount_paid,
-                        )
-                        logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] created.')
-                if isinstance(db_operations, list):
-                    # This is used for AU/ML's auto renewal
-                    for item in db_operations:
-                        fee_item = FeeItem.objects.get(id=item['fee_item_id'])
-                        fee_amount_adjusted = item['fee_amount_adjusted']
-                        amount_to_be_paid = Decimal(fee_amount_adjusted)
-                        amount_paid = amount_to_be_paid
 
-                        fee_item_application_fee = FeeItemApplicationFee.objects.create(
-                            fee_item=fee_item,
-                            application_fee=application_fee,
-                            amount_to_be_paid=amount_to_be_paid,
-                            amount_paid=amount_paid,
-                        )
-                        logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')
+                            fee_item_application_fee = FeeItemApplicationFee.objects.create(
+                                fee_item=fee_item,
+                                application_fee=application_fee,
+                                amount_to_be_paid=amount_to_be_paid,
+                                amount_paid=amount_paid,
+                            )
+                            logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] has been created.')
 
-            application_fee.invoice_reference = invoice_reference
-            application_fee.handled_in_preload = datetime.datetime.now()
-
-            #get invoice properties
-            inv_props = utils.get_invoice_properties(invoice.id)
-
-            #record cost and payment status in ApplicationFee model
-            if 'data' in inv_props and 'invoice' in inv_props['data']:
-                payment_status = inv_props['data']['invoice']["payment_status"] if "payment_status" in inv_props['data']['invoice'] else ""
-                amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
-
-                previous_application_fees = ApplicationFee.objects.filter(proposal=proposal, cancelled=False).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
-                previous_application_fee_cost = previous_application_fees.last().cost if previous_application_fees.last() else 0.0
-
-                application_fee.payment_status = payment_status
-                application_fee.cost = float(amount) + float(previous_application_fee_cost)
-
-            application_fee.save()
-
-            if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
-                try:
-                    inv = Invoice.objects.get(reference=invoice_reference)
-                except Invoice.DoesNotExist:
-                    logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user'))
-                    return redirect('external-proposal-detail', args=(proposal.id,))
-                
-                if inv.system not in [LEDGER_SYSTEM_ID, ]:
-                    logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user',inv.reference))
-                    return redirect('external-proposal-detail', args=(proposal.id,))
-
-                application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
-                application_fee.expiry_time = None
-
-                invoice_payment_status = get_invoice_payment_status(inv.id)
-                if proposal and invoice_payment_status in ('paid', 'over_paid',):
-                    logger.info('The fee for the proposal: {} has been fully paid'.format(proposal.lodgement_number))
-
-                    if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
-                        # For AUA or MLA, as payment has been done, create approval
-                        proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
-                    else:
-                        # When WLA / AAA
-                        if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code]:
-                            proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                            proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
-
-                            proposal.child_obj.send_emails_after_payment_success(request)
-                            proposal.save()
-
-                        proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
-                        proposal.save()
-                        logger.info(f'Processing status: [{Proposal.PROCESSING_STATUS_WITH_ASSESSOR}] has been set to the proposal: [{proposal}]')
-
-                else:
-                    msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, get_invoice_payment_status(invoice.id))
-                    logger.error(msg)
-                    raise Exception(msg)
-
+                application_fee.invoice_reference = invoice_reference
                 application_fee.handled_in_preload = datetime.datetime.now()
+
+                #get invoice properties
+                inv_props = utils.get_invoice_properties(invoice.id)
+
+                #record cost and payment status in ApplicationFee model
+                if 'data' in inv_props and 'invoice' in inv_props['data']:
+                    payment_status = inv_props['data']['invoice']["payment_status"] if "payment_status" in inv_props['data']['invoice'] else ""
+                    amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
+
+                    previous_application_fees = ApplicationFee.objects.filter(proposal=proposal, cancelled=False).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                    previous_application_fee_cost = previous_application_fees.last().cost if previous_application_fees.last() else 0.0
+
+                    application_fee.payment_status = payment_status
+                    application_fee.cost = float(amount) + float(previous_application_fee_cost)
+
+                #prior to saving application_fee for the first time, check if a fee already exists - if it does return an error
+                check_application_fee = ApplicationFee.objects.get(uuid=uuid)
+                if check_application_fee.handled_in_preload:
+                    logger.error(f'ApplicationFee already handled in preload. Returning error.')
+                    raise serializers.ValidationError("Application already handled in preload")
+                #NOTE first point where application fee is save with handled_in_preload is set
                 application_fee.save()
 
-            logger.info(
-                "Returning status.HTTP_200_OK. Order created successfully.",
-            )
+                if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
+                    try:
+                        inv = Invoice.objects.get(reference=invoice_reference)
+                    except Invoice.DoesNotExist:
+                        logger.error('{} tried paying an application fee with an incorrect invoice'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user'))
+                        return redirect('external-proposal-detail', args=(proposal.id,))
+                    
+                    if inv.system not in [LEDGER_SYSTEM_ID, ]:
+                        logger.error('{} tried paying an application fee with an invoice from another system with reference number {}'.format('User {} with id {}'.format(proposal.applicant_obj.get_full_name(), proposal.applicant_obj.id) if proposal.submitter else 'An anonymous user',inv.reference))
+                        return redirect('external-proposal-detail', args=(proposal.id,))
+
+                    application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
+                    application_fee.expiry_time = None
+
+                    invoice_payment_status = get_invoice_payment_status(inv.id)
+                    if proposal and invoice_payment_status in ('paid', 'over_paid',):
+                        logger.info('The fee for the proposal: {} has been fully paid'.format(proposal.lodgement_number))
+
+                        if proposal.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
+                            # For AUA or MLA, as payment has been done, create approval
+                            proposal.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                        else:
+                            # When WLA / AAA
+                            if proposal.application_type.code in [WaitingListApplication.code, AnnualAdmissionApplication.code]:
+                                proposal.lodgement_date = datetime.datetime.now(pytz.timezone(TIME_ZONE))
+                                proposal.log_user_action(ProposalUserAction.ACTION_LODGE_APPLICATION.format(proposal.lodgement_number), request)
+
+                                proposal.child_obj.send_emails_after_payment_success(request)
+                                proposal.save()
+
+                            proposal.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
+                            proposal.save()
+                            logger.info(f'Processing status: [{Proposal.PROCESSING_STATUS_WITH_ASSESSOR}] has been set to the proposal: [{proposal}]')
+
+                    else:
+                        msg = 'Invoice: {} payment status is {}.  It should be either paid or over_paid'.format(invoice.reference, get_invoice_payment_status(invoice.id))
+                        logger.error(msg)
+                        raise Exception(msg)
+
+                    application_fee.handled_in_preload = datetime.datetime.now()
+                    application_fee.save()
+
+                logger.info(
+                    "Returning status.HTTP_200_OK. Order created successfully.",
+                )
 
             return Response(status=status.HTTP_200_OK)
 

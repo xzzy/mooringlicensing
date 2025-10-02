@@ -1835,9 +1835,9 @@ class Proposal(RevisionedMixin):
                 fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
                 fee_item_application_fees.update(vessel_details=self.vessel_details)
 
-                # TODO only reset this flag if it is a renewal
-                # always reset this flag
-                approval.renewal_sent = False
+                # only reset this flag if it is a renewal
+                if self.proposal_type.code == PROPOSAL_TYPE_RENEWAL:
+                    approval.renewal_sent = False
                 
                 if type(self.child_obj) == AnnualAdmissionApplication:
                     approval.export_to_mooring_booking = True
@@ -4812,12 +4812,11 @@ class MooringUserAction(UserAction):
 
     @classmethod
     def log_action(cls, mooring, action, user):
-        if isinstance(user, EmailUserRO):
-            return cls.objects.create(
-                mooring=mooring,
-                who=user.id if user.id else None,
-                what=str(action)
-            )
+        return cls.objects.create(
+            mooring=mooring,
+            who=user.id if isinstance(user, EmailUserRO) else user,
+            what=str(action)
+        )
 
     mooring = models.ForeignKey(Mooring, related_name='action_logs', on_delete=models.CASCADE)
 
@@ -4877,7 +4876,7 @@ class Vessel(RevisionedMixin):
     def get_current_mls(self, target_date):
         from mooringlicensing.components.approvals.models import Approval, MooringLicence, VesselOwnershipOnApproval
         
-        approval_ids = list(VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel=self,end_date__isnull=True).values_list("approval__id", flat=True))
+        approval_ids = list(VesselOwnershipOnApproval.objects.filter(vessel_ownership__vessel=self,vessel_ownership__end_date__isnull=True,end_date__isnull=True).values_list("approval__id", flat=True))
         
         existing_mls = MooringLicence.objects.filter(
             status__in=(Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,),

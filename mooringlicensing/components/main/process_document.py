@@ -29,10 +29,16 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
 
         if action == 'delete':
             delete_document(request, instance, comms_instance, document_type, input_name)
+            if document_type:
+                instance.log_user_action(f'{document_type.replace("_"," ").capitalize()} file deleted.', request)
         elif action == 'cancel':
             deleted = cancel_document(request, instance, comms_instance, document_type, input_name)
+            if document_type:
+                instance.log_user_action(f'{document_type.replace("_"," ").capitalize()} file cancelled.', request)
         elif action == 'save':
             save_document(request, instance, comms_instance, document_type, input_name)
+            if document_type:
+                instance.log_user_action(f'{document_type.replace("_"," ").capitalize()} file saved.', request)
 
         # HTTP Response varies by action and instance type
         ret = None

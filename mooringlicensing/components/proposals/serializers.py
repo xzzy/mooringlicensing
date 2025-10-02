@@ -27,6 +27,7 @@ from mooringlicensing.components.proposals.models import (
     CompanyOwnership,
     Mooring, MooringLicenceApplication, AuthorisedUserApplication,
     ProposalSiteLicenseeMooringRequest,
+    MooringUserAction
 )
 from mooringlicensing.components.main.models import GlobalSettings
 from mooringlicensing.ledger_api_utils import retrieve_email_userro
@@ -1266,6 +1267,22 @@ class VesselLogEntrySerializer(CommunicationLogEntrySerializer):
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
+
+class MooringUserActionSerializer(serializers.ModelSerializer):
+    who = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MooringUserAction
+        fields = '__all__'
+
+    def get_who(self, obj):
+        ret_name = 'System'
+        if obj.who:
+            name = obj.who_obj.get_full_name()
+            name = name.strip()
+            if name:
+                ret_name = name
+        return ret_name
 
 class MooringLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()

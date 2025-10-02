@@ -62,6 +62,7 @@ from mooringlicensing.components.proposals.serializers import (
     ProposalSerializer,
     InternalProposalSerializer,
     ProposalUserActionSerializer,
+    MooringUserActionSerializer,
     ProposalLogEntrySerializer,
     VesselLogEntrySerializer,
     MooringLogEntrySerializer,
@@ -1054,6 +1055,8 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
                     original_file_name = document.first().name
                     document.first().delete()
                     logger.info(f'MooringReportDocument file: {original_file_name} has been deleted.')
+                    instance.log_user_action(f'Mooring report document file deleted.', request)
+
             elif action == 'save':
                 filename = request.data.get('filename')
                 _file = request.data.get('_file')
@@ -1066,6 +1069,7 @@ class ProposalByUuidViewSet(viewsets.GenericViewSet):
                 document.save()
                 
                 logger.info(f'MooringReportDocument file: {filename} has been saved as {document._file.url}')
+                instance.log_user_action(f'Mooring report document file saved.', request)
 
         docs_in_limbo = instance.mooring_report_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
@@ -1248,6 +1252,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             #run the applicant change
             change_proposal_applicant(applicant, system_user)
 
+            instance.log_user_action(f'Proposal: {instance} applicant changed to {instance.proposal_applicant.get_full_name()}.', request)
+
             return Response({"applicant_system_id": applicant_system_id})
         else:
             raise serializers.ValidationError("user not authorised to change applicant")
@@ -1276,6 +1282,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     original_file_ext = document.original_file_ext
                     document.delete()
                     logger.info(f'VesselRegistrationDocument file: {original_file_name}{original_file_ext} has been deleted.')
+                    instance.log_user_action(f'Vessel registration document file deleted.', request)
             elif action == 'save':
                 filename = request.data.get('filename')
                 _file = request.data.get('_file')
@@ -1301,6 +1308,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 document.save()
 
                 logger.info(f'VesselRegistrationDocument file: {filename} has been saved as {document._file.url}')
+                instance.log_user_action(f'Vessel registration document file saved.', request)
 
         docs_in_limbo = instance.temp_vessel_registration_documents.all()  # Files uploaded when vessel_ownership is unknown
         docs = instance.vessel_ownership.vessel_registration_documents.all() if instance.vessel_ownership else VesselRegistrationDocument.objects.none()
@@ -1330,6 +1338,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     original_file_name = document.name
                     document.delete()
                     logger.info(f'ElectoralRollDocument file: {original_file_name} has been deleted.')
+                    instance.log_user_action(f'Electoral roll document file deleted.', request)
             elif action == 'save':
                 filename = request.data.get('filename')
                 _file = request.data.get('_file')
@@ -1351,6 +1360,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 document.save()
 
                 logger.info(f'ElectoralRollDocument file: {filename} has been saved as {document._file.url}')
+                instance.log_user_action(f'Electoral roll document file saved.', request)
 
         docs_in_limbo = instance.electoral_roll_documents.all()  # Files uploaded when vessel_ownership is unknown
         all_the_docs = docs_in_limbo
@@ -1383,6 +1393,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     original_file_name = document.name
                     document.delete()
                     logger.info(f'HullIdentificationNumberDocument file: {original_file_name} has been deleted.')
+                    instance.log_user_action(f'Hull identification number document file deleted.', request)
             elif action == 'save':
                 filename = request.data.get('filename')
                 _file = request.data.get('_file')
@@ -1403,6 +1414,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
                 document._file.save(new_filename, ContentFile(_file.read()), save=False)
                 document.save()
+                instance.log_user_action(f'Hull identification number document file saved.', request)
 
                 logger.info(f'HullIdentificationNumberDocument file: {filename} has been saved as {document._file.url}')
 
@@ -1433,6 +1445,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     original_file_name = document.name
                     document.delete()
                     logger.info(f'InsuranceCertificateDocument file: {original_file_name} has been deleted.')
+                    instance.log_user_action(f'Insurance certificate document file deleted.', request)
             elif action == 'save':
                 filename = request.data.get('filename')
                 _file = request.data.get('_file')
@@ -1454,6 +1467,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 document.save()
 
                 logger.info(f'InsuranceCertificateDocument file: {filename} has been saved as {document._file.url}')
+                instance.log_user_action(f'Insurance certificate document file saved.', request)
 
         # retrieve temporarily uploaded documents when the proposal is 'draft'
         docs_in_limbo = instance.insurance_certificate_documents.all()  # Files uploaded when vessel_ownership is unknown
@@ -1504,7 +1518,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         _file = request.FILES[f]
                     )
                 # End Save Documents
-
+                instance.log_user_action(f'User added comms log.', request)
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to add comms log")
 
@@ -1559,6 +1573,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
+            instance.log_user_action(f'Proposal {instance} endorsed by RIA staff on endorser\'s behalf', request)
             return Response(serializer.data)
         return Response()
 
@@ -1587,6 +1602,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
             instance = self.get_object()
             serializer = InternalProposalSerializer(instance, context={'request': request})
+            instance.log_user_action(f'Proposal {instance} declined by RIA staff on endorser\'s behalf', request)
             return Response(serializer.data)
         return Response()
 
@@ -1653,6 +1669,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if instance.application_type_code == 'aua' and instance.processing_status == Proposal.PROCESSING_STATUS_AWAITING_ENDORSEMENT:
                 #run function to move to with_assessor (include auth check in model func)
                 instance.bypass_endorsement(request)
+                instance.log_user_action(f'Proposal {instance} endorsement bypassed by RIA', request)
             else:
                 serializers.ValidationError("Invalid application type")
 
@@ -1672,6 +1689,7 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 if instance.site_licensee_mooring_request.filter(enabled=True,declined_by_endorser=False,approved_by_endorser=False).exists():
                     #run function to move to awaiting_endorsement (include auth check in model func)
                     instance.request_endorsement(request)
+                    instance.log_user_action(f'Proposal {instance} reverted to awaiting endorsement status by RIA', request)
                 else:
                     serializers.ValidationError("No site licensee moorings requests that require action")
             else:
@@ -1789,6 +1807,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             save_proponent_data(instance,request,self.action)
             instance = self.get_object()
             serializer = self.serializer_class(instance, context={'request':request})
+
+            instance.log_user_action(f'Proposal {instance} draft saved.', request)
             return Response(serializer.data)
         
     @detail_route(methods=['post'], detail=True, permission_classes=[InternalProposalPermission])
@@ -1801,6 +1821,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 instance = self.get_object()
                 serializer_class = self.internal_serializer_class()
                 serializer = serializer_class(instance, context={'request':request})
+
+                instance.log_user_action(f'Proposal {instance} saved by RIA.', request)
                 return Response(serializer.data)
 
     @detail_route(methods=['post'], detail=True)
@@ -1933,6 +1955,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         if (instance.proposal.has_assessor_mode(request.user)):
             instance.up()
             instance.save()
+            instance.proposal.log_user_action(f'Proposal {instance.proposal} conditions rearranged.', request)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -1943,6 +1966,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         if (instance.proposal.has_assessor_mode(request.user)):
             instance.down()
             instance.save()
+            instance.proposal.log_user_action(f'Proposal {instance.proposal} conditions rearranged.', request)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -1953,6 +1977,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         if (instance.proposal.has_assessor_mode(request.user)):
             instance.is_deleted = True
             instance.save()
+            instance.proposal.log_user_action(f'Proposal {instance.proposal} {instance.requirement} condition discarded.', request)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -1963,6 +1988,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         serializer.is_valid(raise_exception=True)
         if (instance.proposal.has_assessor_mode(request.user)):
             serializer.save()
+            instance.proposal.log_user_action(f'Proposal {instance.proposal} {instance.requirement} condition updated.', request)
         return Response(serializer.data)
 
     @basic_exception_handler
@@ -1974,6 +2000,7 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
                 proposal = Proposal.objects.get(id=request.data["proposal"])
                 if (proposal.has_assessor_mode(request.user)):
                     serializer.save()
+                    proposal.log_user_action(f'Proposal {proposal} {serializer.instance.requirement} condition added.', request)
                 return Response(serializer.data)
             except Exception as e:
                 print(e)
@@ -2084,6 +2111,7 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
 
     @detail_route(methods=['POST'], detail=True)
     @basic_exception_handler
+    #TODO check if this is in use, remove if not
     def process_vessel_registration_document(self, request, *args, **kwargs):
         instance = self.get_object()
         returned_data = process_generic_document(request, instance, document_type='vessel_registration_document')
@@ -2201,6 +2229,8 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                         send_reissue_aup_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
                     elif approval.code == MooringLicence.code:
                         send_reissue_ml_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+
+                    approval.log_user_action(f'Vessel {instance.vessel.rego_no} on Approval {approval} marked sold on {sale_date}.', request)
 
             else:
                 raise serializers.ValidationError("Missing information: You must specify a sale date")
@@ -2363,7 +2393,6 @@ class VesselViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.L
                         _file = request.FILES[f]
                     )
                 # End Save Documents
-
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to add comms log")
 
@@ -2581,6 +2610,7 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 approval_id = request.data.get('approval_id')
                 try:
                     moa = MooringOnApproval.objects.get(mooring=mooring, approval_id=approval_id)
+                    approval = Approval.objects.get(id=approval_id)
                 except:
                     raise serializers.ValidationError("Mooring and AUP relationship does not exist")
                 today=datetime.now(pytz.timezone(TIME_ZONE)).date()
@@ -2601,6 +2631,8 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 else:
                     # removing the List of Authorised Users document if there is no more AUPs remaining 
                     mooring.mooring_licence.authorised_user_summary_document = None
+                approval.log_user_action(f'AUP {approval} removed from Mooring {mooring}.', request)
+                mooring.log_user_action(f'AUP {approval} removed from Mooring {mooring}.', request)
                 return Response({"results": "Success"})
 
     @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
@@ -2664,7 +2696,7 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         if is_internal(request):
             instance = self.get_object()
             qs = instance.action_logs.all()
-            serializer = ProposalUserActionSerializer(qs,many=True)
+            serializer = MooringUserActionSerializer(qs,many=True)
             return Response(serializer.data)
         return Response()
 
@@ -2688,7 +2720,7 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         _file = request.FILES[f]
                     )
                 # End Save Documents
-
+                instance.log_user_action(f'User added comms log.', request)
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to add comms log")
 

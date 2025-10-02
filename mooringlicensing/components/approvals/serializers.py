@@ -157,6 +157,9 @@ class ApprovalSuspensionSerializer(serializers.Serializer):
     to_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False, allow_null=True)
     suspension_details = serializers.CharField()
 
+class ApprovalExtensionSerializer(serializers.Serializer):
+    expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'])
+    extension_details = serializers.CharField()
 
 class ApprovalSurrenderSerializer(serializers.Serializer):
     surrender_date = serializers.DateField(input_formats=['%d/%m/%Y'])
@@ -275,6 +278,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'can_reissue',
             'can_external_action',
             'can_action',
+            'can_extend',
             'can_reinstate',
             'amend_or_renew',
             'renewal_document',
@@ -636,6 +640,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'can_reissue',
             'can_external_action',
             'can_action',
+            'can_extend',
             'can_reinstate',
             'amend_or_renew',
             'mooring_swappable',
@@ -681,6 +686,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'can_reissue',
             'can_external_action',
             'can_action',
+            'can_extend',
             'can_reinstate',
             'amend_or_renew',
             'mooring_swappable',
@@ -834,6 +840,9 @@ class ListApprovalSerializer(serializers.ModelSerializer):
 
     def get_can_action(self,obj):
         return obj.can_action
+    
+    def get_can_extend(self,obj):
+        return obj.can_extend
 
     def get_amend_or_renew(self,obj):
         return obj.amend_or_renew
