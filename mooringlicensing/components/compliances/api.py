@@ -163,6 +163,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 instance.processing_status = Compliance.PROCESSING_STATUS_DISCARDED
                 instance.save()
                 serializer = InternalComplianceSerializer(instance, context={'request': request})
+                instance.log_user_action(f"Compliance {instance} discarded.", request)
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to discard compliance")
     
@@ -173,6 +174,7 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         qs = instance.amendment_requests
         qs = qs.filter(status = 'requested')
         serializer = CompAmendmentRequestDisplaySerializer(qs,many=True)
+        instance.log_user_action(f"Amendment requested for Compliance {instance}.", request)
         return Response(serializer.data)
 
     @detail_route(methods=['GET',], detail=True, permission_classes=[InternalCompliancePermission])
@@ -216,6 +218,8 @@ class ComplianceViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         _file = request.FILES[f]
                     )
                 # End Save Documents
+
+                instance.log_user_action(f'User added comms log.', request)
 
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to add comms log")

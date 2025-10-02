@@ -756,7 +756,7 @@ class ApplicationFeeAlreadyPaid(TemplateView):
 
 
 class ApplicationFeeSuccessViewPreload(APIView):
-    #TODO make sure we handle situations where this happens more than once for the same payment
+    
     def get(self, request, uuid, format=None):
         logger.info(f'{ApplicationFeeSuccessViewPreload.__name__} get method is called.')
         with transaction.atomic(): #will prevent handled_in_preload being saved if an error occurs

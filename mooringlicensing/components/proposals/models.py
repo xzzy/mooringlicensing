@@ -4812,12 +4812,11 @@ class MooringUserAction(UserAction):
 
     @classmethod
     def log_action(cls, mooring, action, user):
-        if isinstance(user, EmailUserRO):
-            return cls.objects.create(
-                mooring=mooring,
-                who=user.id if user.id else None,
-                what=str(action)
-            )
+        return cls.objects.create(
+            mooring=mooring,
+            who=user.id if isinstance(user, EmailUserRO) else user,
+            what=str(action)
+        )
 
     mooring = models.ForeignKey(Mooring, related_name='action_logs', on_delete=models.CASCADE)
 

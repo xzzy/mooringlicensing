@@ -521,6 +521,8 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 mooring.mooring_licence.authorised_user_summary_document = None
             mooring.save()
             mooring.mooring_licence.save()
+            approval.log_user_action(f'Mooring {mooring} removed from AUP {approval}.', request)
+            mooring.log_user_action(f'Mooring {mooring} removed from AUP {approval}.', request)
             return Response({"results": "Success"})
 
     @detail_route(methods=['GET'], detail=True)
@@ -612,6 +614,8 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             new_sticker_action_detail.save()
             sticker_action_details.append(new_sticker_action_detail.id)
 
+            approval.log_user_action(f"New sticker created for Approval {approval}", request)
+
             return Response({'sticker_action_detail_ids': sticker_action_details})
         else:
             raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
@@ -681,6 +685,9 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 new_sticker_action_detail.sticker = sticker
                 new_sticker_action_detail.save()
                 sticker_action_details.append(new_sticker_action_detail.id)
+
+                approval.log_user_action(f"New sticker requested for Approval {approval}", request)
+
             return Response({'sticker_action_detail_ids': sticker_action_details})
         else:
             raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
@@ -722,7 +729,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             serializer = StickerPostalAddressSaveSerializer(sticker,data=data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
+            
             ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_UPDATE_STICKER_ADDRESS.format(sticker.number),request.user)
 
         return Response()
@@ -870,6 +877,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     )
 
                 # End Save Documents
+                instance.log_user_action(f'User added comms log.', request)
 
                 return Response(serializer.data)
         raise serializers.ValidationError("User not authorised to add comms log")
