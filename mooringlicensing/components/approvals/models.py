@@ -1039,8 +1039,6 @@ class Approval(RevisionedMixin):
                 self.log_user_action(ApprovalUserAction.ACTION_EXTEND_APPROVAL.format(self.id),request)
 
                 #NOTE stickers cannnot be restored if expired so new stickers will need to be manually generated via the request new sticker functionality
-
-                #email holder? make this optional? TODO determine if needed
             except:
                 raise
 
