@@ -765,7 +765,11 @@ class Proposal(RevisionedMixin):
                     # We are interested only in the AnnualAdmission component
                     logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
 
-                    target_vessel = fee_item_application_fee.vessel_details.vessel
+                    try:
+                        target_vessel = fee_item_application_fee.vessel_details.vessel
+                    except:
+                        logger.warning("Skipping application fee missing vessel details for deduction calculations - manual fee adjustments may be required")
+                        continue
 
                     # Retrieve the current approvals of the target_vessel
                     current_approvals = target_vessel.get_current_approvals(target_date)
@@ -1447,12 +1451,15 @@ class Proposal(RevisionedMixin):
                 r, created = ProposalRequirement.objects.get_or_create(proposal=self, standard_requirement=req, due_date=due_date)
 
     def move_to_status(self, request, status, approver_comment):
+        #TODO current status validation was not added to this function, some will be added as of writing but further review may be required
         if not status:
             raise serializers.ValidationError('Status is required')
         if status not in [Proposal.PROCESSING_STATUS_WITH_ASSESSOR, Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS, Proposal.PROCESSING_STATUS_WITH_APPROVER]:
             raise serializers.ValidationError('The status provided is not allowed')
         if not self.can_assess(request.user):
             raise exceptions.ProposalNotAuthorized()
+        if self.processing_status in [Proposal.PROCESSING_STATUS_APPROVED, Proposal.PROCESSING_STATUS_PRINTING_STICKER, Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_AWAITING_PAYMENT]:
+            raise serializers.ValidationError('Current status cannot be changed manually')
 
         if self.processing_status != status:
             if self.processing_status == Proposal.PROCESSING_STATUS_WITH_APPROVER:
@@ -2475,7 +2482,7 @@ class Proposal(RevisionedMixin):
         from mooringlicensing.components.proposals.utils import get_max_vessel_length_for_main_component
         max_vessel_length_with_no_payment = get_max_vessel_length_for_main_component(self)
         length = 0
-        if self.vessel_length:
+        if self.vessel_length and self.rego_no:
             if (max_vessel_length_with_no_payment[0] < self.vessel_length or (
                 max_vessel_length_with_no_payment[0] == self.vessel_length and
                 not max_vessel_length_with_no_payment[1])):
@@ -2983,7 +2990,7 @@ class WaitingListApplication(Proposal):
 
         application_type = self.application_type
 
-        if self.vessel_length:
+        if self.vessel_length and self.rego_no:
             vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
@@ -3238,7 +3245,7 @@ class AnnualAdmissionApplication(Proposal):
         db_processes_after_success = {}
         accept_null_vessel = False
 
-        if self.vessel_length:
+        if self.vessel_length and self.rego_no:
             vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
@@ -3492,7 +3499,7 @@ class AuthorisedUserApplication(Proposal):
 
         logger.info('Creating fee lines for the proposal: [{}], target date: {}'.format(self, target_date))
 
-        if self.vessel_length:
+        if self.vessel_length and self.rego_no:
             vessel_length = self.vessel_length
         else:
             # No vessel specified in the application
@@ -4125,7 +4132,7 @@ class MooringLicenceApplication(Proposal):
         logger.info(f'Largest vessel details are [{vessel_details_largest}] for the application: [{self}].')
 
         # For Mooring Licence component
-        if self.vessel_length:
+        if self.vessel_length and self.rego_no:
             if vessel_details_largest:
                 if self.vessel_length > vessel_details_largest.vessel_applicable_length:
                     vessel_length = self.vessel_length
