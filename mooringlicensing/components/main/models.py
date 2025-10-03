@@ -123,7 +123,7 @@ class Notice(SanitiseMixin):
         self.full_clean()
         super(Notice, self).save(*args, **kwargs)
 
-class UserAction(models.Model):
+class UserAction(SanitiseMixin):
     who = models.IntegerField(null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
