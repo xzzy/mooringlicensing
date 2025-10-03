@@ -768,15 +768,16 @@ class Proposal(RevisionedMixin):
                     try:
                         target_vessel = fee_item_application_fee.vessel_details.vessel
                     except:
-                        logger.warning("Skipping application fee missing vessel details for deduction calculations - manual fee adjustments may be required")
-                        continue
+                        logger.warning("Application fee missing vessel details - invoices may require review")
+                        target_vessel = None
 
                     # Retrieve the current approvals of the target_vessel
-                    current_approvals = target_vessel.get_current_approvals(target_date)
-                    logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
+                    if target_vessel:
+                        current_approvals = target_vessel.get_current_approvals(target_date)
+                        logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
                     
                     deduct = True
-                    if target_vessel != vessel:
+                    if target_vessel and target_vessel != vessel:
                         
                         if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
                             # When ML, customer is adding a new vessel to the ML
