@@ -1036,7 +1036,7 @@ class Approval(RevisionedMixin):
                 self.save()
 
                 #log action
-                self.log_user_action(ApprovalUserAction.ACTION_EXTEND_APPROVAL.format(self.id),request)
+                self.log_user_action(ApprovalUserAction.ACTION_EXTEND_APPROVAL.format(self.id,expiry_date_str,details.get('extension_details')),request)
 
                 #NOTE stickers cannnot be restored if expired so new stickers will need to be manually generated via the request new sticker functionality
             except:
@@ -2901,7 +2901,7 @@ class ApprovalUserAction(UserAction):
     ACTION_UPDATE_APPROVAL = "Create approval {}"
     ACTION_EXPIRE_APPROVAL = "Expire approval {}"
     ACTION_CANCEL_APPROVAL = "Cancel approval {}"
-    ACTION_EXTEND_APPROVAL = "Extend approval {}"
+    ACTION_EXTEND_APPROVAL = "Extend approval {} to {} [{}]"
     ACTION_SUSPEND_APPROVAL = "Suspend approval {}"
     ACTION_REINSTATE_APPROVAL = "Reinstate approval {}"
     ACTION_SURRENDER_APPROVAL = "Surrender approval {}"
