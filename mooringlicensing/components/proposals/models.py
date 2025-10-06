@@ -372,6 +372,8 @@ class Proposal(RevisionedMixin):
     payment_reminder_sent = models.BooleanField(default=False)
     payment_due_date = models.DateField(blank=True, null=True) #date when payment is due for future invoices
 
+    bypass_payment_reason = JSONField(blank=True,null=True)
+
     no_email_notifications = models.BooleanField(default=False)
 
     class Meta:
@@ -395,6 +397,11 @@ class Proposal(RevisionedMixin):
                 invoice_reference = request.data['invoice_ref']
             except:
                 raise serializers.ValidationError("Invoice reference not provided")
+
+            try:
+                bypass_reason = request.data['bypass_payment_reason']
+            except:
+                raise serializers.ValidationError("Bypass payment reason not provided")
 
             try:
                 record_amount_as_paid = request.data['record_amount_as_paid']
@@ -515,8 +522,16 @@ class Proposal(RevisionedMixin):
             
             logger.info(f"Application payment bypass successful for {self}")
             
-            #TODO bypass details
-            self.save()
+        self.bypass_payment_reason = {
+                'bypass_time' : datetime.datetime.now().strftime('%d/%m/%Y'),
+                'details': bypass_reason,
+                'amount_recorded_as_paid': record_amount_as_paid,
+            }
+        if record_amount_as_paid:
+            self.log_user_action(f"Payment for Proposal {self} bypassed. Reason: {bypass_reason}. Invoiced amount recorded as paid for purposes of future fee calculations.")
+        else:
+            self.log_user_action(f"Payment for Proposal {self} bypassed. Reason: {bypass_reason}. Invoiced amount not recorded as paid for purposes of future fee calculations.")
+        self.save()
 
     def cancel_payment(self, request):
         logger.info(f'Cancelling payment for Proposal: [{self}].')
