@@ -36,7 +36,7 @@ from mooringlicensing.components.main.serializers import CommunicationLogEntrySe
 from mooringlicensing.components.users.serializers import UserSerializer, ProposalApplicantSerializer
 from ledger_api_client.managed_models import SystemUser
 from rest_framework import serializers
-from mooringlicensing.helpers import is_internal
+from mooringlicensing.helpers import is_internal, is_system_admin
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL
 from mooringlicensing.ledger_api_utils import retrieve_system_user
 from mooringlicensing.components.users.utils import get_user_name
@@ -141,6 +141,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     site_licensee_moorings = serializers.SerializerMethodField()
     previous_application_insurance_choice = serializers.SerializerMethodField()
     stat_dec_form = serializers.SerializerMethodField()
+    can_user_bypass_payment = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -165,6 +166,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'readonly',
                 'can_user_edit',
                 'can_user_cancel_payment',
+                'can_user_bypass_payment',
                 'can_user_view',
                 'documents_url',
                 'lodgement_number',
@@ -219,6 +221,13 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'stat_dec_form',
                 )
         read_only_fields=('documents','auto_approve')
+
+    def get_can_user_bypass_payment(self, obj):
+
+        if 'request' in self.context and is_internal(self.context['request']):
+            return (obj.customer_status == Proposal.CUSTOMER_STATUS_AWAITING_PAYMENT and is_system_admin(self.context['request']))
+        else:
+            return False
 
     def get_site_licensee_moorings(self, obj):
 
@@ -483,6 +492,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             'lodgement_date',
             'can_user_edit',
             'can_user_cancel_payment',
+            'can_user_bypass_payment',
             'can_user_view',
             'lodgement_number',
             'assessor_process',
@@ -509,6 +519,7 @@ class ListProposalSerializer(BaseProposalSerializer):
             'lodgement_date',
             'can_user_edit',
             'can_user_cancel_payment',
+            'can_user_bypass_payment',
             'can_user_view',
             'lodgement_number',
             'assessor_process',
@@ -936,6 +947,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'readonly',
                 'can_user_edit',
                 'can_user_cancel_payment',
+                'can_user_bypass_payment',
                 'can_user_view',
                 'documents_url',
                 'assessor_mode',

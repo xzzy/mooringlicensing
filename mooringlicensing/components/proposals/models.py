@@ -1249,7 +1249,7 @@ class Proposal(RevisionedMixin):
         """
         :return: True if the application is in one of the approved status.
         """
-        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT or self.customer_status in self.CUSTOMER_STATUS_EXPIRED
+        return self.customer_status in [self.CUSTOMER_STATUS_AWAITING_PAYMENT, self.CUSTOMER_STATUS_EXPIRED]
 
     @property
     def permit(self):
