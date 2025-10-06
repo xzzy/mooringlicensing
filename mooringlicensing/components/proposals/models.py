@@ -372,6 +372,8 @@ class Proposal(RevisionedMixin):
     payment_reminder_sent = models.BooleanField(default=False)
     payment_due_date = models.DateField(blank=True, null=True) #date when payment is due for future invoices
 
+    bypass_payment_reason = JSONField(blank=True,null=True)
+
     no_email_notifications = models.BooleanField(default=False)
 
     class Meta:
@@ -379,6 +381,158 @@ class Proposal(RevisionedMixin):
         verbose_name = "Application"
         verbose_name_plural = "Applications"
     
+    def bypass_payment(self, request):
+        logger.info(f'Bypassing payment for Proposal: [{self}].')
+        with transaction.atomic():
+            from mooringlicensing.helpers import is_system_admin
+            from mooringlicensing.components.payments_ml.models import ApplicationFee, FeeCalculation, FeeItemApplicationFee
+
+            if not is_system_admin(request):
+                raise serializers.ValidationError("User not authorised to bypass payment")
+            
+            if self.processing_status != Proposal.PROCESSING_STATUS_AWAITING_PAYMENT:
+                raise serializers.ValidationError("Application not awaiting payment")
+
+            try:
+                invoice_reference = request.data['invoice_ref']
+            except:
+                raise serializers.ValidationError("Invoice reference not provided")
+
+            try:
+                bypass_reason = request.data['bypass_payment_reason']
+            except:
+                raise serializers.ValidationError("Bypass payment reason not provided")
+
+            try:
+                record_amount_as_paid = request.data['record_amount_as_paid']
+            except:
+                raise serializers.ValidationError("Record amount paid option not provided")
+
+            #prepayment logic
+            try:
+                application_fee = ApplicationFee.objects.get(invoice_reference=invoice_reference)
+            except:
+                raise serializers.ValidationError("Application fee with provided invoice reference does not exist")
+            
+            db_processes = {
+                        'for_existing_invoice': True,
+                        'fee_item_application_fee_ids': [],
+                    }
+            fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
+            for fee_item_application_fee in fee_item_application_fees:
+                db_processes['fee_item_application_fee_ids'].append(fee_item_application_fee.id)
+
+            new_fee_calculation = FeeCalculation.objects.create(uuid=application_fee.uuid, data=db_processes)
+            
+            #preload logic
+            try:
+                invoice = Invoice.objects.get(reference=invoice_reference)
+            except:
+                raise serializers.ValidationError("Invoice with provided reference does not exist")
+            
+            uuid = application_fee.uuid
+
+            if FeeCalculation.objects.filter(uuid=uuid).exists():
+                fee_calculation = FeeCalculation.objects.order_by("id").filter(uuid=uuid).last()
+            else:
+                raise serializers.ValidationError("Fee calculation for application fee uuid does not exist")
+
+            db_operations = fee_calculation.data
+            proposal = application_fee.proposal
+
+            if 'for_existing_invoice' in db_operations and db_operations['for_existing_invoice']:
+                if record_amount_as_paid:
+                    #record the amount as paid, as if a normal payment has just taken place
+                    for idx in db_operations['fee_item_application_fee_ids']:
+                        fee_item_application_fee = FeeItemApplicationFee.objects.get(id=int(idx))
+                        fee_item_application_fee.amount_paid = fee_item_application_fee.amount_to_be_paid
+                        fee_item_application_fee.save()
+                else:
+                    #change the amount to be paid to 0 so that future fees are not affected
+                    for idx in db_operations['fee_item_application_fee_ids']:
+                        fee_item_application_fee = FeeItemApplicationFee.objects.get(id=int(idx))
+                        fee_item_application_fee.amount_to_be_paid = 0
+                        fee_item_application_fee.amount_paid = 0
+                        fee_item_application_fee.save()
+
+            application_fee.invoice_reference = invoice_reference
+            application_fee.handled_in_preload = datetime.datetime.now()
+
+            application_fee.payment_status = 'paid'
+            if record_amount_as_paid:
+                inv_props = get_invoice_properties(invoice.id)
+                if 'data' in inv_props and 'invoice' in inv_props['data']:
+                    amount = inv_props['data']['invoice']['amount'] if "amount" in inv_props['data']['invoice'] else ""
+
+                    previous_application_fees = ApplicationFee.objects.filter(proposal=proposal, cancelled=False).filter(Q(payment_status='paid')|Q(payment_status='over_paid')).order_by("handled_in_preload")
+                    previous_application_fee_cost = previous_application_fees.last().cost if previous_application_fees.last() else 0.0
+
+                    application_fee.cost = float(amount) + float(previous_application_fee_cost)
+            else:
+                application_fee.cost = 0
+
+            check_application_fee = ApplicationFee.objects.get(uuid=uuid)
+            if check_application_fee.handled_in_preload:
+                logger.error(f'Handled in preload flag set to True while attempting to bypass payment')
+                raise serializers.ValidationError("Handled in preload flag set to True while attempting to bypass payment")
+            
+            application_fee.save()
+
+            if application_fee.payment_type == ApplicationFee.PAYMENT_TYPE_TEMPORARY:
+                application_fee.payment_type = ApplicationFee.PAYMENT_TYPE_INTERNET
+                application_fee.expiry_time = None
+
+                if self.application_type.code in (AuthorisedUserApplication.code, MooringLicenceApplication.code):
+                    # For AUA or MLA, as payment has been done, create approval
+                    self.child_obj.update_or_create_approval(datetime.datetime.now(pytz.timezone(TIME_ZONE)), request)
+                else:
+                    raise serializers.ValidationError("Bypassing payment can only be done for AUA and MLA")
+                application_fee.handled_in_preload = datetime.datetime.now()
+                application_fee.save()
+
+            #fee success logic
+            self.refresh_from_db()
+
+            fee_item_application_fees = FeeItemApplicationFee.objects.filter(application_fee=application_fee)
+            fee_item_application_fees.update(vessel_details=self.vessel_details)
+            
+            #cancel invoice
+            ledger_cancellation = True
+            try:     
+                for inv in self.invoices_display():
+                    try:
+                        inv_props = get_invoice_properties(inv.id)
+                        if Decimal(inv_props['data']['invoice']['balance']) > 0:
+                            res = cancel_invoice(inv.reference)
+                            logger.info(f'Response for cancelling invoice: [{inv.reference}]: {res["message"]}.')
+                            if not "message" in res or (res["message"] != 'success' and res["message"] != 'Invoice not found'): #Invoice not found, the invoice does not exist so we do not need to cancel it
+                                ledger_cancellation = False
+                                continue
+                        else:
+                            continue #invoice has already been paid for
+                    except:
+                        ledger_cancellation = False
+                        continue
+            except Exception as e:  
+                ledger_cancellation = False          
+                raise serializers.ValidationError("Unable to cancel proposal payment - ledger invoice cancellation failed with error:", str(e))
+            
+            if not ledger_cancellation:
+                raise serializers.ValidationError("Unable to cancel proposal payment - ledger invoice cancellation failed")
+            
+            logger.info(f"Application payment bypass successful for {self}")
+            
+        self.bypass_payment_reason = {
+                'bypass_time' : datetime.datetime.now().strftime('%d/%m/%Y'),
+                'details': bypass_reason,
+                'amount_recorded_as_paid': record_amount_as_paid,
+            }
+        if record_amount_as_paid:
+            self.log_user_action(f"Payment for Proposal {self} bypassed. Reason: {bypass_reason}. Invoiced amount recorded as paid for purposes of future fee calculations.")
+        else:
+            self.log_user_action(f"Payment for Proposal {self} bypassed. Reason: {bypass_reason}. Invoiced amount not recorded as paid for purposes of future fee calculations.")
+        self.save()
+
     def cancel_payment(self, request):
         logger.info(f'Cancelling payment for Proposal: [{self}].')
         with transaction.atomic():
@@ -1249,7 +1403,7 @@ class Proposal(RevisionedMixin):
         """
         :return: True if the application is in one of the approved status.
         """
-        return self.customer_status in self.CUSTOMER_STATUS_AWAITING_PAYMENT or self.customer_status in self.CUSTOMER_STATUS_EXPIRED
+        return self.customer_status in [self.CUSTOMER_STATUS_AWAITING_PAYMENT, self.CUSTOMER_STATUS_EXPIRED]
 
     @property
     def permit(self):

@@ -45,6 +45,9 @@ def is_email_auth_backend(request):
     # Return True if user logged in via social_auth (i.e. an external user signing in with a login-token)
     return 'EmailAuth' in request.session.get('_auth_user_backend')
 
+def is_system_admin(request):
+    return request.user.is_authenticated and (belongs_to(request.user, settings.GROUP_SYSTEM_ADMIN))
+
 def is_mooringlicensing_admin(request):
     return request.user.is_authenticated and (belongs_to(request.user, settings.GROUP_MOORING_LICENSING_ADMIN))
 

@@ -270,6 +270,7 @@ LOGGING['disable_existing_loggers'] = False  # Without this line, any loggers re
 
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
+GROUP_SYSTEM_ADMIN = 'System Admin'
 GROUP_ACCOUNT_MANAGEMENT_USER = 'Account Management'
 GROUP_MOORING_LICENSING_ADMIN = 'Mooring Licensing - Admin'
 GROUP_MOORING_LICENSING_PAYMENT_OFFICER = 'Mooring Licensing - Payment Officers'
@@ -281,6 +282,7 @@ GROUP_APPROVER_AUTHORISED_USER = 'Mooring Licensing - Approvers: Authorised User
 GROUP_APPROVER_MOORING_LICENCE = 'Mooring Licensing - Approvers: Mooring Site Licence'
 GROUP_DCV_PERMIT_ADMIN = 'Mooring Licensing - DCV Permit Admin'  # DCV Permit notification is sent to the member of this group
 CUSTOM_GROUPS = [
+    GROUP_SYSTEM_ADMIN,
     GROUP_MOORING_LICENSING_ADMIN,
     GROUP_MOORING_LICENSING_PAYMENT_OFFICER,
     GROUP_ASSESSOR_WAITING_LIST,
@@ -292,6 +294,7 @@ CUSTOM_GROUPS = [
     GROUP_DCV_PERMIT_ADMIN,
 ]
 INTERNAL_GROUPS = [
+    GROUP_SYSTEM_ADMIN,
     GROUP_ACCOUNT_MANAGEMENT_USER,
     GROUP_MOORING_LICENSING_ADMIN,
     GROUP_MOORING_LICENSING_PAYMENT_OFFICER,

@@ -46,13 +46,15 @@
                 />
             </div>
         </div>
+
+        <BypassPayment ref="bypass_payment"  @refreshFromResponse="refreshFromResponseProposalModify"></BypassPayment>
     </div>
 </template>
 
 <script>
 import datatable from '@/utils/vue/datatable.vue'
-import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
+import BypassPayment from '@/components/internal/proposals/proposal_bypass_payment.vue'
 export default {
     name: 'TableApplications',
     props: {
@@ -87,7 +89,8 @@ export default {
         }
     },
     components:{
-        datatable
+        datatable,
+        BypassPayment
     },
     watch: {
         filterApplicationStatus: function() {
@@ -284,7 +287,11 @@ export default {
                                 invoice.payment_status.toLowerCase() === 'partially paid') &&
                                 full.processing_status !== 'Expired'
                             ){
-                                links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a>`
+                                links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a><br/>`
+
+                                if (full.can_user_bypass_payment) {
+                                    links +=  `<a href='#${full.id}' data-bypass-payment='${full.id}' data-bypass-payment-invoice-ref='${invoice.reference}'>Bypass Payment</a><br/>`
+                                }
                             }
                         }     
                     if (full.document_upload_url){
@@ -427,6 +434,15 @@ export default {
         }
     },
     methods: {
+        bypassPayment: function(proposal_id, invoice_ref){
+            this.$refs.bypass_payment.approval = {};
+            this.$refs.bypass_payment.proposal_id = proposal_id;
+            this.$refs.bypass_payment.invoice_ref = invoice_ref;
+            this.$refs.bypass_payment.isModalOpen = true;
+        },
+        refreshFromResponseProposalModify: function(){
+            this.$refs.application_datatable.vmDataTable.ajax.reload();
+        },
         new_application_button_clicked: function(){
             if (this.is_internal) {
                 this.$router.push({
@@ -583,6 +599,12 @@ export default {
                 let id = $(this).attr('data-reinstate-wl-allocation')
                 vm.reinstateWLAllocation(id)
             })
+            vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-bypass-payment]', function(e) {
+                e.preventDefault();
+                var id = $(this).attr('data-bypass-payment');
+                var invoice_ref = $(this).attr('data-bypass-payment-invoice-ref');
+                vm.bypassPayment(id,invoice_ref);
+            });
         },
     },
     created: function(){

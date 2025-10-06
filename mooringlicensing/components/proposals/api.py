@@ -111,7 +111,7 @@ from mooringlicensing.components.main.decorators import (
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.helpers import (
     is_authorised_to_modify, is_customer, is_internal, 
-    is_applicant_address_set, is_authorised_to_submit_documents
+    is_applicant_address_set, is_authorised_to_submit_documents, is_system_admin
 )
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -1196,6 +1196,18 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
        except Exception as e:
            print(traceback.print_exc())
            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
+    @basic_exception_handler
+    def bypass_payment(self, request, *args, **kwargs):
+        if is_internal(request) and is_system_admin(request):
+            instance = self.get_object()
+            
+            instance.bypass_payment(request)
+
+            return Response()
+        else:
+            raise serializers.ValidationError("User not authorised to bypass payment")
 
     @detail_route(methods=['PUT'], detail=True, permission_classes=[InternalProposalPermission])
     @basic_exception_handler
