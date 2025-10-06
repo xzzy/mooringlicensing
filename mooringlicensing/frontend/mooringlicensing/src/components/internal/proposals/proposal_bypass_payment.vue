@@ -1,5 +1,5 @@
 <template lang="html">
-    <div id="approvalExtension">
+    <div id="bypassPayment">
         <modal transition="modal fade" @ok="ok()" @cancel="cancel()" :title="title" large>
             <div class="container-fluid">
                 <div class="row">
@@ -69,6 +69,7 @@ export default {
             isModalOpen:false,
             form:null,
             proposal_id: Number,
+            invoice_ref: String,
             submitting: false,
             validation_form: null,
             errors: false,
@@ -84,7 +85,7 @@ export default {
             return vm.errors;
         },
         title: function(){
-            return 'Bypass Application Payment';
+            return 'Bypass Application Payment for Proposal ' + this.proposal_id;
         }
     },
     methods:{
@@ -106,7 +107,7 @@ export default {
         sendData:function(){
             let vm = this;
             vm.errors = false;
-            let data = {'bypass_payment_reason':vm.bypass_payment_reason,'record_amount_as_paid':vm.record_amount_as_paid}
+            let data = {'bypass_payment_reason':vm.bypass_payment_reason,'record_amount_as_paid':vm.record_amount_as_paid, 'invoice_ref':vm.invoice_ref}
             vm.submitting = true;
 
             vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposal,vm.proposal_id+'/bypass_payment'),JSON.stringify(data),{

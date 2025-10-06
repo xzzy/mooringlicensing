@@ -1203,6 +1203,8 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         if is_internal(request) and is_system_admin(request):
             instance = self.get_object()
             
+            instance.bypass_payment(request)
+
             return Response()
         else:
             raise serializers.ValidationError("User not authorised to bypass payment")

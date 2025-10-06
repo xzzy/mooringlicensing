@@ -290,7 +290,7 @@ export default {
                                 links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a><br/>`
 
                                 if (full.can_user_bypass_payment) {
-                                    links +=  `<a href='#${full.id}' data-bypass-payment='${full.id}'>Bypass Payment</a><br/>`
+                                    links +=  `<a href='#${full.id}' data-bypass-payment='${full.id}' data-bypass-payment-invoice-ref='${invoice.reference}'>Bypass Payment</a><br/>`
                                 }
                             }
                         }     
@@ -434,9 +434,10 @@ export default {
         }
     },
     methods: {
-        bypassPayment: function(proposal_id){
+        bypassPayment: function(proposal_id, invoice_ref){
             this.$refs.bypass_payment.approval = {};
             this.$refs.bypass_payment.proposal_id = proposal_id;
+            this.$refs.bypass_payment.invoice_ref = invoice_ref;
             this.$refs.bypass_payment.isModalOpen = true;
         },
         refreshFromResponseProposalModify: function(){
@@ -601,7 +602,8 @@ export default {
             vm.$refs.application_datatable.vmDataTable.on('click', 'a[data-bypass-payment]', function(e) {
                 e.preventDefault();
                 var id = $(this).attr('data-bypass-payment');
-                vm.bypassPayment(id);
+                var invoice_ref = $(this).attr('data-bypass-payment-invoice-ref');
+                vm.bypassPayment(id,invoice_ref);
             });
         },
     },
