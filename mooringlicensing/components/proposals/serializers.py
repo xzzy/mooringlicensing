@@ -923,6 +923,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
     proposed_issuance_approval = serializers.SerializerMethodField()
     site_licensee_moorings = serializers.SerializerMethodField()
     has_unactioned_endorsements = serializers.SerializerMethodField()
+    can_bypass_auto_approval = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -1013,12 +1014,19 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'allocated_mooring',
                 'has_unactioned_endorsements',
                 'no_email_notifications',
-                'stat_dec_form'
+                'stat_dec_form',
+                'can_bypass_auto_approval'
                 )
         read_only_fields = (
             'documents',
             'requirements',
         )
+
+    def get_can_bypass_auto_approval(self,obj):
+        if 'request' in self.context and is_internal(self.context['request']):
+            return (obj.customer_status == Proposal.CUSTOMER_STATUS_DRAFT and is_system_admin(self.context['request']))
+        else:
+            return False
 
     def get_site_licensee_moorings(self, obj):
 

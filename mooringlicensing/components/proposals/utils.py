@@ -46,7 +46,7 @@ from mooringlicensing.ledger_api_utils import get_invoice_payment_status
 from mooringlicensing.settings import PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL, PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_SWAP_MOORINGS
 from copy import deepcopy
 from rest_framework import serializers
-
+from mooringlicensing.helpers import is_system_admin
 import logging
 from django.db.models import Q
 
@@ -112,6 +112,13 @@ def save_proponent_data_aaa(instance, request, action):
     instance.child_obj.set_auto_approve(request)
     instance.refresh_from_db()   
 
+    if ('bypass_auto_approval' in request.data and 
+        request.data.get('bypass_auto_approval') and 
+        is_system_admin(request)
+        ):
+        instance.auto_approve = False
+        instance.save()
+
 
 def save_proponent_data_wla(instance, request, action):
     logger.info(f'Saving proponent data of the proposal: [{instance}]')
@@ -142,6 +149,13 @@ def save_proponent_data_wla(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
+
+    if ('bypass_auto_approval' in request.data and 
+        request.data.get('bypass_auto_approval') and 
+        is_system_admin(request)
+        ):
+        instance.auto_approve = False
+        instance.save()
 
 
 def save_proponent_data_mla(instance, request, action):
@@ -174,6 +188,14 @@ def save_proponent_data_mla(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
+
+    if ('bypass_auto_approval' in request.data and 
+        request.data.get('bypass_auto_approval') and 
+        is_system_admin(request)
+        ):
+        instance.auto_approve = False
+        instance.save()
+    
     if action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
@@ -263,6 +285,14 @@ def save_proponent_data_aua(instance, request, action):
     update_proposal_applicant(instance.child_obj, request)
     instance.refresh_from_db()
     instance.child_obj.set_auto_approve(request)
+
+    if ('bypass_auto_approval' in request.data and 
+        request.data.get('bypass_auto_approval') and 
+        is_system_admin(request)
+        ):
+        instance.auto_approve = False
+        instance.save()
+
     if action == 'submit':
         instance.child_obj.process_after_submit(request)
         instance.refresh_from_db()
