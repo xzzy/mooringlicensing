@@ -160,6 +160,12 @@
                         <div class="navbar-inner">
                             <div v-if="!readonly" class="container">
                                 <p class="pull-right" style="margin-top:5px">
+
+                                    <input v-if="proposal.can_bypass_auto_approval" type="checkbox" v-model="bypass_auto_approval" id="noAutoApprove" />
+                                    <label v-if="proposal.can_bypass_auto_approval" for="noEmails">
+                                        &nbsp;Prevent this application from being auto approved &nbsp;
+                                    </label>
+
                                     <input type="checkbox" v-model="proposal.no_email_notifications" id="noEmails" />
                                     <label for="noEmails">
                                         &nbsp;Do not send email notifications for this application &nbsp;
@@ -208,6 +214,7 @@ export default {
     data: function() {
         let vm = this;
         return {
+            bypass_auto_approval: false,
             profile: {},
             savingProposal: false,
             submittingProposal: false,
@@ -432,6 +439,7 @@ export default {
                 proposal: {},
                 vessel: {},
                 profile: {},
+                bypass_auto_approval: this.bypass_auto_approval,
             }
 
             // WLA

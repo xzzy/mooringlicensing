@@ -287,11 +287,10 @@ export default {
                                 invoice.payment_status.toLowerCase() === 'partially paid') &&
                                 full.processing_status !== 'Expired'
                             ){
-                                links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a><br/>`
-
-                                if (full.can_user_bypass_payment) {
-                                    links +=  `<a href='#${full.id}' data-bypass-payment='${full.id}' data-bypass-payment-invoice-ref='${invoice.reference}'>Bypass Payment</a><br/>`
-                                }
+                                links +=  `<a href='/application_fee_existing/${invoice.reference}/'>Pay</a><br/>`    
+                            }
+                            if (full.processing_status === 'Awaiting Payment' && full.can_user_bypass_payment) {
+                                links +=  `<a href='#${full.id}' data-bypass-payment='${full.id}' data-bypass-payment-invoice-ref='${invoice.reference}'>Bypass Payment</a><br/>`
                             }
                         }     
                     if (full.document_upload_url){
@@ -349,7 +348,7 @@ export default {
                     if (full.invoices){
                         let ret_str = ''
                         for (let item of full.invoices){
-                            ret_str += '<span>' + item.payment_status + '</span>'
+                            ret_str += '<span>' + item.payment_status + ' </span>'
                         }
                         return ret_str
                     } else {
