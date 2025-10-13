@@ -722,8 +722,11 @@ class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
             if target_email_user_id:
                 # Internal user may be accessing here via search person result. 
                 target_user = EmailUser.objects.get(id=target_email_user_id)
-                all = all.filter(Q(proposal_applicant__email_user_id=target_user.id) | 
-                        Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True))
+
+                #de-duplicate ids with distinct, but rebuild qs so there are no issues with alternative order by statements provided by filter backend
+                all_ids = all.filter(Q(proposal_applicant__email_user_id=target_user.id) | 
+                        Q(site_licensee_mooring_request__site_licensee_email=target_user.email,site_licensee_mooring_request__enabled=True)).distinct("id").values_list("id",flat=True)
+                all = all.filter(id__in=list(all_ids))
             return all
         elif is_customer(self.request):
             qs = all.filter(Q(proposal_applicant__email_user_id=request_user.id)).exclude(customer_status='discarded')
