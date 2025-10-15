@@ -1869,6 +1869,11 @@ class AuthorisedUserPermit(Approval):
                 if moa.sticker and moa.sticker not in _stickers_to_be_replaced:
                     _stickers_to_be_replaced.append(moa.sticker)
                     _stickers_to_be_replaced_for_renewal.append(moa.sticker)
+        
+                if not moa.sticker and moa.migrated and moa.active and not moa.end_date:
+                    if moa not in moas_to_be_removed:
+                        # Find all the moorings that are to be reallocated but don't have existing stickers because they are migrated
+                        moas_to_be_reallocated.append(moa)
 
         # 4. Update lists due to the vessel changes
         moas_to_be_reallocated, _stickers_to_be_replaced = self.update_lists_due_to_vessel_changes(moas_to_be_reallocated, _stickers_to_be_replaced, proposal)
