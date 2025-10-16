@@ -1432,7 +1432,7 @@ def getStickerExportFields(data):
             ),
             When(
                 approval__lodgement_number__startswith='MOL',
-                then=ArrayAgg("approval__mooringlicence__mooring__name")
+                then=ArrayAgg("approval__mooringlicence__mooring__name",distinct=True),
             ),
             default=Value([]),
             output_field=ArrayField(base_field=CharField()) 
