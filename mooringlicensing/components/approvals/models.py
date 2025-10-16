@@ -3598,6 +3598,13 @@ class Sticker(models.Model):
         {'length': 16, 'colour': 'Blue'},
         {'length': 1000, 'colour': 'White'},  # This is returned whenever any of the previous doesn't fit the requirement.
     ]
+    colour_matrix_dict = {
+        colour_matrix[0]['colour']: colour_matrix[0]['length'],
+        colour_matrix[1]['colour']: colour_matrix[0]['length'],
+        colour_matrix[2]['colour']: colour_matrix[0]['length'],
+        colour_matrix[3]['colour']: colour_matrix[0]['length'],
+        colour_matrix[4]['colour']: colour_matrix[0]['length'],
+    }
     number = models.CharField(max_length=9, blank=True, default='')
     
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0])
