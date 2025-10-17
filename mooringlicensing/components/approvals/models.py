@@ -1241,12 +1241,12 @@ class Approval(RevisionedMixin):
         for proposal in self.proposal_set.all():
             logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
             for application_fee in proposal.application_fees.filter(cancelled=False):
-                if application_fee.fee_items:
+                if application_fee.fee_items.count():
                     for fee_item in application_fee.fee_items.all():
                         fee_items.append(fee_item)
                 else:
                     # Should not reach here, however the data generated at the early stage of the development may reach here.
-                    logger.error('ApplicationFee: {} does not have any fee_item. It should have at least one.')
+                    logger.info('ApplicationFee: {} does not have any fee_item. Probably because the approval is AUP and the ML for the same vessel exists.')
         return fee_items
 
     #get_applied_fee_items - get fee items where the application has been approved (incl. printing sticker) (and therefore paid for AND applied)
@@ -1255,14 +1255,22 @@ class Approval(RevisionedMixin):
         for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
             logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
             for application_fee in proposal.application_fees.filter(cancelled=False):
-                if application_fee.fee_items:
+                if application_fee.fee_items.count():
                     for fee_item in application_fee.fee_items.all():
                         fee_items.append(fee_item)
                 else:
-                    # Should not reach here, however the data generated at the early stage of the development may reach here.
-                    logger.error('ApplicationFee: {} does not have any fee_item. It should have at least one.')
+                    logger.info('ApplicationFee: {} does not have any fee_item. Probably because the approval is AUP and the ML for the same vessel exists.')
         return fee_items
 
+    def get_feeless_proposals(self):
+        feeless_proposals = []
+        for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
+            logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
+            for application_fee in proposal.application_fees.filter(cancelled=False):
+                if application_fee.fee_items.count() == 0:
+                    feeless_proposals.append(proposal)
+        return feeless_proposals
+    
     @property
     def latest_applied_season(self):
         latest_applied_season = None
@@ -1274,9 +1282,9 @@ class Approval(RevisionedMixin):
                         latest_applied_season = fee_item.fee_period.fee_season
                 else:
                     latest_applied_season = fee_item.fee_period.fee_season
-        else:
-            logger.info(f'No FeeItems found under the Approval: {self}.  Probably because the approval is AUP and the ML for the same vessel exists.')
-            for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
+
+        if self.get_feeless_proposals():
+            for proposal in self.get_feeless_proposals():
                 if proposal.fee_season:
                     if latest_applied_season:
                         if latest_applied_season.end_date < proposal.fee_season.end_date:
