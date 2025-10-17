@@ -1392,6 +1392,93 @@ class StickerSerializer(serializers.ModelSerializer):
         return False
 
 
+class NonExportedStickerSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    approval = ApprovalSimpleSerializer()
+    sticker_action_details = StickerActionDetailSerializer(many=True)
+    vessel_rego_no = serializers.SerializerMethodField()
+    vessel = serializers.SerializerMethodField()
+    moorings = serializers.SerializerMethodField()
+    dcv_permit = DcvPermitSimpleSerializer()
+    migrated = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Sticker
+        fields = (
+            'id',
+            'status',
+            'approval',
+            'sticker_action_details',
+            'vessel_rego_no',
+            'vessel',
+            'moorings',
+            'dcv_permit',
+            'date_created',
+            'date_updated',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
+            'migrated',
+        )
+        datatables_always_serialize = (
+            'id',
+            'status',
+            'approval',
+            'sticker_action_details',
+            'vessel_rego_no',
+            'vessel',
+            'moorings',
+            'dcv_permit',
+            'date_created',
+            'date_updated',
+            'postal_address_line1',
+            'postal_address_line2',
+            'postal_address_line3',
+            'postal_address_locality',
+            'postal_address_state',
+            'postal_address_country',
+            'postal_address_postcode',
+            'migrated',
+        )
+
+    def get_vessel_rego_no(self, obj):
+        if obj.vessel_ownership and obj.vessel_ownership.vessel:
+            return obj.vessel_ownership.vessel.rego_no
+        else:
+            return ''
+
+    def get_vessel(self, obj):
+        if obj.vessel_ownership and obj.vessel_ownership.vessel:
+            return {
+                'id': obj.vessel_ownership.vessel.id,
+                'rego_no': obj.vessel_ownership.vessel.rego_no,
+            }
+        else:
+            return {
+                'id': '',
+                'rego_no': '',
+            }
+
+    def get_moorings(self, obj):
+        moorings = obj.get_moorings()
+        serializers = MooringSimpleSerializer(moorings, many=True)
+        return serializers.data
+
+    def get_status(self, obj):
+        choices = dict(Sticker.STATUS_CHOICES)
+        return {'code': obj.status, 'display': choices[obj.status]}
+
+    def get_migrated(self,sticker):
+        if sticker.approval:
+            return sticker.approval.migrated
+        return False
+
+
+
 class StickerPostalAddressSaveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sticker

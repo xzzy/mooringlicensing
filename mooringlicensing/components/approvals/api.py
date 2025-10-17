@@ -64,7 +64,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer, StickerForDcvSaveSerializer,
-    StickerPostalAddressSaveSerializer
+    StickerPostalAddressSaveSerializer, NonExportedStickerSerializer
 )
 from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.helpers import is_customer, is_internal
@@ -1891,6 +1891,18 @@ class StickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
             qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
         return qs
 
+class NonExportedStickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
+    filter_backends = (StickerFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    queryset = Sticker.objects.none()
+    serializer_class = NonExportedStickerSerializer
+    permission_classes=[InternalApprovalPermission]
+
+    def get_queryset(self):
+        qs = Sticker.objects.none()
+        if is_internal(self.request):
+            qs = Sticker.objects.exclude(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
+        return qs
 
 class DcvAdmissionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DcvAdmissionFilterBackend,)

@@ -7,6 +7,13 @@
                 @actionClicked="actionClicked"
             />
         </FormSection>
+        <FormSection :formCollapse="false" label="Non-exported Stickers" Index="non_exported_stickers">
+            <NonExportedStickersTable
+                ref="non_exported_stickers_table"
+                level="internal"
+                @actionClicked="actionClicked"
+            />
+        </FormSection>
         <ModalDetails
             ref="modal_details"
             @sendData="sendData"
@@ -17,6 +24,7 @@
 <script>
 import FormSection from "@/components/forms/section_toggle.vue"
 import StickersTable from "@/components/common/table_stickers.vue"
+import NonExportedStickersTable from "@/components/common/non_exported_table_stickers.vue"
 import ModalDetails from "@/components/common/sticker_replacement_modal.vue"
 import { api_endpoints, helpers } from '@/utils/hooks'
 import { v4 as uuidv4 } from 'uuid';
@@ -32,6 +40,7 @@ export default {
     components:{
         FormSection,
         StickersTable,
+        NonExportedStickersTable,
         ModalDetails,
     },
     computed: {
