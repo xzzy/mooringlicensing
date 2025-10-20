@@ -315,26 +315,13 @@ export default {
 
             switch(sticker.status.code){
                 case 'ready':
-                    break
-                //case 'printing':
-                //    break
-                //case 'current':
-                //    links += `<a href='#${sticker.id}' data-replacement='${sticker.id}'>Request Sticker Replacement</a><br/>`
-                //    links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
-                //    break
-                //case 'lost':
-                //    break
-                //case 'to_be_returned':
-                //    if (sticker.printing_date !== "" && sticker.printing_date !== null) {
-                //        links += `<a href='#${sticker.id}' data-record-returned='${sticker.id}'>Record Returned Sticker</a><br/>`
-                //        links += `<a href='#${sticker.id}' data-record-lost='${sticker.id}'>Record Sticker Lost</a><br/>`
-                //    }
-                //    break
-                //case 'returned':
-                //    break
-                //case 'expired':
-                //    break
-
+                    links += `<a href='#${sticker.id}' data-cancel='${sticker.id}'>Cancel</a><br/>`
+                    break;
+                case 'not_ready_yet':
+                    links += `<a href='#${sticker.id}' data-cancel='${sticker.id}'>Cancel</a><br/>`
+                    break;
+                case 'cancelled':
+                    break;
             }
             return '<span id="action_cell_contents_id_' + sticker.id + '">' + links + '</span>'
         },
@@ -440,94 +427,16 @@ export default {
             let vm = this
 
             // Listener for the <a> link for replacement
-            vm.$refs.non_exported_stickers_datatable.vmDataTable.on('click', 'a[data-replacement]', function(e) {
+            vm.$refs.non_exported_stickers_datatable.vmDataTable.on('click', 'a[data-cancel]', function(e) {
                 e.preventDefault()
 
                 // Get <a> element as jQuery object
                 let a_link = $(this)
                 // Get sticker id from <a> element
-                let id = a_link.attr('data-replacement');
+                let id = a_link.attr('data-cancel');
 
-                vm.$emit("actionClicked", {"action": "request_replacement", "id": id})
+                vm.$emit("actionClicked", {"action": "cancel", "id": id})
             });
-
-            // Listener for the <a> link for recording returned
-            vm.$refs.non_exported_stickers_datatable.vmDataTable.on('click', 'a[data-record-returned]', function(e) {
-                e.preventDefault();
-
-                let a_link = $(this)
-                let id = a_link.attr('data-record-returned');
-                vm.$emit("actionClicked", {"action": "record_returned", "id": id})
-            });
-
-            // Listener for the <a> link for recording lost
-            vm.$refs.non_exported_stickers_datatable.vmDataTable.on('click', 'a[data-record-lost]', function(e) {
-                e.preventDefault();
-
-                let a_link = $(this)
-                let id = a_link.attr('data-record-lost');
-                vm.$emit("actionClicked", {"action": "record_lost", "id": id})
-            });
-
-            // Listener for thr row
-            vm.$refs.non_exported_stickers_datatable.vmDataTable.on('click', 'td', function(e) {
-
-                let td_link = $(this)
-
-                if (!(td_link.hasClass(vm.td_expand_class_name) || td_link.hasClass(vm.td_collapse_class_name))){
-                    return
-                }
-
-                // Get <tr> element as jQuery object
-                let tr = td_link.closest('tr')
-
-                // Retrieve sticker id from the id of the <tr>
-                let tr_id = tr.attr('id')
-                let sticker_id = tr_id.replace('sticker_id_', '')
-
-                let first_td = tr.children().first()
-                if(first_td.hasClass(vm.td_expand_class_name)){
-                    // Expand
-                    vm.$http.get(helpers.add_endpoint_json(api_endpoints.stickers, sticker_id)).then(
-                        res => {
-                            let sticker = res.body
-                            let table_inside = vm.getActionDetailTable(sticker)
-                            let details_elem = $('<tr class="' + vm.sticker_details_tr_class_name + '"><td colspan="' + vm.number_of_columns + '">' + table_inside + '</td></tr>')
-                            details_elem.hide()
-                            details_elem.insertAfter(tr)
-
-                            // Make this sticker action details table Datatable
-                            let my_table = $('#table-sticker-details-' + sticker.id)
-                            my_table.DataTable({
-                                lengthChange: false,
-                                searching: false,
-                                info: false,
-                                paging: false,
-                                order: [[0, 'desc']],
-                            })
-
-                            details_elem.fadeIn(1000)
-                        },
-                        err => {
-
-                        }
-                    )
-                    // Change icon class name to vm.td_collapse_class_name
-                    first_td.removeClass(vm.td_expand_class_name).addClass(vm.td_collapse_class_name)
-                } else {
-                    let nextElem = tr.next()
-                    // Collapse
-                    if(nextElem.is('tr') & nextElem.hasClass(vm.sticker_details_tr_class_name)){
-                        // Sticker details row is already shown.  Remove it.
-                        nextElem.fadeOut(500, function(){
-                            nextElem.remove()
-                        })
-                    }
-                    // Change icon class name to vm.td_expand_class_name
-                    // Change icon class name to vm.td_collapse_class_name
-                    first_td.removeClass(vm.td_collapse_class_name).addClass(vm.td_expand_class_name)
-                }
-            })
         },
     },
     created: function(){

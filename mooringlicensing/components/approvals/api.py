@@ -1864,6 +1864,29 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         data['sticker'] = sticker.id
         data['action'] = 'Request replacement'
         data['user'] = request.user.id
+        data['reason'] = request.data.get('details', {}).get('reason', '')
+        serializer = StickerActionDetailSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        details = serializer.save()
+
+        ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_REQUEST_NEW_STICKER.format(sticker.number),request.user)
+
+        return Response({'sticker_action_detail_ids': [details.id,]})
+
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def cancel(self, request, *args, **kwargs):
+        # internal
+        sticker = self.get_object()
+        data = {}
+
+        if not sticker.status in [Sticker.STICKER_STATUS_READY,Sticker.STICKER_STATUS_NOT_READY_YET]:
+            raise serializers.ValidationError("cannot cancel a sticker that has already been exported")
+
+        # Update Sticker action
+        data['sticker'] = sticker.id
+        data['action'] = 'Cancel sticker'
+        data['user'] = request.user.id
         if is_internal(request):
             data['waive_the_fee'] = request.data.get('waive_the_fee', False) 
         else:
@@ -1875,7 +1898,11 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_REQUEST_NEW_STICKER.format(sticker.number),request.user)
 
-        return Response({'sticker_action_detail_ids': [details.id,]})
+        # Update Sticker
+        sticker.cancel()
+        serializer = StickerSerializer(sticker)
+
+        return Response({'sticker': serializer.data})
 
 
 class StickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
