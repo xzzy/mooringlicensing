@@ -3704,6 +3704,13 @@ class Sticker(models.Model):
         else:
             return f'ID: {self.id} (#---, {self.status})'
 
+    def cancel(self):
+        if self.status in [Sticker.STICKER_STATUS_READY,Sticker.STICKER_STATUS_NOT_READY_YET]:
+            logger.info(f'cancel() is being accessed for the sticker: [{self}].')
+            self.status = Sticker.STICKER_STATUS_CANCELLED
+            self.save()
+            logger.info(f'Status: [{Sticker.STICKER_STATUS_CANCELLED}] has been set to the sticker: [{self}].')
+
     def record_lost(self):
         if (self.status == "current" or self.status == "to_be_returned") and self.printing_date:
             logger.info(f'record_lost() is being accessed for the sticker: [{self}].')

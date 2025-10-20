@@ -93,6 +93,11 @@ export default {
                   return true
                }
                return false
+            } else if (this.action === 'cancel'){
+               if(this.details.reason){
+                  return true
+               }
+               return false
             } else {
                 return false
             }
@@ -108,6 +113,8 @@ export default {
                 return 'Record Sticker Returned'
             } else if (this.action === 'request_replacement'){
                 return 'Request Sticker Replacement'
+            } else if (this.action === 'cancel'){
+                return 'Cancel'
             } else {
                 return '---'
             }

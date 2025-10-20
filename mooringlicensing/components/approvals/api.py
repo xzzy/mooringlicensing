@@ -64,7 +64,7 @@ from mooringlicensing.components.approvals.serializers import (
     ListDcvPermitSerializer,
     ListDcvAdmissionSerializer, StickerSerializer, StickerActionDetailSerializer,
     ApprovalHistorySerializer, StickerForDcvSaveSerializer,
-    StickerPostalAddressSaveSerializer
+    StickerPostalAddressSaveSerializer, NonExportedStickerSerializer
 )
 from mooringlicensing.components.users.utils import get_user_name
 from mooringlicensing.helpers import is_customer, is_internal
@@ -575,7 +575,7 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             sticker_action_details = []
             
             #only allow this if there are no sticker records associated with the approval
-            if Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED]).exists():
+            if Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists():
                 raise serializers.ValidationError("This approval already has an active sticker record.")
 
             data = {}
@@ -1864,6 +1864,29 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         data['sticker'] = sticker.id
         data['action'] = 'Request replacement'
         data['user'] = request.user.id
+        data['reason'] = request.data.get('details', {}).get('reason', '')
+        serializer = StickerActionDetailSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        details = serializer.save()
+
+        ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_REQUEST_NEW_STICKER.format(sticker.number),request.user)
+
+        return Response({'sticker_action_detail_ids': [details.id,]})
+
+    @detail_route(methods=['POST',], detail=True)
+    @basic_exception_handler
+    def cancel(self, request, *args, **kwargs):
+        # internal
+        sticker = self.get_object()
+        data = {}
+
+        if not sticker.status in [Sticker.STICKER_STATUS_READY,Sticker.STICKER_STATUS_NOT_READY_YET]:
+            raise serializers.ValidationError("cannot cancel a sticker that has already been exported")
+
+        # Update Sticker action
+        data['sticker'] = sticker.id
+        data['action'] = 'Cancel sticker'
+        data['user'] = request.user.id
         if is_internal(request):
             data['waive_the_fee'] = request.data.get('waive_the_fee', False) 
         else:
@@ -1875,7 +1898,11 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 
         ApprovalUserAction.log_action(sticker.approval,ApprovalUserAction.ACTION_REQUEST_NEW_STICKER.format(sticker.number),request.user)
 
-        return Response({'sticker_action_detail_ids': [details.id,]})
+        # Update Sticker
+        sticker.cancel()
+        serializer = StickerSerializer(sticker)
+
+        return Response({'sticker': serializer.data})
 
 
 class StickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1891,6 +1918,18 @@ class StickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
             qs = Sticker.objects.filter(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
         return qs
 
+class NonExportedStickerPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
+    filter_backends = (StickerFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    queryset = Sticker.objects.none()
+    serializer_class = NonExportedStickerSerializer
+    permission_classes=[InternalApprovalPermission]
+
+    def get_queryset(self):
+        qs = Sticker.objects.none()
+        if is_internal(self.request):
+            qs = Sticker.objects.exclude(status__in=Sticker.EXPOSED_STATUS).order_by('-date_updated', '-date_created')
+        return qs
 
 class DcvAdmissionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (DcvAdmissionFilterBackend,)

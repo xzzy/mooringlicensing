@@ -55,6 +55,7 @@ router.register(r'approvals_paginated', approval_api.ApprovalPaginatedViewSet, '
 router.register(r'dcvpermits_paginated', approval_api.DcvPermitPaginatedViewSet, 'dcvpermits_paginated')
 router.register(r'dcvadmissions_paginated', approval_api.DcvAdmissionPaginatedViewSet, 'dcvadmissions_paginated')
 router.register(r'stickers_paginated', approval_api.StickerPaginatedViewSet, 'stickers_paginated')
+router.register(r'non_exported_stickers_paginated', approval_api.NonExportedStickerPaginatedViewSet, 'non_exported_stickers_paginated')
 router.register(r'stickers', approval_api.StickerViewSet, 'stickers')
 router.register(r'compliances_paginated', compliances_api.CompliancePaginatedViewSet, 'compliances_paginated')
 router.register(r'moorings_paginated', proposal_api.MooringPaginatedViewSet, 'moorings_paginated')
