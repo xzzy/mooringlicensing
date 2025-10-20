@@ -730,7 +730,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return mooring
 
     def get_has_sticker(self,obj):
-        return Sticker.objects.filter(approval=obj).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED]).exists()
+        return Sticker.objects.filter(approval=obj).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists()
 
     def get_moorings(self, obj):
         links = []

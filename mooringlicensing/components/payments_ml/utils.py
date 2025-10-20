@@ -32,12 +32,12 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
         'return_preload_url': return_preload_url,
         'force_redirect': True,
         'invoice_text': invoice_text, 
-        'basket_owner': email_user.id,
+        'basket_owner': email_user_id,
         'session_type': 'ledger_api',
     }
 
-    if proxy or request.user.is_anonymous:
-        checkout_params['basket_owner'] = email_user.id
+    #if proxy or request.user.is_anonymous:
+    #    checkout_params['basket_owner'] = email_user.id
 
     create_checkout_session(request, checkout_params)
 
