@@ -495,8 +495,6 @@ export default {
                                 if (!full.has_sticker) {
                                     if (vm.is_internal) {
                                         links += `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`
-                                    } else {
-                                        links += `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Request New Sticker</a><br/>`
                                     }
                                 } else {
                                     links += `<a href='#${full.id}' data-request-new-sticker='${full.id}'>Request New Sticker</a><br/>`

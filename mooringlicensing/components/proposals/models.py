@@ -2109,23 +2109,26 @@ class Proposal(RevisionedMixin):
                 self.refresh_from_db()
                 self.proposed_decline_status = False
 
-                if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
-                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                    if stickers_not_exported:
-                        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
-                    
-                    if self.application_type_code == 'mla' or self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
-                        from mooringlicensing.components.approvals.models import MooringOnApproval
-                        #check aups on mooring, do not allow approval if any stickers not exported
-                        #or if it is a swap, check the aups on the OTHER approval as well
-                        #(the listed mooring will apply either way)
-                        query = Q()
-                        query &= Q(mooring=self.allocated_mooring)
-                        query &= Q(active=True)
-                        moa_set = MooringOnApproval.objects.filter(query)
-                        for i in moa_set:
-                            if i.approval and i.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]).exists():
-                                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+                #TODO remove or adjust as needed
+                #if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
+                #    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
+                #    if stickers_not_exported:
+                #        #TODO remove as no longer needed when manage stickers had been fixed (?) or keep as a safeguard?
+                #        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+                #    
+                #    if self.application_type_code == 'mla' or self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
+                #        from mooringlicensing.components.approvals.models import MooringOnApproval
+                #        #check aups on mooring, do not allow approval if any stickers not exported
+                #        #or if it is a swap, check the aups on the OTHER approval as well
+                #        #(the listed mooring will apply either way)
+                #        query = Q()
+                #        query &= Q(mooring=self.allocated_mooring)
+                #        query &= Q(active=True)
+                #        moa_set = MooringOnApproval.objects.filter(query)
+                #        for i in moa_set:
+                #            if i.approval and i.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]).exists():
+                #                #TODO remove as no longer needed when manage stickers had been fixed (?) or keep as a safeguard?
+                #                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
 
                 # Validation & update proposed_issuance_approval
