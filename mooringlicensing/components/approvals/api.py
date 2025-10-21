@@ -568,6 +568,8 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             approval = self.get_object()
             details = request.data['details']
 
+            replace_sticker = None
+
             if approval.current_proposal:
                 v_details = approval.current_proposal.latest_vessel_details
                 v_ownership = approval.current_proposal.vessel_ownership
@@ -575,13 +577,69 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             if v_details and not v_ownership.end_date:
                 # Licence/Permit has a vessel
                 sticker_action_details = []
-                
                 #only allow this if there are no sticker records associated with the approval
-                if Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists():
+                if type(approval.child_obj) == AnnualAdmissionPermit and Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists():
                     raise serializers.ValidationError("This approval already has an active sticker record.")
+                #for MLA and AUP get all invalid stickers associated with the record - create an action for the earliest cancelled one (one at a time)
+                elif type(approval.child_obj) == MooringLicence:
+                    #get all vessels on MooringLicense (directly not via AUP) that are assigned invalid stickers
+                    vessel_ownerships = approval.child_obj.vessel_ownership_list
+                    invalid_stickers = approval.stickers.filter(
+                        status__in=[
+                            Sticker.STICKER_STATUS_CANCELLED,
+                        ],
+                        vessel_ownership__in=vessel_ownerships,
+                    )
+                    #get the latest sticker action for lost or cancelled stickers that correspond with invalid stickers - use the earliest among them
+                    if invalid_stickers.count() > 1:
+                        #get the latest sticker action for lost or cancelled stickers that correspond with invalid stickers - use the earliest among them
+                        action_details = StickerActionDetail.objects.filter(sticker_id__in=invalid_stickers).filter(Q(action="Cancel sticker")).order_by("-date_created")
+                        if not action_details.exists():
+                            #appropriate action does not appear to exist, will just have to work with the first in the list
+                            try:
+                                replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                            except Exception as e:
+                                logger.error(e)
+                        else:
+                            replace_sticker = action_details.first().sticker
+                    else:
+                        try:
+                            replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                        except Exception as e:
+                            logger.error(e)
 
+                elif type(approval.child_obj) == AuthorisedUserPermit:
+                    #get all associated MOAs with invalid stickers
+                    invalid_stickers = MooringOnApproval.objects.filter(approval=approval,
+                        sticker__status__in=[
+                            Sticker.STICKER_STATUS_CANCELLED,
+                            Sticker.STICKER_STATUS_LOST,
+                        ]
+                    ).values_list('sticker',flat=True)
+
+                    if invalid_stickers.count() > 1:
+                        #get the latest sticker action for lost or cancelled stickers that correspond with invalid stickers - use the earliest among them
+                        action_details = StickerActionDetail.objects.filter(sticker_id__in=invalid_stickers).filter(Q(action="Cancel sticker")).order_by("-date_created")
+                        if not action_details.exists():
+                            #appropriate action does not appear to exist, will just have to work with the first in the list
+                            try:
+                                replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                            except Exception as e:
+                                logger.error(e)
+                        else:
+                            replace_sticker = action_details.first().sticker
+                    else:
+                        try:
+                            replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                        except Exception as e:
+                            logger.error(e)
+                
                 data = {}
                 today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+
+                # include the sticker (to be replaced) in the action detail
+                if replace_sticker:
+                    data['sticker'] = replace_sticker.id
 
                 data['action'] = 'Create new sticker'
                 data['user'] = request.user.id
@@ -1786,8 +1844,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
 
         total_count = queryset.count()
         setattr(view, '_datatables_filtered_count', total_count)
-        if search_text:
-            print(queryset)
+
         return queryset
 
 

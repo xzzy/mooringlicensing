@@ -1927,7 +1927,6 @@ class AuthorisedUserPermit(Approval):
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
     def update_lists_due_to_stickers_to_be_replaced(self, _stickers_to_be_replaced, moas_to_be_reallocated, moas_to_be_removed, stickers_to_be_returned):
-        print(_stickers_to_be_replaced)
         for sticker in _stickers_to_be_replaced:
             stickers_to_be_returned.append(sticker)
             for moa in sticker.mooringonapproval_set.all():
@@ -3774,7 +3773,7 @@ class Sticker(models.Model):
             logger.info(f'Status: [{Sticker.STICKER_STATUS_RETURNED}] has been set to the sticker: [{self}].')
 
     def request_replacement(self, new_status, sticker_action_detail):
-        if (self.status == "current") and self.printing_date:
+        if ((self.status == "current") and self.printing_date) or self.status == "cancelled":
             logger.info(f'record_replacement() is being accessed for the sticker: [{self}].')
             self.status = new_status
             self.save()
@@ -3796,6 +3795,9 @@ class Sticker(models.Model):
                     postal_address_postcode = sticker_action_detail.new_postal_address_postcode,
                 )
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the approval with a new postal address: [{self.approval}].')
+                #update the MOA if AUP 
+                if type(self.approval.child_obj) == AuthorisedUserPermit:
+                    MooringOnApproval.objects.filter(sticker=self,approval=self.approval).update(sticker=new_sticker)
             else:
                 # Create replacement sticker
                 new_sticker = Sticker.objects.create(
@@ -3812,6 +3814,9 @@ class Sticker(models.Model):
                     postal_address_postcode = self.postal_address_postcode,
                 )
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
+                #update the MOA if AUP 
+                if type(self.approval.child_obj) == AuthorisedUserPermit:
+                    MooringOnApproval.objects.filter(sticker=self,approval=self.approval).update(sticker=new_sticker)
 
             return new_sticker
 
