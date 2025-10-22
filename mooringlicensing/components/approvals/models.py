@@ -1852,8 +1852,9 @@ class AuthorisedUserPermit(Approval):
             #TODO set blocking stickers to cancelled and the continue (?) no vars set prior to this, should be safe
             with transaction.atomic():
                 try:
+                    stickers_not_exported_ids = list(stickers_not_exported.values_list('id',flat=True))
                     stickers_not_exported.update(status=Sticker.STICKER_STATUS_CANCELLED)
-                    MooringOnApproval.objects.filter(sticker__in=stickers_not_exported).update(sticker=None)
+                    MooringOnApproval.objects.filter(sticker_id__in=stickers_not_exported_ids).update(sticker=None)
                 except:
                     raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
