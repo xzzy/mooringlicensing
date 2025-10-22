@@ -1613,7 +1613,7 @@ class AnnualAdmissionPermit(Approval):
             new_sticker_status = Sticker.STICKER_STATUS_READY  # default status is 'ready'
 
             if self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
-                #TODO set blocking stickers to cancelled and recall manage_stickers (?) (no saves prior here, should be safe)
+                #set blocking stickers to cancelled and recall manage_stickers
                 with transaction.atomic():
                     try:
                         self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]).update(status=Sticker.STICKER_STATUS_CANCELLED)
@@ -2383,7 +2383,6 @@ class MooringLicence(Approval):
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 export_check_flag = True
                 if stickers_not_exported:
-                    #TODO set blocking stickers to cancelled and recall manage_stickers (?) no save prior to this point (consider moving this check or use a flag? (see next TODO for why))
                     with transaction.atomic():
                         try:
                             self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]).update(status=Sticker.STICKER_STATUS_CANCELLED)
