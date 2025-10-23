@@ -871,13 +871,14 @@ class Proposal(RevisionedMixin):
 
         proposal_id_list = []
         continue_loop = True
+        current_proposal = proposal
         
         #in this loop we:
         #observe all proposals for an approval from either the original proposal or the latest renewal
         #we check all annual admissions that have been paid for via the proposals that are no longer in use (by this approval or any other)
         #we also check annual admissions that have not been paid for that are in use
         #any annual admission payments made that are not in use will be deducted from the total cost of the upcoming annual admission invoice
-        #any annual admissions payments that had been previously reduced will have the discounted amounts substracted from the upcoming deductions
+        #any annual admissions payments that had been previously reduced will have the (excess) discounted amounts substracted from the upcoming deductions (only if the deduction was above what was required)
         while continue_loop:
             if proposal:
                 if proposal.id in proposal_id_list:
@@ -963,8 +964,13 @@ class Proposal(RevisionedMixin):
                     if fee_item_application_fee.fee_item and fee_item_application_fee.fee_item.fee_period and fee_item_application_fee.fee_item.fee_period.start_date:
                         fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, fee_item_application_fee.fee_item.fee_period.start_date)
                         fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)                        
+                        
                         amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - amount_paid
-                        amount_paid -= amount_paid_deduction
+
+                        #get the amount that would have been required in case the payment was somehow incorrect - modify amount paid accordingly
+                        if amount_paid_deduction + amount_paid > fee_item_application_fee.amount_to_be_paid:
+                            amount_paid -= (fee_item_application_fee.amount_to_be_paid - amount_paid)
+
                         #only show logs if a) the deduction has been reduced but there is still an amount to apply or b) a prior deduction needs to taken away from a total deduction
                         if amount_paid_deduction > 0 and ((amount_paid < 0 and not deduct) or (deduct and amount_paid > 0)):
                             logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
@@ -4361,6 +4367,7 @@ class MooringLicenceApplication(Proposal):
                     'fee_amount_adjusted': str(fee_amount_adjusted_additional),
                 })
                 line_items.append(generate_line_item(annual_admission_type, fee_amount_adjusted_additional, fee_constructor_for_aa, self, current_datetime, vessel_details.vessel.rego_no))
+                
             #for when a new vessel is submitted on a renewal
             if not submitted_vessel_processed:
                 vessel_length = self.vessel_length
