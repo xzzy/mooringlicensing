@@ -410,7 +410,7 @@ class Proposal(RevisionedMixin):
 
             #prepayment logic
             try:
-                application_fee = ApplicationFee.objects.get(invoice_reference=invoice_reference)
+                application_fee = ApplicationFee.objects.filter(invoice_reference=invoice_reference).last()
             except:
                 raise serializers.ValidationError("Application fee with provided invoice reference does not exist")
             

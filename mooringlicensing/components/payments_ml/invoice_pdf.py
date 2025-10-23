@@ -218,7 +218,7 @@ def _is_gst_exempt(invoice):
     from mooringlicensing.components.payments_ml.models import ApplicationFee, DcvPermitFee, DcvAdmissionFee
 
     try:
-        my_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
+        my_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference).last()
     except ApplicationFee.DoesNotExist:
         try:
             my_fee = DcvPermitFee.objects.get(invoice_reference=invoice.reference)
@@ -227,7 +227,7 @@ def _is_gst_exempt(invoice):
                 my_fee = DcvAdmissionFee.objects.get(invoice_reference=invoice.reference)
             except DcvAdmissionFee.DoesNotExist:
                 try:
-                    my_fee = StickerActionFee.objects.get(invoice_reference=invoice.reference)
+                    my_fee = StickerActionFee.objects.filter(invoice_reference=invoice.reference).last()
                 except StickerActionFee.DoesNotExist:
                     raise Exception('No Fee object linking to the invoice: {} found'.format(invoice.reference))
 
