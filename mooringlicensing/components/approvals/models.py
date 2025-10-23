@@ -2377,11 +2377,9 @@ class MooringLicence(Approval):
             if stickers_to_be_returned_by_vessel_sold:
                 new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
 
-            export_check_flag = False
             #(potentially) new vessel ownership as of this amendment
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                export_check_flag = True
                 if stickers_not_exported:
                     with transaction.atomic():
                         try:
@@ -2459,21 +2457,22 @@ class MooringLicence(Approval):
                     ],
                     vessel_ownership=vessel_ownership,
                 )
-                if (not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created:
+
+                cancelled_stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CANCELLED,
+                    ],
+                    vessel_ownership=vessel_ownership,
+                )
+
+                #if the vessel ownership is valid and only has a cancelled sticker(s), the sticker needs to be replaced
+                replace_cancelled_sticker = False
+                if not stickers_for_this_vessel.exists() and cancelled_stickers_for_this_vessel.exists():
+                    replace_cancelled_sticker = True
+
+                if ((not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created):
                     # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
                     # A new sticker should be created
-
-                    if not export_check_flag:
-                        stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                        if stickers_not_exported:
-                            #TODO set blocking stickers to cancelled and recall manage_stickers (?) there are various point prior to this that would make this potentially unsafe - move this check or use a flag to track whether or not it's needed
-                            with transaction.atomic():
-                                try:
-                                    stickers_not_exported.update(status=Sticker.STICKER_STATUS_CANCELLED)
-                                    return self.manage_stickers(proposal)
-                                except:
-                                    # Should not reach here
-                                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
             
                     new_sticker = Sticker.objects.create(
                         approval=self,
@@ -2481,6 +2480,29 @@ class MooringLicence(Approval):
                         fee_constructor=proposal.fee_constructor,
                         proposal_initiated=proposal,
                         fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                        new_sticker.save()
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                elif replace_cancelled_sticker:
+                    old_sticker = cancelled_stickers_for_this_vessel.last()
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=vessel_ownership,
+                        fee_constructor=old_sticker.fee_constructor,
+                        proposal_initiated=old_sticker.proposal_initiated,
+                        fee_season=old_sticker.fee_season,
                         status=new_sticker_status,
                     )
                     if proposal.proposal_applicant:
@@ -2597,9 +2619,7 @@ class MooringLicence(Approval):
                 new_sticker_status = Sticker.STICKER_STATUS_NOT_READY_YET
 
             #(potentially) new vessel ownership as of this amendment
-            export_check_flag = False
             if proposal.vessel_ownership:
-                export_check_flag = True
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
                     #TODO set blocking stickers to cancelled and recall manage_stickers (?) should be safe no saves prior (in this block) - consider using flag (see next TODO).
@@ -2674,26 +2694,51 @@ class MooringLicence(Approval):
                     ],
                     vessel_ownership=vessel_ownership,
                 )
-                if (not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created:
+                
+                cancelled_stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CANCELLED,
+                    ],
+                    vessel_ownership=vessel_ownership,
+                )
+
+                #if the vessel ownership is valid and only has a cancelled sticker(s), the sticker needs to be replaced
+                replace_cancelled_sticker = False
+                if not stickers_for_this_vessel.exists() and cancelled_stickers_for_this_vessel.exists():
+                    replace_cancelled_sticker = True
+
+                if ((not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created):
                     # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
                     # A new sticker should be created
-                    if not export_check_flag:
-                        stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                        if stickers_not_exported:
-                            #TODO set blocking stickers to cancelled and recall manage_stickers (?) - not safe as is - remove, move, or use a flag
-                            with transaction.atomic():
-                                try:
-                                    stickers_not_exported.update(status=Sticker.STICKER_STATUS_CANCELLED)
-                                    return self.manage_stickers(proposal)
-                                except:
-                                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
-            
                     new_sticker = Sticker.objects.create(
                         approval=self,
                         vessel_ownership=proposal.vessel_ownership,
                         fee_constructor=proposal.fee_constructor,
                         proposal_initiated=proposal,
                         fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                        new_sticker.save()
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                elif replace_cancelled_sticker:
+                    old_sticker = cancelled_stickers_for_this_vessel.last()
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=vessel_ownership,
+                        fee_constructor=old_sticker.fee_constructor,
+                        proposal_initiated=old_sticker.proposal_initiated,
+                        fee_season=old_sticker.fee_season,
                         status=new_sticker_status,
                     )
                     if proposal.proposal_applicant:
@@ -2744,9 +2789,7 @@ class MooringLicence(Approval):
             stickers_to_be_replaced = []
 
             #(potentially) new vessel ownership as of this renewal
-            export_check_flag = False
             if proposal.vessel_ownership:
-                export_check_flag = True
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
                     #TODO set blocking stickers to cancelled and recall manage_stickers (?) - safe in block
