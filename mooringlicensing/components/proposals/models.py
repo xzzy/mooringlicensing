@@ -971,7 +971,7 @@ class Proposal(RevisionedMixin):
                             # When ML, customer is adding a new vessel to the ML
                             if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
                                 # However, old vessel (target vessel) is no longer on any licence/permit.
-                                logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
+                                logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel [{target_vessel}] is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
                             else:
                                 # We have to charge full amount  --> Go to next loop
                                 logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}] and the vessel: [{target_vessel}] is still on another licence/permit.  We cannot transfer the amount paid: [{fee_item_application_fee}] for the vessel: [{vessel}].')
@@ -1046,8 +1046,10 @@ class Proposal(RevisionedMixin):
                             logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for')
 
                             deduction_for_zero_payment = fee_item.get_absolute_amount(proposal.vessel_length) - max_paid_for_vessel
+                            logger.info(f'Proposal: Vessel on [{proposal}] was charged ${max_paid_for_vessel}')
 
                             if deduction_for_zero_payment > 0:
+                                logger.info(f'Proposal: [{proposal}] was deducted ${deduction_for_zero_payment}')
                                 previously_applied_deductions += deduction_for_zero_payment
 
                         except:
@@ -1100,7 +1102,9 @@ class Proposal(RevisionedMixin):
                 continue_loop = False
                 break    
 
+        
         deductions_to_be_factored = valid_deductions - previously_applied_deductions
+        logger.info(f"${max_amount_paid} has been paid for this vessel. There are ${valid_deductions} worth of potential deductions on this approval. ${previously_applied_deductions} has already been applied.")
         if deductions_to_be_factored > 0:
             max_amount_paid += deductions_to_be_factored
 
