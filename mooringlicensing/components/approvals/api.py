@@ -559,66 +559,126 @@ class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                 originated_approval.child_obj.swap_moorings(request, target_approval.child_obj)
             return Response()
 
+
     @detail_route(methods=['POST'], detail=True)
     @basic_exception_handler
     def create_new_sticker(self, request, *args, **kwargs):
-        # external
-        approval = self.get_object()
-        details = request.data['details']
+        # internal only
+        if is_internal(self.request):
+            approval = self.get_object()
+            details = request.data['details']
 
-        if approval.current_proposal:
-            v_details = approval.current_proposal.latest_vessel_details
-            v_ownership = approval.current_proposal.vessel_ownership
+            replace_sticker = None
 
-        if v_details and not v_ownership.end_date:
-            # Licence/Permit has a vessel
-            sticker_action_details = []
-            
-            #only allow this if there are no sticker records associated with the approval
-            if Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists():
-                raise serializers.ValidationError("This approval already has an active sticker record.")
+            if approval.current_proposal:
+                v_details = approval.current_proposal.latest_vessel_details
+                v_ownership = approval.current_proposal.vessel_ownership
 
-            data = {}
-            today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+            if v_details and not v_ownership.end_date:
+                # Licence/Permit has a vessel
+                sticker_action_details = []
+                #only allow this if there are no sticker records associated with the approval
+                if type(approval.child_obj) == AnnualAdmissionPermit and Sticker.objects.filter(approval=approval).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists():
+                    raise serializers.ValidationError("This approval already has an active sticker record.")
+                #for MLA and AUP get all invalid stickers associated with the record - create an action for the earliest cancelled one (one at a time)
+                elif type(approval.child_obj) == MooringLicence:
+                    #get all vessels on MooringLicense (directly not via AUP) that are assigned invalid stickers
+                    vessel_ownerships = approval.child_obj.vessel_ownership_list
+                    invalid_stickers = approval.stickers.filter(
+                        status__in=[
+                            Sticker.STICKER_STATUS_CANCELLED,
+                        ],
+                        vessel_ownership__in=vessel_ownerships,
+                    )
+                    #get the latest sticker action for lost or cancelled stickers that correspond with invalid stickers - use the earliest among them
+                    if invalid_stickers.count() > 1:
+                        #get the latest sticker action for lost or cancelled stickers that correspond with invalid stickers - use the earliest among them
+                        action_details = StickerActionDetail.objects.filter(sticker_id__in=invalid_stickers).filter(Q(action="Cancel sticker")).order_by("-date_created")
+                        if not action_details.exists():
+                            #appropriate action does not appear to exist, will just have to work with the first in the list
+                            try:
+                                replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                            except Exception as e:
+                                logger.error(e)
+                        else:
+                            replace_sticker = action_details.first().sticker
+                    else:
+                        try:
+                            replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                        except Exception as e:
+                            logger.error(e)
 
-            data['action'] = 'Create new sticker'
-            data['user'] = request.user.id
-            data['reason'] = details['reason']
-            if is_internal(request):
-                data['waive_the_fee'] = request.data.get('waive_the_fee', False) 
+                elif type(approval.child_obj) == AuthorisedUserPermit:
+                    #get all associated MOAs with invalid stickers
+                    invalid_stickers = MooringOnApproval.objects.filter(approval=approval,
+                        sticker__status__in=[
+                            Sticker.STICKER_STATUS_CANCELLED,
+                            Sticker.STICKER_STATUS_LOST,
+                        ]
+                    ).values_list('sticker',flat=True)
+
+                    if invalid_stickers.count() > 1:
+                        #get the latest sticker action for lost or cancelled stickers that correspond with invalid stickers - use the earliest among them
+                        action_details = StickerActionDetail.objects.filter(sticker_id__in=invalid_stickers).filter(Q(action="Cancel sticker")).order_by("-date_created")
+                        if not action_details.exists():
+                            #appropriate action does not appear to exist, will just have to work with the first in the list
+                            try:
+                                replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                            except Exception as e:
+                                logger.error(e)
+                        else:
+                            replace_sticker = action_details.first().sticker
+                    else:
+                        try:
+                            replace_sticker = Sticker.objects.get(id=invalid_stickers.first())
+                        except Exception as e:
+                            logger.error(e)
+                
+                data = {}
+                today = datetime.now(pytz.timezone(settings.TIME_ZONE)).date()
+
+                # include the sticker (to be replaced) in the action detail
+                if replace_sticker:
+                    data['sticker'] = replace_sticker.id
+
+                data['action'] = 'Create new sticker'
+                data['user'] = request.user.id
+                data['reason'] = details['reason']
+                if is_internal(request):
+                    data['waive_the_fee'] = request.data.get('waive_the_fee', False) 
+                else:
+                    data['waive_the_fee'] = False
+                #new address checkbox
+                data['change_sticker_address'] = request.data.get('change_sticker_address', False)
+                #address change (only applied if above True)
+                data['new_postal_address_line1'] = request.data.get('postal_address_line1','')
+                data['new_postal_address_line2'] = request.data.get('postal_address_line2','')
+                data['new_postal_address_line3'] = request.data.get('postal_address_line3','')
+                data['new_postal_address_locality'] = request.data.get('postal_address_locality','')
+                data['new_postal_address_state'] = request.data.get('postal_address_state','')
+                data['new_postal_address_country'] = request.data.get('postal_address_country','AU')
+                data['new_postal_address_postcode'] = request.data.get('postal_address_postcode','')
+                if data['change_sticker_address'] and '' in [
+                        data['new_postal_address_line1'],
+                        data['new_postal_address_locality'],
+                        data['new_postal_address_state'],
+                        data['new_postal_address_country'],
+                        data['new_postal_address_postcode']
+                    ]:
+                    raise serializers.ValidationError("Required address details not provided")                
+
+                serializer = StickerActionDetailSerializer(data=data)
+                serializer.is_valid(raise_exception=True)
+                new_sticker_action_detail = serializer.save()
+                new_sticker_action_detail.approval = approval
+                new_sticker_action_detail.save()
+                sticker_action_details.append(new_sticker_action_detail.id)
+
+                approval.log_user_action(f"New sticker created for Approval {approval}", request)
+
+                return Response({'sticker_action_detail_ids': sticker_action_details})
             else:
-                data['waive_the_fee'] = False
-            #new address checkbox
-            data['change_sticker_address'] = request.data.get('change_sticker_address', False)
-            #address change (only applied if above True)
-            data['new_postal_address_line1'] = request.data.get('postal_address_line1','')
-            data['new_postal_address_line2'] = request.data.get('postal_address_line2','')
-            data['new_postal_address_line3'] = request.data.get('postal_address_line3','')
-            data['new_postal_address_locality'] = request.data.get('postal_address_locality','')
-            data['new_postal_address_state'] = request.data.get('postal_address_state','')
-            data['new_postal_address_country'] = request.data.get('postal_address_country','AU')
-            data['new_postal_address_postcode'] = request.data.get('postal_address_postcode','')
-            if data['change_sticker_address'] and '' in [
-                    data['new_postal_address_line1'],
-                    data['new_postal_address_locality'],
-                    data['new_postal_address_state'],
-                    data['new_postal_address_country'],
-                    data['new_postal_address_postcode']
-                ]:
-                raise serializers.ValidationError("Required address details not provided")                
-
-            serializer = StickerActionDetailSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            new_sticker_action_detail = serializer.save()
-            new_sticker_action_detail.approval = approval
-            new_sticker_action_detail.save()
-            sticker_action_details.append(new_sticker_action_detail.id)
-
-            approval.log_user_action(f"New sticker created for Approval {approval}", request)
-
-            return Response({'sticker_action_detail_ids': sticker_action_details})
-        else:
-            raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
+                raise Exception('You cannot request a new sticker for the licence/permit without a vessel.')
 
     @detail_route(methods=['POST'], detail=True)
     @basic_exception_handler
@@ -1784,8 +1844,7 @@ class StickerFilterBackend(DatatablesFilterBackend):
 
         total_count = queryset.count()
         setattr(view, '_datatables_filtered_count', total_count)
-        if search_text:
-            print(queryset)
+
         return queryset
 
 

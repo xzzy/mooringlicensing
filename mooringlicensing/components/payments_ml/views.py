@@ -197,7 +197,7 @@ class ApplicationFeeExistingView(APIView):
         logger.info(f'Getting payment screen for the future invoice: [{invoice}] ...')
 
         if is_internal(request) or invoice.owner.id == request.user.id:
-            application_fee = ApplicationFee.objects.get(invoice_reference=invoice.reference)
+            application_fee = ApplicationFee.objects.filter(invoice_reference=invoice.reference).last()
             proposal = application_fee.proposal
             if not proposal:
                 raise serializers.ValidationError("Fee proposal does not exist")
@@ -342,6 +342,8 @@ class StickerReplacementFeeSuccessViewPreload(APIView):
                         new_sticker = old_sticker.request_replacement(Sticker.STICKER_STATUS_LOST, sticker_action_detail)
                         old_sticker_numbers.append(old_sticker.number)
                     else:
+                        #TODO investigate where this would occur (where we do not know the old sticker)
+                        #If only for the purposes of migrated records, seek migrated MOAs for AUPs that are also missing stickers (up to four on one sticker)
                         if sticker_action_detail.change_sticker_address:
                             # Create replacement sticker
                             new_sticker = Sticker.objects.create(
@@ -399,6 +401,8 @@ class StickerReplacementFeeSuccessView(TemplateView):
             if is_internal(request) or invoice.owner.id == request.user.id:
                 invoice_url = f'/ledger-toolkit-api/invoice-pdf/{invoice.reference}/'
                 applicant = retrieve_email_userro(sticker_action_fee.created_by) if sticker_action_fee.created_by else ''
+
+                #TODO get related sticker/action/approval, determine if pertaining approval has any other missing stickers and display a message if so (modify template)
 
                 context = {
                     'applicant': applicant,

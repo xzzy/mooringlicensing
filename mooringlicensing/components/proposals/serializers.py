@@ -563,11 +563,11 @@ class ListProposalSerializer(BaseProposalSerializer):
                     url = f'/ledger-toolkit-api/invoice-pdf/{invoice_property_cache[invoice]["reference"]}/'
                     links += f"<div><a href='{url}' target='_blank'><i style='color:red;' class='fa fa-file-pdf-o'></i> #{invoice_property_cache[invoice]["reference"]}</a></div>"
 
-                if self.context.get('request') and is_internal(self.context.get('request')) and proposal.application_fees.filter(cancelled=False):
+                if self.context.get('request') and is_internal(self.context.get('request')): #and proposal.application_fees.filter(cancelled=False):
                     # paid invoices url
                     invoices_str=''
                     for inv in invoice_property_cache:
-                        if invoice_property_cache[invoice]["payment_status"] == 'paid':
+                        if invoice_property_cache[invoice]["reference"]:
                             invoices_str += 'invoice_no={}&'.format(invoice_property_cache[invoice]["reference"])
                     if invoices_str:
                         invoices_str = invoices_str[:-1]

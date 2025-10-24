@@ -1613,8 +1613,18 @@ class AnnualAdmissionPermit(Approval):
             new_sticker_status = Sticker.STICKER_STATUS_READY  # default status is 'ready'
 
             if self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
-                # Should not reach here
-                raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+                #set blocking stickers to cancelled and recall manage_stickers
+                with transaction.atomic():
+                    try:
+                        self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,])
+                        #iterate (instead of update) to ensure sticker save listener is triggered
+                        for i in self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
+                            i.status = Sticker.STICKER_STATUS_CANCELLED
+                            i.save()
+                        return self.manage_stickers(proposal)
+                    except:
+                        # Should not reach here
+                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
             # Handle the existing sticker if there is.
             existing_stickers = self.stickers.filter(status__in=[
@@ -1843,7 +1853,17 @@ class AuthorisedUserPermit(Approval):
 
         stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
         if stickers_not_exported:
-            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+            #TODO set blocking stickers to cancelled and the continue (?) no vars set prior to this, should be safe
+            with transaction.atomic():
+                try:
+                    stickers_not_exported_ids = list(stickers_not_exported.values_list('id',flat=True))
+                    #iterate (instead of update) to ensure sticker save listener is triggered
+                    for i in stickers_not_exported:
+                        i.status = Sticker.STICKER_STATUS_CANCELLED
+                        i.save()
+                    MooringOnApproval.objects.filter(sticker_id__in=stickers_not_exported_ids).update(sticker=None)
+                except:
+                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
         # Lists to be returned to the caller
         moas_to_be_reallocated = []  # List of MooringOnApproval objects which are to be on the new stickers
@@ -1915,7 +1935,6 @@ class AuthorisedUserPermit(Approval):
         return list(set(moas_to_be_reallocated)), list(set(stickers_to_be_returned))
 
     def update_lists_due_to_stickers_to_be_replaced(self, _stickers_to_be_replaced, moas_to_be_reallocated, moas_to_be_removed, stickers_to_be_returned):
-        print(_stickers_to_be_replaced)
         for sticker in _stickers_to_be_replaced:
             stickers_to_be_returned.append(sticker)
             for moa in sticker.mooringonapproval_set.all():
@@ -2369,7 +2388,16 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+                    with transaction.atomic():
+                        try:
+                            #iterate (instead of update) to ensure sticker save listener is triggered
+                            for i in self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
+                                i.status = Sticker.STICKER_STATUS_CANCELLED
+                                i.save()
+                            return self.manage_stickers(proposal)
+                        except:
+                            # Should not reach here
+                            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
                 stickers_for_this_vessel = self.stickers.filter(
@@ -2439,13 +2467,22 @@ class MooringLicence(Approval):
                     ],
                     vessel_ownership=vessel_ownership,
                 )
-                if (not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created:
+
+                cancelled_stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CANCELLED,
+                    ],
+                    vessel_ownership=vessel_ownership,
+                )
+
+                #if the vessel ownership is valid and only has a cancelled sticker(s), the sticker needs to be replaced
+                replace_cancelled_sticker = False
+                if not stickers_for_this_vessel.exists() and cancelled_stickers_for_this_vessel.exists():
+                    replace_cancelled_sticker = True
+
+                if ((not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created):
                     # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
                     # A new sticker should be created
-
-                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                    if stickers_not_exported:
-                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
             
                     new_sticker = Sticker.objects.create(
                         approval=self,
@@ -2453,6 +2490,29 @@ class MooringLicence(Approval):
                         fee_constructor=proposal.fee_constructor,
                         proposal_initiated=proposal,
                         fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                        new_sticker.save()
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                elif replace_cancelled_sticker:
+                    old_sticker = cancelled_stickers_for_this_vessel.last()
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=vessel_ownership,
+                        fee_constructor=old_sticker.fee_constructor,
+                        proposal_initiated=old_sticker.proposal_initiated,
+                        fee_season=old_sticker.fee_season,
                         status=new_sticker_status,
                     )
                     if proposal.proposal_applicant:
@@ -2572,7 +2632,17 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+                    #TODO set blocking stickers to cancelled and recall manage_stickers (?) should be safe no saves prior (in this block) - consider using flag (see next TODO).
+                    with transaction.atomic():
+                        try:
+                            #iterate (instead of update) to ensure sticker save listener is triggered
+                            for i in stickers_not_exported:
+                                i.status = Sticker.STICKER_STATUS_CANCELLED
+                                i.save()
+                            return self.manage_stickers(proposal)
+                        except:
+                            # Should not reach here
+                            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
                 stickers_for_this_vessel = self.stickers.filter(
@@ -2637,20 +2707,51 @@ class MooringLicence(Approval):
                     ],
                     vessel_ownership=vessel_ownership,
                 )
-                if (not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created:
+                
+                cancelled_stickers_for_this_vessel = self.stickers.filter(
+                    status__in=[
+                        Sticker.STICKER_STATUS_CANCELLED,
+                    ],
+                    vessel_ownership=vessel_ownership,
+                )
+
+                #if the vessel ownership is valid and only has a cancelled sticker(s), the sticker needs to be replaced
+                replace_cancelled_sticker = False
+                if not stickers_for_this_vessel.exists() and cancelled_stickers_for_this_vessel.exists():
+                    replace_cancelled_sticker = True
+
+                if ((not stickers_for_this_vessel or sticker_colour_to_be_changed) and not new_sticker_created):
                     # Sticker for this vessel not found OR new sticker colour is different from the existing sticker colour
                     # A new sticker should be created
-
-                    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                    if stickers_not_exported:
-                        raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
-            
                     new_sticker = Sticker.objects.create(
                         approval=self,
                         vessel_ownership=proposal.vessel_ownership,
                         fee_constructor=proposal.fee_constructor,
                         proposal_initiated=proposal,
                         fee_season=self.latest_applied_season,
+                        status=new_sticker_status,
+                    )
+                    if proposal.proposal_applicant:
+                        proposal_applicant = proposal.proposal_applicant
+                        new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                        new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                        new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                        new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                        new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                        new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                        new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                        new_sticker.save()
+                    new_sticker_created = True
+                    stickers_to_be_kept.append(new_sticker)
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                elif replace_cancelled_sticker:
+                    old_sticker = cancelled_stickers_for_this_vessel.last()
+                    new_sticker = Sticker.objects.create(
+                        approval=self,
+                        vessel_ownership=vessel_ownership,
+                        fee_constructor=old_sticker.fee_constructor,
+                        proposal_initiated=old_sticker.proposal_initiated,
+                        fee_season=old_sticker.fee_season,
                         status=new_sticker_status,
                     )
                     if proposal.proposal_applicant:
@@ -2704,7 +2805,16 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
+                    #TODO set blocking stickers to cancelled and recall manage_stickers (?) - safe in block
+                    with transaction.atomic():
+                        try:
+                            #iterate (instead of update) to ensure sticker save listener is triggered
+                            for i in stickers_not_exported:
+                                i.status = Sticker.STICKER_STATUS_CANCELLED
+                                i.save()
+                            return self.manage_stickers(proposal)
+                        except:
+                            raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
                 
                 #check to ensure this not a vessel(_ownership) with a sticker already
                 existing_sticker = self.stickers.filter(
@@ -2719,10 +2829,6 @@ class MooringLicence(Approval):
                 if existing_sticker:
                     existing_sticker = existing_sticker.first()
                     stickers_to_be_replaced.append(existing_sticker)
-
-                stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                if stickers_not_exported:
-                    raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
 
                 # Sticker not found --> Create it
                 new_sticker = Sticker.objects.create(
@@ -3726,7 +3832,7 @@ class Sticker(models.Model):
             logger.info(f'Status: [{Sticker.STICKER_STATUS_RETURNED}] has been set to the sticker: [{self}].')
 
     def request_replacement(self, new_status, sticker_action_detail):
-        if (self.status == "current") and self.printing_date:
+        if ((self.status == "current") and self.printing_date) or self.status == "cancelled":
             logger.info(f'record_replacement() is being accessed for the sticker: [{self}].')
             self.status = new_status
             self.save()
@@ -3748,6 +3854,9 @@ class Sticker(models.Model):
                     postal_address_postcode = sticker_action_detail.new_postal_address_postcode,
                 )
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the approval with a new postal address: [{self.approval}].')
+                #update the MOA if AUP 
+                if type(self.approval.child_obj) == AuthorisedUserPermit:
+                    MooringOnApproval.objects.filter(sticker=self,approval=self.approval).update(sticker=new_sticker)
             else:
                 # Create replacement sticker
                 new_sticker = Sticker.objects.create(
@@ -3764,6 +3873,9 @@ class Sticker(models.Model):
                     postal_address_postcode = self.postal_address_postcode,
                 )
                 logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self.approval}].')
+                #update the MOA if AUP 
+                if type(self.approval.child_obj) == AuthorisedUserPermit:
+                    MooringOnApproval.objects.filter(sticker=self,approval=self.approval).update(sticker=new_sticker)
 
             return new_sticker
 
