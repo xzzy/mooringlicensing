@@ -865,19 +865,26 @@ class Proposal(RevisionedMixin):
         logger.info(f'Calculating the amount paid so far for the AA component through the proposal(s) which leads to the proposal: [{self}]...')
 
         max_amount_paid = 0
+        valid_deductions = 0
+        previously_applied_deductions = 0
+
+        max_amount_paid_per_vessel = {}
+        
         target_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
         target_date = target_datetime.date()
         annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
 
         proposal_id_list = []
         continue_loop = True
-        
-        #in this loop we:
-        #observe all proposals for an approval from either the original proposal or the latest renewal
-        #we check all annual admissions that have been paid for via the proposals that are no longer in use (by this approval or any other)
-        #we also check annual admissions that have not been paid for that are in use
-        #any annual admission payments made that are not in use will be deducted from the total cost of the upcoming annual admission invoice
-        #any annual admissions payments that had been previously reduced will have the discounted amounts substracted from the upcoming deductions
+
+        target_proposal = proposal
+
+        # run loop to first find BASE AMOUNT PAID FOR THE TARGET VESSEL
+        # run a second loop to find VALID DEDUCTIONS
+        # run a third loop to find PREVIOUSLY APPLIED DEDUCTIONS
+        # Subtract third loop results from second loop - add second loop results to first loop
+
+        # first loop - payments for the target vessel
         while continue_loop:
             if proposal:
                 if proposal.id in proposal_id_list:
@@ -885,37 +892,61 @@ class Proposal(RevisionedMixin):
                     break
                 proposal_id_list.append(proposal.id)
 
-                if not FeeItemApplicationFee.objects.filter(
-                    application_fee__proposal=proposal,
-                    fee_item__fee_constructor__application_type=annual_admission_type).exists() and not proposal == self:
-                    check_unpaid_aa = True
-                    logger.info(f'Proposal: [{proposal}] has no annual admission fees paid')
-                    #subtract what would have been paid from max_amount_paid unless the vessel ownership has an end date
-                    if proposal.vessel_ownership and proposal.vessel_ownership.end_date:
-                        check_unpaid_aa = False
-                    
-                    #for mooring licences check if the vessel is still on the approval - do not subtract if not
-                    if proposal.vessel_ownership and proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
-                        vooa = VesselOwnershipOnApproval.objects.filter(vessel_ownership=proposal.vessel_ownership,approval=proposal.approval,end_date=None)
-                        #even if the vessel ownership does not have an end date, if there are no instances of it without an end date in vooa then do not subtract it
-                        if not vooa.exists():
-                            check_unpaid_aa = False
-                    
-                    if check_unpaid_aa:
-                        #need to get the start date from the approval history to determine what would have been paid
-                        try:
-                            paid_date = ApprovalHistory.objects.filter(proposal=proposal).first().start_date.date()
-                            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, paid_date)
-                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, paid_date)
-                            logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for')
-                            max_amount_paid -= fee_item.get_absolute_amount(proposal.vessel_length)
-                        except:
-                            logger.warning(f'Unable to determine proposal approval start date - will be unable to determine how much would have been paid for it')
+                for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
+                    # We are interested only in the AnnualAdmission component
+                    logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
 
-                for fee_item_application_fee in FeeItemApplicationFee.objects.filter(
-                    application_fee__proposal=proposal,
-                    fee_item__fee_constructor__application_type=annual_admission_type):
-                            
+                    try:
+                        target_vessel = fee_item_application_fee.vessel_details.vessel
+                    except:
+                        logger.warning("Application fee missing vessel details - invoices may require review")
+                        target_vessel = None
+
+                    # Retrieve the current approvals of the target_vessel
+                    if target_vessel:
+                        current_approvals = target_vessel.get_current_approvals(target_date)
+                        logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
+
+                    if vessel == target_vessel:
+                        # This is paid for AA component for a target_vessel
+                        # In this case, we can transfer this amount
+                        amount_paid = fee_item_application_fee.amount_paid
+
+                        max_amount_paid += amount_paid
+                        logger.info(f'Amount: [{amount_paid}] has been factored in to the current max AA amount paid.')
+                        if amount_paid > 0:
+                            logger.info(f'Transferable amount: [{fee_item_application_fee}], which already has been paid.')
+                    else:
+                        #for tracking max payments of other vessels - used to determine potential deductions where no payment exists (for all but the vessel on this proposal)
+                        if target_vessel.rego_no in max_amount_paid_per_vessel:
+                            max_amount_paid_per_vessel[target_vessel.rego_no] += amount_paid
+                        else:
+                            max_amount_paid_per_vessel[target_vessel.rego_no] = amount_paid
+             
+                if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
+                    # Now, 'prev_application' is the very first application for this season
+                    # We are not interested in any older applications
+                    continue_loop = False
+                    break
+                else:
+                    # Assign the previous application, then perform checking above again
+                    proposal = proposal.previous_application
+            else:
+                continue_loop = False
+                break
+
+        proposal = target_proposal
+        proposal_id_list = []
+        continue_loop = True
+        # second loop - applicable deductions from all valid approval proposals
+        while continue_loop:
+            if proposal:
+                if proposal.id in proposal_id_list:
+                    continue_loop = False
+                    break
+                proposal_id_list.append(proposal.id)
+
+                for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
                     # We are interested only in the AnnualAdmission component
                     logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
 
@@ -931,6 +962,8 @@ class Proposal(RevisionedMixin):
                         logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
                     
                     deduct = True
+                    #For when the vessel on the currently observed proposal is NOT the target vessel
+                    #We calculate deductions here to factor instances where another vessel has been removed from the approval, to discount from the total cost
                     if target_vessel and target_vessel != vessel:
                         
                         if proposal.approval and proposal.approval.child_obj and type(proposal.approval.child_obj) == MooringLicence:
@@ -955,29 +988,12 @@ class Proposal(RevisionedMixin):
                                 deduct = False
                                 #continue
 
-                    # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
-                    # In this case, we can transfer this amount
-                    amount_paid = fee_item_application_fee.amount_paid
+                    potential_deduction = fee_item_application_fee.amount_paid
 
-                    #factor in discounted payments (subtract difference between cost and paid (deduction-(cost-paid)))
-                    if fee_item_application_fee.fee_item and fee_item_application_fee.fee_item.fee_period and fee_item_application_fee.fee_item.fee_period.start_date:
-                        fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, fee_item_application_fee.fee_item.fee_period.start_date)
-                        fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)                        
-                        amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - amount_paid
-                        amount_paid -= amount_paid_deduction
-                        #only show logs if a) the deduction has been reduced but there is still an amount to apply or b) a prior deduction needs to taken away from a total deduction
-                        if amount_paid_deduction > 0 and ((amount_paid < 0 and not deduct) or (deduct and amount_paid > 0)):
-                            logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
-                            logger.info(f'Proposal: [{proposal}] AA had ${amount_paid_deduction} deducted from its cost')
-                    else:
-                        logger.warning(f'Fee Item has no fee period start date - will be unable to determine how much would have been paid for it')
-
-                    #if the amount paid is less than 0 from a prior deduction, allow it to be "added" (so it can be substracted from the total)
-                    #otherwise, deduct AA payments made that are not in use anymore
-                    if (amount_paid < 0 and not deduct) or (deduct and amount_paid > 0):
-                        max_amount_paid += amount_paid
-                        logger.info(f'Amount: [{amount_paid}] has been factored in to the current max AA amount paid.')
-                        if amount_paid > 0:
+                    if (potential_deduction < 0 and not deduct) or (potential_deduction and amount_paid > 0):
+                        valid_deductions += potential_deduction
+                        logger.info(f'Amount: [{potential_deduction}] has been factored in to the current max AA amount paid.')
+                        if valid_deductions > 0:
                             logger.info(f'Transferable amount: [{fee_item_application_fee}], which already has been paid.')
 
                 if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
@@ -991,6 +1007,101 @@ class Proposal(RevisionedMixin):
             else:
                 continue_loop = False
                 break
+                    
+        proposal = target_proposal
+        proposal_id_list = []
+        continue_loop = True
+        # third loop - deductions that have already been applied
+        while continue_loop:
+            if proposal:
+                if proposal.id in proposal_id_list:
+                    continue_loop = False
+                    break
+                proposal_id_list.append(proposal.id)
+
+                if proposal != target_proposal:
+
+                    #This fee items was charged 0 meaning that the entire sum for the AA was deducted for the target vessel OR the fee was bypassed for having already been paid
+                    #To determine which:
+                    # - get pertaining vessel for (missing) line item
+                    # - find max paid (actual) for the specific vessel
+                    # - get expected full amount for vessel
+                    # - subtract payment from expected full amount
+                    # - any remainder is a former deduction
+                    if (not FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal,fee_item__fee_constructor__application_type=annual_admission_type).exists() and proposal.vessel_ownership):
+
+                        target_vessel = proposal.vessel_ownership.vessel
+                        max_paid_for_vessel = 0
+                        if target_vessel:
+                            if target_vessel and target_vessel == vessel:
+                                max_paid_for_vessel = max_amount_paid
+                            else:
+                                max_paid_for_vessel = max_amount_paid_per_vessel[target_vessel.rego_no]
+                        
+                        try:
+                            paid_date = ApprovalHistory.objects.filter(proposal=proposal).first().start_date.date()
+                            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, paid_date)
+                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, paid_date)
+                            logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for')
+
+                            deduction_for_zero_payment = fee_item.get_absolute_amount(proposal.vessel_length) - max_paid_for_vessel
+
+                            if deduction_for_zero_payment > 0:
+                                previously_applied_deductions += deduction_for_zero_payment
+
+                        except:
+                            logger.warning(f'Unable to determine proposal approval start date - will be unable to determine how much would have been paid for it')
+                        
+
+                    for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
+                                
+                        # We are interested only in the AnnualAdmission component
+                        logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
+
+                        try:
+                            target_vessel = fee_item_application_fee.vessel_details.vessel
+                        except:
+                            logger.warning("Application fee missing vessel details - invoices may require review")
+                            target_vessel = None
+
+                        # Retrieve the current approvals of the target_vessel
+                        if target_vessel:
+                            current_approvals = target_vessel.get_current_approvals(target_date)
+                            logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
+                        
+                        # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
+                        # In this case, we can transfer this amount
+                        amount_paid = fee_item_application_fee.amount_paid
+
+                        #factor in discounted payments (subtract difference between cost and paid (deduction-(cost-paid)))
+                        if fee_item_application_fee.fee_item and fee_item_application_fee.fee_item.fee_period and fee_item_application_fee.fee_item.fee_period.start_date:
+                            fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, fee_item_application_fee.fee_item.fee_period.start_date)
+                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)                        
+                            amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - amount_paid
+                            #only show logs if a) the deduction has been reduced but there is still an amount to apply or b) a prior deduction needs to taken away from a total deduction
+                            if amount_paid_deduction > 0:
+                                logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
+                                logger.info(f'Proposal: [{proposal}] AA had ${amount_paid_deduction} deducted from its cost')
+                                previously_applied_deductions += amount_paid_deduction
+
+                        else:
+                            logger.warning(f'Fee Item has no fee period start date - will be unable to determine how much would have been paid for it')
+
+                if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
+                    # Now, 'prev_application' is the very first application for this season
+                    # We are not interested in any older applications
+                    continue_loop = False
+                    break
+                else:
+                    # Assign the previous application, then perform checking above again
+                    proposal = proposal.previous_application
+            else:
+                continue_loop = False
+                break    
+
+        deductions_to_factored = valid_deductions - previously_applied_deductions
+        if deductions_to_factored > 0:
+            max_amount_paid += deductions_to_factored
 
         if max_amount_paid < 0:
             logger.warning(f'Max amount paid is negative ({max_amount_paid}) - prior discounts may have been nullified on reinstating vessels or applicant has been undercharged')
