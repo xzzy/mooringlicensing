@@ -910,8 +910,8 @@ class Proposal(RevisionedMixin):
                     if vessel == target_vessel:
                         # This is paid for AA component for a target_vessel
                         # In this case, we can transfer this amount
-                        amount_paid = fee_item_application_fee.amount_paid
-
+                        amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
+    
                         max_amount_paid += amount_paid
                         logger.info(f'Amount: [{amount_paid}] has been factored in to the current max AA amount paid.')
                         if amount_paid > 0:
@@ -988,9 +988,9 @@ class Proposal(RevisionedMixin):
                                 deduct = False
                                 #continue
 
-                    potential_deduction = fee_item_application_fee.amount_paid
+                    potential_deduction = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
 
-                    if (potential_deduction < 0 and not deduct) or (potential_deduction and amount_paid > 0):
+                    if (potential_deduction < 0 and not deduct) or (deduct and potential_deduction > 0):
                         valid_deductions += potential_deduction
                         logger.info(f'Amount: [{potential_deduction}] has been factored in to the current max AA amount paid.')
                         if valid_deductions > 0:
@@ -1071,7 +1071,7 @@ class Proposal(RevisionedMixin):
                         
                         # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
                         # In this case, we can transfer this amount
-                        amount_paid = fee_item_application_fee.amount_paid
+                        amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
 
                         #factor in discounted payments (subtract difference between cost and paid (deduction-(cost-paid)))
                         if fee_item_application_fee.fee_item and fee_item_application_fee.fee_item.fee_period and fee_item_application_fee.fee_item.fee_period.start_date:
@@ -1099,9 +1099,9 @@ class Proposal(RevisionedMixin):
                 continue_loop = False
                 break    
 
-        deductions_to_factored = valid_deductions - previously_applied_deductions
-        if deductions_to_factored > 0:
-            max_amount_paid += deductions_to_factored
+        deductions_to_be_factored = valid_deductions - previously_applied_deductions
+        if deductions_to_be_factored > 0:
+            max_amount_paid += deductions_to_be_factored
 
         if max_amount_paid < 0:
             logger.warning(f'Max amount paid is negative ({max_amount_paid}) - prior discounts may have been nullified on reinstating vessels or applicant has been undercharged')
