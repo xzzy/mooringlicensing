@@ -1616,7 +1616,11 @@ class AnnualAdmissionPermit(Approval):
                 #set blocking stickers to cancelled and recall manage_stickers
                 with transaction.atomic():
                     try:
-                        self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]).update(status=Sticker.STICKER_STATUS_CANCELLED)
+                        self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,])
+                        #iterate (instead of update) to ensure sticker save listener is triggered
+                        for i in self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
+                            i.status = Sticker.STICKER_STATUS_CANCELLED
+                            i.save()
                         return self.manage_stickers(proposal)
                     except:
                         # Should not reach here
@@ -1853,7 +1857,10 @@ class AuthorisedUserPermit(Approval):
             with transaction.atomic():
                 try:
                     stickers_not_exported_ids = list(stickers_not_exported.values_list('id',flat=True))
-                    stickers_not_exported.update(status=Sticker.STICKER_STATUS_CANCELLED)
+                    #iterate (instead of update) to ensure sticker save listener is triggered
+                    for i in stickers_not_exported:
+                        i.status = Sticker.STICKER_STATUS_CANCELLED
+                        i.save()
                     MooringOnApproval.objects.filter(sticker_id__in=stickers_not_exported_ids).update(sticker=None)
                 except:
                     raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
@@ -2383,7 +2390,10 @@ class MooringLicence(Approval):
                 if stickers_not_exported:
                     with transaction.atomic():
                         try:
-                            self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]).update(status=Sticker.STICKER_STATUS_CANCELLED)
+                            #iterate (instead of update) to ensure sticker save listener is triggered
+                            for i in self.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET,]):
+                                i.status = Sticker.STICKER_STATUS_CANCELLED
+                                i.save()
                             return self.manage_stickers(proposal)
                         except:
                             # Should not reach here
@@ -2625,7 +2635,10 @@ class MooringLicence(Approval):
                     #TODO set blocking stickers to cancelled and recall manage_stickers (?) should be safe no saves prior (in this block) - consider using flag (see next TODO).
                     with transaction.atomic():
                         try:
-                            stickers_not_exported.update(status=Sticker.STICKER_STATUS_CANCELLED)
+                            #iterate (instead of update) to ensure sticker save listener is triggered
+                            for i in stickers_not_exported:
+                                i.status = Sticker.STICKER_STATUS_CANCELLED
+                                i.save()
                             return self.manage_stickers(proposal)
                         except:
                             # Should not reach here
@@ -2795,7 +2808,10 @@ class MooringLicence(Approval):
                     #TODO set blocking stickers to cancelled and recall manage_stickers (?) - safe in block
                     with transaction.atomic():
                         try:
-                            stickers_not_exported.update(status=Sticker.STICKER_STATUS_CANCELLED)
+                            #iterate (instead of update) to ensure sticker save listener is triggered
+                            for i in stickers_not_exported:
+                                i.status = Sticker.STICKER_STATUS_CANCELLED
+                                i.save()
                             return self.manage_stickers(proposal)
                         except:
                             raise Exception('Cannot create a new sticker...  There is at least one sticker with ready/not_ready_yet status for the approval: [{self}]. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')

@@ -918,6 +918,7 @@ class Proposal(RevisionedMixin):
                             logger.info(f'Transferable amount: [{fee_item_application_fee}], which already has been paid.')
                     else:
                         #for tracking max payments of other vessels - used to determine potential deductions where no payment exists (for all but the vessel on this proposal)
+                        amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
                         if target_vessel.rego_no in max_amount_paid_per_vessel:
                             max_amount_paid_per_vessel[target_vessel.rego_no] += amount_paid
                         else:

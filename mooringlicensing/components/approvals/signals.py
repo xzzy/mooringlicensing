@@ -15,7 +15,7 @@ class StickerListener(object):
         logger.info(f'Post saving process for the sticker: [{instance}]...')
 
         sticker_saved = instance
-        if sticker_saved.status == Sticker.STICKER_STATUS_CURRENT:
+        if sticker_saved.status == Sticker.STICKER_STATUS_CURRENT or sticker_saved.status == Sticker.STICKER_STATUS_CANCELLED:
             if sticker_saved.proposal_initiated and sticker_saved.proposal_initiated.processing_status == Proposal.PROCESSING_STATUS_PRINTING_STICKER:
                 # Retrieve the stickers being printed for this proposal
                 stickers_being_printed = Sticker.objects.filter(
@@ -94,7 +94,6 @@ class StickerListener(object):
                 sticker_saved.proposal_initiated.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 sticker_saved.proposal_initiated.save()
                 logger.info(f'Status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{sticker_saved.proposal_initiated}]')
-            
 
         # Update the latest approval history for the approval this sticker is for
         latest_approval_history = ApprovalHistory.objects.filter(approval=sticker_saved.approval, end_date__isnull=True).order_by('-start_date')
