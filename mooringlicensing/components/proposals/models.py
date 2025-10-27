@@ -962,7 +962,7 @@ class Proposal(RevisionedMixin):
                         current_approvals = target_vessel.get_current_approvals(target_date)
                         logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
                     
-                    deduct = True
+                    deduct = False
                     #For when the vessel on the currently observed proposal is NOT the target vessel
                     #We calculate deductions here to factor instances where another vessel has been removed from the approval, to discount from the total cost
                     if target_vessel and target_vessel != vessel:
@@ -972,6 +972,7 @@ class Proposal(RevisionedMixin):
                             if not current_approvals['aaps'] and not current_approvals['aups'] and not current_approvals['mls']:
                                 # However, old vessel (target vessel) is no longer on any licence/permit.
                                 logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}], however the vessel [{target_vessel}] is no longer on any permit/licence.  We can transfer the amount paid: [{fee_item_application_fee}].')
+                                deduct = True
                             else:
                                 # We have to charge full amount  --> Go to next loop
                                 logger.info(f'Vessel: [{vessel}] is being added to the approval: [{proposal.approval}] and the vessel: [{target_vessel}] is still on another licence/permit.  We cannot transfer the amount paid: [{fee_item_application_fee}] for the vessel: [{vessel}].')
@@ -982,6 +983,7 @@ class Proposal(RevisionedMixin):
                             for key, qs in current_approvals.items():
                                 # We want to exclude the approval being amended(modified) because the target_vessel is being removed from it.
                                 current_approvals[key] = qs.exclude(id=self.approval.id)
+                                deduct = True
                             if current_approvals['aaps'] or current_approvals['aups'] or current_approvals['mls']:
                                 # When the current vessel is still used for other approvals --> Go to next loop
                                 # But this fee_item_application_fee is still used for other approval(s)
