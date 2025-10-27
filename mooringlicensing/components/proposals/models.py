@@ -1036,7 +1036,7 @@ class Proposal(RevisionedMixin):
                         if target_vessel:
                             if target_vessel and target_vessel == vessel:
                                 max_paid_for_vessel = max_amount_paid
-                            else:
+                            elif target_vessel.rego_no and target_vessel.rego_no in max_amount_paid_per_vessel:
                                 max_paid_for_vessel = max_amount_paid_per_vessel[target_vessel.rego_no]
                         
                         try:
@@ -1055,7 +1055,13 @@ class Proposal(RevisionedMixin):
                         except:
                             logger.warning(f'Unable to determine proposal approval start date - will be unable to determine how much would have been paid for it')
                         
-
+                    #Here a fee item exists. A deduction may have been made for one of three reasons:
+                    # - Another vessel ownership is no longer valid
+                    # - A valid AA payment is no longer applied
+                    # - A vessel increased in size and the former total has been removed
+                    # - In the case of the first two items, deductions SHOULD be factored and removed from future deductions
+                    # - In the last case, the original payment for the vessel should be factored before any potential former deductions are determined as the "deduction" in those cases have actually been paid for and are still valid
+                    # - To do this, we must use the max paid value for the vessel in question, and subtract the payment from expected full amount
                     for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
                                 
                         # We are interested only in the AnnualAdmission component
@@ -1075,12 +1081,17 @@ class Proposal(RevisionedMixin):
                         # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
                         # In this case, we can transfer this amount
                         amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
+                        if target_vessel.rego_no and target_vessel.rego_no in max_amount_paid_per_vessel:
+                            full_amount_paid = max_amount_paid_per_vessel[target_vessel.rego_no]
+                        else:
+                            full_amount_paid = amount_paid
 
                         #factor in discounted payments (subtract difference between cost and paid (deduction-(cost-paid)))
                         if fee_item_application_fee.fee_item and fee_item_application_fee.fee_item.fee_period and fee_item_application_fee.fee_item.fee_period.start_date:
                             fee_constructor_for_aa = FeeConstructor.get_fee_constructor_by_application_type_and_date(annual_admission_type, fee_item_application_fee.fee_item.fee_period.start_date)
-                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)                        
-                            amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - amount_paid
+                            fee_item = fee_constructor_for_aa.get_fee_item(proposal.vessel_length, proposal.proposal_type, fee_item_application_fee.fee_item.fee_period.start_date)
+
+                            amount_paid_deduction = fee_item.get_absolute_amount(proposal.vessel_length) - full_amount_paid
                             #only show logs if a) the deduction has been reduced but there is still an amount to apply or b) a prior deduction needs to taken away from a total deduction
                             if amount_paid_deduction > 0:
                                 logger.info(f'Proposal: [{proposal}] AA would have cost ${fee_item.get_absolute_amount(proposal.vessel_length)} if paid for in full')
