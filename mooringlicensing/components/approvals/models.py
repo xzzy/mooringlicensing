@@ -1853,7 +1853,6 @@ class AuthorisedUserPermit(Approval):
 
         stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
         if stickers_not_exported:
-            #TODO set blocking stickers to cancelled and the continue (?) no vars set prior to this, should be safe
             with transaction.atomic():
                 try:
                     stickers_not_exported_ids = list(stickers_not_exported.values_list('id',flat=True))
@@ -2632,7 +2631,6 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    #TODO set blocking stickers to cancelled and recall manage_stickers (?) should be safe no saves prior (in this block) - consider using flag (see next TODO).
                     with transaction.atomic():
                         try:
                             #iterate (instead of update) to ensure sticker save listener is triggered
@@ -2805,7 +2803,6 @@ class MooringLicence(Approval):
             if proposal.vessel_ownership:
                 stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
                 if stickers_not_exported:
-                    #TODO set blocking stickers to cancelled and recall manage_stickers (?) - safe in block
                     with transaction.atomic():
                         try:
                             #iterate (instead of update) to ensure sticker save listener is triggered
