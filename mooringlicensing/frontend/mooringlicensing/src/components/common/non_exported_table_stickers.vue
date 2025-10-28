@@ -10,21 +10,12 @@
                     </select>
                 </div>
             </div>
-            <!--<div class="col-md-3">
+            <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
                     <select class="form-control" v-model="filterStickerStatus">
                         <option value="All">All</option>
                         <option v-for="sticker_status in sticker_statuses" :value="sticker_status.id">{{ sticker_status.display }}</option>
-                    </select>
-                </div>
-            </div>-->
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="">Season</label>
-                    <select class="form-control" v-model="filterYear">
-                        <option value="All">All</option>
-                        <option v-for="season in fee_seasons" :value="season.start_date">{{ season.name }}</option>
                     </select>
                 </div>
             </div>
@@ -67,7 +58,7 @@ export default {
             // selected values for filtering
             filterApprovalType: null,
             filterYear: null,
-            //filterStickerStatus: null,
+            filterStickerStatus: null,
 
             // filtering options
             approval_types: [],
@@ -87,9 +78,9 @@ export default {
         filterApprovalType: function() {
             this.$refs.non_exported_stickers_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
-        /*filterStickerStatus: function(){
+        filterStickerStatus: function(){
             this.$refs.non_exported_stickers_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        },*/
+        },
     },
     computed: {
         number_of_columns: function() {
@@ -106,7 +97,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Date Updated', 'Permit or Licence', 'Vessel rego', 'Holder', 'Status', 'Season','Action']
+                return ['id', 'Date Updated', 'Permit or Licence', 'Vessel rego', 'Holder', 'Status' ,'Action']
             }
         },
         column_id: function(){
@@ -200,31 +191,6 @@ export default {
                 name: 'status'
             }
         },
-        column_year: function(){
-            return {
-                // 6. Lodged
-                data: "id",
-                orderable: true,
-                searchable: false,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.fee_season){
-                        // This should be always reached
-                        return full.fee_season
-                    }
-                    if (full.fee_constructor){
-                        if (full.fee_constructor.fee_season){
-                            return full.fee_constructor.fee_season.name
-                        }
-                    } else if (full.dcv_permit) {
-                        if (full.dcv_permit.fee_season){
-                            return full.dcv_permit.fee_season.name
-                        }
-                    }
-                    return ''
-                }
-            }
-        },
         column_action: function(){
             let vm = this
             return {
@@ -255,7 +221,6 @@ export default {
                     vm.column_vessel_rego_no,
                     vm.column_holder,
                     vm.column_status,
-                    vm.column_year,
                     vm.column_action,
                 ]
                 search = true
@@ -287,7 +252,7 @@ export default {
                     "data": function ( d ) {
                         d.filter_approval_type = vm.filterApprovalType
                         d.filter_year = vm.filterYear
-                        //d.filter_sticker_status = vm.filterStickerStatus
+                        d.filter_sticker_status = vm.filterStickerStatus
                         d.level = vm.level
                     }
                 },
@@ -372,7 +337,7 @@ export default {
             })
 
             // Sticker statuses
-            vm.$http.get(api_endpoints.sticker_status_dict+'?include_codes=' + include_codes).then((response) => {
+            vm.$http.get(api_endpoints.sticker_non_exported_status_dict+'?include_codes=' + include_codes).then((response) => {
                 vm.sticker_statuses = response.body
             },(error) => {
                 console.log(error);
