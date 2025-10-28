@@ -661,12 +661,15 @@ class Proposal(RevisionedMixin):
                 ProposalSignedLicenceAgreementDocument.objects.create(proposal=proposal, signed_licence_agreement_document=doc)
                 
     def copy_insurance_document(self, proposal):
-        old_insurance_doc = InsuranceCertificateDocument.objects.filter(proposal=self).last()
-        if old_insurance_doc:
-            new_insurance_doc = old_insurance_doc
-            new_insurance_doc.id = None
-            new_insurance_doc.proposal = proposal
-            new_insurance_doc.save()
+        try:
+            old_insurance_doc = InsuranceCertificateDocument.objects.filter(proposal=self).last()
+            if old_insurance_doc:
+                new_insurance_doc = old_insurance_doc
+                new_insurance_doc.id = None
+                new_insurance_doc.proposal = proposal
+                new_insurance_doc.save()
+        except Exception as e:
+            logger.error(e)
 
                 
     def copy_vessel_registration_documents(self, proposal):

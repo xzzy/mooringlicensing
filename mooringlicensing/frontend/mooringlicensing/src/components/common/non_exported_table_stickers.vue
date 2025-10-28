@@ -19,15 +19,6 @@
                     </select>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label for="">Season</label>
-                    <select class="form-control" v-model="filterYear">
-                        <option value="All">All</option>
-                        <option v-for="season in fee_seasons" :value="season.start_date">{{ season.name }}</option>
-                    </select>
-                </div>
-            </div>
         </div>
 
         <div class="row">
@@ -106,7 +97,7 @@ export default {
                 return []
             }
             if (this.is_internal){
-                return ['id', 'Date Updated', 'Permit or Licence', 'Vessel rego', 'Holder', 'Status', 'Season','Action']
+                return ['id', 'Date Updated', 'Permit or Licence', 'Vessel rego', 'Holder', 'Status' ,'Action']
             }
         },
         column_id: function(){
@@ -200,31 +191,6 @@ export default {
                 name: 'status'
             }
         },
-        column_year: function(){
-            return {
-                // 6. Lodged
-                data: "id",
-                orderable: true,
-                searchable: false,
-                visible: true,
-                'render': function(row, type, full){
-                    if (full.fee_season){
-                        // This should be always reached
-                        return full.fee_season
-                    }
-                    if (full.fee_constructor){
-                        if (full.fee_constructor.fee_season){
-                            return full.fee_constructor.fee_season.name
-                        }
-                    } else if (full.dcv_permit) {
-                        if (full.dcv_permit.fee_season){
-                            return full.dcv_permit.fee_season.name
-                        }
-                    }
-                    return ''
-                }
-            }
-        },
         column_action: function(){
             let vm = this
             return {
@@ -255,7 +221,6 @@ export default {
                     vm.column_vessel_rego_no,
                     vm.column_holder,
                     vm.column_status,
-                    vm.column_year,
                     vm.column_action,
                 ]
                 search = true
