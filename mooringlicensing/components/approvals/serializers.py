@@ -27,7 +27,7 @@ from mooringlicensing.components.approvals.models import (
     MooringLicence,
     AnnualAdmissionPermit,
     AuthorisedUserPermit, StickerActionDetail, 
-    ApprovalHistory, MooringOnApproval,
+    ApprovalHistory, MooringOnApproval, VesselOwnershipOnApproval,
 )
 
 from mooringlicensing.components.main.serializers import CommunicationLogEntrySerializer
@@ -36,7 +36,7 @@ from mooringlicensing.components.proposals.serializers import (
     MooringSimpleSerializer, 
     ProposalApplicantSerializer
 )
-from mooringlicensing.components.proposals.models import Proposal
+from mooringlicensing.components.proposals.models import Proposal, VesselOwnership
 from mooringlicensing.components.users.serializers import UserSerializer
 from rest_framework import serializers
 from django.core.exceptions import ObjectDoesNotExist
@@ -605,6 +605,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
     stickers = serializers.SerializerMethodField()
     stickers_historical = serializers.SerializerMethodField()
     has_sticker = serializers.SerializerMethodField()
+    is_missing_sticker = serializers.SerializerMethodField()
     is_approver = serializers.SerializerMethodField()
     is_assessor = serializers.SerializerMethodField()
     vessel_regos = serializers.SerializerMethodField()
@@ -649,6 +650,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'stickers',
             'stickers_historical',
             'has_sticker',
+            'is_missing_sticker',
             'licence_document',
             'authorised_user_summary_document',
             'is_assessor',
@@ -695,6 +697,7 @@ class ListApprovalSerializer(serializers.ModelSerializer):
             'stickers',
             'stickers_historical',
             'has_sticker',
+            'is_missing_sticker',
             'licence_document',
             'authorised_user_summary_document',
             'is_assessor',
@@ -730,7 +733,22 @@ class ListApprovalSerializer(serializers.ModelSerializer):
         return mooring
 
     def get_has_sticker(self,obj):
-        return Sticker.objects.filter(approval=obj).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_LOST]).exists()
+        return Sticker.objects.filter(approval=obj).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_TO_BE_RETURNED,Sticker.STICKER_STATUS_LOST]).exists()
+
+    def get_is_missing_sticker(self,obj):
+        if type(obj.child_obj) == AuthorisedUserPermit:
+            #check moas
+            return MooringOnApproval.objects.filter(approval=obj, active=True, end_date__isnull=False).filter(Q(sticker__isnull=True)|Q(sticker__status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_TO_BE_RETURNED,Sticker.STICKER_STATUS_LOST])).exists()
+        elif type(obj.child_obj) == MooringLicence:
+            #check vos
+            vo_ids = list(VesselOwnershipOnApproval.objects.filter(approval=obj, end_date__isnull=True, vessel_ownership__end_date__isnull=True).values_list("vessel_ownership__id",flat=True))
+            vos = VesselOwnership.objects.filter(id__in=vo_ids)
+            for vo in vos:
+                if not Sticker.objects.filter(vessel_ownership=vo).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_TO_BE_RETURNED,Sticker.STICKER_STATUS_LOST]).exists():
+                    return True
+        elif type(obj.child_obj) == WaitingListAllocation:
+            return False
+        return not Sticker.objects.filter(approval=obj).exclude(status__in=[Sticker.STICKER_STATUS_EXPIRED,Sticker.STICKER_STATUS_CANCELLED,Sticker.STICKER_STATUS_RETURNED,Sticker.STICKER_STATUS_TO_BE_RETURNED,Sticker.STICKER_STATUS_LOST]).exists()
 
     def get_moorings(self, obj):
         links = []

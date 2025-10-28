@@ -43,7 +43,7 @@ from mooringlicensing.components.approvals.models import (
     Approval,
     DcvPermit, DcvOrganisation, DcvVessel, DcvAdmission, DcvAdmissionArrival, AdmissionType, AgeGroup,
     WaitingListAllocation, Sticker, MooringLicence,AuthorisedUserPermit, AnnualAdmissionPermit,
-    MooringOnApproval, VesselOwnershipOnApproval, ApprovalUserAction
+    MooringOnApproval, VesselOwnershipOnApproval, ApprovalUserAction, StickerActionDetail
 )
 from mooringlicensing.components.approvals.utils import get_wla_allowed
 from mooringlicensing.components.main.process_document import (
@@ -93,6 +93,17 @@ class GetStickerStatusDict(views.APIView):
         data = []
         for status in Sticker.STATUS_CHOICES:
             if status[0] in Sticker.STATUSES_FOR_FILTER:
+                data.append({'id': status[0], 'display': status[1]})
+        return Response(data)
+    
+
+class GetStickerNonExportedStatusDict(views.APIView):
+    permission_classes=[IsAuthenticated]
+    def get(self, request, format=None):
+
+        data = []
+        for status in Sticker.STATUS_CHOICES:
+            if status[0] in Sticker.STATUSES_FOR_NON_EXPORTED_FILTER:
                 data.append({'id': status[0], 'display': status[1]})
         return Response(data)
 

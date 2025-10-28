@@ -10,7 +10,7 @@
                     </select>
                 </div>
             </div>
-            <!--<div class="col-md-3">
+            <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Status</label>
                     <select class="form-control" v-model="filterStickerStatus">
@@ -18,7 +18,7 @@
                         <option v-for="sticker_status in sticker_statuses" :value="sticker_status.id">{{ sticker_status.display }}</option>
                     </select>
                 </div>
-            </div>-->
+            </div>
             <div class="col-md-3">
                 <div class="form-group">
                     <label for="">Season</label>
@@ -67,7 +67,7 @@ export default {
             // selected values for filtering
             filterApprovalType: null,
             filterYear: null,
-            //filterStickerStatus: null,
+            filterStickerStatus: null,
 
             // filtering options
             approval_types: [],
@@ -87,9 +87,9 @@ export default {
         filterApprovalType: function() {
             this.$refs.non_exported_stickers_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
         },
-        /*filterStickerStatus: function(){
+        filterStickerStatus: function(){
             this.$refs.non_exported_stickers_datatable.vmDataTable.draw();  // This calls ajax() backend call.  This line is enough to search?  Do we need following lines...?
-        },*/
+        },
     },
     computed: {
         number_of_columns: function() {
@@ -287,7 +287,7 @@ export default {
                     "data": function ( d ) {
                         d.filter_approval_type = vm.filterApprovalType
                         d.filter_year = vm.filterYear
-                        //d.filter_sticker_status = vm.filterStickerStatus
+                        d.filter_sticker_status = vm.filterStickerStatus
                         d.level = vm.level
                     }
                 },
@@ -372,7 +372,7 @@ export default {
             })
 
             // Sticker statuses
-            vm.$http.get(api_endpoints.sticker_status_dict+'?include_codes=' + include_codes).then((response) => {
+            vm.$http.get(api_endpoints.sticker_non_exported_status_dict+'?include_codes=' + include_codes).then((response) => {
                 vm.sticker_statuses = response.body
             },(error) => {
                 console.log(error);

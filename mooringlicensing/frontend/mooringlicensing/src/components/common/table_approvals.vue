@@ -492,7 +492,7 @@ export default {
                             }
                             if (full.approval_type_dict.code != 'wla' && full.status == 'Current') {
 
-                                if (!full.has_sticker) {
+                                if (!full.has_sticker || full.is_missing_sticker) {
                                     if (vm.is_internal) {
                                         links += `<a href='#${full.id}' data-create-new-sticker='${full.id}'>Create New Sticker</a><br/>`
                                     }

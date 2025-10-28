@@ -90,7 +90,7 @@ class StickerListener(object):
                             proposal.save()
                             logger.info(f'Status: [{Proposal.PROCESSING_STATUS_PRINTING_STICKER}] has been set to the proposal: [{proposal}]')
         elif sticker_saved.status in [Sticker.STICKER_STATUS_TO_BE_RETURNED,]:
-            if sticker_saved.proposal_initiated.processing_status == Proposal.PROCESSING_STATUS_PRINTING_STICKER:
+            if sticker_saved.proposal_initiated and sticker_saved.proposal_initiated.processing_status == Proposal.PROCESSING_STATUS_PRINTING_STICKER:
                 sticker_saved.proposal_initiated.processing_status = Proposal.PROCESSING_STATUS_APPROVED
                 sticker_saved.proposal_initiated.save()
                 logger.info(f'Status: [{Proposal.PROCESSING_STATUS_APPROVED}] has been set to the proposal: [{sticker_saved.proposal_initiated}]')
