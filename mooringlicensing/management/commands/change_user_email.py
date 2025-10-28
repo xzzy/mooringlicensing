@@ -623,6 +623,7 @@ Are you sure you want to continue? (y/n): """)
                     current_owner = Owner.objects.get(emailuser=current_email_ledger.id)
                     new_owner = Owner.objects.get(emailuser=new_email_ledger.id)
                     VesselOwnership.objects.filter(owner=current_owner).update(owner=new_owner)
+                    print(f"changed all vessel ownerships from {current_owner} to {new_owner}")
                 except Exception as e:
                     print(e)
 
