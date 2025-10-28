@@ -410,6 +410,9 @@ class Command(BaseCommand):
 
         special_handling = {Owner:False} #if a model require special handling under certain conditions, set Key bool to True
 
+        if Owner.objects.filter(emailuser=current_email_ledger.id).exists():
+            special_handling[Owner] = True
+
         change_ledger_id = {
             Approval: ["submitter"],
             DcvAdmission: ["submitter", "applicant"],
@@ -606,12 +609,18 @@ Are you sure you want to continue? (y/n): """)
 
                     except Exception as e:
                         print("Error:",e)
-        
+
+            
+
             #special handling for certain models happens here
             if special_handling[Owner]:
+                #check if new owner record exists, create it if it does not
+                if not Owner.objects.filter(emailuser=new_email_ledger.id):
+                    new_owner = Owner.objects.create(emailuser=new_email_ledger.id)
+
                 #Users may only have one owner record, so we have to change to change VesselOwnership records instead
                 try:
-                    current_owner = Owner.objects.get(emailuser=new_email_ledger.id)
+                    current_owner = Owner.objects.get(emailuser=current_email_ledger.id)
                     new_owner = Owner.objects.get(emailuser=new_email_ledger.id)
                     VesselOwnership.objects.filter(owner=current_owner).update(owner=new_owner)
                 except Exception as e:
