@@ -1138,7 +1138,7 @@ def getProposalExportFields(data):
     return header, columns
 
 def getApprovalExportFields(data):
-    header = ["Lodgement Number", "Type", "Sticker Number/s" , "Sticker Mailed Date/s", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Status", "Mooring", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
+    header = ["Number", "Application Number", "Type", "Sticker Number/s" , "Sticker Mailed Date/s", "Holder", "Holder Email", "Holder Mobile Number", "Holder Phone Number", "Status", "Mooring", "Issue Date", "Start Date", "Expiry Date", "Vessel Registration"]
 
     columns = list(data.annotate(type=
         Case(
@@ -1205,6 +1205,7 @@ def getApprovalExportFields(data):
         )
     ).values_list(
         "lodgement_number",
+        "current_proposal__lodgement_number",
         "type",
         "sticker_numbers",
         "sticker_mailing_date",
