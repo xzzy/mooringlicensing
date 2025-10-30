@@ -2,7 +2,8 @@ import datetime
 import mimetypes
 import os
 from decimal import Decimal
-
+import pytz
+from ledger_api_client.settings_base import TIME_ZONE
 from django.http import HttpResponse
 
 from mooringlicensing import settings
@@ -792,7 +793,11 @@ def ownership_percentage_validation(proposal):
     logger.info(f'Vessel ownerships to be excluded from the calculation: {previous_vessel_ownerships}')
 
     total_percent = vessel_ownership_percentage
-    vessel = Vessel.objects.filter(rego_no__exact=proposal.rego_no).last()
+    today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+    if proposal.vessel_ownership and (proposal.vessel_ownership.end_date and proposal.vessel_ownership.end_date <= today):
+        vessel = None
+    else:
+        vessel = Vessel.objects.filter(rego_no__exact=proposal.rego_no).last()
 
     if vessel:
         for vo in vessel.filtered_vesselownership_set.exclude(
