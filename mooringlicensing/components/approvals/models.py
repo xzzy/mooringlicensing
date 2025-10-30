@@ -1269,6 +1269,7 @@ class Approval(RevisionedMixin):
             for application_fee in proposal.application_fees.filter(cancelled=False):
                 if application_fee.fee_items.count() == 0:
                     feeless_proposals.append(proposal)
+                    break
         return feeless_proposals
     
     @property

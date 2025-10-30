@@ -100,7 +100,7 @@
                                         <p class="pull-right" style="margin-top:5px">
                                             <input type="checkbox" v-model="terms_and_conditions_checked" id="terms_and_conditions_checked" />
                                             <label for="terms_and_conditions_checked">
-                                              &nbsp;I agree with all the <a href="https://ria.wa.gov.au/boating/moorings/terms" target="_blank">RIA Terms and Conditions&nbsp;</a>
+                                              &nbsp;I agree with all the <a href="https://www.ria.wa.gov.au/boating/licensed-moorings-permits/mooring-terms-and-conditions" target="_blank">RIA Terms and Conditions&nbsp;</a>
                                             </label>
 
                                             <button v-if="saveExitProposal" type="button" class="btn btn-primary" disabled>
