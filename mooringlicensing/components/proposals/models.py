@@ -3157,7 +3157,7 @@ class WaitingListApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership and (not self.vessel_ownership.end_date or self.vessel_ownership.end_date > today) else None
 
         # Get blocking proposals 
         # Checking if there are any applications still in progress
@@ -3188,16 +3188,19 @@ class WaitingListApplication(Proposal):
                     blocking_proposals.append(proposal)
 
         # Get blocking approvals
-        approvals = Approval.objects.filter(
-            (
-                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
-                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
-            ) &
-            (
-                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-                Q(current_proposal__vessel_ownership__end_date=None)
-            )
-        ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        if vessel:
+            approvals = Approval.objects.filter(
+                (
+                    (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
+                    Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+                ) &
+                (
+                    Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                    Q(current_proposal__vessel_ownership__end_date=None)
+                )
+            ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        else:
+            approvals = []
 
         blocking_approvals = []
 
@@ -3428,7 +3431,7 @@ class AnnualAdmissionApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership and (not self.vessel_ownership.end_date or self.vessel_ownership.end_date > today) else None
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
@@ -3465,16 +3468,19 @@ class AnnualAdmissionApplication(Proposal):
                     proposals_wla.append(proposal)
 
         # Get blocking approvals
-        approvals = Approval.objects.filter(
-            (
-                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
-                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
-            ) &
-            (
-                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-                Q(current_proposal__vessel_ownership__end_date=None)
-            )
-        ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        if vessel:
+            approvals = Approval.objects.filter(
+                (
+                    (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
+                    Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+                ) &
+                (
+                    Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                    Q(current_proposal__vessel_ownership__end_date=None)
+                )
+            ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        else:
+            approvals = []
 
         approvals_ml = []
         approvals_aap = []
@@ -4251,7 +4257,7 @@ class MooringLicenceApplication(Proposal):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership and (not self.vessel_ownership.end_date or self.vessel_ownership.end_date > today) else None
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
@@ -4281,16 +4287,19 @@ class MooringLicenceApplication(Proposal):
                 proposals_other.append(proposal)
 
         # Get blocking approvals
-        approvals = Approval.objects.filter(
-            (
-                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
-                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
-            ) &
-            (
-                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-                Q(current_proposal__vessel_ownership__end_date=None)
-            )
-        ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        if vessel:
+            approvals = Approval.objects.filter(
+                (
+                    (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
+                    Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+                ) &
+                (
+                    Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                    Q(current_proposal__vessel_ownership__end_date=None)
+                )
+            ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        else:
+            approvals = []
 
         approvals_ml = []
         approvals_other = []
