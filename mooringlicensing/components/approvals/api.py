@@ -1931,6 +1931,7 @@ class StickerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             raise serializers.ValidationError("cannot replace a sticker that has not yet been printed")
 
         # Update Sticker action
+        data['waive_the_fee'] = request.data.get('waive_the_fee', False)
         data['sticker'] = sticker.id
         data['action'] = 'Request replacement'
         data['user'] = request.user.id
