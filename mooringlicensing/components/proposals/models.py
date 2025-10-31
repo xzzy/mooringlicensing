@@ -855,10 +855,13 @@ class Proposal(RevisionedMixin):
     def payment_required(self):
         payment_required = False
         if self.application_fees and self.application_fees.filter(cancelled=False).count():
-            application_fee = self.get_main_application_fee()
-            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
-                payment_required = True
+            try:
+                application_fee = self.get_main_application_fee()
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
+                    payment_required = True
+            except Exception as e:
+                logger.error(e)      
         return payment_required
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
