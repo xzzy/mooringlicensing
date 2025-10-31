@@ -2752,8 +2752,8 @@ class Proposal(RevisionedMixin):
     def validate_vessel_length(self, request):
         self.child_obj.validate_vessel_length(request)
 
-    def validate_against_existing_proposals_and_approvals(self):
-        self.child_obj.validate_against_existing_proposals_and_approvals()
+    def validate_against_existing_proposals_and_approvals(self, request=None):
+        self.child_obj.validate_against_existing_proposals_and_approvals(request)
 
     #determines if the preferred mooring bay has changed (evaluate as true if the bay has been chosen for the first time for the application)
     def mooring_preference_changed(self):
@@ -3153,7 +3153,7 @@ class WaitingListApplication(Proposal):
                 self.save()
         
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
@@ -3211,11 +3211,17 @@ class WaitingListApplication(Proposal):
                 blocking_approvals.append(approval) 
 
         if (blocking_proposals):
+            from mooringlicensing.helpers import is_internal
             msg = f'The vessel: {self.rego_no} is already listed in another active application'
+            if request and is_internal(request):
+                msg = f'The vessel: {self.rego_no} is already listed in another active application {blocking_proposals}'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         elif (blocking_approvals):
+            from mooringlicensing.helpers import is_internal
             msg = f'The vessel: {self.rego_no} is already listed in another active license'
+            if request and is_internal(request):
+                msg = f'The vessel: {self.rego_no} is already listed in another active license {blocking_approvals}'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         # Person can have only one WLA, Waiting List application, Mooring Licence, and Mooring Licence application
@@ -3418,7 +3424,7 @@ class AnnualAdmissionApplication(Proposal):
                     self.auto_approve = True
                     self.save()
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
@@ -3664,7 +3670,7 @@ class AuthorisedUserApplication(Proposal):
     # This uuid is used to generate the URL for the AUA endorsement link
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
@@ -4241,7 +4247,7 @@ class MooringLicenceApplication(Proposal):
         self.log_user_action(f'Reinstate Waiting List Alocation: {wlallocation.lodgement_number} back to the waiting list queue.', request)
         return wlallocation
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
