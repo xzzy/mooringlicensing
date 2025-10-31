@@ -1016,9 +1016,10 @@ class Approval(RevisionedMixin):
                     raise ValidationError('Provided expiry date must not be after the end of the next applicable fee season ({})'.format(latest_allowed.strftime('%d/%m/%Y')))
 
                 #check if approval is allowed to exist as current again
-                self.current_proposal.validate_against_existing_proposals_and_approvals()
-                from mooringlicensing.components.proposals.utils import ownership_percentage_validation
-                ownership_percentage_validation(self.current_proposal)
+                if not self.status in Approval.APPROVED_STATUSES:
+                    self.current_proposal.validate_against_existing_proposals_and_approvals()
+                    from mooringlicensing.components.proposals.utils import ownership_percentage_validation
+                    ownership_percentage_validation(self.current_proposal)
 
                 #set extension_details
                 self.extension_details = {
