@@ -1017,7 +1017,7 @@ class Approval(RevisionedMixin):
 
                 #check if approval is allowed to exist as current again
                 if not self.status in Approval.APPROVED_STATUSES:
-                    self.current_proposal.validate_against_existing_proposals_and_approvals()
+                    self.current_proposal.validate_against_existing_proposals_and_approvals(request)
                     from mooringlicensing.components.proposals.utils import ownership_percentage_validation
                     ownership_percentage_validation(self.current_proposal)
 

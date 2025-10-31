@@ -855,10 +855,13 @@ class Proposal(RevisionedMixin):
     def payment_required(self):
         payment_required = False
         if self.application_fees and self.application_fees.filter(cancelled=False).count():
-            application_fee = self.get_main_application_fee()
-            invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
-            if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
-                payment_required = True
+            try:
+                application_fee = self.get_main_application_fee()
+                invoice = Invoice.objects.get(reference=application_fee.invoice_reference)
+                if get_invoice_payment_status(invoice.id) not in ('paid', 'over_paid'):
+                    payment_required = True
+            except Exception as e:
+                logger.error(e)      
         return payment_required
 
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
@@ -2752,8 +2755,8 @@ class Proposal(RevisionedMixin):
     def validate_vessel_length(self, request):
         self.child_obj.validate_vessel_length(request)
 
-    def validate_against_existing_proposals_and_approvals(self):
-        self.child_obj.validate_against_existing_proposals_and_approvals()
+    def validate_against_existing_proposals_and_approvals(self, request=None):
+        self.child_obj.validate_against_existing_proposals_and_approvals(request)
 
     #determines if the preferred mooring bay has changed (evaluate as true if the bay has been chosen for the first time for the application)
     def mooring_preference_changed(self):
@@ -3153,11 +3156,11 @@ class WaitingListApplication(Proposal):
                 self.save()
         
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership and (not self.vessel_ownership.end_date or self.vessel_ownership.end_date > today) else None
 
         # Get blocking proposals 
         # Checking if there are any applications still in progress
@@ -3188,16 +3191,19 @@ class WaitingListApplication(Proposal):
                     blocking_proposals.append(proposal)
 
         # Get blocking approvals
-        approvals = Approval.objects.filter(
-            (
-                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
-                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
-            ) &
-            (
-                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-                Q(current_proposal__vessel_ownership__end_date=None)
-            )
-        ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        if vessel:
+            approvals = Approval.objects.filter(
+                (
+                    (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
+                    Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+                ) &
+                (
+                    Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                    Q(current_proposal__vessel_ownership__end_date=None)
+                )
+            ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        else:
+            approvals = []
 
         blocking_approvals = []
 
@@ -3211,11 +3217,17 @@ class WaitingListApplication(Proposal):
                 blocking_approvals.append(approval) 
 
         if (blocking_proposals):
+            from mooringlicensing.helpers import is_internal
             msg = f'The vessel: {self.rego_no} is already listed in another active application'
+            if request and is_internal(request):
+                msg = f'The vessel: {self.rego_no} is already listed in another active application {blocking_proposals}'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         elif (blocking_approvals):
+            from mooringlicensing.helpers import is_internal
             msg = f'The vessel: {self.rego_no} is already listed in another active license'
+            if request and is_internal(request):
+                msg = f'The vessel: {self.rego_no} is already listed in another active license {blocking_approvals}'
             logger.error(msg)
             raise serializers.ValidationError(msg)
         # Person can have only one WLA, Waiting List application, Mooring Licence, and Mooring Licence application
@@ -3418,11 +3430,11 @@ class AnnualAdmissionApplication(Proposal):
                     self.auto_approve = True
                     self.save()
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, WaitingListAllocation, AnnualAdmissionPermit, MooringLicence, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership and (not self.vessel_ownership.end_date or self.vessel_ownership.end_date > today) else None
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
@@ -3459,16 +3471,19 @@ class AnnualAdmissionApplication(Proposal):
                     proposals_wla.append(proposal)
 
         # Get blocking approvals
-        approvals = Approval.objects.filter(
-            (
-                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
-                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
-            ) &
-            (
-                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-                Q(current_proposal__vessel_ownership__end_date=None)
-            )
-        ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        if vessel:
+            approvals = Approval.objects.filter(
+                (
+                    (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
+                    Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+                ) &
+                (
+                    Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                    Q(current_proposal__vessel_ownership__end_date=None)
+                )
+            ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        else:
+            approvals = []
 
         approvals_ml = []
         approvals_aap = []
@@ -3664,7 +3679,7 @@ class AuthorisedUserApplication(Proposal):
     # This uuid is used to generate the URL for the AUA endorsement link
     uuid = models.UUIDField(default=uuid.uuid4, editable=False)
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, AuthorisedUserPermit
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
@@ -4241,11 +4256,11 @@ class MooringLicenceApplication(Proposal):
         self.log_user_action(f'Reinstate Waiting List Alocation: {wlallocation.lodgement_number} back to the waiting list queue.', request)
         return wlallocation
 
-    def validate_against_existing_proposals_and_approvals(self):
+    def validate_against_existing_proposals_and_approvals(self,request=None):
         from mooringlicensing.components.approvals.models import Approval, ApprovalHistory, MooringLicence
         today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
 
-        vessel = self.vessel_ownership.vessel if self.vessel_ownership else None
+        vessel = self.vessel_ownership.vessel if self.vessel_ownership and (not self.vessel_ownership.end_date or self.vessel_ownership.end_date > today) else None
 
         # Get blocking proposals
         proposals = Proposal.objects.filter(
@@ -4275,16 +4290,19 @@ class MooringLicenceApplication(Proposal):
                 proposals_other.append(proposal)
 
         # Get blocking approvals
-        approvals = Approval.objects.filter(
-            (
-                (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
-                Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
-            ) &
-            (
-                Q(current_proposal__vessel_ownership__end_date__gt=today) | 
-                Q(current_proposal__vessel_ownership__end_date=None)
-            )
-        ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        if vessel:
+            approvals = Approval.objects.filter(
+                (
+                    (Q(current_proposal__vessel_ownership__vessel=vessel) & ~Q(current_proposal__vessel_ownership__vessel=None)) | 
+                    Q(current_proposal__vessel_ownership__vessel__rego_no=self.rego_no)
+                ) &
+                (
+                    Q(current_proposal__vessel_ownership__end_date__gt=today) | 
+                    Q(current_proposal__vessel_ownership__end_date=None)
+                )
+            ).exclude(id=self.approval_id).filter(status__in=Approval.APPROVED_STATUSES)
+        else:
+            approvals = []
 
         approvals_ml = []
         approvals_other = []
