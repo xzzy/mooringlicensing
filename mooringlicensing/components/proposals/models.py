@@ -3211,7 +3211,6 @@ class WaitingListApplication(Proposal):
                 blocking_approvals.append(approval) 
 
         if (blocking_proposals):
-            print(blocking_proposals)
             msg = f'The vessel: {self.rego_no} is already listed in another active application'
             logger.error(msg)
             raise serializers.ValidationError(msg)
