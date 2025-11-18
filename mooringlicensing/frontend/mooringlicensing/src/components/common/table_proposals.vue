@@ -125,7 +125,7 @@ export default {
             return {
                 // 1. ID
                 data: "id",
-                orderable: false,
+                orderable: true,
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
@@ -410,10 +410,10 @@ export default {
                 serverSide: true,
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: search,
+                order: [0,'desc'],
                 ajax: {
                     "url": api_endpoints.proposals_paginated_list + '?format=datatables&target_email_user_id=' + vm.target_email_user_id,
                     "dataSrc": 'data',
-
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         d.filter_application_type = vm.filterApplicationType
@@ -422,12 +422,36 @@ export default {
                         d.level = vm.level
                         //only use columns necessary for filtering and ordering
                         let keepCols = []
+                        let originalCols = d.columns
                         d.columns.forEach((value, index) => {
                             if (value.searchable || value.orderable) {
                                 keepCols.push(d.columns[index])
                             }
                         });
                         d.columns = keepCols;
+
+                        //adjust order
+                        let nameIndexDict = {}
+                        d.columns.forEach((value, index) => {
+                                nameIndexDict[value.name] = index;
+                            }
+                        )
+                        let originalNameIndexDict = {}
+                        originalCols.forEach((value, index) => {
+                                originalNameIndexDict[value.name] = index;
+                            }
+                        )
+                        let newOrder = JSON.parse(JSON.stringify(d.order));
+                        d.order.forEach((o_value, o_index) => {
+                            Object.entries(originalNameIndexDict).forEach(([key,value]) => {
+                                if (o_value.column == value) {
+                                    let name = key;
+                                    let new_index = nameIndexDict[name];
+                                    newOrder[o_index].column = new_index;
+                                }
+                            })    
+                        })
+                        d.order = newOrder;
                     }
                 },
                 dom: 'lBfrtip',

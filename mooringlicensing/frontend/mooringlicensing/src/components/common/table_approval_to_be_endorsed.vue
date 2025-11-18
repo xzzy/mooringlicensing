@@ -71,18 +71,43 @@ export default {
                 responsive: true,
                 serverSide: true,
                 searching: true,
+                order: [1,'desc'],
                 ajax: {
                     "url": api_endpoints.site_licensee_mooring_requests + '?format=datatables',
                     "dataSrc": 'data',
                     "data": function ( d ) {
                         //only use columns necessary for filtering and ordering
                         let keepCols = []
+                        let originalCols = d.columns
                         d.columns.forEach((value, index) => {
                             if (value.searchable || value.orderable) {
                                 keepCols.push(d.columns[index])
                             }
                         });
                         d.columns = keepCols;
+
+                        //adjust order
+                        let nameIndexDict = {}
+                        d.columns.forEach((value, index) => {
+                                nameIndexDict[value.name] = index;
+                            }
+                        )
+                        let originalNameIndexDict = {}
+                        originalCols.forEach((value, index) => {
+                                originalNameIndexDict[value.name] = index;
+                            }
+                        )
+                        let newOrder = JSON.parse(JSON.stringify(d.order));
+                        d.order.forEach((o_value, o_index) => {
+                            Object.entries(originalNameIndexDict).forEach(([key,value]) => {
+                                if (o_value.column == value) {
+                                    let name = key;
+                                    let new_index = nameIndexDict[name];
+                                    newOrder[o_index].column = new_index;
+                                }
+                            })    
+                        })
+                        d.order = newOrder;
                     }
                 },
                 dom: 'lBfrtp',
@@ -100,7 +125,7 @@ export default {
                     },
                     {
                         data: "proposal_id",
-                        orderable: false,
+                        orderable: true,
                         searchable: false,
                         visible: false,
                         'render': function(row, type, full){
