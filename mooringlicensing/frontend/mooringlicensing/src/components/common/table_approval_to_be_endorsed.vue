@@ -74,6 +74,16 @@ export default {
                 ajax: {
                     "url": api_endpoints.site_licensee_mooring_requests + '?format=datatables',
                     "dataSrc": 'data',
+                    "data": function ( d ) {
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
+                    }
                 },
                 dom: 'lBfrtp',
                 buttons: buttons,

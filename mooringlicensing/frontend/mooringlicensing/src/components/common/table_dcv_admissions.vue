@@ -249,6 +249,14 @@ export default {
                         d.filter_dcv_organisation_id = vm.filterDcvOrganisation
                         d.filter_date_from = vm.filterDateFrom
                         d.filter_date_to = vm.filterDateTo
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
                     }
                 },
                 dom: 'lBfrtip',

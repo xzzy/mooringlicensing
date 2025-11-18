@@ -254,6 +254,14 @@ export default {
                         d.filter_year = vm.filterYear
                         d.filter_sticker_status = vm.filterStickerStatus
                         d.level = vm.level
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
                     }
                 },
                 dom: 'lBfrtip',

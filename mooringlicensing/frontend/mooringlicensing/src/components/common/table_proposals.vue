@@ -172,7 +172,7 @@ export default {
                 // 4. Application Type (This corresponds to the 'ProposalType' at the backend)
                 data: "id",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 'render': function(row, type, full){
                     if (full.proposal_type){
@@ -420,6 +420,14 @@ export default {
                         d.filter_application_category = vm.filterApplicationCategory
                         d.filter_application_status = vm.filterApplicationStatus
                         d.level = vm.level
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
                     }
                 },
                 dom: 'lBfrtip',
