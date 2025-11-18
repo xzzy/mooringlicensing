@@ -2562,6 +2562,10 @@ class Proposal(RevisionedMixin):
                     self.approval.log_user_action(ApprovalUserAction.ACTION_RENEW_APPROVAL.format(self.approval.id),request)
                     proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
                     proposal.add_vessels_and_moorings_from_licence()
+
+                    #proposal creation action log
+                    proposal.log_user_action(f'Proposal: {proposal} created as Renewal Application for {self.approval}.', request)
+
                     return proposal
                 except Exception as e:
                     raise e
@@ -2616,6 +2620,10 @@ class Proposal(RevisionedMixin):
 
                     proposal.save(version_comment='New Amendment/Renewal Application created, from origin {}'.format(proposal.previous_application_id))
                     proposal.add_vessels_and_moorings_from_licence()
+
+                    #proposal creation action log
+                    proposal.log_user_action(f'Proposal: {proposal} created as Amendment Application for {self.approval}.', request)
+
                     return proposal
                 except Exception as e:
                     raise e

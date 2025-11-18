@@ -2077,6 +2077,9 @@ class WaitingListAllocationViewSet(viewsets.GenericViewSet, mixins.RetrieveModel
 
                     waiting_list_allocation.log_user_action(f'Offer new Mooring Site Licence application: {new_proposal.lodgement_number}.', request)
 
+                    #proposal creation action log
+                    new_proposal.log_user_action(f'Proposal: {new_proposal} created as offer from {waiting_list_allocation}.', request)
+
                 if new_proposal:
                     # send email
                     send_create_mooring_licence_application_email_notification(request, waiting_list_allocation, new_proposal)
