@@ -1267,10 +1267,14 @@ class Approval(RevisionedMixin):
         feeless_proposals = []
         for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
             logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
-            for application_fee in proposal.application_fees.filter(cancelled=False):
-                if application_fee.fee_items.count() == 0:
-                    feeless_proposals.append(proposal)
-                    break
+            print(proposal.application_fees.filter(cancelled=False))
+            if proposal.application_fees.filter(cancelled=False).exists():
+                for application_fee in proposal.application_fees.filter(cancelled=False):
+                    if application_fee.fee_items.count() == 0:
+                        feeless_proposals.append(proposal)
+                        break
+            else:
+                feeless_proposals.append(proposal)
         return feeless_proposals
     
     @property
