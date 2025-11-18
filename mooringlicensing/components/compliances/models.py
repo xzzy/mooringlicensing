@@ -80,6 +80,8 @@ class Compliance(RevisionedMixin):
     post_reminder_sent = models.BooleanField(default=False)
     due_reminder_count = models.PositiveSmallIntegerField('Number of times a due reminder has been sent', default=0)
 
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+
     class Meta:
         app_label = 'mooringlicensing'
 

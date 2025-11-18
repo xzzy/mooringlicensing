@@ -186,6 +186,7 @@ class MooringOnApproval(RevisionedMixin):
     end_date = models.DateField(blank=True, null=True)
     active = models.BooleanField(default=True)
     migrated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     def __str__(self):
         approval = self.approval.lodgement_number if self.approval else ' '
@@ -233,6 +234,7 @@ class VesselOwnershipOnApproval(RevisionedMixin):
     approval = models.ForeignKey('Approval', on_delete=models.CASCADE)
     vessel_ownership = models.ForeignKey(VesselOwnership, on_delete=models.CASCADE)
     end_date = models.DateField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     def __str__(self):
         return 'ID:{} ({}-{})'.format(self.id, self.approval, self.vessel_ownership)
@@ -253,6 +255,7 @@ class ApprovalHistory(RevisionedMixin):
     end_date = models.DateTimeField(blank=True, null=True)
     stickers = models.ManyToManyField('Sticker')
     approval_letter = models.ForeignKey(ApprovalDocument, blank=True, null=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -328,6 +331,7 @@ class Approval(RevisionedMixin):
 
     # mark as True when Approval is re/issued
     export_to_mooring_booking = models.BooleanField(default=False)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -1267,10 +1271,13 @@ class Approval(RevisionedMixin):
         feeless_proposals = []
         for proposal in self.proposal_set.filter(processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_PRINTING_STICKER]):
             logger.info(f'proposal: [{proposal}], proposal.fee_season: [{proposal.fee_season}]')
-            for application_fee in proposal.application_fees.filter(cancelled=False):
-                if application_fee.fee_items.count() == 0:
-                    feeless_proposals.append(proposal)
-                    break
+            if proposal.application_fees.filter(cancelled=False).exists():
+                for application_fee in proposal.application_fees.filter(cancelled=False):
+                    if application_fee.fee_items.count() == 0:
+                        feeless_proposals.append(proposal)
+                        break
+            else:
+                feeless_proposals.append(proposal)
         return feeless_proposals
     
     @property
@@ -3056,6 +3063,7 @@ class ApprovalUserAction(UserAction):
 class DcvOrganisation(RevisionedMixin):
     name = models.CharField(max_length=128, null=True, blank=True)
     abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN', unique=True)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     def __str__(self):
         return self.name + f'(id: {self.id})'
@@ -3068,6 +3076,7 @@ class DcvVessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessel_name = models.CharField(max_length=400, blank=True)
     dcv_organisations = models.ManyToManyField(DcvOrganisation, related_name='dcv_vessels')
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     def __str__(self):
         return self.rego_no + f'(id: {self.id})'
@@ -3283,6 +3292,7 @@ class DcvAdmissionArrival(RevisionedMixin):
     start_date = models.DateField(null=True, blank=True)  # This is the season.start_date when payment
     end_date = models.DateField(null=True, blank=True)  # This is the season.end_date when payment
     fee_constructor = models.ForeignKey('FeeConstructor', on_delete=models.CASCADE, blank=True, null=True, related_name='dcv_admission_arrivals')
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -3367,6 +3377,7 @@ class NumberOfPeople(RevisionedMixin):
     dcv_admission_arrival = models.ForeignKey(DcvAdmissionArrival, null=True, blank=True, on_delete=models.SET_NULL)
     age_group = models.ForeignKey(AgeGroup, null=True, blank=True, on_delete=models.SET_NULL)
     admission_type = models.ForeignKey(AdmissionType, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         app_label = 'mooringlicensing'
