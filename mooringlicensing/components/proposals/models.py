@@ -376,6 +376,8 @@ class Proposal(RevisionedMixin):
 
     no_email_notifications = models.BooleanField(default=False)
 
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
+
     class Meta:
         app_label = 'mooringlicensing'
         verbose_name = "Application"
@@ -4919,6 +4921,7 @@ class MooringBay(RevisionedMixin):
     code = models.CharField(max_length=3, blank=True, null=True)
     mooring_bookings_id = models.IntegerField()
     active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     def __str__(self):
         return self.name
@@ -4988,6 +4991,7 @@ class Mooring(RevisionedMixin):
     # Used for WLAllocation create MLApplication check
     # mooring licence can onl,y have one Mooring
     mooring_licence = models.OneToOneField('MooringLicence', blank=True, null=True, related_name="mooring", on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     def handle_aups_after_save_mooring(self, request):
         logger.debug(f'in handle_aups_after_save_mooring().  self: [{self}]')
@@ -5143,6 +5147,7 @@ class MooringUserAction(UserAction):
 class Vessel(RevisionedMixin):
     rego_no = models.CharField(max_length=200, unique=True, blank=False, null=False)
     blocking_owner = models.ForeignKey('VesselOwnership', blank=True, null=True, related_name='blocked_vessel', on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         verbose_name_plural = "Vessels"
@@ -5472,6 +5477,7 @@ class VesselOwnershipCompanyOwnership(RevisionedMixin):
     vessel_ownership = models.ForeignKey('VesselOwnership', null=True, on_delete=models.SET_NULL)
     company_ownership = models.ForeignKey(CompanyOwnership, null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=50, choices=STATUS_TYPES, default=COMPANY_OWNERSHIP_STATUS_DRAFT) # can be approved, old, draft, declined
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         app_label = 'mooringlicensing'
@@ -5596,6 +5602,7 @@ class Owner(RevisionedMixin):
     emailuser = models.IntegerField(unique=True)  # unique=True keeps the OneToOne relation
     # add on approval only
     vessels = models.ManyToManyField(Vessel, through=VesselOwnership) # these owner/vessel association
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         verbose_name_plural = "Owners"
@@ -5623,6 +5630,7 @@ class Owner(RevisionedMixin):
 class Company(RevisionedMixin):
     name = models.CharField(max_length=200, unique=True, blank=True, null=True)
     vessels = models.ManyToManyField(Vessel, through=CompanyOwnership) # these owner/vessel association
+    created_at = models.DateTimeField(blank=True, null=True, auto_now_add=True)
 
     class Meta:
         verbose_name_plural = "Companies"
