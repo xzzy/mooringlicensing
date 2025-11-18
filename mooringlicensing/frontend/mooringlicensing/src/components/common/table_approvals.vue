@@ -815,7 +815,15 @@ export default {
                         d.filter_holder_id = vm.filterHolder;
                         d.max_vessel_length = vm.maxVesselLength;
                         d.max_vessel_draft = vm.maxVesselDraft;
-                        d.csrfmiddlewaretoken = vm.csrf_token
+                        d.csrfmiddlewaretoken = vm.csrf_token;
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
                     }
                 },
                 dom: 'lBfrtip',

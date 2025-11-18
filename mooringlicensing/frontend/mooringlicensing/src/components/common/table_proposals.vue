@@ -420,8 +420,7 @@ export default {
                         d.filter_application_category = vm.filterApplicationCategory
                         d.filter_application_status = vm.filterApplicationStatus
                         d.level = vm.level
-                        console.log(d.columns)
-                        console.log(vm.column_id)
+                        //only use columns necessary for filtering and ordering
                         let keepCols = []
                         d.columns.forEach((value, index) => {
                             if (value.searchable || value.orderable) {

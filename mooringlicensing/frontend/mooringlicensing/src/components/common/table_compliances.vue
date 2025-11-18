@@ -150,7 +150,6 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            console.log(full)
                             let dueDate = '';
                             if (full.due_date_display) {
                                 dueDate = full.due_date_display;
@@ -182,7 +181,6 @@ export default {
                         searchable: false,
                         visible: true,
                         'render': function(row, type, full){
-                            console.log({full})
                             let links = '';
                             if (!vm.is_external){
                                 if (full.can_process && full.status !== 'Approved') {
@@ -279,6 +277,14 @@ export default {
                         // Add filters selected
                         d.filter_compliance_status = vm.filterComplianceStatus;
                         d.level = vm.level;
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
                     }
                 },
                 dom: 'lBfrtip',

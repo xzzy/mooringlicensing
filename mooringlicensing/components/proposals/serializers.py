@@ -158,9 +158,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'processing_status',
                 'applicant',
                 'assigned_officer',
-                #'get_history',
                 'lodgement_date',
-                #'modified_date',
                 'documents',
                 'requirements',
                 'readonly',
@@ -426,6 +424,14 @@ class ListProposalSiteLicenseeMooringRequestSerializer(serializers.ModelSerializ
             'can_endorse',
             'applicant_name',
             'uuid',
+            'approved_by_endorser',
+            'declined_by_endorser',
+        )
+        datatables_always_serialize = (
+            'id',
+            'proposal_id',
+            'uuid',
+            'can_endorse',
             'approved_by_endorser',
             'declined_by_endorser',
         )

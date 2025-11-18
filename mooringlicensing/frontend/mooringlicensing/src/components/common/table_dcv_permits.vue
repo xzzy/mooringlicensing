@@ -309,6 +309,14 @@ export default {
                     "data": function ( d ) {
                         d.filter_dcv_organisation_id = vm.filterDcvOrganisation
                         d.filter_fee_season_id = vm.filterFeeSeason
+                        //only use columns necessary for filtering and ordering
+                        let keepCols = []
+                        d.columns.forEach((value, index) => {
+                            if (value.searchable || value.orderable) {
+                                keepCols.push(d.columns[index])
+                            }
+                        });
+                        d.columns = keepCols;
                     }
                 },
                 dom: 'lBfrtip',
