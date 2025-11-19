@@ -25,7 +25,7 @@ from mooringlicensing.components.proposals.models import (
     MooringBay,
     Mooring,
     StickerPrintingBatch,
-    Proposal
+    Proposal, VesselDetails
 )
 from ledger_api_client.managed_models import SystemUser
 from rest_framework import serializers
@@ -1159,9 +1159,9 @@ def getApprovalExportFields(data):
         )
     ).annotate(
         holder=Concat(
-            'proposal__proposal_applicant__first_name',
+            'current_proposal__proposal_applicant__first_name',
             Value(" "),
-            'proposal__proposal_applicant__last_name'
+            'current_proposal__proposal_applicant__last_name'
             ),
     ).annotate(
         sticker_numbers=ArrayAgg(
@@ -1191,15 +1191,20 @@ def getApprovalExportFields(data):
     ).annotate(
         rego_no=Case(
             When(
-                Q(lodgement_number__startswith='MOL') & Q(vesselownershiponapproval__vessel_ownership__end_date=None),
+                Q(lodgement_number__startswith='MOL'),
                 then=ArrayAgg(
                     'vesselownershiponapproval__vessel_ownership__vessel__rego_no',
+                    filter=Q(vesselownershiponapproval__vessel_ownership__end_date=None),
                     distinct=True
                 )
             ),
             When(
-                current_proposal__vessel_ownership__end_date=None,
-                then=ArrayAgg('current_proposal__vessel_ownership__vessel__rego_no',distinct=True)
+                ~Q(lodgement_number__startswith='MOL'),
+                then=ArrayAgg(
+                    'current_proposal__vessel_ownership__vessel__rego_no',
+                    filter=Q(current_proposal__vessel_ownership__end_date=None),
+                    distinct=True
+                )
             ),
             output_field=ArrayField(CharField())
         )
@@ -1210,9 +1215,9 @@ def getApprovalExportFields(data):
         "sticker_numbers",
         "sticker_mailing_date",
         "holder",
-        "proposal__proposal_applicant__email",
-        "proposal__proposal_applicant__mobile_number",
-        "proposal__proposal_applicant__phone_number",
+        "current_proposal__proposal_applicant__email",
+        "current_proposal__proposal_applicant__mobile_number",
+        "current_proposal__proposal_applicant__phone_number",
         "status",
         "mooring_number",
         "issue_date",
@@ -1270,22 +1275,31 @@ def getWaitingListExportFields(data):
 
     columns = list(data.annotate(
         holder=Concat(
-            'proposal__proposal_applicant__first_name',
+            'current_proposal__proposal_applicant__first_name',
             Value(" "),
-            'proposal__proposal_applicant__last_name'
+            'current_proposal__proposal_applicant__last_name'
             ),
+    ).annotate(
+        rego_no=Case(
+            When(
+                Q(current_proposal__vessel_ownership__end_date=None),
+                then='current_proposal__vessel_ownership__vessel__rego_no',
+            ),
+            default=Value(''),
+            output_field=CharField()
+        ),
     ).values_list(
         "lodgement_number",
         "holder",
-        "proposal__proposal_applicant__email",
-        "proposal__proposal_applicant__mobile_number",
-        "proposal__proposal_applicant__phone_number",
+        "current_proposal__proposal_applicant__email",
+        "current_proposal__proposal_applicant__mobile_number",
+        "current_proposal__proposal_applicant__phone_number",
         "status",
         "current_proposal__preferred_bay__name",
         "issue_date",
         "start_date",
         "expiry_date",
-        "current_proposal__rego_no",
+        "rego_no",
         )
     )
 
@@ -1296,9 +1310,9 @@ def getMooringExportFields(data):
 
     columns = list(data.annotate(
         holder=Concat(
-            'mooring_licence__proposal__proposal_applicant__first_name',
+            'mooring_licence__current_proposal__proposal_applicant__first_name',
             Value(" "),
-            'mooring_licence__proposal__proposal_applicant__last_name'
+            'mooring_licence__current_proposal__proposal_applicant__last_name'
             ),
     ).annotate(
         status=Case(
@@ -1335,9 +1349,9 @@ def getMooringExportFields(data):
         "mooring_bay__name",
         "status",
         "holder",
-        "mooring_licence__proposal__proposal_applicant__email",
-        "mooring_licence__proposal__proposal_applicant__mobile_number",
-        "mooring_licence__proposal__proposal_applicant__phone_number",
+        "mooring_licence__current_proposal__proposal_applicant__email",
+        "mooring_licence__current_proposal__proposal_applicant__mobile_number",
+        "mooring_licence__current_proposal__proposal_applicant__phone_number",
         "preference_count_ria",
         "preference_count_site_licensee",
         "vessel_size_limit",
@@ -1414,12 +1428,18 @@ def getStickerExportFields(data):
         "Invoice Properties" 
     ]
 
+    vessel_length_sq = Subquery(
+        VesselDetails.objects.filter(
+            vessel__rego_no=OuterRef('vessel_ownership__vessel__rego_no')  
+        ).values('vessel_length')[:1]
+    )
+
     columns = list(
     data.annotate(
         holder=Concat(
-            'approval__proposal__proposal_applicant__first_name',
+            'approval__current_proposal__proposal_applicant__first_name',
             Value(" "),
-            'approval__proposal__proposal_applicant__last_name'
+            'approval__current_proposal__proposal_applicant__last_name'
         ),
     ).annotate(
         moorings=Case(
@@ -1439,33 +1459,35 @@ def getStickerExportFields(data):
             output_field=ArrayField(base_field=CharField()) 
         )
     ).annotate(
+        latest_vessel_length=vessel_length_sq
+    ).annotate(
         colour=Case(
             When(
-                Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'),
-                vessel_ownership__vessel__vesseldetails__vessel_length__lte=Sticker.colour_matrix_dict['Green'],
+                (Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'))&
+                Q(latest_vessel_length__lte=Sticker.colour_matrix_dict['Green']),
                 then=Value("Green")
             ),
             When(
-                Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'),
-                vessel_ownership__vessel__vesseldetails__vessel_length__lte=Sticker.colour_matrix_dict['Grey'],
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=Sticker.colour_matrix_dict['Green'],
+                (Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'))&
+                Q(latest_vessel_length__lte=Sticker.colour_matrix_dict['Grey'])&
+                Q(latest_vessel_length__gt=Sticker.colour_matrix_dict['Green']),
                 then=Value("Grey")
             ),
             When(
-                Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'),
-                vessel_ownership__vessel__vesseldetails__vessel_length__lte=Sticker.colour_matrix_dict['Purple'],
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=Sticker.colour_matrix_dict['Grey'],
+                (Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'))&
+                Q(latest_vessel_length__lte=Sticker.colour_matrix_dict['Purple'])&
+                Q(latest_vessel_length__gt=Sticker.colour_matrix_dict['Grey']),
                 then=Value("Purple")
             ),
             When(
-                Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'),
-                vessel_ownership__vessel__vesseldetails__vessel_length__lte=Sticker.colour_matrix_dict['Blue'],
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=Sticker.colour_matrix_dict['Purple'],
+                (Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'))&
+                Q(latest_vessel_length__lte=Sticker.colour_matrix_dict['Blue'])&
+                Q(latest_vessel_length__gt=Sticker.colour_matrix_dict['Purple']),
                 then=Value("Blue")
             ),
             When(
-                Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'),
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=Sticker.colour_matrix_dict['Blue'],
+                (Q(approval__lodgement_number__startswith='AUP') | Q(approval__lodgement_number__startswith='MOL'))&
+                Q(latest_vessel_length__gt=Sticker.colour_matrix_dict['Blue']),
                 then=Value("White")
             ),
             default=Value(""),
@@ -1474,32 +1496,32 @@ def getStickerExportFields(data):
         white_info=Case(
             When(
                 colour="White",
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=26,
-                then=Cast("vessel_ownership__vessel__vesseldetails__vessel_length",CharField())
+                latest_vessel_length__gt=26,
+                then=Cast("latest_vessel_length",CharField())
             ),
             When(
                 colour="White",
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=24,
+                latest_vessel_length__gt=24,
                 then=Value('26')
             ),
             When(
                 colour="White",
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=22,
+                latest_vessel_length__gt=22,
                 then=Value('24')
             ),
             When(
                 colour="White",
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=20,
+                latest_vessel_length__gt=20,
                 then=Value('22')
             ),
             When(
                 colour="White",
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=18,
+                latest_vessel_length__gt=18,
                 then=Value('20')
             ),
             When(
                 colour="White",
-                vessel_ownership__vessel__vesseldetails__vessel_length__gt=16,
+                latest_vessel_length__gt=16,
                 then=Value('18')
             ),
             default=Value(""),
@@ -1511,9 +1533,9 @@ def getStickerExportFields(data):
         "approval__current_proposal__rego_no",
         "moorings",
         "holder",
-        "approval__proposal__proposal_applicant__email",
-        "approval__proposal__proposal_applicant__mobile_number",
-        "approval__proposal__proposal_applicant__phone_number",
+        "approval__current_proposal__proposal_applicant__email",
+        "approval__current_proposal__proposal_applicant__mobile_number",
+        "approval__current_proposal__proposal_applicant__phone_number",
         "postal_address_line1",
         "postal_address_line2",
         "postal_address_locality",
