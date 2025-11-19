@@ -222,8 +222,8 @@ class MooringOnApproval(RevisionedMixin):
         has_end_date = Q(end_date__isnull=False)
         ml_is_not_current = ~Q(mooring__mooring_licence__status__in=MooringLicence.STATUSES_AS_CURRENT)
         sticker_is_current = Q(sticker__status__in=Sticker.STATUSES_AS_CURRENT)
-        is_active = Q(active=True)
-        moas = approval.mooringonapproval_set.filter((has_end_date | ml_is_not_current) & sticker_is_current & is_active)
+        #is_active = Q(active=True)
+        moas = approval.mooringonapproval_set.filter((has_end_date | ml_is_not_current) & sticker_is_current)
         return moas
 
 
@@ -1931,7 +1931,7 @@ class AuthorisedUserPermit(Approval):
             _stickers_to_be_replaced_for_renewal = list(set(_stickers_to_be_replaced_for_renewal + stickers_to_be_returned))
 
         # Finally, assign mooring(s) to new sticker(s)
-        self._assign_to_new_stickers(moas_to_be_reallocated, proposal, stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
+        stickers_to_be_returned = self._assign_to_new_stickers(moas_to_be_reallocated, proposal, stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
 
         # Update statuses of stickers to be returned
         self._update_status_of_sticker_to_be_removed(stickers_to_be_returned, _stickers_to_be_replaced_for_renewal)
@@ -2097,11 +2097,14 @@ class AuthorisedUserPermit(Approval):
                 # Store old sticker in the new sticker in order to set 'expired' status to it once the new sticker gets 'awaiting_printing' status
                 new_sticker.sticker_to_replace = moa_to_be_on_new_sticker.sticker
                 new_sticker.save()
+            if not moa_to_be_on_new_sticker.sticker in stickers_to_be_returned:
+                #if not already being returned, it should be now
+                stickers_to_be_returned.append(moa_to_be_on_new_sticker.sticker)
             # Update moa by a new sticker
             moa_to_be_on_new_sticker.sticker = new_sticker
             moa_to_be_on_new_sticker.save()
 
-        return new_stickers
+        return stickers_to_be_returned
 
 
 class MooringLicence(Approval):
