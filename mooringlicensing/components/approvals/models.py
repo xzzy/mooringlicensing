@@ -2066,6 +2066,7 @@ class AuthorisedUserPermit(Approval):
         else:
             new_status = Sticker.STICKER_STATUS_READY
 
+        stickers_replaced_for_renewal = []
         new_sticker = None
         for moa_to_be_on_new_sticker in moas_to_be_on_new_sticker:
             logger.debug(f'moa_to_be_on_new_sticker: [{moa_to_be_on_new_sticker}]')
@@ -2097,12 +2098,19 @@ class AuthorisedUserPermit(Approval):
                 # Store old sticker in the new sticker in order to set 'expired' status to it once the new sticker gets 'awaiting_printing' status
                 new_sticker.sticker_to_replace = moa_to_be_on_new_sticker.sticker
                 new_sticker.save()
+                stickers_replaced_for_renewal.append(new_sticker.sticker_to_replace)
             if not moa_to_be_on_new_sticker.sticker in stickers_to_be_returned:
                 #if not already being returned, it should be now
                 stickers_to_be_returned.append(moa_to_be_on_new_sticker.sticker)
             # Update moa by a new sticker
             moa_to_be_on_new_sticker.sticker = new_sticker
             moa_to_be_on_new_sticker.save()
+
+        if proposal.proposal_type.code == 'renewal':
+            #if renewing and the sticker is not being replaced, simply expire it now
+            for sticker in stickers_to_be_replaced_for_renewal:
+                if not sticker in stickers_replaced_for_renewal:
+                    sticker.status = Sticker.STICKER_STATUS_EXPIRED
 
         return stickers_to_be_returned
 
