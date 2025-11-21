@@ -21,6 +21,7 @@
             ref="record_sale" 
             :recordSaleId="recordSaleId"
             :key="recordSaleKey"
+            :level="level"
             @closeModal="closeModal"
             @refreshDatatable="refreshFromResponse"
             />
