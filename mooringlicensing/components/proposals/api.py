@@ -2236,14 +2236,20 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
 
                     # write approval history
                     approval.write_approval_history('Vessel sold by owner')
-                    if approval.code == WaitingListAllocation.code:
-                        send_reissue_wla_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
-                    elif approval.code == AnnualAdmissionPermit.code:
-                        send_reissue_aap_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
-                    elif approval.code == AuthorisedUserPermit.code:
-                        send_reissue_aup_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
-                    elif approval.code == MooringLicence.code:
-                        send_reissue_ml_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+
+                    no_email = False
+                    if is_internal(request):
+                        no_email = request.data.get('no_email', False)
+
+                    if not no_email:
+                        if approval.code == WaitingListAllocation.code:
+                            send_reissue_wla_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+                        elif approval.code == AnnualAdmissionPermit.code:
+                            send_reissue_aap_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+                        elif approval.code == AuthorisedUserPermit.code:
+                            send_reissue_aup_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
+                        elif approval.code == MooringLicence.code:
+                            send_reissue_ml_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)
 
                     approval.log_user_action(f'Vessel {instance.vessel.rego_no} on Approval {approval} marked sold on {sale_date}.', request)
 

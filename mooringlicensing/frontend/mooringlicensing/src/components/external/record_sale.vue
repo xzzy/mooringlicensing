@@ -33,6 +33,12 @@
                 </div>
             </div>
             <div slot="footer">
+
+                <input v-if="is_internal" type="checkbox" v-model="noEmail" id="noEmail" />
+                <label v-if="is_internal" for="noEmail">
+                    &nbsp;Do not send email notification for this record of sale &nbsp;
+                </label>
+
                 <button type="button" v-if="saving" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Saving</button>
                 <button type="button" v-else class="btn btn-default" @click="ok">Save</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
@@ -56,10 +62,15 @@ export default {
                 type:Number,
                 required: true
             },
+            level:{
+                type:String,
+                default: "external"
+            },
     },
     data:function () {
         let vm = this;
         return {
+            noEmail: false,
             isModalOpen:false,
             errors: false,
             errorString: '',
@@ -79,6 +90,10 @@ export default {
         showError: function() {
             var vm = this;
             return vm.errors;
+        },
+        is_internal: function() {
+            var vm = this;
+            return vm.level == "internal";
         },
     },
     methods:{
@@ -103,6 +118,7 @@ export default {
                 const url = `${api_endpoints.vesselownership}${this.recordSaleId}/record_sale/`;
                 const res = await this.$http.post(url, {
                     "sale_date": this.saleDate,
+                    "no_email": this.noEmail,
                 });
                 if (res.ok) {
                     await swal(
