@@ -2650,7 +2650,7 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                             # regenerating the List of Authorised Users document for the mooring Licence and sending email to the user
                             ml.generate_au_summary_doc()
                             #send email to mooring licence owner if with the above attachement if required
-                    else:
+                    elif mooring.mooring_licence:
                         # removing the List of Authorised Users document if there is no more AUPs remaining 
                         mooring.mooring_licence.authorised_user_summary_document = None
                     approval.log_user_action(f'AUP {approval} removed from Mooring {mooring}.', request)
