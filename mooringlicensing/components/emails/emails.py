@@ -89,7 +89,7 @@ class TemplateEmailBase(object):
                 _attachments.append(attachment)
         msg = EmailMultiAlternatives(self.subject, txt_body, from_email=from_address, to=to_addresses,
                 attachments=_attachments, cc=cc, bcc=bcc, 
-                headers={'System-Environment': email_instance}
+                headers={'System-Environment': email_instance, 'ITSystem-ID':settings.LEDGER_SYSTEM_ID}
                 )
         msg.attach_alternative(html_body, 'text/html')
         try:
