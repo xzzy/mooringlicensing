@@ -915,22 +915,22 @@ class Proposal(RevisionedMixin):
                         current_approvals = target_vessel.get_current_approvals(target_date)
                         logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
 
-                    if vessel == target_vessel:
-                        # This is paid for AA component for a target_vessel
-                        # In this case, we can transfer this amount
-                        amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
-    
-                        max_amount_paid += amount_paid
-                        logger.info(f'Amount: [{amount_paid}] has been factored in to the current max AA amount paid.')
-                        if amount_paid > 0:
-                            logger.info(f'Transferable amount: [{fee_item_application_fee}], which already has been paid.')
-                    else:
-                        #for tracking max payments of other vessels - used to determine potential deductions where no payment exists (for all but the vessel on this proposal)
-                        amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
-                        if target_vessel.rego_no in max_amount_paid_per_vessel:
-                            max_amount_paid_per_vessel[target_vessel.rego_no] += amount_paid
+                        if vessel == target_vessel:
+                            # This is paid for AA component for a target_vessel
+                            # In this case, we can transfer this amount
+                            amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
+        
+                            max_amount_paid += amount_paid
+                            logger.info(f'Amount: [{amount_paid}] has been factored in to the current max AA amount paid.')
+                            if amount_paid > 0:
+                                logger.info(f'Transferable amount: [{fee_item_application_fee}], which already has been paid.')
                         else:
-                            max_amount_paid_per_vessel[target_vessel.rego_no] = amount_paid
+                            #for tracking max payments of other vessels - used to determine potential deductions where no payment exists (for all but the vessel on this proposal)
+                            amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
+                            if target_vessel.rego_no in max_amount_paid_per_vessel:
+                                max_amount_paid_per_vessel[target_vessel.rego_no] += amount_paid
+                            else:
+                                max_amount_paid_per_vessel[target_vessel.rego_no] = amount_paid
              
                 if proposal.proposal_type.code in [PROPOSAL_TYPE_NEW, PROPOSAL_TYPE_RENEWAL, ]:
                     # Now, 'prev_application' is the very first application for this season
@@ -2245,28 +2245,6 @@ class Proposal(RevisionedMixin):
                 submit_vessel_data(self, request, approving=True)
                 self.refresh_from_db()
                 self.proposed_decline_status = False
-
-                #TODO remove or adjust as needed
-                #if self.approval: #we do not allow amendments/renewals to be approved if a sticker has not yet been exported
-                #    stickers_not_exported = self.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,])
-                #    if stickers_not_exported:
-                #        #TODO remove as no longer needed when manage stickers had been fixed (?) or keep as a safeguard?
-                #        raise Exception('Cannot approve proposal... There is at least one sticker with ready/not_ready_yet status for the approval: ['+str(self.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
-                #    
-                #    if self.application_type_code == 'mla' or self.proposal_type.code == settings.PROPOSAL_TYPE_SWAP_MOORINGS:
-                #        from mooringlicensing.components.approvals.models import MooringOnApproval
-                #        #check aups on mooring, do not allow approval if any stickers not exported
-                #        #or if it is a swap, check the aups on the OTHER approval as well
-                #        #(the listed mooring will apply either way)
-                #        query = Q()
-                #        query &= Q(mooring=self.allocated_mooring)
-                #        query &= Q(active=True)
-                #        moa_set = MooringOnApproval.objects.filter(query)
-                #        for i in moa_set:
-                #            if i.approval and i.approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_NOT_READY_YET, Sticker.STICKER_STATUS_READY,]).exists():
-                #                #TODO remove as no longer needed when manage stickers had been fixed (?) or keep as a safeguard?
-                #                raise Exception('Cannot approve proposal... There is at least one AUP with at least one sticker with ready/not_ready_yet status for the existing approval: ['+str(self.approval)+':'+str(i.approval)+']. '+STICKER_EXPORT_RUN_TIME_MESSAGE+'.')
-
 
                 # Validation & update proposed_issuance_approval
                 if not ((self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT):
