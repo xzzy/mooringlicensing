@@ -31,7 +31,7 @@ class Command(BaseCommand):
         body = ''
         to = settings.CRON_NOTIFICATION_EMAIL.replace(' ','').split(',') if settings.CRON_NOTIFICATION_EMAIL else settings.NOTIFICATION_EMAIL.replace(' ','').split(',')
         msg = EmailMultiAlternatives(subject, log_txt, settings.EMAIL_FROM, to,
-                headers={'System-Environment': email_instance}
+                headers={'System-Environment': email_instance, 'ITSystem-ID':settings.LEDGER_SYSTEM_ID}
                 )
         msg.attach_alternative(log_txt, "text/html")
         msg.send()

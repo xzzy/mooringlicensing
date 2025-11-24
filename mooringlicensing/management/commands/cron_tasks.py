@@ -58,7 +58,7 @@ class Command(BaseCommand):
         subject = '{} - Cronjob'.format(settings.SYSTEM_NAME_SHORT)
         to = settings.CRON_NOTIFICATION_EMAIL.replace(' ','').split(',') if settings.CRON_NOTIFICATION_EMAIL else settings.NOTIFICATION_EMAIL.replace(' ','').split(',')
         msg = EmailMultiAlternatives(subject, contents_of_cron_email, settings.EMAIL_FROM, to,
-            headers={'System-Environment': email_instance}
+            headers={'System-Environment': email_instance, 'ITSystem-ID':settings.LEDGER_SYSTEM_ID}
         )
         msg.attach_alternative(contents_of_cron_email, "text/html")
         msg.send()
