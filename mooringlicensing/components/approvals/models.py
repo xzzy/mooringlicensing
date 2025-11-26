@@ -1305,14 +1305,14 @@ class Approval(RevisionedMixin):
 
     def _update_status_of_sticker_to_be_removed(self, stickers_to_be_removed, stickers_to_be_replaced_for_renewal=[]):
         for sticker in stickers_to_be_removed:
-            if sticker.status in [Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,]:
+            if sticker and sticker.status in [Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING,]:
                 # For renewal, old sticker is still in 'current' status until new sticker gets 'current' status
                 # When new sticker gets 'current' status, old sticker gets 'expired' status
                 if not (sticker in stickers_to_be_replaced_for_renewal):    
                     sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
                     sticker.save()
                     logger.info(f'Sticker: [{sticker}] status has been changed to [{sticker.status}]')
-            elif sticker.status in [Sticker.STICKER_STATUS_READY,]:
+            elif sticker and sticker.status in [Sticker.STICKER_STATUS_READY,]:
                 # These sticker objects were created, but not sent to the printing company
                 # So we just make it 'cancelled'
                 if sticker.number:
@@ -2099,7 +2099,7 @@ class AuthorisedUserPermit(Approval):
                 new_sticker.sticker_to_replace = moa_to_be_on_new_sticker.sticker
                 new_sticker.save()
                 stickers_replaced_for_renewal.append(new_sticker.sticker_to_replace)
-            if not moa_to_be_on_new_sticker.sticker in stickers_to_be_returned:
+            if moa_to_be_on_new_sticker.sticker and not moa_to_be_on_new_sticker.sticker in stickers_to_be_returned:
                 #if not already being returned, it should be now
                 stickers_to_be_returned.append(moa_to_be_on_new_sticker.sticker)
             # Update moa by a new sticker
@@ -2560,7 +2560,7 @@ class MooringLicence(Approval):
             )
 
             # CurrentStickers - StickersToBeKept = StickersToBeReturned
-            stickers_to_be_returned = [sticker for sticker in stickers_current if sticker not in stickers_to_be_kept]
+            stickers_to_be_returned = [sticker for sticker in stickers_current if sticker and sticker not in stickers_to_be_kept]
 
             # Update sticker status
             self._update_status_of_sticker_to_be_removed(stickers_to_be_returned)
