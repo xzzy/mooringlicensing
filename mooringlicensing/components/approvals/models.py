@@ -2081,7 +2081,7 @@ class AuthorisedUserPermit(Approval):
                     status=new_status
                 )
                 
-                if proposal.proposal_applicant:
+                if proposal and proposal.proposal_applicant:
                     proposal_applicant = proposal.proposal_applicant
                     new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
                     new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
