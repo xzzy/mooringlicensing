@@ -73,6 +73,10 @@ export default {
                 displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
                 lists moorings ${this.proposal.authorised_user_moorings_str}.
                     Do you want to apply to add another mooring to your Authorised User Permit?`;
+            } else {
+                displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
+                currently has no moorings.
+                    Do you want to apply to add a mooring to your Authorised User Permit?`;
             }
             return displayText;
         },
