@@ -23,7 +23,7 @@ def checkout(request, email_user, lines, return_url, return_preload_url, booking
         'booking_reference_link': booking_reference,
     }
 
-    email_user_id = email_user.id if request.user.is_anonymous else request.user.id
+    email_user_id = email_user.id if email_user else request.user.id
     basket_hash = create_basket_session(request, email_user_id, basket_params)
     checkout_params = {
         'system': settings.PAYMENT_SYSTEM_ID,

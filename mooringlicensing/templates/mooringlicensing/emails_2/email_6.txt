@@ -3,10 +3,14 @@
 {% block content_body %}
 {% include "mooringlicensing/emails_2/salutation.txt" %}
 We are pleased to advise that a mooring has become available in your nominated waitlist bay, and you are the next eligible waitlisted applicant {{ wla.lodgement_number }}.
-We hereby invite you to apply for a mooring site licence below offer.
-To accept this offer, you are required to submit your application for a mooring site licence within {{ application_period }} number of days and submit any additional documents within {{ documents_period }} number of days thereafter.
-If your application is not submitted within the timeframes specified, it will be taken to indicate your intention to decline. The offer will lapse, and your name will be removed from the waiting list of your nominated bay. The mooring site licence will then be offered to the next eligible applicant on the waiting list.
+We hereby invite you to apply for a mooring site licence offer. Details are provided in the attached documents. 
+To accept this offer, you need to submit your application for a mooring site licence within {{ application_period }} days and then upload additional documents within {{ documents_period }} days.
+If the offer is not accepted and submitted within the timeframe specified, the offer will lapse, and your name will be removed from the waiting list.
 {% if details %}Details: {{ details }}{% endif %}
-Please access {{ proposal_external_url }} to access the application.
+Once you have reviewed the attached documents, please click here to access the Rottnest Mooring Licensing Portal. 
+Review your address and phone numbers first in “Options/Manage Account” and update as required.
+The Mooring Site Licence Application is located on your dashboard under “Applications” with a ‘draft’ status.  
+To accept the mooring licence offer, click ‘continue’ on the draft application and upload the documents as listed in the ‘guidelines’ attached to this email, and then submit.  Once you have completed the other requirements, upload them to your application. Once all documents are submitted, RIA will review your application.  
+Should you wish to decline the offer, please select that option from your dashboard, and then confirm to us by email.
 {% include "mooringlicensing/emails/signature-rottnest.txt" %}
 {% endblock %}
