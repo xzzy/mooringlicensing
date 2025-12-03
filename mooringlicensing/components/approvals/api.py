@@ -382,7 +382,7 @@ class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
             for_swap_moorings_modal = True if for_swap_moorings_modal.lower() in ['true', 'yes', 'y', ] else False
             if for_swap_moorings_modal:
                 all = all.filter(
-                    Q(current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,]) & 
+                    Q(current_proposal__processing_status__in=[Proposal.PROCESSING_STATUS_APPROVED,Proposal.PROCESSING_STATUS_DISCARDED,Proposal.PROCESSING_STATUS_DECLINED, Proposal.PROCESSING_STATUS_EXPIRED]) & 
                     Q(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED,])
                 )
             return all
