@@ -2111,6 +2111,7 @@ class AuthorisedUserPermit(Approval):
             for sticker in stickers_to_be_replaced_for_renewal:
                 if not sticker in stickers_replaced_for_renewal:
                     sticker.status = Sticker.STICKER_STATUS_EXPIRED
+                    sticker.save()
 
         return stickers_to_be_returned
 
