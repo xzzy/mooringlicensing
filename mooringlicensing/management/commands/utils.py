@@ -1,10 +1,49 @@
+from django.db.models import F
+
 from mooringlicensing.components.main.models import GlobalSettings
 
 from mooringlicensing.components.approvals.models import (
-    Approval
+    Approval, Sticker
+)
+
+from mooringlicensing.components.proposals.models import (
+    Proposal, VesselOwnership
 )
 
 import datetime
+
+def check_duplicate_vessel_ownerships_among_proposals(proposals):
+    """reporting function for checking for multiple vessel ownerships among proposals (pertaining to different current approvals) that have not ended (should only be one)"""
+    proposals_with_vo = proposals.exclude(vessel_ownership=None).filter(approval__current_proposal_id=F('id')).filter(approval__status__in=Approval.APPROVED_STATUSES)
+    proposal_vo_ids = list(proposals_with_vo.values_list("vessel_ownership_id", flat=True))
+    vessel_ownerships = VesselOwnership.objects.filter(id__in=proposal_vo_ids, end_date=None)
+
+    accounted_for = []
+    multiples = []
+    #records here are in-date and assigned to the provided proposals - so if multiple have the same rego no something is wrong
+    for vo in vessel_ownerships:
+        if vo.vessel:
+            if vo.vessel.rego_no in accounted_for and not vo in multiples:
+                multiples.append(vo.vessel.rego_no)
+            else:
+                accounted_for.append(vo.vessel.rego_no)
+
+    multipes_with_proposals = []
+    for rego_no in multiples:
+        multipes_with_proposals.append(f'{rego_no} ({",".join(list(proposals_with_vo.filter(vessel_ownership__vessel__rego_no=rego_no).values_list("lodgement_number",flat=True)))})')
+
+    return ("Vessels with multiple ongoing vessel ownerships on multiple proposal records that pertain to different current approvals) (only should be one at a time):", multipes_with_proposals)
+
+def check_proposal_stuck_at_printing(proposals):
+    """reporting function for checking proposals stuck in printing sticker despite no sticker records awaiting printing or export"""
+    printing = proposals.filter(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER)
+    stickers = Sticker.objects.filter(proposal_initiated_id__in=list(printing.values_list('id',flat=True)))
+    non_printing_stickers = stickers.exclude(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
+    non_printing_proposal_ids = list(non_printing_stickers.values_list('id', flat=True))
+
+    non_printing_stuck = list(printing.filter(id__in=non_printing_proposal_ids).values_list('lodgement_number',flat=True))
+
+    return ("Proposals with a Printing Sticker status but with no Sticker records awaiting printing or awaiting export.", non_printing_stuck)
 
 def check_invalid_expired_approval(approvals):
     """reporting function to get all expired approvals that have a later expiry date"""
