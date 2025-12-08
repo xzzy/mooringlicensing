@@ -1,5 +1,19 @@
 from mooringlicensing.components.main.models import GlobalSettings
 
+from mooringlicensing.components.approvals.models import (
+    Approval
+)
+
+import datetime
+
+def check_invalid_expired_approval(approvals):
+    """reporting function to get all expired approvals that have a later expiry date"""
+    current_time = datetime.datetime.now()
+    expired_approvals_bad_dates = approvals.filter(status=Approval.APPROVAL_STATUS_CURRENT, expiry_date__lt=current_time)
+
+    if expired_approvals_bad_dates.exists():
+        numbers = list(expired_approvals_bad_dates.values_list("lodgement_number",flat=True))
+        return ("Approvals with an Expired status but still in date:", numbers)
 
 def ml_meet_vessel_requirement(mooring_licence, boundary_date):
     min_length_setting = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH)
@@ -15,7 +29,6 @@ def ml_meet_vessel_requirement(mooring_licence, boundary_date):
 
     # All the vessels have been sold more than X months ago
     return False
-
 
 def construct_email_message(cmd_name, errors, updates):
     cmd_str = '<div>{} completed.</div>'.format(cmd_name)

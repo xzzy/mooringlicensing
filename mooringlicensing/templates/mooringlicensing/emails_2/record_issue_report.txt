@@ -1,0 +1,12 @@
+{% extends 'mooringlicensing/emails/base_email-rottnest.txt' %}
+
+{% block content_body %}
+
+{% for report in reports %}
+{{report.0}}
+{% for number in report.1 %}
+{{number}}
+{% endfor %}
+{% endfor %}
+
+{% endblock %}
