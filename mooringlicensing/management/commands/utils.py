@@ -12,6 +12,22 @@ from mooringlicensing.components.proposals.models import (
 
 import datetime
 
+def get_unaccounted_sold_vessel_ownerships(proposals):
+    """Get vessel ownerships for vessels that have been sold but have no end date, excluding records created after the latest sold vessel ownership record"""
+    proposals_with_vo = proposals.exclude(vessel_ownership=None)
+    proposal_vo_ids = list(proposals_with_vo.values_list("vessel_ownership_id", flat=True))
+    vessel_ownerships = VesselOwnership.objects.filter(id__in=proposal_vo_ids)
+
+    sold_vessel_ownerships = vessel_ownerships.exclude(end_date=None)
+    unsold_vessel_ownerships = vessel_ownerships.filter(end_date=None)
+    rego_nos = []
+    for svo in sold_vessel_ownerships:
+        if svo.vessel:
+            if unsold_vessel_ownerships.filter(created__lt=svo.created,owner=svo.owner,vessel__rego_no=svo.vessel.rego_no).exists():
+                rego_nos.append(svo.vessel.rego_no)
+    return ("Vessels that have been marked as sold have unaccounted for vessel ownership records and possibly related records that have not been marked as sold:", rego_nos)
+
+#NOTE: with changes to sales handling this particular report is no longer required but may be useful for debugging
 def check_duplicate_vessel_ownerships_among_proposals(proposals):
     """reporting function for checking for multiple vessel ownerships among proposals (pertaining to different current approvals) that have not ended (should only be one)"""
     proposals_with_vo = proposals.exclude(vessel_ownership=None).filter(approval__current_proposal_id=F('id')).filter(approval__status__in=Approval.APPROVED_STATUSES)
@@ -28,11 +44,11 @@ def check_duplicate_vessel_ownerships_among_proposals(proposals):
             else:
                 accounted_for.append(vo.vessel.rego_no)
 
-    multipes_with_proposals = []
+    multiples_with_proposals = []
     for rego_no in multiples:
-        multipes_with_proposals.append(f'{rego_no} ({",".join(list(proposals_with_vo.filter(vessel_ownership__vessel__rego_no=rego_no).values_list("lodgement_number",flat=True)))})')
+        multiples_with_proposals.append(f'{rego_no} ({",".join(list(proposals_with_vo.filter(vessel_ownership__vessel__rego_no=rego_no).values_list("lodgement_number",flat=True)))})')
 
-    return ("Vessels with multiple ongoing vessel ownerships on multiple proposal records that pertain to different current approvals) (only should be one at a time):", multipes_with_proposals)
+    return ("Vessels with multiple ongoing vessel ownerships on multiple proposal records that pertain to different current approvals) (only should be one at a time):", multiples_with_proposals)
 
 def check_proposal_stuck_at_printing(proposals):
     """reporting function for checking proposals stuck in printing sticker despite no sticker records awaiting printing or export"""

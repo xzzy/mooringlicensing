@@ -11,7 +11,7 @@ from mooringlicensing.components.approvals.models import (
 from mooringlicensing.management.commands.utils import (
     check_invalid_expired_approval,
     check_proposal_stuck_at_printing,
-    check_duplicate_vessel_ownerships_among_proposals,
+    get_unaccounted_sold_vessel_ownerships,
 )
 
 from mooringlicensing import settings
@@ -90,10 +90,12 @@ class Command(BaseCommand):
 
         #list of examination functions (and the model querysets they require)
         #NOTE: this is where any new report functions go
+        #format: function_name: examination_querysets[ModelName] (make sure the model is in the examine_models list)
         examination_functions = {
             check_invalid_expired_approval: [examination_querysets[Approval]],
             check_proposal_stuck_at_printing: [examination_querysets[Proposal]],
-            check_duplicate_vessel_ownerships_among_proposals: [examination_querysets[Proposal]],
+            #check_duplicate_vessel_ownerships_among_proposals: [examination_querysets[Proposal]],
+            get_unaccounted_sold_vessel_ownerships: [examination_querysets[Proposal]],
         }
 
         reports = []
