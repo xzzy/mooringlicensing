@@ -12,6 +12,11 @@ from mooringlicensing.management.commands.utils import (
     check_invalid_expired_approval,
     check_proposal_stuck_at_printing,
     get_unaccounted_sold_vessel_ownerships,
+    get_late_expired_approvals,
+    get_late_surrendered_approvals,
+    get_late_suspended_approvals,
+    get_late_cancelled_approvals,
+    get_late_resuming_approvals,
 )
 
 from mooringlicensing import settings
@@ -96,6 +101,11 @@ class Command(BaseCommand):
             check_proposal_stuck_at_printing: [examination_querysets[Proposal]],
             #check_duplicate_vessel_ownerships_among_proposals: [examination_querysets[Proposal]],
             get_unaccounted_sold_vessel_ownerships: [examination_querysets[Proposal]],
+            get_late_expired_approvals: [examination_querysets[Approval]],
+            get_late_surrendered_approvals: [examination_querysets[Approval]],
+            get_late_suspended_approvals: [examination_querysets[Approval]],
+            get_late_cancelled_approvals: [examination_querysets[Approval]],
+            get_late_resuming_approvals: [examination_querysets[Approval]],
         }
 
         reports = []
@@ -108,9 +118,10 @@ class Command(BaseCommand):
                 reports.append(examination_function())
 
         for report in reports:
-            print(f"\n{report[0]}")
-            for number in report[1]:
-                print(number)
+            if report and len(report)>1 and report[1]:
+                print(f"\n{report[0]}")
+                for number in report[1]:
+                    print(number)
 
         if reports:
             #email to group

@@ -345,7 +345,7 @@ class Approval(RevisionedMixin):
     @property
     def detailed_status(self):
         
-        if self.set_to_cancel or self.set_to_surrender:
+        if (self.set_to_cancel and self.status != Approval.APPROVAL_STATUS_CANCELLED) or (self.set_to_surrender and self.status != Approval.APPROVAL_STATUS_SURRENDERED):
             surrender_date = None
             cancellation_date = None
 

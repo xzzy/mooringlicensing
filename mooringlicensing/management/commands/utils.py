@@ -1,4 +1,6 @@
 from django.db.models import F
+from django.db.models.functions import Cast
+from django.db.models import CharField
 
 from mooringlicensing.components.main.models import GlobalSettings
 
@@ -11,6 +13,56 @@ from mooringlicensing.components.proposals.models import (
 )
 
 import datetime
+
+def convert_and_check_late_date_str(date_str, current_time):
+    """attempts to convert date_str from "%d/%m/%Y" (including quotes) format and then checks if date has elapsed"""
+    try:
+        date_value = datetime.datetime.strptime(date_str,'"%d/%m/%Y"')
+    except Exception as e:
+        print(e)
+        return False
+    
+    return current_time > date_value
+
+def get_late_resuming_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals_to_suspend = approvals.annotate(
+        suspension_date_str=Cast('suspension_details__to_date', output_field=CharField())
+    ).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT],set_to_suspend=True)
+
+    current_approvals_late_to_suspension = list(map(lambda i: i.lodgement_number,list(filter(lambda i: convert_and_check_late_date_str(i.suspension_date_str,current_time),current_approvals_to_suspend))))
+
+    return ("Approvals that have a suspension end date and are late to being resumed:", current_approvals_late_to_suspension)
+
+def get_late_cancelled_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals = list(approvals.filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED],cancellation_date__lt=current_time).values_list('lodgement_number',flat=True))
+    return ("Approvals that have a cancellation date and are late to being cancelled:", current_approvals)
+
+def get_late_suspended_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals_to_suspend = approvals.annotate(
+        suspension_date_str=Cast('suspension_details__from_date', output_field=CharField())
+    ).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT],set_to_suspend=True)
+
+    current_approvals_late_to_suspension = list(map(lambda i: i.lodgement_number,list(filter(lambda i: convert_and_check_late_date_str(i.suspension_date_str,current_time),current_approvals_to_suspend))))
+
+    return ("Approvals that have a suspension date and are late to being suspended:", current_approvals_late_to_suspension)
+
+def get_late_surrendered_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals_to_surrender = approvals.annotate(
+        surrender_date_str=Cast('surrender_details__surrender_date', output_field=CharField())
+    ).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED],set_to_surrender=True)
+
+    current_approvals_late_to_surrender = list(map(lambda i: i.lodgement_number,list(filter(lambda i: convert_and_check_late_date_str(i.surrender_date_str,current_time),current_approvals_to_surrender))))
+
+    return ("Approvals that have a surrender date and are late to being surrendered:", current_approvals_late_to_surrender)
+
+def get_late_expired_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals = list(approvals.filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED],expiry_date__lt=current_time).values_list('lodgement_number',flat=True))
+    return ("Approvals that have an expiry date and are late to being expired:", current_approvals)
 
 def get_unaccounted_sold_vessel_ownerships(proposals):
     """Get vessel ownerships for vessels that have been sold but have no end date, excluding records created after the latest sold vessel ownership record"""
