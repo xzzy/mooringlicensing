@@ -132,7 +132,7 @@ class Command(BaseCommand):
             emails = list(EmailUserRO.objects.filter(id__in=ledger_ids).values_list('email', flat=True))
 
             email = TemplateEmailBase(
-                subject='Record Issue Report', 
+                subject=f'Issues with data records found {settings.LEDGER_SYSTEM_ID}', 
                 html_template='mooringlicensing/emails_2/record_issue_report.html',
                 txt_template='mooringlicensing/emails_2/record_issue_report.txt',
             )
