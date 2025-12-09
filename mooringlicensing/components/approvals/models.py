@@ -325,7 +325,7 @@ class Approval(RevisionedMixin):
 
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     vessel_ownerships = models.ManyToManyField(VesselOwnership, through=VesselOwnershipOnApproval)
-    wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
+    wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True, blank=True)
     vessel_nomination_reminder_sent = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
 
