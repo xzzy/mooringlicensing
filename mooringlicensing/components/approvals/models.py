@@ -1445,6 +1445,7 @@ class WaitingListAllocation(Approval):
     def processes_after_cancel(self, request=None):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
+        self.set_to_cancel = False
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
@@ -1453,6 +1454,7 @@ class WaitingListAllocation(Approval):
     def processes_after_surrender(self):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_SURRENDERED  # Surrendered has been probably set before reaching here.
+        self.set_to_surrender = False
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=surrendered, wla_order=None] of the WL Allocation: [{self}].')
