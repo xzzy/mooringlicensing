@@ -1005,6 +1005,7 @@ def update_proposal_applicant(proposal, request):
         logger.info(f'ProposalApplicant: [{proposal_applicant}] has been updated.')
 
 
+#TODO this does not appear to be in user - investigate and remove if not required
 def make_ownership_ready(proposal, request):
     vessel_ownership = VesselOwnership.objects.create()
     proposal.vessel_ownership = vessel_ownership

@@ -2185,20 +2185,30 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                                     "You cannot record the sale of this vessel at this time as application {} that lists this vessel is still in progress.".format(proposal.lodgement_number)
                                     )
 
-                ## setting the end_date "removes" the vessel from current Approval records
-                serializer = SaveVesselOwnershipSaleDateSerializer(instance, {"end_date": sale_date})
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-                logger.info(f'Vessel sold: VesselOwnership: [{instance}] has been updated with the end_date: [{sale_date}].')
+                #apply sale date to vessel ownerships owned by the same Owner with the same rego no without an end date
+                rego_no = instance.vessel.rego_no if instance.vessel else None
+                owner = instance.owner
 
-                instance.refresh_from_db()
+                affected_vessel_ownerships = VesselOwnership.objects.filter(vessel__rego_no=rego_no, owner=owner, end_date=None)
+
+                ## setting the end_date "removes" the vessel from current Approval records
+                for vessel_ownership in affected_vessel_ownerships:
+                    try:
+                        vessel_ownership.end_date = datetime.strptime(sale_date,"%d/%m/%Y")
+                        vessel_ownership.save()
+                    except:
+                        raise serializers.ValidationError("Invalid sale date provided.")
+                    logger.info(f'Vessel sold: VesselOwnership: [{vessel_ownership}] has been updated with the end_date: [{sale_date}].')
+
+                affected_vessel_ownership_ids = list(affected_vessel_ownerships.values_list('id',flat=True))
 
                 ## collect impacted Approvals
                 approval_list = []
-                for prop in instance.proposal_set.filter(approval__status=Approval.APPROVAL_STATUS_CURRENT):
+                for prop in Proposal.objects.filter(vessel_ownership_id__in=affected_vessel_ownership_ids,approval__status=Approval.APPROVAL_STATUS_CURRENT):
                     if (type(prop.approval.child_obj) in [WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit] and
                             prop.approval not in approval_list):
                         approval_list.append(prop.approval)
+
                 ## collect ML
                 for voa in VesselOwnershipOnApproval.objects.filter(vessel_ownership=instance):
                     if voa.approval not in approval_list:

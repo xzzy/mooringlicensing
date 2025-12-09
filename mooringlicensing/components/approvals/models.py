@@ -325,7 +325,7 @@ class Approval(RevisionedMixin):
 
     moorings = models.ManyToManyField(Mooring, through=MooringOnApproval)
     vessel_ownerships = models.ManyToManyField(VesselOwnership, through=VesselOwnershipOnApproval)
-    wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True)
+    wla_order = models.PositiveIntegerField(help_text='wla order per mooring bay', null=True, blank=True)
     vessel_nomination_reminder_sent = models.BooleanField(default=False)
     reissued= models.BooleanField(default=False)
 
@@ -345,7 +345,7 @@ class Approval(RevisionedMixin):
     @property
     def detailed_status(self):
         
-        if self.set_to_cancel or self.set_to_surrender:
+        if (self.set_to_cancel and self.status != Approval.APPROVAL_STATUS_CANCELLED) or (self.set_to_surrender and self.status != Approval.APPROVAL_STATUS_SURRENDERED):
             surrender_date = None
             cancellation_date = None
 
@@ -1445,6 +1445,7 @@ class WaitingListAllocation(Approval):
     def processes_after_cancel(self, request=None):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_CANCELLED  # Cancelled has been probably set before reaching here.
+        self.set_to_cancel = False
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=cancelled, wla_order=None] of the WL Allocation: [{self}].')
@@ -1453,6 +1454,7 @@ class WaitingListAllocation(Approval):
     def processes_after_surrender(self):
         self.internal_status = None
         self.status = Approval.APPROVAL_STATUS_SURRENDERED  # Surrendered has been probably set before reaching here.
+        self.set_to_surrender = False
         self.wla_order = None
         self.save()
         logger.info(f'Set attributes as follows: [internal_status=None, status=surrendered, wla_order=None] of the WL Allocation: [{self}].')

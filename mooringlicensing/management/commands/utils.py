@@ -1,5 +1,126 @@
+from django.db.models import F
+from django.db.models.functions import Cast
+from django.db.models import CharField
+
 from mooringlicensing.components.main.models import GlobalSettings
 
+from mooringlicensing.components.approvals.models import (
+    Approval, Sticker
+)
+
+from mooringlicensing.components.proposals.models import (
+    Proposal, VesselOwnership
+)
+
+import datetime
+
+def convert_and_check_late_date_str(date_str, current_time):
+    """attempts to convert date_str from "%d/%m/%Y" (including quotes) format and then checks if date has elapsed"""
+    try:
+        date_value = datetime.datetime.strptime(date_str,'"%d/%m/%Y"')
+    except Exception as e:
+        print(e)
+        return False
+    
+    return current_time > date_value
+
+def get_late_resuming_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals_to_suspend = approvals.annotate(
+        suspension_date_str=Cast('suspension_details__to_date', output_field=CharField())
+    ).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT],set_to_suspend=True)
+
+    current_approvals_late_to_suspension = list(map(lambda i: i.lodgement_number,list(filter(lambda i: convert_and_check_late_date_str(i.suspension_date_str,current_time),current_approvals_to_suspend))))
+
+    return ("Approvals that have a suspension end date and are late to being resumed:", current_approvals_late_to_suspension)
+
+def get_late_cancelled_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals = list(approvals.filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED],cancellation_date__lt=current_time).values_list('lodgement_number',flat=True))
+    return ("Approvals that have a cancellation date and are late to being cancelled:", current_approvals)
+
+def get_late_suspended_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals_to_suspend = approvals.annotate(
+        suspension_date_str=Cast('suspension_details__from_date', output_field=CharField())
+    ).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT],set_to_suspend=True)
+
+    current_approvals_late_to_suspension = list(map(lambda i: i.lodgement_number,list(filter(lambda i: convert_and_check_late_date_str(i.suspension_date_str,current_time),current_approvals_to_suspend))))
+
+    return ("Approvals that have a suspension date and are late to being suspended:", current_approvals_late_to_suspension)
+
+def get_late_surrendered_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals_to_surrender = approvals.annotate(
+        surrender_date_str=Cast('surrender_details__surrender_date', output_field=CharField())
+    ).filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED],set_to_surrender=True)
+
+    current_approvals_late_to_surrender = list(map(lambda i: i.lodgement_number,list(filter(lambda i: convert_and_check_late_date_str(i.surrender_date_str,current_time),current_approvals_to_surrender))))
+
+    return ("Approvals that have a surrender date and are late to being surrendered:", current_approvals_late_to_surrender)
+
+def get_late_expired_approvals(approvals):
+    current_time = datetime.datetime.now()
+    current_approvals = list(approvals.filter(status__in=[Approval.APPROVAL_STATUS_CURRENT, Approval.APPROVAL_STATUS_SUSPENDED],expiry_date__lt=current_time).values_list('lodgement_number',flat=True))
+    return ("Approvals that have an expiry date and are late to being expired:", current_approvals)
+
+def get_unaccounted_sold_vessel_ownerships(proposals):
+    """Get vessel ownerships for vessels that have been sold but have no end date, excluding records created after the latest sold vessel ownership record"""
+    proposals_with_vo = proposals.exclude(vessel_ownership=None)
+    proposal_vo_ids = list(proposals_with_vo.values_list("vessel_ownership_id", flat=True))
+    vessel_ownerships = VesselOwnership.objects.filter(id__in=proposal_vo_ids)
+
+    sold_vessel_ownerships = vessel_ownerships.exclude(end_date=None)
+    unsold_vessel_ownerships = vessel_ownerships.filter(end_date=None)
+    rego_nos = []
+    for svo in sold_vessel_ownerships:
+        if svo.vessel:
+            if unsold_vessel_ownerships.filter(created__lt=svo.created,owner=svo.owner,vessel__rego_no=svo.vessel.rego_no).exists():
+                rego_nos.append(svo.vessel.rego_no)
+    return ("Vessels that have been marked as sold have unaccounted for vessel ownership records and possibly related records that have not been marked as sold:", rego_nos)
+
+#NOTE: with changes to sales handling this particular report is no longer required but may be useful for debugging
+def check_duplicate_vessel_ownerships_among_proposals(proposals):
+    """reporting function for checking for multiple vessel ownerships among proposals (pertaining to different current approvals) that have not ended (should only be one)"""
+    proposals_with_vo = proposals.exclude(vessel_ownership=None).filter(approval__current_proposal_id=F('id')).filter(approval__status__in=Approval.APPROVED_STATUSES)
+    proposal_vo_ids = list(proposals_with_vo.values_list("vessel_ownership_id", flat=True))
+    vessel_ownerships = VesselOwnership.objects.filter(id__in=proposal_vo_ids, end_date=None)
+
+    accounted_for = []
+    multiples = []
+    #records here are in-date and assigned to the provided proposals - so if multiple have the same rego no something is wrong
+    for vo in vessel_ownerships:
+        if vo.vessel:
+            if vo.vessel.rego_no in accounted_for and not vo in multiples:
+                multiples.append(vo.vessel.rego_no)
+            else:
+                accounted_for.append(vo.vessel.rego_no)
+
+    multiples_with_proposals = []
+    for rego_no in multiples:
+        multiples_with_proposals.append(f'{rego_no} ({",".join(list(proposals_with_vo.filter(vessel_ownership__vessel__rego_no=rego_no).values_list("lodgement_number",flat=True)))})')
+
+    return ("Vessels with multiple ongoing vessel ownerships on multiple proposal records that pertain to different current approvals) (only should be one at a time):", multiples_with_proposals)
+
+def check_proposal_stuck_at_printing(proposals):
+    """reporting function for checking proposals stuck in printing sticker despite no sticker records awaiting printing or export"""
+    printing = proposals.filter(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER)
+    stickers = Sticker.objects.filter(proposal_initiated_id__in=list(printing.values_list('id',flat=True)))
+    non_printing_stickers = stickers.exclude(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
+    non_printing_proposal_ids = list(non_printing_stickers.values_list('proposal_initiated__id', flat=True))
+
+    non_printing_stuck = list(printing.filter(id__in=non_printing_proposal_ids).values_list('lodgement_number',flat=True))
+
+    return ("Proposals with a Printing Sticker status but with no Sticker records awaiting printing or awaiting export.", non_printing_stuck)
+
+def check_invalid_expired_approval(approvals):
+    """reporting function to get all expired approvals that have a later expiry date"""
+    current_time = datetime.datetime.now()
+    expired_approvals_bad_dates = approvals.filter(status=Approval.APPROVAL_STATUS_CURRENT, expiry_date__lt=current_time)
+
+    if expired_approvals_bad_dates.exists():
+        numbers = list(expired_approvals_bad_dates.values_list("lodgement_number",flat=True))
+        return ("Approvals with an Expired status but still in date:", numbers)
 
 def ml_meet_vessel_requirement(mooring_licence, boundary_date):
     min_length_setting = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH)
@@ -15,7 +136,6 @@ def ml_meet_vessel_requirement(mooring_licence, boundary_date):
 
     # All the vessels have been sold more than X months ago
     return False
-
 
 def construct_email_message(cmd_name, errors, updates):
     cmd_str = '<div>{} completed.</div>'.format(cmd_name)
