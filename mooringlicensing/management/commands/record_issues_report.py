@@ -65,8 +65,8 @@ class Command(BaseCommand):
         logger.info("Running Records Issues Report.")
 
         #parse date range if provided
-        to_date = self.parse_date_arg('from_date',options)
-        from_date = self.parse_date_arg('to_date',options)
+        from_date = self.parse_date_arg('from_date',options)
+        to_date = self.parse_date_arg('to_date',options)
 
         #list of models to examine
         examine_models = [

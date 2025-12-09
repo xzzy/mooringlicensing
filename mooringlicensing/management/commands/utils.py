@@ -107,7 +107,7 @@ def check_proposal_stuck_at_printing(proposals):
     printing = proposals.filter(processing_status=Proposal.PROCESSING_STATUS_PRINTING_STICKER)
     stickers = Sticker.objects.filter(proposal_initiated_id__in=list(printing.values_list('id',flat=True)))
     non_printing_stickers = stickers.exclude(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
-    non_printing_proposal_ids = list(non_printing_stickers.values_list('id', flat=True))
+    non_printing_proposal_ids = list(non_printing_stickers.values_list('proposal_initiated__id', flat=True))
 
     non_printing_stuck = list(printing.filter(id__in=non_printing_proposal_ids).values_list('lodgement_number',flat=True))
 
