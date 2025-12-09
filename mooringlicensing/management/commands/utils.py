@@ -108,8 +108,11 @@ def check_proposal_stuck_at_printing(proposals):
     stickers = Sticker.objects.filter(proposal_initiated_id__in=list(printing.values_list('id',flat=True)))
     non_printing_stickers = stickers.exclude(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
     non_printing_proposal_ids = list(non_printing_stickers.values_list('proposal_initiated__id', flat=True))
+    #account for when a non-printing sticker has been replaced by another before the print has completed
+    replacement_stickers = stickers = Sticker.objects.filter(proposal_initiated_id__in=non_printing_proposal_ids).filter(status__in=[Sticker.STICKER_STATUS_AWAITING_PRINTING, Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET])
+    replacement_stickers_proposal_ids = list(replacement_stickers.values_list('proposal_initiated__id', flat=True))
 
-    non_printing_stuck = list(printing.filter(id__in=non_printing_proposal_ids).values_list('lodgement_number',flat=True))
+    non_printing_stuck = list(printing.filter(id__in=non_printing_proposal_ids).exclude(id__in=replacement_stickers_proposal_ids).values_list('lodgement_number',flat=True))
 
     return ("Proposals with a Printing Sticker status but with no Sticker records awaiting printing or awaiting export.", non_printing_stuck)
 
