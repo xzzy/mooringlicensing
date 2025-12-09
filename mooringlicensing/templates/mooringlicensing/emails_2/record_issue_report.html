@@ -2,11 +2,11 @@
 
 {% block content_body %}
 
-<h3>Record Issues Report</h3>
+<h3>Data Record Issues Report</h3>
 <p>Issues with data records found.</p>
 
 {% for report in reports %}
-<p>{{report.0}}</p>
+<p>{{report.0}} (Issue Count: {{report.1|length}})</p>
 <ul>
 {% for number in report.1 %}
 <li>{{number}}</li>

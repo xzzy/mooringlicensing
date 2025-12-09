@@ -3,7 +3,7 @@
 {% block content_body %}
 
 {% for report in reports %}
-{{report.0}}
+{{report.0}} (Issue Count: {{report.1|length}})
 {% for number in report.1 %}
 {{number}}
 {% endfor %}
