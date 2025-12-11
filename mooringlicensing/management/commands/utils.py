@@ -14,6 +14,22 @@ from mooringlicensing.components.proposals.models import (
 
 import datetime
 
+def get_incorrect_sticker_seasons(stickers):
+    """Get stickers that have a fee season that does not match the approval they are on (or is missing a fee season)"""
+
+    stickers = stickers.filter(status__in=Sticker.STATUSES_AS_CURRENT)
+
+    missing_fee_season = list(stickers.filter(fee_season=None).values_list('id',flat=True))
+    mismatched_fee_season = []
+
+    for i in stickers.exclude(fee_season=None):
+        if i.fee_season != i.approval.latest_applied_season:
+            mismatched_fee_season.append(i.id)     
+
+    bad_fee_seasons = list(stickers.filter(id__in=mismatched_fee_season+missing_fee_season).values_list('number',flat=True))
+
+    return ("Stickers that have a fee season that does not match their approval or are missing a fee season:", bad_fee_seasons)
+
 def convert_and_check_late_date_str(date_str, current_time):
     """attempts to convert date_str from "%d/%m/%Y" (including quotes) format and then checks if date has elapsed"""
     try:
