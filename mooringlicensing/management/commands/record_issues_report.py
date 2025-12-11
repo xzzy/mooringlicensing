@@ -18,6 +18,7 @@ from mooringlicensing.management.commands.utils import (
     get_late_cancelled_approvals,
     get_late_resuming_approvals,
     get_incorrect_sticker_seasons,
+    get_stickers_not_on_MOAs,
 )
 
 from mooringlicensing import settings
@@ -110,6 +111,7 @@ class Command(BaseCommand):
             get_late_cancelled_approvals: [examination_querysets[Approval]],
             get_late_resuming_approvals: [examination_querysets[Approval]],
             get_incorrect_sticker_seasons: [examination_querysets[Sticker]],
+            get_stickers_not_on_MOAs: [examination_querysets[Sticker]],
         }
 
         reports = []

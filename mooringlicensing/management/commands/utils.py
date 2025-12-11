@@ -5,7 +5,7 @@ from django.db.models import CharField
 from mooringlicensing.components.main.models import GlobalSettings
 
 from mooringlicensing.components.approvals.models import (
-    Approval, Sticker
+    Approval, Sticker, MooringOnApproval
 )
 
 from mooringlicensing.components.proposals.models import (
@@ -13,6 +13,16 @@ from mooringlicensing.components.proposals.models import (
 )
 
 import datetime
+
+def get_stickers_not_on_MOAs(stickers):
+
+    stickers = stickers.filter(approval__lodgement_number__startswith="AUP",status__in=Sticker.STATUSES_AS_CURRENT)
+    moas = MooringOnApproval.objects.filter(sticker_id__in=list(stickers.values_list('id', flat=True)))
+    moa_stickers = list(moas.values_list('sticker_id',flat=True))
+
+    missing_moa = list(stickers.exclude(id__in=moa_stickers).values_list('number',flat=True))
+
+    return ("Stickers that are not properly assigned to Mooring on Approval records:", missing_moa)
 
 def get_incorrect_sticker_seasons(stickers):
     """Get stickers that have a fee season that does not match the approval they are on (or is missing a fee season)"""
