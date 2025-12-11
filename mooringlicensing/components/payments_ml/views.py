@@ -257,6 +257,7 @@ class StickerReplacementFeeView(TemplateView):
 
                 lines = []
                 applicant = None
+                approval = None
                 for sticker_action_detail in sticker_action_details:
                     if settings.ROUND_FEE_ITEMS:
                         total_amount = 0 if sticker_action_detail.waive_the_fee else round(float(fee_item.amount))
@@ -274,6 +275,7 @@ class StickerReplacementFeeView(TemplateView):
                     }
                     if not applicant and sticker_action_detail and sticker_action_detail.sticker and sticker_action_detail.sticker.approval:
                         applicant = sticker_action_detail.sticker.approval.applicant_obj
+                        approval = sticker_action_detail.sticker.approval
                     lines.append(line)
 
 
@@ -284,7 +286,7 @@ class StickerReplacementFeeView(TemplateView):
                         lines,
                         return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
                         return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
-                        booking_reference=str(sticker_action_fee.uuid),
+                        booking_reference=approval.lodgement_number,
                         invoice_text='{}'.format(application_type.description),
                     )
 
