@@ -279,14 +279,14 @@ class StickerReplacementFeeView(TemplateView):
                     lines.append(line)
 
 
-                if is_internal(request) or (applicant and applicant.id == request.user.id) and approval: 
+                if is_internal(request) or (applicant and applicant.id == request.user.id): 
                     checkout_response = checkout(
                         request,
                         applicant,
                         lines,
                         return_url=request.build_absolute_uri(reverse('sticker_replacement_fee_success', kwargs={"uuid": sticker_action_fee.uuid})),
                         return_preload_url=settings.MOORING_LICENSING_EXTERNAL_URL + reverse("sticker_replacement_fee_success_preload", kwargs={"uuid": sticker_action_fee.uuid}),
-                        booking_reference=approval.lodgement_number,
+                        booking_reference=approval.lodgement_number if approval else "NoApproval", #TODO adjust handling for when DCV stickers are supported
                         invoice_text='{}'.format(application_type.description),
                     )
 
