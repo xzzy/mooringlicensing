@@ -5,7 +5,7 @@ from mooringlicensing.components.proposals.models import (
 )
 
 from mooringlicensing.components.approvals.models import (
-    Approval
+    Approval, Sticker
 )
 
 from mooringlicensing.management.commands.utils import (
@@ -17,6 +17,8 @@ from mooringlicensing.management.commands.utils import (
     get_late_suspended_approvals,
     get_late_cancelled_approvals,
     get_late_resuming_approvals,
+    get_incorrect_sticker_seasons,
+    get_stickers_not_on_MOAs,
 )
 
 from mooringlicensing import settings
@@ -72,12 +74,14 @@ class Command(BaseCommand):
         examine_models = [
             Proposal,
             Approval,
+            Sticker,
         ]
 
         #date field to filter by (if any, one per model)
         examine_model_date_fields = {
             Proposal:'created_at',
-            Approval:'created_at'
+            Approval:'created_at',
+            Sticker: 'date_created',
         }
 
         #Get examination querysets
@@ -106,6 +110,8 @@ class Command(BaseCommand):
             get_late_suspended_approvals: [examination_querysets[Approval]],
             get_late_cancelled_approvals: [examination_querysets[Approval]],
             get_late_resuming_approvals: [examination_querysets[Approval]],
+            get_incorrect_sticker_seasons: [examination_querysets[Sticker]],
+            get_stickers_not_on_MOAs: [examination_querysets[Sticker]],
         }
 
         reports = []
@@ -125,7 +131,6 @@ class Command(BaseCommand):
 
         if reports:
             #email to group
-            #TODO review which email group to send to (system admin for now)
             recipient_group = settings.GROUP_SYSTEM_ADMIN
             ledger_ids = SystemGroup.objects.get(name=recipient_group).get_system_group_member_ids_active_users()
 

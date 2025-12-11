@@ -5,7 +5,7 @@ from django.db.models import CharField
 from mooringlicensing.components.main.models import GlobalSettings
 
 from mooringlicensing.components.approvals.models import (
-    Approval, Sticker
+    Approval, Sticker, MooringOnApproval
 )
 
 from mooringlicensing.components.proposals.models import (
@@ -13,6 +13,32 @@ from mooringlicensing.components.proposals.models import (
 )
 
 import datetime
+
+def get_stickers_not_on_MOAs(stickers):
+
+    stickers = stickers.filter(approval__lodgement_number__startswith="AUP",status__in=Sticker.STATUSES_AS_CURRENT)
+    moas = MooringOnApproval.objects.filter(sticker_id__in=list(stickers.values_list('id', flat=True)))
+    moa_stickers = list(moas.values_list('sticker_id',flat=True))
+
+    missing_moa = list(stickers.exclude(id__in=moa_stickers).values_list('number',flat=True))
+
+    return ("Stickers that are not properly assigned to Mooring on Approval records:", missing_moa)
+
+def get_incorrect_sticker_seasons(stickers):
+    """Get stickers that have a fee season that does not match the approval they are on (or is missing a fee season)"""
+
+    stickers = stickers.filter(status__in=Sticker.STATUSES_AS_CURRENT)
+
+    missing_fee_season = list(stickers.filter(fee_season=None).values_list('id',flat=True))
+    mismatched_fee_season = []
+
+    for i in stickers.exclude(fee_season=None):
+        if i.fee_season != i.approval.latest_applied_season:
+            mismatched_fee_season.append(i.id)     
+
+    bad_fee_seasons = list(stickers.filter(id__in=mismatched_fee_season+missing_fee_season).values_list('number',flat=True))
+
+    return ("Stickers that have a fee season that does not match their approval or are missing a fee season:", bad_fee_seasons)
 
 def convert_and_check_late_date_str(date_str, current_time):
     """attempts to convert date_str from "%d/%m/%Y" (including quotes) format and then checks if date has elapsed"""
@@ -119,11 +145,9 @@ def check_proposal_stuck_at_printing(proposals):
 def check_invalid_expired_approval(approvals):
     """reporting function to get all expired approvals that have a later expiry date"""
     current_time = datetime.datetime.now()
-    expired_approvals_bad_dates = approvals.filter(status=Approval.APPROVAL_STATUS_CURRENT, expiry_date__lt=current_time)
-
-    if expired_approvals_bad_dates.exists():
-        numbers = list(expired_approvals_bad_dates.values_list("lodgement_number",flat=True))
-        return ("Approvals with an Expired status but still in date:", numbers)
+    expired_approvals_bad_dates = approvals.filter(status=Approval.APPROVAL_STATUS_EXPIRED, expiry_date__gt=current_time)
+    numbers = list(expired_approvals_bad_dates.values_list("lodgement_number",flat=True))
+    return ("Approvals with an Expired status but still in date:", numbers)
 
 def ml_meet_vessel_requirement(mooring_licence, boundary_date):
     min_length_setting = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH)

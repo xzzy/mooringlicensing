@@ -452,6 +452,8 @@ class Command(BaseCommand):
                 SystemUser.objects.create(
                     email = new_email,
                     ledger_id_id = new_email_ledger.id,
+                    legal_first_name = current_email_system.legal_first_name,
+                    legal_last_name = current_email_system.legal_last_name,
                     first_name = current_email_system.first_name,
                     last_name = current_email_system.last_name,
                     is_staff = current_email_system.is_staff,
