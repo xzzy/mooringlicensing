@@ -119,11 +119,9 @@ def check_proposal_stuck_at_printing(proposals):
 def check_invalid_expired_approval(approvals):
     """reporting function to get all expired approvals that have a later expiry date"""
     current_time = datetime.datetime.now()
-    expired_approvals_bad_dates = approvals.filter(status=Approval.APPROVAL_STATUS_CURRENT, expiry_date__lt=current_time)
-
-    if expired_approvals_bad_dates.exists():
-        numbers = list(expired_approvals_bad_dates.values_list("lodgement_number",flat=True))
-        return ("Approvals with an Expired status but still in date:", numbers)
+    expired_approvals_bad_dates = approvals.filter(status=Approval.APPROVAL_STATUS_EXPIRED, expiry_date__gt=current_time)
+    numbers = list(expired_approvals_bad_dates.values_list("lodgement_number",flat=True))
+    return ("Approvals with an Expired status but still in date:", numbers)
 
 def ml_meet_vessel_requirement(mooring_licence, boundary_date):
     min_length_setting = GlobalSettings.objects.get(key=GlobalSettings.KEY_MINUMUM_MOORING_VESSEL_LENGTH)
