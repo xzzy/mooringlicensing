@@ -279,7 +279,7 @@ class StickerReplacementFeeView(TemplateView):
                     lines.append(line)
 
 
-                if is_internal(request) or (applicant and applicant.id == request.user.id): 
+                if is_internal(request) or (applicant and applicant.id == request.user.id) and approval: 
                     checkout_response = checkout(
                         request,
                         applicant,

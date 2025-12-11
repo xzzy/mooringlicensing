@@ -131,7 +131,6 @@ class Command(BaseCommand):
 
         if reports:
             #email to group
-            #TODO review which email group to send to (system admin for now)
             recipient_group = settings.GROUP_SYSTEM_ADMIN
             ledger_ids = SystemGroup.objects.get(name=recipient_group).get_system_group_member_ids_active_users()
 
