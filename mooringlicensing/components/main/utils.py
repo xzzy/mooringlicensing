@@ -1095,7 +1095,7 @@ def excelExportData(model, header, columns):
     return excel_file
 
 def getProposalExportFields(data):
-    header = ["Lodgement Number", "Type", "Category" , "Applicant", "Status", "Lodged On", "Invoice Properties"]
+    header = ["Lodgement Number", "Type", "Category" , "Applicant", "Status", "Lodged On", "Application Vessel Rego No", "Application Vessel Length", "Application Vessel Draft", "Application Vessel Weight", "Invoice Properties"]
 
     columns = list(data.annotate(type=
         Case(
@@ -1131,6 +1131,10 @@ def getProposalExportFields(data):
         "applicant",
         "processing_status",
         "lodgement_date",
+        "rego_no",
+        "vessel_length",
+        "vessel_draft",
+        "vessel_weight",
         "invoice_property_cache",
         )
     )

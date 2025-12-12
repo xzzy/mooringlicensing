@@ -5212,7 +5212,7 @@ class Vessel(RevisionedMixin):
         }
 
     ## at submit
-    def check_blocking_ownership(self, vessel_ownership, proposal_being_processed):
+    def check_blocking_ownership(self, vessel_ownership, proposal_being_processed, request):
         logger.info(f'Checking blocking ownership for the proposal: [{proposal_being_processed}]...')
         from mooringlicensing.components.approvals.models import (
             Approval, MooringLicence, AuthorisedUserPermit, AnnualAdmissionPermit, WaitingListAllocation
@@ -5260,8 +5260,12 @@ class Vessel(RevisionedMixin):
             logger.debug(f'blocking_ownership: [{bp}]')
 
         if blocking_ownerships:
+            from mooringlicensing.helpers import is_internal
             logger.info(f'Blocking ownerships(s): [{blocking_ownerships}] found.  This vessel: [{self}] is already listed with RIA under another owner.')
-            raise serializers.ValidationError("This vessel is already listed with RIA under another active application with another owner")
+            if request and is_internal(request):
+                raise serializers.ValidationError(f"Blocking application(s): {str(list(blocking_ownerships.values_list("lodgement_number",flat=True)))} found. This vessel is already listed with RIA under another active application with another owner.")
+            else:
+                raise serializers.ValidationError("This vessel is already listed with RIA under another active application with another owner.")
 
         if proposal_being_processed.application_type_code == 'aua':
             blocking_proposals = AuthorisedUserApplication.objects.filter(proposals_filter)

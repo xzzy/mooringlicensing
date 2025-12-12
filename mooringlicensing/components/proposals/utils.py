@@ -733,7 +733,7 @@ def store_vessel_ownership(request, vessel, instance):
 
     # check and set blocking_owner
     if instance and request:
-        vessel.check_blocking_ownership(vessel_ownership, instance)
+        vessel.check_blocking_ownership(vessel_ownership, instance, request)
 
     # save temp doc if exists
     handle_vessel_registration_documents_in_limbo(instance.id, vessel_ownership)
