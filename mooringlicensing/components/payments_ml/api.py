@@ -4,11 +4,21 @@ from decimal import *
 
 from rest_framework import views
 from rest_framework.response import Response
+from rest_framework import viewsets
+from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 
 from mooringlicensing import settings
+from mooringlicensing.helpers import is_internal
 from mooringlicensing.components.main.models import ApplicationType
-from mooringlicensing.components.payments_ml.models import FeeConstructor
-from mooringlicensing.components.payments_ml.serializers import FeeConstructorSerializer
+from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee, StickerActionFee
+from mooringlicensing.components.payments_ml.serializers import FeeConstructorSerializer, InvoiceListSerializer
+
+#TODO replace with dedicated payment permission
+from mooringlicensing.components.approvals.permissions import (
+    InternalApprovalPermission,
+)
+
+from ledger_api_client.ledger_models import Invoice
 
 logger = logging.getLogger(__name__)
 
@@ -33,3 +43,34 @@ class GetFeeConfigurations(views.APIView):
         serializer = FeeConstructorSerializer(fee_constructors, many=True)
 
         return Response(serializer.data)
+
+class InvoicePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
+
+    #filter_backends = (ApprovalFilterBackend,) TODO
+    pagination_class = DatatablesPageNumberPagination
+    queryset = Invoice.objects.none()
+    serializer_class = InvoiceListSerializer
+    permission_classes=[InternalApprovalPermission]
+
+    def get_queryset(self):
+        all = Invoice.objects.all()
+
+        if is_internal(self.request):
+            #We only want invoices relevant to Mooring Licensing
+            applicable_references = []
+            application_references = list(ApplicationFee.objects.all().values_list('invoice_reference', flat=True))
+            sticker_action_references = list(StickerActionFee.objects.all().values_list('invoice_reference', flat=True))
+            #TODO include DCV references when required
+
+            applicable_references = application_references + sticker_action_references
+
+            #NOTE: this approach uses an ever growing list of references
+            #local tests indicate use of 63kb of space in memory for approx. 6 months worth of records
+            #this should be sustainable albeit quite inefficient - an alternative arrangement or caching may be preferable at some stage
+            #import sys
+            #print("\n\n\n",sys.getsizeof(applicable_references))
+            all = Invoice.objects.filter(reference__in=applicable_references)
+
+            return all
+        
+        return Invoice.objects.none()

@@ -79,6 +79,8 @@ router.register(r'internal_dcv_admission', approval_api.InternalDcvAdmissionView
 router.register(r'company', proposal_api.CompanyViewSet, 'company')
 router.register(r'companyownership', proposal_api.CompanyOwnershipViewSet, 'companyownership')
 
+router.register(r'invoice', payments_api.InvoicePaginatedViewSet, 'invoice')
+
 api_patterns = [
     re_path(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     re_path(r'^api/profile/(?P<proposal_pk>\d+)$', users_api.GetProposalApplicantUser.as_view(), name='get-proposal-applicant-user'),

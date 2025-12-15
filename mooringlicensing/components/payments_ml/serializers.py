@@ -4,8 +4,54 @@ from mooringlicensing.components.approvals.models import (
     DcvPermit, DcvVessel, DcvAdmission, 
     DcvAdmissionArrival, NumberOfPeople, AgeGroup
 )
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor
+from mooringlicensing.components.payments_ml.models import (
+    FeeSeason, FeeConstructor, ApplicationFee, StickerActionFee
+)
 
+from ledger_api_client.ledger_models import Invoice
+
+class InvoiceListSerializer(serializers.ModelSerializer):
+
+    fee_source = serializers.SerializerMethodField()
+    fee_source_type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invoice
+        fields = (
+            'created',
+            'text',
+            'reference',
+            'fee_source',
+            'fee_source_type',
+            'amount',
+            'order_number',
+            'voided',
+            'settlement_date',
+        )
+
+    def get_fee_source_type(self, obj):
+
+        if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
+            return 'Application'
+        elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
+            return 'Sticker Action'
+        return ''
+
+    def get_fee_source(self, obj):
+        
+        if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
+            fee = ApplicationFee.objects.filter(invoice_reference=obj.reference).first() 
+            return fee.proposal.lodgement_number if fee.proposal else ''
+        elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
+            fee = StickerActionFee.objects.filter(invoice_reference=obj.reference).first() 
+            sticker_numbers = []
+            for sticker_action in fee.sticker_action_details.all():
+                if sticker_action.sticker:
+                    sticker_numbers.append(sticker_action.sticker.number)
+            return ','.join(list(set(sticker_numbers)))
+        return ''
+
+    
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
