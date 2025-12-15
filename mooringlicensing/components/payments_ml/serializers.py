@@ -46,6 +46,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'reference',
             'fee_source',
             'fee_source_type',
+            'fee_source_id',
             'amount',
             'order_number',
             'voided',
@@ -55,16 +56,15 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'ledger_link',
         )
 
+    #TODO consider putting the three below funcs into a single object (reduce queries)
     def get_fee_source_type(self, obj):
-
         if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
             return 'Application'
         elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
             return 'Sticker Action'
         return ''
 
-    def get_fee_source(self, obj):
-        
+    def get_fee_source(self, obj):        
         if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
             fee = ApplicationFee.objects.filter(invoice_reference=obj.reference).first() 
             return fee.proposal.lodgement_number if fee.proposal else ''
@@ -72,12 +72,21 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             fee = StickerActionFee.objects.filter(invoice_reference=obj.reference).first() 
             sticker_numbers = []
             for sticker_action in fee.sticker_action_details.all():
-                if sticker_action.sticker:
-                    sticker_numbers.append(sticker_action.sticker.number)
+                print(sticker_action)
+                if sticker_action.approval:
+                    sticker_numbers.append(sticker_action.approval.lodgement_number)
             return ','.join(list(set(sticker_numbers)))
         return ''
 
     def get_fee_source_id(self, obj):
+        if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
+            fee = ApplicationFee.objects.filter(invoice_reference=obj.reference).first() 
+            return fee.proposal.id if fee.proposal else ''
+        elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
+            fee = StickerActionFee.objects.filter(invoice_reference=obj.reference).first() 
+            if fee.sticker_action_details.first():
+                if fee.sticker_action_details.first().approval:
+                    return fee.sticker_action_details.first().approval.id
         return ''
 
     def get_ledger_link(self, obj):

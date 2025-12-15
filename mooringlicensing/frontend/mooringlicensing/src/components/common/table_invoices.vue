@@ -15,7 +15,7 @@
                     <label for="">Status</label>
                     <select class="form-control" v-model="filterStatus">
                         <option value="All">All</option>
-                        <option v-for="invoice_status in invoice_statuses" :value="invoice_status.code">{{ invoice_status.display }}</option>
+                        <option v-for="invoice_status in invoice_statuses" :value="invoice_status.code">{{ invoice_status.description }}</option>
                     </select>
                 </div>
             </div>
@@ -49,8 +49,14 @@ export default {
             filterStatus: null,
 
             // filtering options
-            fee_source_types: [],
-            invoice_statuses: [],
+            fee_source_types: [
+                {'code':'application','description':'Application'},
+                {'code':'sticker_action','description':'Sticker Action'}
+            ],
+            invoice_statuses: [
+                {'code':'settles','description':'Settled'},
+                {'code':'voided','description':'Voided'}
+            ],
         }
     },
     components:{
@@ -101,6 +107,11 @@ export default {
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
+                    if (full.fee_source_type == "Application") {
+                        return `<a target='_blank' href='/internal/proposal/${full.fee_source_id}'>${full.fee_source}</a>`
+                    } else if (full.fee_source_type == "Sticker Action") {
+                        return `<a target='_blank' href='/internal/approval/${full.fee_source_id}'>${full.fee_source}</a>`
+                    }
                     return full.fee_source
                 }
             }
@@ -141,7 +152,7 @@ export default {
         column_amount: function(){
             return {
                 data: "amount",
-                orderable: false,
+                orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
