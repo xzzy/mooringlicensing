@@ -230,7 +230,8 @@ def save_proponent_data_aua(instance, request, action):
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
 
-    if proposal_data.get("mooring_authorisation_preference") == 'site_licensee':
+    if (not proposal_data.get("keep_existing_mooring") 
+        and proposal_data.get("mooring_authorisation_preference") == 'site_licensee'):
             site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
 
             if not site_licensee_moorings_data:
@@ -270,7 +271,7 @@ def save_proponent_data_aua(instance, request, action):
                     keep_id_list.append(new_site_licence_mooring_request.pk)
             #disable any remainder records
             site_licensee_moorings.exclude(id__in=keep_id_list).update(enabled=False)
-    else: #RIA preferred, disable all site_licensee_mooring_requests (if any)
+    else: #RIA preferred or no additional requests, disable all site_licensee_mooring_requests (if any)
         instance.site_licensee_mooring_request.all().update(enabled=False)
         
     serializer = SaveAuthorisedUserApplicationSerializer(
