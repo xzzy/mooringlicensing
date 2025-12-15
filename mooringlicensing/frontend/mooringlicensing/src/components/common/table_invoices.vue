@@ -43,7 +43,6 @@ export default {
         let vm = this;
         return {
             datatable_id: 'invoices-datatable-' + vm._uid,
-            approvalTypesToDisplay: ['aap', 'aup', 'ml'],
 
             // selected values for filtering
             filterFeeSourceType: null,
@@ -70,17 +69,111 @@ export default {
             return this.datatable_headers.length
         },
         datatable_headers: function(){
-            return ['id','Invoice Reference','Fee Source', 'Fee Source Type', 'Created At', 'Settles At', 'Amount', 'Description']
+            return ['id', 'Invoice Reference','Fee Source', 'Fee Source Type', 'Status','Created At', 'Settled At', 'Amount', 'Description']
         },
         column_id: function(){
             return {
-                // 1. ID
                 data: "id",
-                orderable: false,
+                orderable: true,
                 searchable: false,
                 visible: false,
                 'render': function(row, type, full){
                     return full.id
+                }
+            }
+        },
+        column_reference: function(){
+            return {
+                data: "reference",
+                orderable: false,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return `<a target='_blank' href='/ledger-toolkit-api/invoice-pdf/${full.reference}'>${full.reference}</a><br/>
+                            <a target='_blank' href='${full.ledger_link}'>Ledger Payment</a>`;
+                }
+            }
+        },
+        column_fee_source: function(){
+            return {
+                data: "fee_source",
+                orderable: false,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.fee_source
+                }
+            }
+        },
+        column_fee_source_type: function(){
+            return {
+                data: "fee_source_type",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.fee_source_type
+                }
+            }
+        },
+        column_created: function(){
+            return {
+                data: "created",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.created_str
+                }
+            }
+        },
+        column_settled: function(){
+            return {
+                data: "settlement_date",
+                orderable: true,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.settlement_date_str
+                }
+            }
+        },
+        column_amount: function(){
+            return {
+                data: "amount",
+                orderable: false,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return "$"+full.amount
+                }
+            }
+        },
+        column_status: function(){
+            return {
+                data: "id",
+                orderable: false,
+                searchable: false,
+                visible: true,
+                'render': function(row, type, full){
+                    if (full.settlement_date) {
+                        return "Settled"
+                    } else if (full.voided) {
+                        return "Voided"
+                    } else {
+                        return "Not Settled"
+                    }
+                }
+            }
+        },
+        column_description: function(){
+            return {
+                data: "text",
+                orderable: false,
+                searchable: true,
+                visible: true,
+                'render': function(row, type, full){
+                    return full.text
                 }
             }
         },
@@ -89,6 +182,14 @@ export default {
 
             let columns = [
                 vm.column_id,
+                vm.column_reference,
+                vm.column_fee_source,
+                vm.column_fee_source_type,
+                vm.column_status,
+                vm.column_created,
+                vm.column_settled,
+                vm.column_amount,
+                vm.column_description,
             ]
             let search = true
 
@@ -96,9 +197,9 @@ export default {
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
-                rowCallback: function (row, sticker){
+                rowCallback: function (row, invoice){
                     let row_jq = $(row)
-                    row_jq.attr('id', 'invocie_id_' + invoice.id)
+                    row_jq.attr('id', 'invoice_id_' + invoice.id)
                     row_jq.children().first().addClass(vm.td_expand_class_name)
 
                 },
@@ -109,15 +210,15 @@ export default {
                 lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
                 searching: search,
                 ordering: true,
-                order: [[1, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
+                order: [[0, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
                 ajax: {
                     "url": api_endpoints.invoices_paginated_list + '?format=datatables',
                     "dataSrc": 'data',
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.filter_approval_type = vm.filterFeeSourceType
-                        d.filter_sticker_status = vm.filterStatus
+                        d.filter_fee_source_type = vm.filterFeeSourceType
+                        d.filter_status = vm.filterStatus
                         d.level = vm.level
 
                         //only use columns necessary for filtering and ordering

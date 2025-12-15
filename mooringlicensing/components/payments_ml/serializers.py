@@ -8,12 +8,17 @@ from mooringlicensing.components.payments_ml.models import (
     FeeSeason, FeeConstructor, ApplicationFee, StickerActionFee
 )
 
+from django.conf import settings
 from ledger_api_client.ledger_models import Invoice
 
 class InvoiceListSerializer(serializers.ModelSerializer):
 
     fee_source = serializers.SerializerMethodField()
     fee_source_type = serializers.SerializerMethodField()
+    fee_source_id = serializers.SerializerMethodField()
+    ledger_link = serializers.SerializerMethodField()
+    created_str = serializers.SerializerMethodField()
+    settlement_date_str = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -24,10 +29,30 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'reference',
             'fee_source',
             'fee_source_type',
+            'fee_source_id',
             'amount',
             'order_number',
             'voided',
             'settlement_date',
+            'created_str',
+            'settlement_date_str',
+            'ledger_link',
+        )
+
+        datatables_always_serialize = (
+            'id',
+            'created',
+            'text',
+            'reference',
+            'fee_source',
+            'fee_source_type',
+            'amount',
+            'order_number',
+            'voided',
+            'settlement_date',
+            'created_str',
+            'settlement_date_str',
+            'ledger_link',
         )
 
     def get_fee_source_type(self, obj):
@@ -52,6 +77,23 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             return ','.join(list(set(sticker_numbers)))
         return ''
 
+    def get_fee_source_id(self, obj):
+        return ''
+
+    def get_ledger_link(self, obj):
+        return '{}/ledger/payments/oracle/payments?{}'.format(settings.LEDGER_UI_URL, obj.reference)
+
+    def get_created_str(self, obj):
+        created = ''
+        if obj.created:
+            created = obj.created.strftime('%d/%m/%Y')
+        return created
+
+    def get_settlement_date_str(self, obj):
+        settlement_date = ''
+        if obj.settlement_date:
+            settlement_date = obj.settlement_date.strftime('%d/%m/%Y')
+        return settlement_date
     
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
