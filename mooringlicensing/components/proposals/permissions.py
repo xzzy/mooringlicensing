@@ -7,6 +7,7 @@ from mooringlicensing.helpers import (
 
 from django.conf import settings
 from rest_framework import permissions
+from mooringlicensing.components.proposals.models import Mooring
 
 class InternalProposalPermission(BasePermission):
     """
@@ -38,10 +39,14 @@ class ProposalAssessorPermission(InternalProposalPermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        if obj.child_obj and obj.child_obj.code:
-            for i in self.ASSESSOR_AUTH_GROUPS[obj.child_obj.code]:
-                if belongs_to(request.user, i):
-                    return True
+        if type(obj) == Mooring:
+            if belongs_to(request.user, self.ASSESSOR_AUTH_GROUPS["aua"]):
+                return True
+        else:
+            if obj.child_obj and obj.child_obj.code:
+                for i in self.ASSESSOR_AUTH_GROUPS[obj.child_obj.code]:
+                    if belongs_to(request.user, i):
+                        return True
 
         return False
 
@@ -64,9 +69,13 @@ class ProposalApproverPermission(InternalProposalPermission):
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        if obj.child_obj and obj.child_obj.code:
-            for i in self.APPROVER_AUTH_GROUPS[obj.child_obj.code]:
-                if belongs_to(request.user, i):
-                    return True
+        if type(obj) == Mooring:
+            if belongs_to(request.user, self.APPROVER_AUTH_GROUPS["aua"]):
+                return True
+        else:
+            if obj.child_obj and obj.child_obj.code:
+                for i in self.APPROVER_AUTH_GROUPS[obj.child_obj.code]:
+                    if belongs_to(request.user, i):
+                        return True
 
         return False
