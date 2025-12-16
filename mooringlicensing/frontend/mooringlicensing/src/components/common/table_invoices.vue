@@ -91,7 +91,7 @@ export default {
         column_reference: function(){
             return {
                 data: "reference",
-                orderable: false,
+                orderable: true,
                 searchable: true,
                 visible: true,
                 'render': function(row, type, full){
@@ -218,7 +218,7 @@ export default {
                 responsive: true,
                 serverSide: true,
                 paging: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                lengthMenu: [ [10, 25, 50, 100], [10, 25, 50, 100] ],
                 searching: search,
                 ordering: true,
                 order: [[0, 'desc']],  // Default order [[column_index, 'asc/desc'], ...]
@@ -230,7 +230,6 @@ export default {
                     "data": function ( d ) {
                         d.filter_fee_source_type = vm.filterFeeSourceType
                         d.filter_status = vm.filterStatus
-                        d.level = vm.level
 
                         //only use columns necessary for filtering and ordering
                         let keepCols = []
@@ -264,6 +263,7 @@ export default {
                             })    
                         })
                         d.order = newOrder;
+                        console.log(d.order)
                     }
                 },
                 dom: 'lBfrtip',

@@ -170,7 +170,7 @@ export default {
                 },
                 responsive: true,
                 serverSide: true,
-                lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "All"] ],
+                lengthMenu: [ [10, 25, 50, 100], [10, 25, 50, 100] ],
                 searching: true,
                 ajax: {
                     "url": api_endpoints.approvals_paginated_list + '/list2/?format=datatables&target_email_user_id=' + vm.target_email_user_id + '&for_swap_moorings_modal=True',

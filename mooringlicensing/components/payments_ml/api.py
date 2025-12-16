@@ -6,6 +6,8 @@ from rest_framework import views
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
+from rest_framework_datatables.filters import DatatablesFilterBackend
+from django.db.models import Q
 
 from mooringlicensing import settings
 from mooringlicensing.helpers import is_internal
@@ -23,6 +25,7 @@ from ledger_api_client.ledger_models import Invoice
 logger = logging.getLogger(__name__)
 
 from rest_framework.permissions import IsAuthenticated
+
 
 class GetSeasonsForDcvPermitDict(views.APIView):
     permission_classes=[IsAuthenticated]
@@ -44,9 +47,52 @@ class GetFeeConfigurations(views.APIView):
 
         return Response(serializer.data)
 
+
+class InvoiceFilterBackend(DatatablesFilterBackend):
+
+    def filter_queryset(self, request, queryset, view):
+
+        filter_query = Q()
+
+        # status filter
+        filter_status = request.data.get('filter_status')
+        if filter_status and not filter_status.lower() == 'all':
+            pass 
+            #TODO
+
+        filter_status = request.data.get('filter_fee_source_type')
+        if filter_status and not filter_status.lower() == 'all':
+            pass 
+            #TODO
+       
+        queryset = queryset.filter(filter_query)    
+
+        try:
+            super_queryset = super(InvoiceListSerializer, self).filter_queryset(request, queryset, view)
+
+            # Custom search
+            search_text= request.data.get('search[value]')  # This has a search term.
+            if search_text:
+                pass
+                #TODO
+                queryset = queryset.distinct() | super_queryset 
+        except Exception as e:
+            logger.error(e)
+
+        fields = self.get_fields(request)
+        ordering = self.get_ordering(request, view, fields)
+        print("\n\n\n",ordering)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
+
+        total_count = queryset.count()
+        setattr(view, '_datatables_filtered_count', total_count)
+        return queryset
+
+
 class InvoicePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
 
-    #filter_backends = (ApprovalFilterBackend,) TODO
+    filter_backends = (InvoiceFilterBackend,) 
     pagination_class = DatatablesPageNumberPagination
     queryset = Invoice.objects.none()
     serializer_class = InvoiceListSerializer
