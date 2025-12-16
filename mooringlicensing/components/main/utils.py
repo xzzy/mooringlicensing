@@ -1047,7 +1047,7 @@ def getInvoiceExport(filters, num):
             applicable_references = application_references + sticker_action_references
         if "status" in filters and filters["status"]:
             if filters["status"] == "settled":
-                qs = qs.exclude(settlement_date=None,voided=False)
+                qs = qs.exclude(settlement_date=None,voided=True)
             elif filters["status"] == "not_settled":
                 qs = qs.filter(settlement_date=None,voided=False)
             elif filters["status"] == "voided":
