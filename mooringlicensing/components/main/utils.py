@@ -13,7 +13,7 @@ import pytz
 from django.conf import settings
 from django.core.cache import cache
 from django.db import connection, transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from mooringlicensing.components.approvals.models import (
     Sticker, AnnualAdmissionPermit, AuthorisedUserPermit, DcvPermitDocument,
     MooringLicence, Approval, WaitingListAllocation,
@@ -27,6 +27,9 @@ from mooringlicensing.components.proposals.models import (
     StickerPrintingBatch,
     Proposal, VesselDetails
 )
+from mooringlicensing.components.payments_ml.models import ApplicationFee, StickerActionFee
+
+from ledger_api_client.ledger_models import Invoice
 from ledger_api_client.managed_models import SystemUser
 from rest_framework import serializers
 from copy import deepcopy
@@ -1024,6 +1027,38 @@ def getSystemUserExport(filters, num):
 
     return qs[:num]
 
+def getInvoiceExport(filters, num):
+
+    qs = Invoice.objects.order_by("-id")
+
+    application_references = list(ApplicationFee.objects.all().values_list('invoice_reference', flat=True))
+    sticker_action_references = list(StickerActionFee.objects.all().values_list('invoice_reference', flat=True))
+    applicable_references = []
+
+    if filters:        
+        if "fee_source_type" in filters and filters["fee_source_type"]:
+            if filters["fee_source_type"] == "application":
+                applicable_references = application_references
+            elif filters["fee_source_type"] == "sticker_action":
+                applicable_references = sticker_action_references
+            else:
+                applicable_references = application_references + sticker_action_references
+        else:
+            applicable_references = application_references + sticker_action_references
+        if "status" in filters and filters["status"]:
+            if filters["status"] == "settled":
+                qs = qs.exclude(settlement_date=None,voided=False)
+            elif filters["status"] == "not_settled":
+                qs = qs.filter(settlement_date=None,voided=False)
+            elif filters["status"] == "voided":
+                qs = qs.filter(voided=True)
+    else:
+        applicable_references = application_references + sticker_action_references
+
+    qs = qs.filter(reference__in=applicable_references)
+
+    return qs[:num]
+
 def exportModelData(model, filters, num_records):
 
     if not num_records:
@@ -1049,6 +1084,8 @@ def exportModelData(model, filters, num_records):
         return getPrintExport(filters, num_records)
     elif model == "system_user":
         return getSystemUserExport(filters, num_records)
+    elif model == "invoice":
+        return getInvoiceExport(filters, num_records)
     else:
         return
 
@@ -1579,6 +1616,71 @@ def getSystemUserExportFields(data):
 
     return header, columns
 
+def getInvoiceExportFields(data):
+    header = ["Invoice Reference", "Fee Source", "Fee Source Type", "Status", "Created At", "Settled At", "Amount", "Description"]
+
+    application_references = list(ApplicationFee.objects.all().values('invoice_reference', 'proposal__lodgement_number'))
+    sticker_action_references = list(StickerActionFee.objects.all().values('invoice_reference', 'sticker_action_details__approval__lodgement_number'))
+
+    application_references_dict = {}
+    for i in application_references:
+        application_references_dict[i["invoice_reference"]] = i["proposal__lodgement_number"] 
+    sticker_action_references_dict = {}
+    for i in sticker_action_references:
+        sticker_action_references_dict[i["invoice_reference"]] = i["sticker_action_details__approval__lodgement_number"] 
+
+    columns = list(data.annotate(
+        fee_source_type=Case(
+            When(
+                reference__in=application_references_dict,
+                then=Value("Application")
+            ),
+            When(
+                reference__in=sticker_action_references_dict,
+                then=Value("Sticker Action")
+            ),
+            default=Value(""),
+        )
+    ).annotate(
+        fee_source=F("reference")
+    ).annotate(
+        status=Case(
+            When(
+                (Q(settlement_date=None)&Q(voided=False)),
+                then=Value("Not Settled"),
+            ),
+            When(
+                (~Q(settlement_date=None)&Q(voided=False)),
+                then=Value("Settled"),
+            ),
+            When(
+                voided=True,
+                then=Value("Voided"),
+            ),
+            default=Value(""),
+        )
+    ).values_list(
+        "reference",
+        "fee_source", 
+        "fee_source_type", 
+        "status", 
+        "created", 
+        "settlement_date", 
+        "amount", 
+        "text"
+        )
+    )
+
+    for i in range(len(columns)):
+        values = list(columns[i])
+        if values[2] == "Application":
+            values[1] = application_references_dict[values[1]]
+        if values[2] == "Sticker Action":
+            values[1] = sticker_action_references_dict[values[1]]
+        columns[i] = tuple(values)
+
+    return header, columns
+
 def formatExportData(model, data, format):
 
     if model == "proposal":
@@ -1599,6 +1701,8 @@ def formatExportData(model, data, format):
         header, columns = getStickerExportFields(data)
     elif model == "system_user":
         header, columns = getSystemUserExportFields(data)
+    elif model == "invoice":
+        header, columns = getInvoiceExportFields(data)
     else:
         return
 

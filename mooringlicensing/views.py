@@ -171,6 +171,8 @@ class EmailExportsView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         context["dcv_permit_fee_seasons"] = list(FeeSeason.objects.filter(application_type__code='dcvp').values("id","name"))
         context["sticker_status_options"] = [{'id': i[0], 'display': i[1]} for i in Sticker.STATUS_CHOICES]
         context["sticker_fee_seasons"] = list(FeeSeason.objects.exclude(application_type__code__in=['dcvp','dcv']).distinct("name").values("name"))
+        context["invoice_fee_source_type_select"] = [{'code':'application','name':'Application'},{'code':'sticker_action','name':'Sticker Action'}]
+        context["invoice_status_select"] = [{'code':'settled','name':'Settled'},{'code':'not_settled','name':'Not Settled'},{'code':'voided','name':'Voided'}]
         return context
 
     def get(self, request, *args, **kwargs):
