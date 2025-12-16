@@ -56,11 +56,13 @@
                             <option value="dcv_admission_report">DCV Admissions</option>
                             <option value="sticker_report">Stickers</option>
                             <option value="system_user_report">System Users</option>
+                            <option value="invoice_report">Invoice Report</option>
                         </select>
                     </div>
                 </div>
             </div>
         </div>
+
         <form class="report_form" id="proposal_report" method="POST" onsubmit="submitReport('proposal_report')">
             <div class="panel panel-default">
                 <div class="panel-header">
@@ -474,8 +476,52 @@
                 </div>
             </div>
         </form>
+
+        <form class="report_form" style="display:None" id="invoice_report" method="POST" onsubmit="submitReport('invoice_report')">
+            <div class="panel panel-default">
+                <div class="panel-header">
+                    <h3 class="panel-title">Invoices Report</h3>
+                </div>
+                <div class="panel-body collapse show">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Fee Source Type</label>
+                        <div class="col-sm-6">
+                        <select class="invoice_field form-control" id="invoice_fee_source_type_select" name="invoice_fee_source_type">
+                            <option value="all">All</option>
+                            {% for i in invoice_fee_source_type_select %}
+                                <option value="{{i.code}}">{{i.name}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label class="col-sm-3 control-label">Status</label>
+                        <div class="col-sm-6">
+                        <select class="invoice_field form-control" id="invoice_status_select" name="invoice_status_select">
+                            <option value="all">All</option>
+                            {% for i in invoice_status_select %}
+                                <option value="{{i.code}}">{{i.name}}</option>
+                            {% endfor %}
+                        </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <button class="btn btn-primary"
+                            id="export_invoice" 
+                            type="submit" 
+                            name="export_model" 
+                            value="invoice" 
+                            title="Email Invoices Report">
+                            Email Invoices Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        
     </div>
-    
+
     <script>
         function getFilters(form_id) {
             var field_class = form_id.replace("_report","_field");

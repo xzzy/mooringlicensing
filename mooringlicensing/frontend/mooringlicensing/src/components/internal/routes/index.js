@@ -5,6 +5,7 @@ import DcvDashboard from '@/components/internal/dcv/dashboard.vue'
 import ApprovalDash from '@/components/internal/approvals/dashboard.vue'
 import ComplianceDash from '@/components/internal/compliances/dashboard.vue'
 import StickersDash from '@/components/internal/stickers/dashboard.vue'
+import InvoicesDash from '@/components/internal/invoices/dashboard.vue'
 import WaitingListDash from '@/components/internal/waiting_list/dashboard.vue'
 import MooringsDash from '@/components/internal/moorings/dashboard.vue'
 import MooringDetail from '@/components/internal/moorings/mooring_detail.vue'
@@ -113,6 +114,11 @@ export default
             path: 'sticker',
             component: StickersDash,
             name: "internal-stickers-dash"
+        },
+        {
+            path: 'invoice',
+            component: InvoicesDash,
+            name: "internal-invoices-dash"
         },
         {
             path: 'person/:email_user_id',

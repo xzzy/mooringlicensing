@@ -2251,6 +2251,8 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                     if is_internal(request):
                         no_email = request.data.get('no_email', False)
 
+                    instance.refresh_from_db()
+
                     if not no_email:
                         if approval.code == WaitingListAllocation.code:
                             send_reissue_wla_after_sale_recorded_email(approval, request, instance, stickers_to_be_returned)

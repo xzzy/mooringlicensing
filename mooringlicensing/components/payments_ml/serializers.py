@@ -4,8 +4,109 @@ from mooringlicensing.components.approvals.models import (
     DcvPermit, DcvVessel, DcvAdmission, 
     DcvAdmissionArrival, NumberOfPeople, AgeGroup
 )
-from mooringlicensing.components.payments_ml.models import FeeSeason, FeeConstructor
+from mooringlicensing.components.payments_ml.models import (
+    FeeSeason, FeeConstructor, ApplicationFee, StickerActionFee
+)
 
+from django.conf import settings
+from ledger_api_client.ledger_models import Invoice
+
+class InvoiceListSerializer(serializers.ModelSerializer):
+
+    fee_source = serializers.SerializerMethodField()
+    fee_source_type = serializers.SerializerMethodField()
+    fee_source_id = serializers.SerializerMethodField()
+    ledger_link = serializers.SerializerMethodField()
+    created_str = serializers.SerializerMethodField()
+    settlement_date_str = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invoice
+        fields = (
+            'id',
+            'created',
+            'text',
+            'reference',
+            'fee_source',
+            'fee_source_type',
+            'fee_source_id',
+            'amount',
+            'order_number',
+            'voided',
+            'settlement_date',
+            'created_str',
+            'settlement_date_str',
+            'ledger_link',
+        )
+
+        datatables_always_serialize = (
+            'id',
+            'created',
+            'text',
+            'reference',
+            'fee_source',
+            'fee_source_type',
+            'fee_source_id',
+            'amount',
+            'order_number',
+            'voided',
+            'settlement_date',
+            'created_str',
+            'settlement_date_str',
+            'ledger_link',
+        )
+
+    #TODO consider putting the three below funcs into a single object (reduce queries)
+    def get_fee_source_type(self, obj):
+        if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
+            return 'Application'
+        elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
+            return 'Sticker Action'
+        return ''
+
+    def get_fee_source(self, obj):  
+        application_fee_qs = ApplicationFee.objects.filter(invoice_reference=obj.reference)
+        sticker_action_fee_qs = StickerActionFee.objects.filter(invoice_reference=obj.reference)
+        if application_fee_qs.exists():
+            fee = application_fee_qs.first() 
+            return fee.proposal.lodgement_number if fee.proposal else ''
+        elif sticker_action_fee_qs.exists():
+            fee = sticker_action_fee_qs.filter(invoice_reference=obj.reference).first() 
+            sticker_numbers = []
+            for sticker_action in fee.sticker_action_details.all():
+                if sticker_action.approval:
+                    sticker_numbers.append(sticker_action.approval.lodgement_number)
+            return ','.join(list(set(sticker_numbers)))
+        return ''
+
+    def get_fee_source_id(self, obj):
+        application_fee_qs = ApplicationFee.objects.filter(invoice_reference=obj.reference)
+        sticker_action_fee_qs = StickerActionFee.objects.filter(invoice_reference=obj.reference)
+        if application_fee_qs.exists():
+            fee = application_fee_qs.first() 
+            return fee.proposal.id if fee.proposal else ''
+        elif sticker_action_fee_qs.exists():
+            fee = sticker_action_fee_qs.filter(invoice_reference=obj.reference).first() 
+            if fee.sticker_action_details.first():
+                if fee.sticker_action_details.first().approval:
+                    return fee.sticker_action_details.first().approval.id
+        return ''
+
+    def get_ledger_link(self, obj):
+        return '{}/ledger/payments/oracle/payments?{}'.format(settings.LEDGER_UI_URL, obj.reference)
+
+    def get_created_str(self, obj):
+        created = ''
+        if obj.created:
+            created = obj.created.strftime('%d/%m/%Y')
+        return created
+
+    def get_settlement_date_str(self, obj):
+        settlement_date = ''
+        if obj.settlement_date:
+            settlement_date = obj.settlement_date.strftime('%d/%m/%Y')
+        return settlement_date
+    
 
 class DcvAdmissionSerializer(serializers.ModelSerializer):
     dcv_vessel_id = serializers.IntegerField(required=True)
