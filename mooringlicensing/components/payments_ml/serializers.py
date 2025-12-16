@@ -64,26 +64,29 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             return 'Sticker Action'
         return ''
 
-    def get_fee_source(self, obj):        
-        if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
-            fee = ApplicationFee.objects.filter(invoice_reference=obj.reference).first() 
+    def get_fee_source(self, obj):  
+        application_fee_qs = ApplicationFee.objects.filter(invoice_reference=obj.reference)
+        sticker_action_fee_qs = StickerActionFee.objects.filter(invoice_reference=obj.reference)
+        if application_fee_qs.exists():
+            fee = application_fee_qs.first() 
             return fee.proposal.lodgement_number if fee.proposal else ''
-        elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
-            fee = StickerActionFee.objects.filter(invoice_reference=obj.reference).first() 
+        elif sticker_action_fee_qs.exists():
+            fee = sticker_action_fee_qs.filter(invoice_reference=obj.reference).first() 
             sticker_numbers = []
             for sticker_action in fee.sticker_action_details.all():
-                print(sticker_action)
                 if sticker_action.approval:
                     sticker_numbers.append(sticker_action.approval.lodgement_number)
             return ','.join(list(set(sticker_numbers)))
         return ''
 
     def get_fee_source_id(self, obj):
-        if ApplicationFee.objects.filter(invoice_reference=obj.reference).exists():
-            fee = ApplicationFee.objects.filter(invoice_reference=obj.reference).first() 
+        application_fee_qs = ApplicationFee.objects.filter(invoice_reference=obj.reference)
+        sticker_action_fee_qs = StickerActionFee.objects.filter(invoice_reference=obj.reference)
+        if application_fee_qs.exists():
+            fee = application_fee_qs.first() 
             return fee.proposal.id if fee.proposal else ''
-        elif StickerActionFee.objects.filter(invoice_reference=obj.reference).exists():
-            fee = StickerActionFee.objects.filter(invoice_reference=obj.reference).first() 
+        elif sticker_action_fee_qs.exists():
+            fee = sticker_action_fee_qs.filter(invoice_reference=obj.reference).first() 
             if fee.sticker_action_details.first():
                 if fee.sticker_action_details.first().approval:
                     return fee.sticker_action_details.first().approval.id
