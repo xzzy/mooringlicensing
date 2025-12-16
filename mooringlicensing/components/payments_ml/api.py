@@ -80,8 +80,11 @@ class InvoiceFilterBackend(DatatablesFilterBackend):
             # Custom search
             search_text= request.GET.get('search[value]')  # This has a search term.
             if search_text:
-                pass
-                #TODO
+                application_references = list(ApplicationFee.objects.filter(proposal__lodgement_number__icontains=search_text.lower()).values_list('invoice_reference', flat=True))
+                sticker_action_references = list(StickerActionFee.objects.filter(sticker_action_details__approval__lodgement_number__icontains=search_text.lower()).values_list('invoice_reference', flat=True))
+                applicable_references = application_references + sticker_action_references
+                queryset = queryset.filter(reference__in=applicable_references)
+
                 queryset = queryset.distinct() | super_queryset 
         except Exception as e:
             logger.error(e)

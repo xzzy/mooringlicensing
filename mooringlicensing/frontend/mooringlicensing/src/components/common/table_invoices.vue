@@ -107,7 +107,7 @@ export default {
             return {
                 data: "fee_source",
                 orderable: false,
-                searchable: true,
+                searchable: false,
                 visible: true,
                 name: 'fee_source',
                 'render': function(row, type, full){
@@ -192,7 +192,7 @@ export default {
                 orderable: false,
                 searchable: true,
                 visible: true,
-                name: 'description',
+                name: 'text',
                 'render': function(row, type, full){
                     return full.text
                 }
