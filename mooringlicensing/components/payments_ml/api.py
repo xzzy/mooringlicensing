@@ -15,7 +15,6 @@ from mooringlicensing.components.main.models import ApplicationType
 from mooringlicensing.components.payments_ml.models import FeeConstructor, ApplicationFee, StickerActionFee
 from mooringlicensing.components.payments_ml.serializers import FeeConstructorSerializer, InvoiceListSerializer
 
-#TODO replace with dedicated payment permission
 from mooringlicensing.components.approvals.permissions import (
     InternalApprovalPermission,
 )
