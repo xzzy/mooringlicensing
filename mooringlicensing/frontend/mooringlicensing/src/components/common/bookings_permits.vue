@@ -177,7 +177,7 @@ export default {
                     }
                 } catch (error) {
                     console.error(error);
-                    swal("Error!", "Something went wrong.", "error")
+                    swal("Error!", error.bodyText, "error")
                 }
             });
         })

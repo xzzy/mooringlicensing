@@ -485,7 +485,7 @@ export default {
                             }                            
                         }
                     } catch (error) {
-                        swal("Error!", "Something went wrong", "error")
+                        swal("Error!", error.bodyText, "error")
                         console.error(error);
                     }
                    
