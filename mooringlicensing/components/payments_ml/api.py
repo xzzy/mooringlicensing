@@ -55,23 +55,30 @@ class InvoiceFilterBackend(DatatablesFilterBackend):
         filter_query = Q()
 
         # status filter
-        filter_status = request.data.get('filter_status')
+        filter_status = request.GET.get('filter_status')
         if filter_status and not filter_status.lower() == 'all':
-            pass 
-            #TODO
+            if filter_status.lower() == 'settled':
+                filter_query &= (~Q(settlement_date=None) & Q(voided=False))
+            elif filter_status.lower() == 'not_settled':
+                filter_query &= (Q(settlement_date=None) & Q(voided=False))
+            elif filter_status.lower() == 'voided':
+                filter_query &= Q(voided=True)
 
-        filter_status = request.data.get('filter_fee_source_type')
-        if filter_status and not filter_status.lower() == 'all':
-            pass 
-            #TODO
-       
+        filter_fee_source_type = request.GET.get('filter_fee_source_type')
+        if filter_fee_source_type and not filter_fee_source_type.lower() == 'all':
+            if filter_fee_source_type.lower() == 'application':
+                application_references = list(ApplicationFee.objects.all().values_list('invoice_reference', flat=True))
+                filter_query &= Q(reference__in=application_references)
+            elif filter_fee_source_type.lower() == 'sticker_action':
+                sticker_action_references = list(StickerActionFee.objects.all().values_list('invoice_reference', flat=True))
+                filter_query &= Q(reference__in=sticker_action_references)
         queryset = queryset.filter(filter_query)    
 
         try:
-            super_queryset = super(InvoiceListSerializer, self).filter_queryset(request, queryset, view)
+            super_queryset = super(InvoiceFilterBackend, self).filter_queryset(request, queryset, view)
 
             # Custom search
-            search_text= request.data.get('search[value]')  # This has a search term.
+            search_text= request.GET.get('search[value]')  # This has a search term.
             if search_text:
                 pass
                 #TODO
@@ -81,7 +88,6 @@ class InvoiceFilterBackend(DatatablesFilterBackend):
 
         fields = self.get_fields(request)
         ordering = self.get_ordering(request, view, fields)
-        print("\n\n\n",ordering)
         if len(ordering):
             queryset = queryset.order_by(*ordering)
 

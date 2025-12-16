@@ -3,7 +3,7 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="form-group">
-                    <label for="">Fee Source type</label>
+                    <label for="">Fee Source Type</label>
                     <select class="form-control" v-model="filterFeeSourceType">
                         <option value="All">All</option>
                         <option v-for="type in fee_source_types" :value="type.code">{{ type.description }}</option>
@@ -54,7 +54,8 @@ export default {
                 {'code':'sticker_action','description':'Sticker Action'}
             ],
             invoice_statuses: [
-                {'code':'settles','description':'Settled'},
+                {'code':'settled','description':'Settled'},
+                {'code':'not_settled','description':'Not Settled'},
                 {'code':'voided','description':'Voided'}
             ],
         }
@@ -83,6 +84,7 @@ export default {
                 orderable: true,
                 searchable: false,
                 visible: false,
+                name: 'id',
                 'render': function(row, type, full){
                     return full.id
                 }
@@ -94,6 +96,7 @@ export default {
                 orderable: true,
                 searchable: true,
                 visible: true,
+                name: 'reference',
                 'render': function(row, type, full){
                     return `<a target='_blank' href='/ledger-toolkit-api/invoice-pdf/${full.reference}'>${full.reference}</a><br/>
                             <a target='_blank' href='${full.ledger_link}'>Ledger Payment</a>`;
@@ -106,6 +109,7 @@ export default {
                 orderable: false,
                 searchable: true,
                 visible: true,
+                name: 'fee_source',
                 'render': function(row, type, full){
                     if (full.fee_source_type == "Application") {
                         return `<a target='_blank' href='/internal/proposal/${full.fee_source_id}'>${full.fee_source}</a>`
@@ -122,6 +126,7 @@ export default {
                 orderable: false,
                 searchable: false,
                 visible: true,
+                name: 'fee_source_type',
                 'render': function(row, type, full){
                     return full.fee_source_type
                 }
@@ -133,6 +138,7 @@ export default {
                 orderable: true,
                 searchable: true,
                 visible: true,
+                name: 'created',
                 'render': function(row, type, full){
                     return full.created_str
                 }
@@ -144,6 +150,7 @@ export default {
                 orderable: true,
                 searchable: true,
                 visible: true,
+                name: 'settlement_date',
                 'render': function(row, type, full){
                     return full.settlement_date_str
                 }
@@ -155,6 +162,7 @@ export default {
                 orderable: true,
                 searchable: true,
                 visible: true,
+                name: 'amount',
                 'render': function(row, type, full){
                     return "$"+full.amount
                 }
@@ -166,6 +174,7 @@ export default {
                 orderable: false,
                 searchable: false,
                 visible: true,
+                name: 'status',
                 'render': function(row, type, full){
                     if (full.settlement_date) {
                         return "Settled"
@@ -183,6 +192,7 @@ export default {
                 orderable: false,
                 searchable: true,
                 visible: true,
+                name: 'description',
                 'render': function(row, type, full){
                     return full.text
                 }
@@ -240,7 +250,6 @@ export default {
                             }
                         });
                         d.columns = keepCols;
-
                         //adjust order
                         let nameIndexDict = {}
                         d.columns.forEach((value, index) => {
@@ -263,7 +272,7 @@ export default {
                             })    
                         })
                         d.order = newOrder;
-                        console.log(d.order)
+                        console.log(newOrder)
                     }
                 },
                 dom: 'lBfrtip',
