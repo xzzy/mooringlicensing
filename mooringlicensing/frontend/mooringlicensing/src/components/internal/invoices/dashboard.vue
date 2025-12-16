@@ -26,14 +26,6 @@ export default {
         FormSection,
         InvoicesTable
     },
-    computed: {
-        csrf_token: function() {
-          return helpers.getCookie('csrftoken')
-        },
-    },
-    methods: {
-    
-    },
 }
 </script>
 
