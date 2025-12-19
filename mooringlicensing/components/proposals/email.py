@@ -277,11 +277,13 @@ def send_create_mooring_licence_application_email_notification(request, waiting_
 
     bcc = request.data.get('cc_email')
     bcc_list = bcc.split(',')
-    msg = email.send(retrieve_email_userro(mooring_licence_application.submitter).email, bcc=bcc_list, attachments=attachments, context=context)
+    msg = None
+    if mooring_licence_application.applicant_obj:
+        msg = email.send(mooring_licence_application.applicant_obj.email, bcc=bcc_list, attachments=attachments, context=context)
     if msg:
         sender = settings.DEFAULT_FROM_EMAIL
         log_mla_created_proposal_email(msg, ria_generated_proposal, sender=sender_user)
-        _log_user_email(msg, ria_generated_proposal.submitter, ria_generated_proposal.submitter, sender=sender_user, attachments=attachments)
+        _log_user_email(msg, mooring_licence_application.applicant_obj.id, mooring_licence_application.applicant_obj.id, sender=sender_user, attachments=attachments)
 
 
 def send_documents_upload_for_mooring_licence_application_email(request, proposal):
