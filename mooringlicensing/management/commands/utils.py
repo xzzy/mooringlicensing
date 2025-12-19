@@ -20,7 +20,6 @@ from mooringlicensing.components.payments_ml.models import (
 import pytz
 import datetime
 
-<<<<<<< HEAD
 def get_approvals_due_for_renewal_without_notice(approvals):
     #get approvals with latest applied season in the last season
 
@@ -72,7 +71,6 @@ def get_approvals_due_for_renewal_without_notice(approvals):
             unrenewed_approvals.append(approval.lodgement_number)
 
     return ("Approvals from the prior season that have not been sent renewal notices:", unrenewed_approvals)
-=======
 def get_stickers_not_on_MOAs(stickers):
 
     stickers = stickers.filter(approval__lodgement_number__startswith="AUP",status__in=Sticker.STATUSES_AS_CURRENT)
@@ -98,7 +96,6 @@ def get_incorrect_sticker_seasons(stickers):
     bad_fee_seasons = list(stickers.filter(id__in=mismatched_fee_season+missing_fee_season).values_list('number',flat=True))
 
     return ("Stickers that have a fee season that does not match their approval or are missing a fee season:", bad_fee_seasons)
->>>>>>> main
 
 def convert_and_check_late_date_str(date_str, current_time):
     """attempts to convert date_str from "%d/%m/%Y" (including quotes) format and then checks if date has elapsed"""
