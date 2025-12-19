@@ -17,6 +17,7 @@ from mooringlicensing.management.commands.utils import (
     get_late_suspended_approvals,
     get_late_cancelled_approvals,
     get_late_resuming_approvals,
+    get_approvals_due_for_renewal_without_notice,
 )
 
 from mooringlicensing import settings
@@ -106,6 +107,7 @@ class Command(BaseCommand):
             get_late_suspended_approvals: [examination_querysets[Approval]],
             get_late_cancelled_approvals: [examination_querysets[Approval]],
             get_late_resuming_approvals: [examination_querysets[Approval]],
+            get_approvals_due_for_renewal_without_notice: [examination_querysets[Approval]],
         }
 
         reports = []
