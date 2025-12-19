@@ -1,6 +1,7 @@
-from django.db.models import F
+from django.db.models import F, CharField, Q
 from django.db.models.functions import Cast
-from django.db.models import CharField
+
+from ledger_api_client.settings_base import TIME_ZONE
 
 from mooringlicensing.components.main.models import GlobalSettings
 
@@ -12,8 +13,64 @@ from mooringlicensing.components.proposals.models import (
     Proposal, VesselOwnership
 )
 
+from mooringlicensing.components.payments_ml.models import (
+    FeeConstructor
+)
+
+import pytz
 import datetime
 
+def get_approvals_due_for_renewal_without_notice(approvals):
+    #get approvals with latest applied season in the last season
+
+    #get current season and prior season
+    today = datetime.datetime.now(pytz.timezone(TIME_ZONE)).date()
+    fee_seasons = []
+    current_season = None
+    fee_constructors = FeeConstructor.get_fee_constructor_by_date(today)
+    for fc in fee_constructors:
+        obj = {'start_date': fc.fee_season.start_date, 'end_date': fc.fee_season.end_date}
+        if obj not in fee_seasons:
+            fee_seasons.append(obj)
+
+    #NOTE: as of writing there is typically only one current fee season at a time
+    #If that is ever no longer the case, this function will need to be refactored
+    if fee_seasons:
+        current_season = fee_seasons[0]
+    else:
+        return ("There is no current fee season set up.",[])
+
+    try:
+        prior_date = current_season['start_date'] - datetime.timedelta(days=1)
+    except:
+        return ("Current fee season improperly set up.",[])
+
+    #filter out approvals with renewal sent
+    approvals = approvals.filter(renewal_sent=False)
+
+    #filter out any approvals where the proposal was odged after the last season
+    approvals = approvals.exclude(current_proposal__lodgement_date__gt=prior_date)
+
+    #filter out any approvals where the proposal was not accepted
+    approvals = approvals.filter(
+        current_proposal__processing_status__in=[
+            Proposal.PROCESSING_STATUS_APPROVED,
+            Proposal.PROCESSING_STATUS_PRINTING_STICKER
+        ])
+
+    #filter out non-current approvals
+    approvals = approvals.filter(
+        status__in=Approval.APPROVED_STATUSES,
+    )
+
+    #check remaining approvals - if from last season without a renewal sent it needs to be reported
+    unrenewed_approvals = []
+    for approval in approvals:
+        season = approval.latest_applied_season
+        if season and season.end_date <= prior_date:
+            unrenewed_approvals.append(approval.lodgement_number)
+
+    return ("Approvals from the prior season that have not been sent renewal notices:", unrenewed_approvals)
 def get_stickers_not_on_MOAs(stickers):
 
     stickers = stickers.filter(approval__lodgement_number__startswith="AUP",status__in=Sticker.STATUSES_AS_CURRENT)
