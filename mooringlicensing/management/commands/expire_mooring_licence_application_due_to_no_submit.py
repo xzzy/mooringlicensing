@@ -37,9 +37,9 @@ class Command(BaseCommand):
         logger.info('Running command {}'.format(__name__))
 
         # Construct queries
-        # MLA and associated documents must be submitted within X days period after invitation
+        # MLA must be submitted within X days period after invitation
         queries = Q()
-        queries &= Q(processing_status__in=(Proposal.PROCESSING_STATUS_DRAFT, Proposal.PROCESSING_STATUS_AWAITING_DOCUMENTS))
+        queries &= Q(processing_status__in=(Proposal.PROCESSING_STATUS_DRAFT))
         queries &= Q(date_invited__lt=boundary_date)
 
         for a in MooringLicenceApplication.objects.filter(queries):
@@ -49,7 +49,7 @@ class Command(BaseCommand):
 
                 due_date = a.date_invited + timedelta(days=days_setting.number_of_days)
                 send_expire_mooring_licence_application_email(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED, due_date)
-                send_expire_mla_notification_to_assessor(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NO_DOCUMENTS, due_date)
+                send_expire_mla_notification_to_assessor(a, MooringLicenceApplication.REASON_FOR_EXPIRY_NOT_SUBMITTED, due_date)
                 logger.info('Expired notification sent for Proposal {}'.format(a.lodgement_number))
                 updates.append(a.lodgement_number)
             except Exception as e:
