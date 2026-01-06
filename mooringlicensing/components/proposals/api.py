@@ -361,7 +361,6 @@ class GetMooringPerBay(views.APIView):
             ml_qs = MooringLicence.objects
             for mooring in data:
                 qs = ml_qs.none()
-                print( mooring['mooring_licence'])
                 if 'mooring_licence' in mooring and mooring['mooring_licence']:
                     qs = MooringLicence.objects.filter(id=mooring['mooring_licence'], status="current")
 
@@ -2190,6 +2189,7 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                 owner = instance.owner
 
                 affected_vessel_ownerships = VesselOwnership.objects.filter(vessel__rego_no=rego_no, owner=owner, end_date=None)
+                affected_vessel_ownership_ids = list(affected_vessel_ownerships.values_list('id',flat=True))
 
                 ## setting the end_date "removes" the vessel from current Approval records
                 for vessel_ownership in affected_vessel_ownerships:
@@ -2200,11 +2200,9 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
                         raise serializers.ValidationError("Invalid sale date provided.")
                     logger.info(f'Vessel sold: VesselOwnership: [{vessel_ownership}] has been updated with the end_date: [{sale_date}].')
 
-                affected_vessel_ownership_ids = list(affected_vessel_ownerships.values_list('id',flat=True))
-
                 ## collect impacted Approvals
                 approval_list = []
-                for prop in Proposal.objects.filter(vessel_ownership_id__in=affected_vessel_ownership_ids,approval__status=Approval.APPROVAL_STATUS_CURRENT):
+                for prop in Proposal.objects.filter(vessel_ownership_id__in=affected_vessel_ownership_ids,approval__status__in=Approval.APPROVED_STATUSES):
                     if (type(prop.approval.child_obj) in [WaitingListAllocation, AnnualAdmissionPermit, AuthorisedUserPermit] and
                             prop.approval not in approval_list):
                         approval_list.append(prop.approval)
@@ -2222,14 +2220,14 @@ class VesselOwnershipViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin)
 
                     # Update sticker status
                     stickers_updated = []
-                    for a_sticker in instance.sticker_set.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
+                    for a_sticker in approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_CURRENT, Sticker.STICKER_STATUS_AWAITING_PRINTING]):
                         a_sticker.status = Sticker.STICKER_STATUS_TO_BE_RETURNED
                         a_sticker.save()
                         logger.info(f'Status of the sticker: {a_sticker} has been changed to {Sticker.STICKER_STATUS_TO_BE_RETURNED}')
 
                         stickers_to_be_returned.append(a_sticker)
                         stickers_updated.append(a_sticker)
-                    for a_sticker in instance.sticker_set.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET]):
+                    for a_sticker in approval.stickers.filter(status__in=[Sticker.STICKER_STATUS_READY, Sticker.STICKER_STATUS_NOT_READY_YET]):
                         # vessel sold before the sticker is picked up by cron for export (very rarely happens)
                         a_sticker.status = Sticker.STICKER_STATUS_CANCELLED
                         a_sticker.save()

@@ -485,7 +485,7 @@ class ApplicationFeeView(TemplateView):
                 previous_application_fee = previous_application_fees.last()
 
                 if previous_application_fee:
-                    previous_application_fee_items = previous_application_fee.fee_items.all()
+                    previous_application_fee_items = previous_application_fee.fee_items.all().distinct('id')
 
                     for previous_application_fee_item in previous_application_fee_items:
                         current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))

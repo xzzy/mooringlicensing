@@ -93,7 +93,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
         return ''
 
     def get_ledger_link(self, obj):
-        return '{}/ledger/payments/oracle/payments?{}'.format(settings.LEDGER_UI_URL, obj.reference)
+        return '{}/ledger/payments/oracle/payments?invoice_no={}'.format(settings.LEDGER_UI_URL, obj.reference)
 
     def get_created_str(self, obj):
         created = ''

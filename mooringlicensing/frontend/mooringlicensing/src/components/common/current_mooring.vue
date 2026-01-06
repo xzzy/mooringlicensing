@@ -69,14 +69,16 @@ export default {
     computed: {
         currentMooringDisplayText: function() {
             let displayText = '';
-            if (this.proposal && this.proposal.authorised_user_moorings_str) {
-                displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
-                lists moorings ${this.proposal.authorised_user_moorings_str}.
-                    Do you want to apply to add another mooring to your Authorised User Permit?`;
-            } else {
-                displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
-                currently has no moorings.
-                    Do you want to apply to add a mooring to your Authorised User Permit?`;
+            if (this.proposal_type != undefined && this.proposal_type.code != 'new') {
+                if (this.proposal && this.proposal.authorised_user_moorings_str) {
+                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
+                    lists moorings ${this.proposal.authorised_user_moorings_str}.
+                        Do you want to apply to add another mooring to your Authorised User Permit?`;
+                } else {
+                    displayText += `Your ${this.proposal.approval_type_text} ${this.proposal.approval_lodgement_number}
+                    currently has no moorings.
+                        Do you want to apply to add a mooring to your Authorised User Permit?`;
+                }
             }
             return displayText;
         },

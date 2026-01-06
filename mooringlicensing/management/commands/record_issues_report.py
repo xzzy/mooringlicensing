@@ -20,6 +20,7 @@ from mooringlicensing.management.commands.utils import (
     get_approvals_due_for_renewal_without_notice,
     get_incorrect_sticker_seasons,
     get_stickers_not_on_MOAs,
+    get_invalid_stickers_still_current,
 )
 
 from mooringlicensing import settings
@@ -114,6 +115,7 @@ class Command(BaseCommand):
             get_approvals_due_for_renewal_without_notice: [examination_querysets[Approval]],
             get_incorrect_sticker_seasons: [examination_querysets[Sticker]],
             get_stickers_not_on_MOAs: [examination_querysets[Sticker]],
+            get_invalid_stickers_still_current: [examination_querysets[Sticker]],
         }
 
         reports = []

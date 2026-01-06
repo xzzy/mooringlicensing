@@ -1,5 +1,5 @@
-from django.db.models import F, CharField, Q
-from django.db.models.functions import Cast
+from django.db.models import F, CharField, Q, Value
+from django.db.models.functions import Cast, Concat
 
 from ledger_api_client.settings_base import TIME_ZONE
 
@@ -20,6 +20,38 @@ from mooringlicensing.components.payments_ml.models import (
 import pytz
 import datetime
 
+def get_invalid_stickers_still_current(stickers):
+    
+    stickers = stickers.filter(status=Sticker.STICKER_STATUS_CURRENT)
+
+    #identify current stickers that:
+    #have been replaced by other stickers
+    #are no longer attached to a valid approval
+    current_stickers_with_non_current_approval = stickers.exclude(approval__status__in=Approval.APPROVED_STATUSES)
+
+    #are attached to a no longer valid vessel? 
+    current_stickers_with_sold_vessel = stickers.exclude(vessel_ownership__end_date=None)
+
+    #For non-AUPs, there should only be one sticker per vessel per approval 
+    aup_stickers = stickers.filter(approval__lodgement_number__startswith="AUP")
+    non_aup_stickers = stickers.exclude(approval__lodgement_number__startswith="AUP")
+
+    latest_distinct_stickers = list(non_aup_stickers.order_by("approval_id","vessel_ownership__vessel__rego_no","-proposal_initiated__id","-number").distinct("approval_id","vessel_ownership__vessel__rego_no").values_list('id',flat=True))
+    replaced_stickers = non_aup_stickers.exclude(id__in=latest_distinct_stickers)
+
+    #For AUPs check if they are on an MOA
+    moa_sticker_ids = list(MooringOnApproval.objects.filter(sticker_id__in=list(aup_stickers.values_list('id',flat=True))).values_list('sticker_id',flat=True))
+    aup_stickers_without_moa = aup_stickers.exclude(id__in=moa_sticker_ids)
+
+    bad_sticker_numbers = list(set(
+        list(current_stickers_with_non_current_approval.annotate(reason=Concat(F("number"),Value(" Reason: Approval Non-Current"))).values_list("reason",flat=True))+
+        list(current_stickers_with_sold_vessel.annotate(reason=Concat(F("number"),Value(" Reason: Vessel Sold"))).values_list("reason",flat=True))+
+        list(replaced_stickers.annotate(reason=Concat(F("number"),Value(" Reason: Replaced or Duplicate"))).values_list("reason",flat=True))+
+        list(aup_stickers_without_moa.annotate(reason=Concat(F("number"),Value(" Reason: Replaced or Incorrect MOA"))).values_list("reason",flat=True))
+    ))
+
+    return ("Stickers with invalid current status (due to being replaced, duplicated, or otherwise invalidated). Some numbers may appear in \"Stickers that are not properly assigned to Mooring on Approval records\":", bad_sticker_numbers)
+
 def get_approvals_due_for_renewal_without_notice(approvals):
     #get approvals with latest applied season in the last season
 
@@ -29,9 +61,12 @@ def get_approvals_due_for_renewal_without_notice(approvals):
     current_season = None
     fee_constructors = FeeConstructor.get_fee_constructor_by_date(today)
     for fc in fee_constructors:
-        obj = {'start_date': fc.fee_season.start_date, 'end_date': fc.fee_season.end_date}
-        if obj not in fee_seasons:
-            fee_seasons.append(obj)
+        try:
+            obj = {'start_date': fc.fee_season.start_date, 'end_date': fc.fee_season.end_date}
+            if obj not in fee_seasons:
+                fee_seasons.append(obj)
+        except:
+            continue
 
     #NOTE: as of writing there is typically only one current fee season at a time
     #If that is ever no longer the case, this function will need to be refactored
@@ -48,7 +83,7 @@ def get_approvals_due_for_renewal_without_notice(approvals):
     #filter out approvals with renewal sent
     approvals = approvals.filter(renewal_sent=False)
 
-    #filter out any approvals where the proposal was odged after the last season
+    #filter out any approvals where the proposal was lodged after the last season
     approvals = approvals.exclude(current_proposal__lodgement_date__gt=prior_date)
 
     #filter out any approvals where the proposal was not accepted
@@ -71,6 +106,7 @@ def get_approvals_due_for_renewal_without_notice(approvals):
             unrenewed_approvals.append(approval.lodgement_number)
 
     return ("Approvals from the prior season that have not been sent renewal notices:", unrenewed_approvals)
+
 def get_stickers_not_on_MOAs(stickers):
 
     stickers = stickers.filter(approval__lodgement_number__startswith="AUP",status__in=Sticker.STATUSES_AS_CURRENT)
