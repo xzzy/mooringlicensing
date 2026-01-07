@@ -157,32 +157,34 @@ export default {
             });
         },
         removeAUPFromMooring: async function(mooring_id, approval_id) {
+            let vm=this;
             swal({
-            title: "Remove Authorised User Permit",
-            text: "Are you sure you want to Remove the Authorised User Permit?",
-            type: "warning",
-            showCancelButton: true,
-            confirmButtonText: 'Remove',
-            confirmButtonColor:'#dc3545'
-        }).then(()=>{
-            this.$nextTick(async () => {
-                try {
-                    let payload = {
-                        "approval_id": approval_id,
-                    }
-                    const resp = await this.$http.post(`/api/mooring/${mooring_id}/removeAUPFromMooring/`, payload);
-                    if (resp.status === 200) { 
-                        this.approvals = this.approvals.filter(item => item.id !== approval_id);
-                        swal("Removed!", "The User Permit has been removed successfully.", "success")
-                    }
-                } catch (error) {
-                    console.error(error);
-                    swal("Error!", error.bodyText, "error")
+                title: "Remove Authorised User Permit",
+                text: "Are you sure you want to Remove the Authorised User Permit?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Remove',
+                confirmButtonColor:'#dc3545',
+                allowOutsideClick: false,
+                preConfirm: function () {
+                    return new Promise(async function () {
+                        try {
+                            let payload = {
+                                "approval_id": approval_id,
+                            }
+                            const resp = await vm.$http.post(`/api/mooring/${mooring_id}/removeAUPFromMooring/`, payload);
+                            if (resp.status === 200) { 
+                                vm.approvals = vm.approvals.filter(item => item.id !== approval_id);
+                                swal("Removed!", "The User Permit has been removed successfully.", "success")
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            swal("Error!", error.bodyText, "error")
+                        }
+                    })
                 }
-            });
-        })
+            })
         },
-
     },
     mounted: function () {
         this.$nextTick(async () => {

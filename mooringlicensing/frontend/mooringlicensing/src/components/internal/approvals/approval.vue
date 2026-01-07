@@ -459,26 +459,28 @@ export default {
         return s.replace(/[,;]/g, '\n');
     },
     removeMooringFromAUP(mooringName) {
+        let vm=this;
         swal({
-                title: "Remove Mooring",
-                text: "Are you sure you want to Remove the Mooring?",
-                type: "warning",
-                showCancelButton: true,
-                confirmButtonText: 'Remove',
-                confirmButtonColor:'#dc3545'
-            }).then(()=>{
-                this.$nextTick(async () => {
+            title: "Remove Mooring",
+            text: "Are you sure you want to Remove the Mooring?",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonText: 'Remove',
+            confirmButtonColor:'#dc3545',
+            allowOutsideClick: false,
+            preConfirm: function () {
+                return new Promise(async function () {
                     try {
                         let payload = {
                             "mooring_name": mooringName,
                         }
-                        const resp = await this.$http.post(`/api/approvals/${this.approval.id}/removeMooringFromApproval/`, payload);
+                        const resp = await vm.$http.post(`/api/approvals/${vm.approval.id}/removeMooringFromApproval/`, payload);
                         if (resp.status === 200) {  
-                            const rowIndex = this.approval.authorised_user_moorings_detail.findIndex(row => row.mooring_name === mooringName);
+                            const rowIndex = vm.approval.authorised_user_moorings_detail.findIndex(row => row.mooring_name === mooringName);
                             if (rowIndex !== -1) {
-                                this.approval.authorised_user_moorings_detail.splice(rowIndex, 1);
+                                vm.approval.authorised_user_moorings_detail.splice(rowIndex, 1);
                                 swal("Removed!", "The mooring has been removed successfully.", "success").then(()=>{
-                                    this.$nextTick(async () => {
+                                    vm.$nextTick(async () => {
                                         window.location.reload();
                                     })
                                 })
@@ -488,9 +490,9 @@ export default {
                         swal("Error!", error.bodyText, "error")
                         console.error(error);
                     }
-                   
-                });
-            })
+                })
+            }
+        })
     },
     viewApprovalPDF: function(id,media_link){
             let vm=this;
