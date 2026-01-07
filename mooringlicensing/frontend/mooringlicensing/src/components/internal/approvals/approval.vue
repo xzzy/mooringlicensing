@@ -469,7 +469,7 @@ export default {
             confirmButtonColor:'#dc3545',
             allowOutsideClick: false,
             preConfirm: function () {
-                return new Promise(async function (resolve) {
+                return new Promise(async function () {
                     try {
                         let payload = {
                             "mooring_name": mooringName,
