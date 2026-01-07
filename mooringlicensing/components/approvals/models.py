@@ -2102,6 +2102,19 @@ class AuthorisedUserPermit(Approval):
                     new_sticker.postal_address_country = moa_to_be_on_new_sticker.sticker.postal_address_country
                     new_sticker.postal_address_postcode = moa_to_be_on_new_sticker.sticker.postal_address_postcode
                     new_sticker.save()
+                elif self.current_proposal and self.current_proposal.proposal_applicant:
+                    proposal_applicant = self.current_proposal.proposal_applicant
+                    new_sticker.postal_address_line1 = proposal_applicant.postal_address_line1
+                    new_sticker.postal_address_line2 = proposal_applicant.postal_address_line2
+                    new_sticker.postal_address_line3 = proposal_applicant.postal_address_line3
+                    new_sticker.postal_address_locality = proposal_applicant.postal_address_locality
+                    new_sticker.postal_address_state = proposal_applicant.postal_address_state
+                    new_sticker.postal_address_country = proposal_applicant.postal_address_country
+                    new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
+                    new_sticker.save()
+                else:
+                    logger.warning(f'New Sticker: [{new_sticker}] postal address could not be determined.')
+
 
                 if proposal:
                     logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
