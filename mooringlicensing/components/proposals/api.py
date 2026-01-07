@@ -2663,6 +2663,9 @@ class MooringViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                     elif mooring.mooring_licence:
                         # removing the List of Authorised Users document if there is no more AUPs remaining 
                         mooring.mooring_licence.authorised_user_summary_document = None
+
+                    approval.manage_stickers()
+
                     approval.log_user_action(f'AUP {approval} removed from Mooring {mooring}.', request)
                     mooring.log_user_action(f'AUP {approval} removed from Mooring {mooring}.', request)
                     return Response({"results": "Success"})
