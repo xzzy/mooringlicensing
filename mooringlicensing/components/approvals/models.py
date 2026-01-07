@@ -2115,7 +2115,6 @@ class AuthorisedUserPermit(Approval):
                 else:
                     logger.warning(f'New Sticker: [{new_sticker}] postal address could not be determined.')
 
-
                 if proposal:
                     logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
                 else:
