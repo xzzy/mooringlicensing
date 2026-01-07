@@ -2093,8 +2093,20 @@ class AuthorisedUserPermit(Approval):
                     new_sticker.postal_address_country = proposal_applicant.postal_address_country
                     new_sticker.postal_address_postcode = proposal_applicant.postal_address_postcode
                     new_sticker.save()
+                elif moa_to_be_on_new_sticker and moa_to_be_on_new_sticker.sticker:
+                    new_sticker.postal_address_line1 = moa_to_be_on_new_sticker.sticker.postal_address_line1
+                    new_sticker.postal_address_line2 = moa_to_be_on_new_sticker.sticker.postal_address_line2
+                    new_sticker.postal_address_line3 = moa_to_be_on_new_sticker.sticker.postal_address_line3
+                    new_sticker.postal_address_locality = moa_to_be_on_new_sticker.sticker.postal_address_locality
+                    new_sticker.postal_address_state = moa_to_be_on_new_sticker.sticker.postal_address_state
+                    new_sticker.postal_address_country = moa_to_be_on_new_sticker.sticker.postal_address_country
+                    new_sticker.postal_address_postcode = moa_to_be_on_new_sticker.sticker.postal_address_postcode
+                    new_sticker.save()
 
-                logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                if proposal:
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the proposal: [{proposal}].')
+                else:
+                    logger.info(f'New Sticker: [{new_sticker}] has been created for the approval: [{self}].')
                 new_stickers.append(new_sticker)
             if moa_to_be_on_new_sticker.sticker in stickers_to_be_replaced_for_renewal:
                 # Store old sticker in the new sticker in order to set 'expired' status to it once the new sticker gets 'awaiting_printing' status
