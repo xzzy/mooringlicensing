@@ -9,9 +9,7 @@
     "serve": "vue-cli-service serve"
   },
   "dependencies": {
-    "@babel/runtime": "^7.26.0",
     "@vue/cli-service": "^5.0.8",
-    "babel-polyfill": "^6.26.0",
     "bootstrap": "^3.4.1",
     "datatables.net-buttons-bs": "^2.4.3",
     "datatables.net-responsive-bs": "^2.4.1",
