@@ -966,9 +966,14 @@ class Proposal(RevisionedMixin):
                         target_vessel = None
 
                     # Retrieve the current approvals of the target_vessel
-                    if target_vessel:
+                    if target_vessel and target_proposal and target_proposal.proposal_applicant:
                         current_approvals = target_vessel.get_current_approvals(target_date)
                         logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
+
+                        #filter the current approvals to only match those of the current user
+                        current_approvals['aaps'] = current_approvals['aaps'].filter(current_proposal__proposal_applicant__id=target_proposal.proposal_applicant.id)
+                        current_approvals['aups'] = current_approvals['aups'].filter(current_proposal__proposal_applicant__id=target_proposal.proposal_applicant.id)
+                        current_approvals['mls'] = current_approvals['mls'].filter(current_proposal__proposal_applicant__id=target_proposal.proposal_applicant.id)
                     
                     deduct = False
                     #For when the vessel on the currently observed proposal is NOT the target vessel
