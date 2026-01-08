@@ -971,10 +971,12 @@ class Proposal(RevisionedMixin):
                         logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
 
                         #filter the current approvals to only match those of the current user
-                        current_approvals['aaps'] = current_approvals['aaps'].filter(current_proposal__proposal_applicant__id=target_proposal.proposal_applicant.id)
-                        current_approvals['aups'] = current_approvals['aups'].filter(current_proposal__proposal_applicant__id=target_proposal.proposal_applicant.id)
-                        current_approvals['mls'] = current_approvals['mls'].filter(current_proposal__proposal_applicant__id=target_proposal.proposal_applicant.id)
+                        current_approvals['aaps'] = current_approvals['aaps'].filter(current_proposal__proposal_applicant__email_user_id=target_proposal.proposal_applicant.email_user_id)
+                        current_approvals['aups'] = current_approvals['aups'].filter(current_proposal__proposal_applicant__email_user_id=target_proposal.proposal_applicant.email_user_id)
+                        current_approvals['mls'] = current_approvals['mls'].filter(current_proposal__proposal_applicant__email_user_id=target_proposal.proposal_applicant.email_user_id)
                     
+                        logger.info(f'Current approvals for the vessel belonging to the same applicant: [{target_vessel}]: {current_approvals}')
+
                     deduct = False
                     #For when the vessel on the currently observed proposal is NOT the target vessel
                     #We calculate deductions here to factor instances where another vessel has been removed from the approval, to discount from the total cost
