@@ -126,7 +126,9 @@ def get_incorrect_sticker_seasons(stickers):
     mismatched_fee_season = []
 
     for i in stickers.exclude(fee_season=None):
-        if i.fee_season != i.approval.latest_applied_season:
+        #NOTE originally compared ids here, but that does not account for when fee seasons application types mismatch due to annual admission payments
+        #comparing names should be adequate so long as naming conventions are adhered to
+        if i.fee_season.name != i.approval.latest_applied_season.name:
             mismatched_fee_season.append(i.id)     
 
     bad_fee_seasons = list(stickers.filter(id__in=mismatched_fee_season+missing_fee_season).values_list('number',flat=True))
