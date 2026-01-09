@@ -1113,7 +1113,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_data(self, obj):
         vessel_data = []
         if type(obj.child_obj) != MooringLicence:
-            if obj.current_proposal and obj.current_proposal.vessel_details and obj.current_proposal.vessel:
+            if obj.current_proposal and obj.current_proposal.vessel_details and obj.current_proposal.vessel_details.vessel:
                 vessel_data.append({
                     "id": obj.current_proposal.vessel_details.vessel.id,
                     "rego_no": obj.current_proposal.vessel_details.vessel.rego_no,
