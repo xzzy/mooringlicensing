@@ -301,7 +301,7 @@ export default {
         display_action_grant: function(){
             let display = false
             try {
-                if(this.proposal.processing_status === constants.WITH_APPROVER){
+                if(this.proposal.processing_status === constants.WITH_APPROVER && !this.proposal.proposed_decline_status){
                     display = true
                 }
                 if([constants.WL_PROPOSAL, constants.AA_PROPOSAL].includes(this.proposal.application_type_dict.code)){
