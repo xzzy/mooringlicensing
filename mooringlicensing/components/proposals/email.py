@@ -797,8 +797,8 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
     if decision == 'approved':
         # Internal user approved WLA
         subject = 'Confirmation: Position on mooring site licence waiting list - Rottnest Island Authority'
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attach_invoice = False
@@ -807,8 +807,8 @@ def send_wla_approved_or_declined_email(proposal, decision, request):
     elif decision == 'declined':
         # Internal user declined WLA
         subject = 'Declined: Application for a position on a mooring site licence waiting list - Rottnest Island Authority'
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+        cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attach_invoice = False
@@ -865,16 +865,16 @@ def send_aaa_approved_or_declined_email(proposal, decision, request, stickers_to
     details = ''
     if decision == 'approved':
         subject = 'Approved: Application for annual admission permit - Rottnest Island Authority'
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attach_invoice = True if proposal.auto_approve else False
         attach_licence_doc = True
     elif decision == 'declined':
         subject = 'Declined: Application for annual admission permit - Rottnest Island Authority'
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+        cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attach_invoice = True if proposal.auto_approve else False
@@ -931,6 +931,7 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
 
     subject = ''
     details = ''
+    cc_list = ''
     attachments = []
     payment_url = ''
     html_template = 'mooringlicensing/emails_2/'
@@ -941,8 +942,10 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         html_template += 'email_20a.html'
         txt_template += 'email_20a.txt'
         subject = 'Payment Due: Application for authorised user permit – Rottnest Island Authority'
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        if proposal.proposed_issuance_approval:
+            details = proposal.proposed_issuance_approval.get('details')
+            cc_list = proposal.proposed_issuance_approval.get('cc_email')
+
         if cc_list:
             all_ccs = cc_list.split(',')
         attachments = get_attachments(True, False, proposal)
@@ -959,8 +962,9 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         html_template += 'email_50a.html'
         txt_template += 'email_50a.txt'
         subject = 'Approved: Application for Rottnest Island Authorised User Permit'
-        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
-        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
+        if proposal.proposed_issuance_approval:
+            details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+            cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attachments = get_attachments(True, True, proposal)
@@ -969,8 +973,9 @@ def send_aua_approved_or_declined_email_new_renewal(proposal, decision, request,
         html_template += 'email_20b.html'
         txt_template += 'email_20b.txt'
         subject = 'Declined: Application for authorised user permit – Rottnest Island Authority'
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        if proposal.proposaldeclineddetails:
+            details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+            cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
     else:
@@ -1010,7 +1015,7 @@ def send_aua_approved_or_declined_email_amendment_payment_not_required(proposal,
     
     all_ccs = []
     all_bccs = []
-
+    cc_list = ''
     subject = ''
     details = ''
     attachments = []
@@ -1092,8 +1097,8 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
         html_template += 'email_22a.html'
         txt_template += 'email_22a.txt'
         subject = 'Payment due: Application to amend authorised user permit - Rottnest Island Authority'
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attachments = get_attachments(True, False, proposal)
@@ -1120,8 +1125,8 @@ def send_aua_approved_or_declined_email_amendment_payment_required(proposal, dec
         html_template += 'email_22b.html'
         txt_template += 'email_22b.txt'
         subject = 'Declined: Application to amend authorised user permit - Rottnest Island Authority'
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+        cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
     else:
@@ -1265,8 +1270,8 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         html_template += 'email_23a.html'
         txt_template += 'email_23a.txt'
         subject = 'Payment due: Application for mooring site licence {} – Rottnest Island Authority'.format(allocated_mooring.name)
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attachments = get_attachments(True, False, proposal)
@@ -1295,8 +1300,8 @@ def send_mla_approved_or_declined_email_new_renewal(proposal, decision, request,
         html_template += 'email_23b.html'
         txt_template += 'email_23b.txt'
         subject = 'Declined: Application for mooring site licence {} - Rottnest Island Authority'.format(allocated_mooring.name)
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+        cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
 
@@ -1346,8 +1351,8 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
 
     if decision == 'approved':
         subject = 'Approved: Application to amend mooring site licence {} – Rottnest Island Authority'.format(allocated_mooring.name)
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
@@ -1362,8 +1367,8 @@ def send_mla_approved_or_declined_email_amendment_payment_not_required(proposal,
         attachments = get_attachments(False, True, proposal, attach_au_summary_doc)
     elif decision == 'declined':
         subject = 'Declined: Application to amend mooring site licence {} – Rottnest Island Authority'.format(allocated_mooring.name)
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+        cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
     else:
@@ -1414,8 +1419,8 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         html_template += 'email_25a.html'
         txt_template += 'email_25a.txt'
         subject = 'Payment Due: Application to amend mooring site licence {} – Rottnest Island Authority'.format(allocated_mooring.name)
-        details = proposal.proposed_issuance_approval.get('details')
-        cc_list = proposal.proposed_issuance_approval.get('cc_email')
+        details = proposal.proposed_issuance_approval.get('details') if proposal.proposed_issuance_approval else ''
+        cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
         if cc_list:
             all_ccs = cc_list.split(',')
         attach_au_summary_doc = True if proposal.proposal_type.code in [PROPOSAL_TYPE_AMENDMENT, PROPOSAL_TYPE_RENEWAL,] else False
@@ -1445,8 +1450,8 @@ def send_mla_approved_or_declined_email_amendment_payment_required(proposal, dec
         html_template += 'email_25b.html'
         txt_template += 'email_25b.txt'
         subject = 'Declined: Application to amend mooring site licence {} – Rottnest Island Authority'.format(allocated_mooring.name)
-        details = proposal.proposaldeclineddetails.reason
-        cc_list = proposal.proposaldeclineddetails.cc_email
+        details = proposal.proposaldeclineddetails.reason if proposal.proposaldeclineddetails else ''
+        cc_list = proposal.proposaldeclineddetails.cc_email if proposal.proposaldeclineddetails else ''
         if cc_list:
             all_ccs = cc_list.split(',')
     else:
@@ -1493,7 +1498,7 @@ def send_aua_declined_by_endorser_email(proposal, request):
 
     subject = 'Declined: Application for authorised user permit - vessel <vessel registration number> - Rottnest Island Authority'
     
-    cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else '' #TODO review all instance where proposed_issuance_approval is referenced to have a check like this... 
+    cc_list = proposal.proposed_issuance_approval.get('cc_email') if proposal.proposed_issuance_approval else ''
     if cc_list:
         all_ccs = cc_list.split(',')
 

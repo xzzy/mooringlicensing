@@ -2182,13 +2182,15 @@ class Proposal(RevisionedMixin):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
         with transaction.atomic():
             try:
+                if self.proposed_decline_status:
+                    raise ValidationError('This Application was proposed to be declined. Send back to assessor if it needs to be approved.')
+
                 logger.info(f'Processing final_approval...for the proposal: [{self}].')
 
                 submit_vessel_data(self, request, approving=True)
                 self.refresh_from_db()
 
                 current_datetime = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-                self.proposed_decline_status = False
 
                 # Validation & update proposed_issuance_approval
                 if not ((self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or 
@@ -2348,13 +2350,14 @@ class Proposal(RevisionedMixin):
     def final_approval_for_AUA_MLA(self, request=None):
         with transaction.atomic():
             try:
+                if self.proposed_decline_status:
+                    raise ValidationError('This Application was proposed to be declined. Send back to assessor if it needs to be approved.')
                 from mooringlicensing.components.approvals.models import Sticker
                 from mooringlicensing.components.proposals.utils import submit_vessel_data
                 logger.info(f'Processing final_approval... for the proposal: [{self}].')
 
                 submit_vessel_data(self, request, approving=True)
                 self.refresh_from_db()
-                self.proposed_decline_status = False
 
                 # Validation & update proposed_issuance_approval
                 if not ((self.processing_status == Proposal.PROCESSING_STATUS_AWAITING_PAYMENT and self.fee_paid) or self.proposal_type == PROPOSAL_TYPE_AMENDMENT):
