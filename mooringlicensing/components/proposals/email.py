@@ -1191,9 +1191,12 @@ def get_attachments(attach_invoice, attach_licence_doc, proposal, attach_au_summ
         au_summary_document = proposal.approval.authorised_user_summary_document._file
         if au_summary_document is not None:
             file_name = proposal.approval.authorised_user_summary_document.name
-            attachment = (file_name, au_summary_document.file.read(), 'application/pdf')
-            attachments.append(attachment)
-            logger.info(f'AU summary document: {file_name} has been attached.')
+            try:
+                attachment = (file_name, au_summary_document.file.read(), 'application/pdf')
+                attachments.append(attachment)
+                logger.info(f'AU summary document: {file_name} has been attached.')
+            except:
+                logger.warning(f'AU summary document: {file_name} not attached, appears missing from system.')       
 
     return attachments
 

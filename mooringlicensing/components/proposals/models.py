@@ -866,6 +866,19 @@ class Proposal(RevisionedMixin):
                 logger.error(e)      
         return payment_required
 
+    def get_AA_fee_item_application_vessels(self,proposal):
+        """ 
+        This is a specialised function built for the purpose of working around a data issue with existing vessel fee records
+        
+        An unknown bug has caused the AA fee item application fees to store only one vessel for the same ML, instead of the actual vessel that the AA item applies to
+
+        Using other records available this function will retrieve the correct vessel records and map them to the ids of:
+            FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type)
+        
+        Correct records can be found via listed_vessels on the proposal (use dimensions to match, ensure every vessel is represented in rare instances where multiple dimensions are the same)
+        """
+        pass
+
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
         from mooringlicensing.components.payments_ml.models import FeeConstructor
@@ -894,6 +907,10 @@ class Proposal(RevisionedMixin):
 
         # first loop - payments for the target vessel
         while continue_loop:
+            fee_item_application_fee_vessels = []
+            #TODO specialised function to get CORRECT fee_item_application_fee vessels 
+            #get_AA_fee_item_application_vessels(proposal)
+
             if proposal:
                 if proposal.id in proposal_id_list:
                     continue_loop = False
@@ -904,6 +921,7 @@ class Proposal(RevisionedMixin):
                     # We are interested only in the AnnualAdmission component
                     logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
 
+                    #TODO! Somehow the FeeItemApplicationFee records for multiple vessel AAs on ML invoices have only save ONE vessel - I need to find another way to identify the target_vessel for ML deductions...
                     try:
                         target_vessel = fee_item_application_fee.vessel_details.vessel
                     except:
@@ -958,7 +976,8 @@ class Proposal(RevisionedMixin):
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
                     # We are interested only in the AnnualAdmission component
                     logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
-
+                    
+                    #TODO! Somehow the FeeItemApplicationFee records for multiple vessel AAs on ML invoices have only save ONE vessel - I need to find another way to identify the target_vessel for ML deductions...
                     try:
                         target_vessel = fee_item_application_fee.vessel_details.vessel
                     except:
