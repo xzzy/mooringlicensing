@@ -1113,17 +1113,19 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
     def get_vessel_data(self, obj):
         vessel_data = []
         if type(obj.child_obj) != MooringLicence:
-            vessel_data.append({
-                "id": obj.current_proposal.vessel_details.vessel.id,
-                "rego_no": obj.current_proposal.vessel_details.vessel.rego_no,
-                "vessel_name": obj.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name,
+            if obj.current_proposal and obj.current_proposal.vessel_details and obj.current_proposal.vessel_details.vessel:
+                vessel_data.append({
+                    "id": obj.current_proposal.vessel_details.vessel.id,
+                    "rego_no": obj.current_proposal.vessel_details.vessel.rego_no,
+                    "vessel_name": obj.current_proposal.vessel_details.vessel.latest_vessel_details.vessel_name,
                 })
         else:
             for vessel_details in obj.child_obj.vessel_details_list:
-                vessel_data.append({
-                    "id": vessel_details.vessel.id,
-                    "rego_no": vessel_details.vessel.rego_no,
-                    "vessel_name": vessel_details.vessel.latest_vessel_details.vessel_name,
+                if vessel_details and vessel_details.vessel:
+                    vessel_data.append({
+                        "id": vessel_details.vessel.id,
+                        "rego_no": vessel_details.vessel.rego_no,
+                        "vessel_name": vessel_details.vessel.latest_vessel_details.vessel_name,
                     })
         return vessel_data
 

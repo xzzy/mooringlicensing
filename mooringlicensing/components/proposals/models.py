@@ -866,6 +866,91 @@ class Proposal(RevisionedMixin):
                 logger.error(e)      
         return payment_required
 
+    #NOTE: This function has been implemented as a workaround for a difficult data issued (the cause of which remains undetermined)
+    #FeeItemApplicationFee records are being saved with the wrong vessel
+    #Should the problem be resolved and the data corrected, this function can (and should be) be retired and removed
+    def get_AA_fee_item_application_vessels(self,proposal):
+        """ 
+        This is a specialised function built for the purpose of working around a data issue with existing vessel fee records
+        
+        An unknown bug has caused the AA fee item application fees to store only one vessel for the same ML, instead of the actual vessel that the AA item applies to
+
+        Using other records available this function will retrieve the correct vessel records and map them to the ids of:
+            FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type)
+        
+        Correct records can be found via listed_vessels on the proposal (use dimensions to match, ensure every vessel is represented in rare instances where multiple dimensions are the same)
+
+        Restrict this function to ML renewals only
+        """
+        from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
+        annual_admission_type = ApplicationType.objects.get(code=AnnualAdmissionApplication.code)
+        #get fiafs
+        fiafs = FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type)
+        #get proposal vessels
+        vessel_ownerships = proposal.listed_vessels.all()
+        vessels = []
+        for vo in vessel_ownerships:
+            vessels.append(vo.vessel)
+        accounted_for = []
+        mapped_rego_nos = {}
+        missing_size_category = []
+        for fiaf in fiafs:
+            fix = False
+            if fiaf.vessel_details and fiaf.vessel_details.vessel:
+                recorded_vessel = fiaf.vessel_details.vessel
+                #check if vessel already accounted for
+                if recorded_vessel.rego_no in accounted_for:
+                    logger.warning(f"Fee Item Application Fee has incorrectly recorded {recorded_vessel.rego_no} in place of the correct rego no, correcting for deduction calculations...")
+                    fix = True
+                #check if recorded vessel length complies with its own category
+                if not fix and fiaf.fee_item and fiaf.fee_item.vessel_size_category:
+                    min_length = fiaf.fee_item.vessel_size_category.start_size if fiaf.fee_item.vessel_size_category.include_start_size else 0
+                    max_length = fiaf.fee_item.vessel_size_category.get_max_allowed_length()
+                    length = fiaf.vessel_details.vessel_applicable_length
+                    if length < min_length or length > max_length[0] or (not max_length[1] and length == max_length[0]):
+                        logger.warning(f"Fee Item Application Fee has incorrectly recorded {recorded_vessel.rego_no} in place of the correct rego no, correcting for deduction calculations...")
+                        fix = True
+                elif recorded_vessel and not (fiaf.fee_item and fiaf.fee_item.vessel_size_category):
+                    logger.warning(f"Fee Item Application Fee has no vessel size category")
+                    missing_size_category.append(fiaf)
+                if fix:
+                    for vessel in vessels:
+                        if vessel.rego_no != recorded_vessel.rego_no:
+                            #accounted for?
+                            if vessel.rego_no in accounted_for:
+                                continue
+                            if fiaf.fee_item and fiaf.fee_item.vessel_size_category:
+                                min_length = fiaf.fee_item.vessel_size_category.start_size if fiaf.fee_item.vessel_size_category.include_start_size else 0
+                                max_length = fiaf.fee_item.vessel_size_category.get_max_allowed_length()
+
+                                vessel_details = VesselDetails.objects.filter(vessel_id=vessel.id).order_by('-id').first()
+                                length = vessel_details.vessel_applicable_length
+                                #length complies? (if max_length[1] if false then length cannot equal max length, otherwise it is allowed)
+                                if length < min_length or length > max_length[0] or (not max_length[1] and length == max_length[0]):
+                                    continue
+                            else:
+                                logger.warning(f"Fee Item Application Fee has no vessel size category")
+                                if not fiaf in missing_size_category:
+                                    missing_size_category.append(fiaf)
+                            #not accounted for, length complies, use this vessel
+                            accounted_for.append(vessel.rego_no)
+                            mapped_rego_nos[fiaf.id] = vessel
+                            break
+                else:
+                    accounted_for.append(recorded_vessel.rego_no)
+                    mapped_rego_nos[fiaf.id] = recorded_vessel
+        still_missing = []
+        #check if all vessels are accounted for, if not may be due to missing size cats so rearrange
+        for vessel in vessels:
+            if not vessel.rego_no in accounted_for:
+                still_missing.append(vessel)
+        if still_missing:
+            logger.warning(f"One or more Fee Item Application Fee records cannot be properly accounted for in deductions")
+            if missing_size_category:
+                logger.warning(f"One or more Fee Item Application Fee records are missing size categories, which has caused problems with determining deductions")
+
+        return mapped_rego_nos
+
     def get_amount_paid_so_far_for_aa_through_this_proposal(self, proposal, vessel):
         from mooringlicensing.components.payments_ml.models import FeeItemApplicationFee
         from mooringlicensing.components.payments_ml.models import FeeConstructor
@@ -900,12 +985,21 @@ class Proposal(RevisionedMixin):
                     break
                 proposal_id_list.append(proposal.id)
 
+                fee_item_application_fee_vessels = []
+                if proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and type(proposal.child_obj) == MooringLicenceApplication:
+                    #specialised function to get CORRECT fee_item_application_fee vessels 
+                    fee_item_application_fee_vessels = self.get_AA_fee_item_application_vessels(proposal)
+
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
                     # We are interested only in the AnnualAdmission component
                     logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
-
                     try:
                         target_vessel = fee_item_application_fee.vessel_details.vessel
+                        if proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and type(proposal.child_obj) == MooringLicenceApplication:
+                            incorrect_vessel = target_vessel
+                            target_vessel = fee_item_application_fee_vessels[fee_item_application_fee.id]
+                            if incorrect_vessel != target_vessel:
+                                logger.warning(f"FeeItemApplicationFee: [{fee_item_application_fee}] incorrectly recorded {incorrect_vessel.rego_no} as vessel. Correct vessel should be {target_vessel.rego_no} which has been substituted for calculations.")
                     except:
                         logger.warning("Application fee missing vessel details - invoices may require review")
                         target_vessel = None
@@ -955,21 +1049,37 @@ class Proposal(RevisionedMixin):
                     break
                 proposal_id_list.append(proposal.id)
 
+                fee_item_application_fee_vessels = []
+                if proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and type(proposal.child_obj) == MooringLicenceApplication:
+                    #specialised function to get CORRECT fee_item_application_fee vessels 
+                    fee_item_application_fee_vessels = self.get_AA_fee_item_application_vessels(proposal)
+
                 for fee_item_application_fee in FeeItemApplicationFee.objects.filter(application_fee__proposal=proposal, fee_item__fee_constructor__application_type=annual_admission_type):
                     # We are interested only in the AnnualAdmission component
                     logger.info(f'FeeItemApplicationFee: [{fee_item_application_fee}] found through the proposal: [{proposal}]')
-
                     try:
                         target_vessel = fee_item_application_fee.vessel_details.vessel
+                        if proposal.proposal_type.code == PROPOSAL_TYPE_RENEWAL and type(proposal.child_obj) == MooringLicenceApplication:
+                            incorrect_vessel = target_vessel
+                            target_vessel = fee_item_application_fee_vessels[fee_item_application_fee.id]
+                            if incorrect_vessel != target_vessel:
+                                logger.warning(f"FeeItemApplicationFee: [{fee_item_application_fee}] incorrectly recorded {incorrect_vessel.rego_no} as vessel. Correct vessel should be {target_vessel.rego_no} which has been substituted for calculations.")
                     except:
                         logger.warning("Application fee missing vessel details - invoices may require review")
                         target_vessel = None
 
                     # Retrieve the current approvals of the target_vessel
-                    if target_vessel:
+                    if target_vessel and target_proposal and target_proposal.proposal_applicant:
                         current_approvals = target_vessel.get_current_approvals(target_date)
                         logger.info(f'Current approvals for the vessel: [{target_vessel}]: {current_approvals}')
+
+                        #filter the current approvals to only match those of the current user
+                        current_approvals['aaps'] = current_approvals['aaps'].filter(current_proposal__proposal_applicant__email_user_id=target_proposal.proposal_applicant.email_user_id)
+                        current_approvals['aups'] = current_approvals['aups'].filter(current_proposal__proposal_applicant__email_user_id=target_proposal.proposal_applicant.email_user_id)
+                        current_approvals['mls'] = current_approvals['mls'].filter(current_proposal__proposal_applicant__email_user_id=target_proposal.proposal_applicant.email_user_id)
                     
+                        logger.info(f'Current approvals for the vessel belonging to the same applicant: [{target_vessel}]: {current_approvals}')
+
                     deduct = False
                     #For when the vessel on the currently observed proposal is NOT the target vessel
                     #We calculate deductions here to factor instances where another vessel has been removed from the approval, to discount from the total cost
