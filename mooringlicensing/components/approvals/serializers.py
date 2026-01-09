@@ -1121,7 +1121,7 @@ class LookupApprovalSerializer(serializers.ModelSerializer):
                 })
         else:
             for vessel_details in obj.child_obj.vessel_details_list:
-                if vessel_data and vessel_data.vessel:
+                if vessel_details and vessel_details.vessel:
                     vessel_data.append({
                         "id": vessel_details.vessel.id,
                         "rego_no": vessel_details.vessel.rego_no,
