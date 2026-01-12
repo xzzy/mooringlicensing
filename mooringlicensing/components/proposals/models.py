@@ -1536,6 +1536,9 @@ class Proposal(RevisionedMixin):
             if af.fee_constructor:
                 main_af = af
                 break
+            elif self.proposal_type and self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+                main_af = af
+                break
         logger.debug(f'Main ApplicationFee: [{main_af}] found for the Proposal: [{self}].')
         return main_af
 
