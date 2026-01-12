@@ -1533,10 +1533,10 @@ class Proposal(RevisionedMixin):
     def get_main_application_fee(self):
         main_af = None
         for af in self.application_fees.filter(cancelled=False):
-            if af.fee_constructor:
+            if af and af.fee_constructor:
                 main_af = af
                 break
-            elif self.proposal_type and self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
+            elif af and self.proposal_type and self.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
                 main_af = af
                 break
         logger.debug(f'Main ApplicationFee: [{main_af}] found for the Proposal: [{self}].')
