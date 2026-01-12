@@ -781,8 +781,7 @@ def send_application_approved_or_declined_email(proposal, decision, request, sti
                 # 24
                 send_mla_approved_or_declined_email_amendment_payment_not_required(proposal, decision, request, stickers_to_be_returned)
         elif proposal.proposal_type.code == PROPOSAL_TYPE_SWAP_MOORINGS:
-            pass
-            #send_mla_approved_or_declined_email_swap_mooring(proposal, decision, request, stickers_to_be_returned)
+            send_mla_approved_or_declined_email_swap_mooring(proposal, decision, request, stickers_to_be_returned)
     else:
         # Should not reach here
         logger.warning('The type of the proposal {} is unknown'.format(proposal.lodgement_number))
