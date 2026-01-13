@@ -1,5 +1,5 @@
 # Prepare the base environment.
-FROM ubuntu:24.04 as builder_base_mooringlicensing
+FROM ghcr.io/dbca-wa/docker-apps-dev:ubuntu_2510_base_python as builder_base_mooringlicensing
 MAINTAINER asi@dbca.wa.gov.au
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -17,36 +17,15 @@ ENV OSCAR_SHOP_NAME='No Name'
 ENV BPAY_ALLOWED=False
 ENV NODE_MAJOR=20
 
-#ARG BRANCH_ARG
-#ARG REPO_ARG
-#ARG REPO_NO_DASH_ARG
-#ENV BRANCH=$BRANCH_ARG
-#ENV REPO=$REPO_ARG
-#ENV REPO_NO_DASH=$REPO_NO_DASH_ARG
-#RUN sed 's/archive.ubuntu.com/mirror.enzu.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
-#RUN sed 's/secuirty.ubuntu.com/mirror.enzu.com/g' /etc/apt/sources.list.d/ubuntu.sources > /etc/apt/sources.list.d/ubuntu.sources
-# RUN mv /etc/apt/sources.list.d/ubuntu-new.sources /etc/apt/sources.list.d/ubuntu.sources
-
-
 RUN apt-get clean
 RUN apt-get update
 RUN apt-get upgrade -y
-RUN apt-get install --no-install-recommends -y curl wget git libmagic-dev gcc binutils libproj-dev gdal-bin python3 python3-setuptools python3-dev python3-pip tzdata rsyslog gunicorn virtualenv
-RUN apt-get install --no-install-recommends -y libpq-dev patch libreoffice
-RUN apt-get install --no-install-recommends -y postgresql-client mtr htop vim nano npm sudo
-RUN apt-get install --no-install-recommends -y bzip2 unzip
-RUN apt-get install --no-install-recommends -y graphviz libgraphviz-dev pkg-config
-RUN ln -s /usr/bin/python3 /usr/bin/python 
+
 RUN apt remove -y libnode-dev
 RUN apt remove -y libnode72
 
 # Install nodejs
 RUN update-ca-certificates
-# install node 16
-#RUN touch install_node.sh
-#RUN curl -fsSL https://deb.nodesource.com/setup_20.x -o install_node.sh
-#RUN chmod +x install_node.sh && ./install_node.sh
-#RUN apt-get install -y nodejs
 
 RUN mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
@@ -74,11 +53,6 @@ RUN chmod 755 /startup.sh && \
     touch /app/rand_hash
     
 RUN chmod 755 /pre_startup.sh 
-
-# Default Scripts
-RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin/default_script_installer.sh -O /tmp/default_script_installer.sh
-RUN chmod 755 /tmp/default_script_installer.sh
-RUN /tmp/default_script_installer.sh
 
 # Install Python libs from requirements.txt.
 FROM builder_base_mooringlicensing as python_libs_ml
