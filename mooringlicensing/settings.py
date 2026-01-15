@@ -52,7 +52,7 @@ INSTALLED_APPS += [
     'smart_selects',
     'reversion',
     'reversion_compare',
-    'bootstrap3',
+    #'bootstrap3',
     'mooringlicensing',
     'mooringlicensing.components.main',
     'mooringlicensing.components.emails',
@@ -95,7 +95,7 @@ WSGI_APPLICATION = "mooringlicensing.wsgi.application"
 
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'mooringlicensing', 'templates'))
 TEMPLATES[0]['OPTIONS']['context_processors'].append('mooringlicensing.context_processors.mooringlicensing_processor')
-del BOOTSTRAP3['css_url']
+#del BOOTSTRAP3['css_url']
 
 CACHES = {
     'default': {
