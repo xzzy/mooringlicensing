@@ -230,7 +230,7 @@ def save_proponent_data_aua(instance, request, action):
     # proposal
     proposal_data = request.data.get('proposal') if request.data.get('proposal') else {}
 
-    if (not proposal_data.get("keep_existing_mooring") 
+    if ((not proposal_data.get("keep_existing_mooring") or (instance.proposal_type and instance.proposal_type.code == 'new'))
         and proposal_data.get("mooring_authorisation_preference") == 'site_licensee'):
             site_licensee_moorings_data = proposal_data.get('site_licensee_moorings')
 
