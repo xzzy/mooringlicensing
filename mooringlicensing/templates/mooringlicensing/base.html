@@ -1,4 +1,4 @@
-{% load bootstrap3 %}
+<!--bootstrap3-->
 
 {% load static %}
 
@@ -23,7 +23,7 @@
     <head>
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-            {% bootstrap_css %}
+            <!--bootstrap_css-->
                 <link type="text/css" href="{% static 'mooringlicensing/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
 	            <link rel="stylesheet" href="{% static 'mooringlicensing_vue/css/app.css' %}?v={{GIT_COMMIT_HASH}}">
@@ -169,7 +169,7 @@
                 <div class="row">
                     <div class="col-md-12">
                         {% for message in messages %}
-                            <div class="{{ message|bootstrap_message_classes }} alert-dismissable">
+                            <div class="{{ message }} alert-dismissable">
                                 <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&#215;</button>
                                 {{ message|safe }}
                             </div>
