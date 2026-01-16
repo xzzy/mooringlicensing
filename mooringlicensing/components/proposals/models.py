@@ -1201,7 +1201,7 @@ class Proposal(RevisionedMixin):
                         # This is paid for AA component for a target_vessel, but that vessel is no longer on any permit/licence
                         # In this case, we can transfer this amount
                         amount_paid = fee_item_application_fee.amount_paid if fee_item_application_fee.amount_paid else 0
-                        if target_vessel.rego_no and target_vessel.rego_no in max_amount_paid_per_vessel:
+                        if target_vessel and target_vessel.rego_no and target_vessel.rego_no in max_amount_paid_per_vessel:
                             full_amount_paid = max_amount_paid_per_vessel[target_vessel.rego_no]
                         else:
                             full_amount_paid = amount_paid
