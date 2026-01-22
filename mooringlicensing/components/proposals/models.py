@@ -1917,7 +1917,8 @@ class Proposal(RevisionedMixin):
             if type(self.child_obj) == MooringLicenceApplication:
                 vessels.extend([vo.vessel for vo in self.listed_vessels.all()])
             else:
-                vessels.append(self.vessel_details.vessel)
+                if self.vessel_details:
+                    vessels.append(self.vessel_details.vessel)
             # Non MLA
             proposals = [proposal for proposal in Proposal.objects.filter(vessel_details__vessel__in=vessels).
                     exclude(id=self.id).
@@ -1938,14 +1939,15 @@ class Proposal(RevisionedMixin):
             elif self.approval and self.approval.can_reissue and self.is_approver(request.user):
                 self.populate_reissue_vessel_properties()
                 # update vessel details
-                vessel_details = self.vessel_details.vessel.latest_vessel_details
-                self.vessel_type = vessel_details.vessel_type if vessel_details else ''
-                self.vessel_name = vessel_details.vessel_name if vessel_details else ''
-                self.vessel_length = vessel_details.vessel_length if vessel_details else 0.00
-                self.vessel_draft = vessel_details.vessel_draft if vessel_details else 0.00
-                self.vessel_beam = vessel_details.vessel_beam if vessel_details else 0.00
-                self.vessel_weight = vessel_details.vessel_weight if vessel_details else 0.00
-                self.berth_mooring = vessel_details.berth_mooring if vessel_details else ''
+                if self.vessel_details:
+                    vessel_details = self.vessel_details.vessel.latest_vessel_details
+                    self.vessel_type = vessel_details.vessel_type if vessel_details else ''
+                    self.vessel_name = vessel_details.vessel_name if vessel_details else ''
+                    self.vessel_length = vessel_details.vessel_length if vessel_details else 0.00
+                    self.vessel_draft = vessel_details.vessel_draft if vessel_details else 0.00
+                    self.vessel_beam = vessel_details.vessel_beam if vessel_details else 0.00
+                    self.vessel_weight = vessel_details.vessel_weight if vessel_details else 0.00
+                    self.berth_mooring = vessel_details.berth_mooring if vessel_details else ''
 
                 self.processing_status = Proposal.PROCESSING_STATUS_WITH_ASSESSOR
                 self.proposed_issuance_approval = {}
