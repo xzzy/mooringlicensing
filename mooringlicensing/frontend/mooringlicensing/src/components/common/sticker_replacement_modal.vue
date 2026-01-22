@@ -12,8 +12,8 @@
                 <div v-show="showDateOfLost" class="row form-group">
                     <label class="col-sm-2 control-label">Date of Lost</label>
                     <div class="col-sm-3">
-                        <div class="input-group date" ref="lostDatePicker">
-                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="lost_date_elem"/>
+                        <div class="input-group date" id="lost_date_elem" ref="lostDatePicker">
+                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" />
                             <span class="input-group-addon">
                                 <span class="glyphicon glyphicon-calendar"></span>
                             </span>
@@ -23,8 +23,8 @@
                 <div v-show="showDateOfReturned" class="row form-group">
                     <label class="col-sm-2 control-label">Date of Returned</label>
                     <div class="col-sm-3">
-                        <div class="input-group date" ref="returnedDatePicker">
-                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" id="returned_date_elem"/>
+                        <div class="input-group date" id="returned_date_elem" ref="returnedDatePicker">
+                            <input type="text" class="form-control text-center" placeholder="DD/MM/YYYY" />
                             <span class="input-group-addon">
                                 <span class="glyphicon glyphicon-calendar"></span>
                             </span>
@@ -162,12 +162,12 @@ export default {
             this.close();
         },
         close:function () {
-            this.isModalOpen = false
             this.details = this.getDefaultDetails()
-            $('#returned_date_elem').val('')
-            $('#lost_date_elem').val('')
+            $('#returned_date_elem').data('DateTimePicker').clear();
+            $('#lost_date_elem').data('DateTimePicker').clear();
             this.errors = false
             this.processing = false
+            this.isModalOpen = false
         },
         addEventListeners: function () {
             let vm = this;
