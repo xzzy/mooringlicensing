@@ -1917,7 +1917,7 @@ class Proposal(RevisionedMixin):
             if type(self.child_obj) == MooringLicenceApplication:
                 vessels.extend([vo.vessel for vo in self.listed_vessels.all()])
             else:
-                if self.vessel:
+                if self.vessel_details:
                     vessels.append(self.vessel_details.vessel)
             # Non MLA
             proposals = [proposal for proposal in Proposal.objects.filter(vessel_details__vessel__in=vessels).
